@@ -20,6 +20,8 @@ systemctl enable node_exporter
 
 yum update -y
 yum clean all
+# Disable all updates once QCOW2 image is generated
+echo "exclude=*" >> /etc/yum.conf
 
 # Cleanup
 rm -f /tmp/*.sh
