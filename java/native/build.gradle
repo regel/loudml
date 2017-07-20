@@ -1,0 +1,58 @@
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            name 'sonatype-snapshots'
+            url "https://oss.sonatype.org/content/repositories/snapshots/"
+        }
+        jcenter()
+    }
+    dependencies {
+        classpath "org.elasticsearch.gradle:build-tools:5.4.1"
+    }
+}
+
+
+apply plugin: 'elasticsearch.esplugin'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+
+// Version of the plugin
+version = '5.4.1.0'
+
+esplugin {
+    description 'ElasticSearch Native Beat Plugins.'
+    classname 'org.elasticsearch.examples.nativescript.plugin.BeatNativeScriptPlugin'
+    name 'beat-native-script'
+}
+
+dependencies {
+    // Not really used at the moment - just to show how to include dependencies
+    compile "org.apache.commons:commons-math3:3.5"
+}
+
+
+// compileJava.options.compilerArgs << "-Xlint:-deprecation"
+
+// uncomment to disable 3rd party audit
+// thirdPartyAudit.enabled = false
+
+// uncomment to disable forbidden patterns checks
+// forbiddenPatterns.enabled = false
+
+// uncomment to disable license headers checks
+// licenseHeaders.enabled = false
