@@ -18,6 +18,8 @@ systemctl enable getty@ttyS0
 # Enable node_exporter for system monitoring
 systemctl enable node_exporter
 
+yum install -y yum-plugin-versionlock 
+yum versionlock elasticsearch
 yum update -y
 yum clean all
 # Disable all updates once QCOW2 image is generated
