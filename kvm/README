@@ -1,0 +1,19 @@
+This directory contains files to build images for KVM. This will be better
+integrated into the buildchain later.
+
+Requirements
+============
+
+- Packer from HashiCorp
+- build repository extracted in the "repo-build" directory
+
+
+Instructions
+============
+
+Build instructions for QCOW images:
+- set path to "packer" in rules.mk
+- run "make elastic" to generate elasticsearch.qcow2 in the current directory
+
+To debug Packer provisioning, it is possible to use a builder of type "Null".
+
