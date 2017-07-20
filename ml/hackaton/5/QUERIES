@@ -1,0 +1,158 @@
+GET /voip-2*/_search
+{
+  "size": 0,
+  "timeout": "1s",
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-40d/d",
+              "lte": "now-10d/d"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "account": {
+      "terms": {
+        "field": "caller",
+        "size": 100
+      },
+      "aggs": {
+        "count": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "interval": "6h",
+            "min_doc_count": 0,
+            "extended_bounds": {
+              "min": "now-40d/d",
+              "max": "now-10d/d"
+            }
+          },
+          "aggs": {
+            "duration_stats": {
+              "extended_stats": {
+                "field": "duration"
+              }
+            },
+            "international": {
+              "terms": {
+                "script": {
+                  "lang": "painless",
+                  "inline": "if(doc['international'].value) return true"
+                }
+              },
+              "aggs": {
+                "duration_stats": {
+                  "extended_stats": {
+                    "field": "duration"
+                  }
+                }
+              }
+            },
+            "premium": {
+              "terms": {
+                "script": {
+                  "lang": "painless",
+                  "inline": "if(doc['toll_call'].value) return true"
+                }
+              },
+              "aggs": {
+                "duration_stats": {
+                  "extended_stats": {
+                    "field": "duration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+GET /voip-2*/_search
+{
+  "size": 0,
+  "timeout": "1s",
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-10d/d",
+              "lte": "now/d"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "account": {
+      "terms": {
+        "field": "caller",
+        "size": 100
+      },
+      "aggs": {
+        "count": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "interval": "6h",
+            "min_doc_count": 0,
+            "extended_bounds": {
+              "min": "now-10d/d",
+              "max": "now/d"
+            }
+          },
+          "aggs": {
+            "duration_stats": {
+              "extended_stats": {
+                "field": "duration"
+              }
+            },
+            "international": {
+              "terms": {
+                "script": {
+                  "lang": "painless",
+                  "inline": "if(doc['international'].value) return true"
+                }
+              },
+              "aggs": {
+                "duration_stats": {
+                  "extended_stats": {
+                    "field": "duration"
+                  }
+                }
+              }
+            },
+            "premium": {
+              "terms": {
+                "script": {
+                  "lang": "painless",
+                  "inline": "if(doc['toll_call'].value) return true"
+                }
+              },
+              "aggs": {
+                "duration_stats": {
+                  "extended_stats": {
+                    "field": "duration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
