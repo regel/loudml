@@ -85,8 +85,8 @@ The assembled plugin can be found in the **build/distributions** directory. Foll
 ```bash
 /usr/share/elasticsearch/bin/elasticsearch-plugin remove beat-native-script
 -> removing [beat-native-script]...
-/usr/share/elasticsearch/bin/elasticsearch-plugin install file://$PWD/java/native/build/distributions/beat-native-script-5.4.1.0.zip
--> Downloading file:///tmp/java/native/build/distributions/beat-native-script-5.4.1.0.zip
+/usr/share/elasticsearch/bin/elasticsearch-plugin install file://$PWD/java/native/build/distributions/beat-native-script-5.4.3.0.zip
+-> Downloading file:///tmp/java/native/build/distributions/beat-native-script-5.4.3.0.zip
 [=================================================] 100%   
 -> Installed beat-native-script
 # systemctl restart elasticsearch

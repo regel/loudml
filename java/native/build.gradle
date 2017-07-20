@@ -22,7 +22,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "org.elasticsearch.gradle:build-tools:5.4.1"
+        classpath "org.elasticsearch.gradle:build-tools:5.4.3"
     }
 }
 
@@ -32,7 +32,7 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 
 // Version of the plugin
-version = '5.4.1.0'
+version = '5.4.3.0'
 
 esplugin {
     description 'ElasticSearch Native Beat Plugins.'

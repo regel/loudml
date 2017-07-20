@@ -49,7 +49,7 @@ yum-utils
 
 # image specific packages
 java-1.8.0-openjdk-headless
-elasticsearch
+elasticsearch-5.4.3
 blackbox_exporter
 
 # unnecessary firmware

@@ -13,7 +13,7 @@ source:
 		native/src/main/java/org/elasticsearch/examples/nativescript/script/DeviceSearchScriptFactory.java
 
 ### Output binary. Version must match exactly Elasticsearch version
-### native/build/distributions/beat-native-script-5.4.1.0.zip
+### native/build/distributions/beat-native-script-5.4.3.0.zip
 zip:
 	( cd native/ ; ./gradlew assemble )
 

@@ -70,5 +70,5 @@ systemctl enable blackbox_exporter
 # Installation instructions:
 # https://www.elastic.co/guide/en/x-pack/current/installing-xpack.html#xpack-package-installation
 mkdir -p /var/lib/elasticsearch
-wget -O /var/lib/elasticsearch/x-pack-5.4.0.zip \
-     https://artifacts.elastic.co/downloads/packs/x-pack/x-pack-5.4.0.zip
+wget -O /var/lib/elasticsearch/x-pack-5.4.3.zip \
+     https://artifacts.elastic.co/downloads/packs/x-pack/x-pack-5.4.3.zip
