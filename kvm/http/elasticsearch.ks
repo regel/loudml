@@ -40,6 +40,7 @@ epel-release
 iotop
 net-tools
 node_exporter
+ntp
 sudo
 tcpdump
 tmux
