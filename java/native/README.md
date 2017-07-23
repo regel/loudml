@@ -15,8 +15,6 @@ Please make sure to use the correct branch of this repository that corresponds t
 
 The native script named **UserAgentSearch** will match params.field value against internal regular expressions and return **true** or **false**:
  * if params.device is not null, the script will return true for documents matching the given type
- * if params.model is not null, the script will return true for documents matching the given model
- * if params.browser is not null, the script will return true for documents matching the given browser
 
 The above script can be used in search context, to refine queries, e.g.:
 
@@ -44,10 +42,37 @@ curl -X GET localhost:9200/beat*/_search -d'
 }'
 ```
 
+To filter specific device brand or model, use **ModelSearch** native script, e.g:
+ * if params.brand is not null, the script will return true for documents matching the given brand name
+ * if params.model is not null, the script will return true for documents matching the given model
+
+```bash
+curl -X GET localhost:9200/beat*/_search -d'
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "script": {
+            "script": {
+              "inline": "ModelSearch", 
+              "params": {
+                "brand": "Apple",
+                "field": "UserAgent"
+              },
+              "lang": "native"
+            }
+          }
+        }
+      ]
+    }
+  }
+}'
+```
+
+
 The same native script can be used in aggregation or script field context and return the raw value directly.
  * if params.operation equals "getdevice", the script will return the device type value
- * if params.operation equals "getmodel", the script will return the device model value
- * if params.operation equals "getbrowser", the script will return the browser value
 
 ```bash
 curl -X GET localhost:9200/beat*/_search -d'
@@ -62,6 +87,32 @@ curl -X GET localhost:9200/beat*/_search -d'
           "lang": "native",
           "params": {
             "operation": "getdevice",
+            "field": "UserAgent"
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+To aggregate on device brand, or model, use the **ModelSearch** native script.
+ * if params.operation equals "getbrand", the script will return the device brand name value, e.g. Apple
+ * if params.operation equals "getmodel", the script will return the device model name value
+
+```bash
+curl -X GET localhost:9200/beat*/_search -d'
+{
+  "size": 0,
+  "timeout": "1s",
+  "aggs": {
+    "devices": {
+      "terms": {
+        "script": {
+          "inline": "ModelSearch",
+          "lang": "native",
+          "params": {
+            "operation": "getbrand",
             "field": "UserAgent"
           }
         }

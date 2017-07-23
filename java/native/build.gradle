@@ -43,6 +43,7 @@ esplugin {
 dependencies {
     // Not really used at the moment - just to show how to include dependencies
     compile "org.apache.commons:commons-math3:3.5"
+    compile "org.apache.commons:commons-lang3:3.5"
 }
 
 

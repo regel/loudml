@@ -11,6 +11,8 @@ all: source zip
 source:
 	python3 gen_device_search.py > \
 		native/src/main/java/org/elasticsearch/examples/nativescript/script/DeviceSearchScriptFactory.java
+	python3 gen_model_search.py > \
+		native/src/main/java/org/elasticsearch/examples/nativescript/script/ModelSearchScriptFactory.java
 
 ### Output binary. Version must match exactly Elasticsearch version
 ### native/build/distributions/beat-native-script-5.4.3.0.zip
