@@ -108,7 +108,7 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
 		{
 			Pattern pattern = this.al.get(i);
 			Matcher matcher = pattern.matcher(val);
-			if (matcher.matches()) {
+			if (matcher.find()) {
 				model = this.ml.get(i);
 				if (model.indexOf("$") != -1) {
 					model = StringUtils.replace(model, "$1", matcher.group(1));
@@ -170,7 +170,7 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
 			{
 				Pattern pattern = al.get(i);
 				Matcher matcher = pattern.matcher(fieldValue);
-				if (matcher.matches()) {
+				if (matcher.find()) {
 					brandObj = bl.get(i);
 					brand = brandObj.GetBrand();
 					model = brandObj.GetModel(fieldValue);

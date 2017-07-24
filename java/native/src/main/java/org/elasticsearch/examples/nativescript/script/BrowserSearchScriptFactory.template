@@ -127,7 +127,7 @@ public class BrowserSearchScriptFactory implements NativeScriptFactory {
 			{
 				Pattern pattern = al.get(i);
 				Matcher matcher = pattern.matcher(fieldValue);
-				if (matcher.matches()) {
+				if (matcher.find()) {
 					browser = dl.get(i);
 					if (browser.indexOf("$") != -1) {
 						browser = StringUtils.replace(browser, "$1", matcher.group(1));

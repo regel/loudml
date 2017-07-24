@@ -129,7 +129,7 @@ public class DeviceSearchScriptFactory implements NativeScriptFactory {
 			{
 				Pattern pattern = al.get(i);
 				Matcher matcher = pattern.matcher(fieldValue);
-				if (matcher.matches()) {
+				if (matcher.find()) {
 					device = dl.get(i);
 	                                if (this.op.isEmpty()) {
 	                                       return this.searchDevice.equals(device);
