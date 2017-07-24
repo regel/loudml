@@ -18,6 +18,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.examples.nativescript.script.DeviceSearchScriptFactory;
 import org.elasticsearch.examples.nativescript.script.ModelSearchScriptFactory;
+import org.elasticsearch.examples.nativescript.script.BrowserSearchScriptFactory;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.ScriptPlugin;
 import org.elasticsearch.script.NativeScriptFactory;
@@ -50,6 +51,7 @@ public class BeatNativeScriptPlugin extends Plugin implements ScriptPlugin {
     public List<NativeScriptFactory> getNativeScripts() {
         return Arrays.asList(
             new DeviceSearchScriptFactory(settings),
+            new BrowserSearchScriptFactory(settings),
             new ModelSearchScriptFactory(settings)
         );
     }

@@ -13,6 +13,8 @@ source:
 		native/src/main/java/org/elasticsearch/examples/nativescript/script/DeviceSearchScriptFactory.java
 	python3 gen_model_search.py > \
 		native/src/main/java/org/elasticsearch/examples/nativescript/script/ModelSearchScriptFactory.java
+	python3 gen_browser_search.py > \
+		native/src/main/java/org/elasticsearch/examples/nativescript/script/BrowserSearchScriptFactory.java
 
 ### Output binary. Version must match exactly Elasticsearch version
 ### native/build/distributions/beat-native-script-5.4.3.0.zip
