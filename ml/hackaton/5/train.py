@@ -37,6 +37,7 @@ feature_names = [ \
 
 num_features=len(feature_names)
 
+# Calculate the long term (30 days) 'signatures' for each user account
 def walk(d):
     t0=0
     for k in d['aggregations']['account']['buckets']:
@@ -260,6 +261,8 @@ class SOM(object):
  
             ##INITIALIZE VARIABLES
             init_op = tf.global_variables_initializer()
+            # 'Saver' op to save and restore all the variables
+            self._saver = tf.train.Saver()
             self._sess.run(init_op)
  
     def _neuron_locations(self, m, n):
@@ -334,6 +337,27 @@ class SOM(object):
  
         return to_return
 
+    def save_model(self, model_path='/tmp'):
+        if not self._trained:
+            raise ValueError("SOM not trained yet")
+        # Save model weights to disk
+        save_path = self._saver.save(self._sess, model_path)
+        print("Model saved in file: %s" % save_path)
+
+    def restore_model(self, save_path=None):
+        # Restore model weights to disk
+        self._saver.restore(self._sess, save_path)
+        print("Model restored from file: %s" % save_path)
+        #Store a centroid grid for easy retrieval later on
+        centroid_grid = [[] for i in range(self._m)]
+        self._weightages = list(self._sess.run(self._weightage_vects))
+        self._locations = list(self._sess.run(self._location_vects))
+        for i, loc in enumerate(self._locations):
+            centroid_grid[loc[0]].append(self._weightages[i])
+        self._centroid_grid = centroid_grid
+
+        self._trained = True
+
     def show(self):
         """
         Displays the weight matrix as an RGB image
@@ -359,35 +383,6 @@ epochs = 100
 som = SOM(map_w, map_h, data_dimens, epochs)
 # Start Training
 som.train(profiles)
-# TODO:save TF graph and weights to a file
-# som.save(file)
-
-#For plotting the images
-from matplotlib import pyplot as plt
-
-#Map profiles to their closest neurons
-mapped = som.map_vects(profiles)
-
-X = np.zeros((len(mapped), 2), dtype=np.int)
-for x in range(len(mapped)):
-   # The (x,y) coordinates assigned to a given input vector (the account profile)
-   X[x] = [ mapped[x][0], mapped[x][1] ] 
-
-
-#Plot
-plt.subplots_adjust(bottom = 0.1)
-plt.scatter(
-    X[:, 0], X[:, 1], marker='o',
-    cmap=plt.get_cmap('Spectral'))
-
-for label, x, y in zip(accounts, X[:, 0], X[:, 1]):
-    plt.annotate(
-        label,
-        xy=(x, y), xytext=(-20, 20),
-        textcoords='offset points', ha='right', va='bottom',
-        bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.5),
-        arrowprops=dict(arrowstyle = '->', connectionstyle='arc3,rad=0'))
-
-plt.show()
-
+# FIXME: Hyperparameters are not saved, nor the model version
+som.save_model('model/som_model.ckpt')
 
