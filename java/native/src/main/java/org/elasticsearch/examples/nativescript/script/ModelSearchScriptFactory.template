@@ -199,28 +199,34 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
 				Matcher matcher = pattern.matcher(fieldValue);
 				if (matcher.find()) {
 					brandObj = bl.get(i);
-					brand = brandObj.GetBrand();
-					model = brandObj.GetModel(fieldValue);
-					device = brandObj.GetDevice(fieldValue);
 	                                if (this.op.isEmpty()) {
-       	                                       if(! this.searchModel.isEmpty())
+       	                                        if(! this.searchModel.isEmpty()){
+						       model = brandObj.GetModel(fieldValue);
 		                                       return this.searchModel.equals(model);
-       	                                       else if(! this.searchBrand.isEmpty())
+						}
+       	                                        else if(! this.searchBrand.isEmpty()) {
+						       brand = brandObj.GetBrand();
 		                                       return this.searchBrand.equals(brand);
-       	                                       else if(! this.searchDevice.isEmpty())
+						}
+       	                                        else if(! this.searchDevice.isEmpty()) {
+						       device = brandObj.GetDevice(fieldValue);
 		                                       return this.searchDevice.equals(device);
+						}
 					} else {
                                         	if (this.op.equals("getmodel")) {
+						        model = brandObj.GetModel(fieldValue);
        	                                        	if(this.searchModel.isEmpty() ||
        	                                                	this.searchModel.equals(model))
 	                                                        	return model;
 						}
                                         	else if (this.op.equals("getbrand")) {
+						        brand = brandObj.GetBrand();
        	                                        	if(this.searchBrand.isEmpty() ||
        	                                                	this.searchBrand.equals(brand))
 	                                                        	return brand;
 						}
                                         	else if (this.op.equals("getdevice")) {
+						        device = brandObj.GetDevice(fieldValue);
        	                                        	if(this.searchDevice.isEmpty() ||
        	                                                	this.searchDevice.equals(device))
 	                                                        	return device;
