@@ -115,10 +115,16 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
 			if (matcher.find()) {
 				model = this.ml.get(i);
 				if (model.indexOf("$") != -1) {
-					model = StringUtils.replace(model, "$1", matcher.group(1));
+					String text = matcher.group(1);
+					if(text == null)
+						text = "";
+					model = StringUtils.replace(model, "$1", text).trim();
 				}
 				if (model.indexOf("$") != -1) {
-					model = StringUtils.replace(model, "$2", matcher.group(2));
+					String text = matcher.group(2);
+					if(text == null)
+						text = "";
+					model = StringUtils.replace(model, "$2", text).trim();
 				}
 				return model;
 			}
