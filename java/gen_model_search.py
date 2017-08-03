@@ -60,7 +60,7 @@ tmp.write("{% block __ModelSearchScript__ -%}\n")
 with open(models, 'r') as stream:
     try:
         y = yaml.safe_load(stream)
-        for brand in y:
+        for brand in sorted(y):
             brand_re = y[brand]['regex']
             device = ''
             if 'device' in y[brand]:
