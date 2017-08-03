@@ -43,7 +43,7 @@ tmp.write("{% block __BrowserSearchScript__ -%}\n")
 # smartphone and tablet definitions
 with open(browsers, 'r') as stream:
     try:
-        y = yaml.load(stream)
+        y = yaml.safe_load(stream)
         for z in y:
            _re = z['regex']
            name = z['name']

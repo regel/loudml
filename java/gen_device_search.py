@@ -44,10 +44,13 @@ tmp.write("{% block __DeviceSearchScript__ -%}\n")
 # smartphone and tablet definitions
 with open(models, 'r') as stream:
     try:
-        y = yaml.load(stream)
+        y = yaml.safe_load(stream)
         for brand in y:
             brand_re = y[brand]['regex']
-            device = y[brand]['device']
+            device = ''
+            if 'device' in y[brand]:
+                device = y[brand]['device']
+
             if 'models' in y[brand]:
                 gen_re_statement(tmp, brand_re.replace('\\', '\\\\'), device)
                 for re in y[brand]['models']:
@@ -63,7 +66,7 @@ with open(models, 'r') as stream:
 # Bot definitions
 with open(bots, 'r') as stream:
     try:
-        y = yaml.load(stream)
+        y = yaml.safe_load(stream)
         for elem in y:
             gen_re_statement(tmp, elem['regex'].replace('\\', '\\\\'), "bot")
 

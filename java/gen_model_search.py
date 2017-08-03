@@ -25,12 +25,12 @@ def add_brand_statement(output):
     output.write(s.format(b))
     b = b+1
 
-def add_model_statement(output, expression, model):
+def add_model_statement(output, expression, model, device):
     global j
     global b
     j=j+1
-    s = """Pattern p{} = Pattern.compile(\"{}\"); b{}.AddModel(p{}, \"{}\");\n"""
-    output.write(s.format(j, expression, b, j, model))
+    s = """Pattern p{} = Pattern.compile(\"{}\"); b{}.AddModel(p{}, \"{}\", \"{}\");\n"""
+    output.write(s.format(j, expression, b, j, model, device))
 
 def generate_native_java(script, dest=None):
     import jinja2.utils
@@ -59,24 +59,35 @@ tmp.write("{% block __ModelSearchScript__ -%}\n")
 # smartphone and tablet definitions
 with open(models, 'r') as stream:
     try:
-        y = yaml.load(stream)
+        y = yaml.safe_load(stream)
         for brand in y:
             brand_re = y[brand]['regex']
-            gen_re_statement(tmp, brand_re.replace('\\', '\\\\'), brand)
+            device = ''
+            if 'device' in y[brand]:
+               device = y[brand]['device']
+
+            _brand = brand
+            if 'brand' in y[brand]:
+                _brand = y[brand]['brand']
+
+            gen_re_statement(tmp, brand_re.replace('\\', '\\\\'), _brand)
             if 'models' in y[brand]:
                 for x in y[brand]['models']:
                     model = x['model']
                     model_re = x['regex']
-                    add_model_statement(tmp, model_re.replace('\\', '\\\\'), model)
+                    if 'device' in x:
+                        _device = x['device']
+                    else:
+                        _device = device
+                    add_model_statement(tmp, model_re.replace('\\', '\\\\'), model, _device)
             elif 'model' in y[brand]:
                 model = y[brand]['model']
-                add_model_statement(tmp, brand_re.replace('\\', '\\\\'), model)
+                add_model_statement(tmp, brand_re.replace('\\', '\\\\'), model, device)
 
             add_brand_statement(tmp)
 
     except yaml.YAMLError as exc:
         print(exc)
-
 
 tmp.write("{% endblock %}\n")
 tmp.close()

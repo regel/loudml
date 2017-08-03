@@ -67,9 +67,10 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
         // optional String parameters
         String brand = params == null ? "" : XContentMapValues.nodeStringValue(params.get("brand"), "");
         String model = params == null ? "" : XContentMapValues.nodeStringValue(params.get("model"), "");
+        String device = params == null ? "" : XContentMapValues.nodeStringValue(params.get("device"), "");
         String operation = params == null ? "" : XContentMapValues.nodeStringValue(params.get("operation"), "");
 
-        return new ModelSearchScript(fieldName, operation, brand, model);
+        return new ModelSearchScript(fieldName, operation, brand, model, device);
     }
 
     @Override
@@ -85,17 +86,20 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
     public static class BrandType {
         private final ArrayList<Pattern> al;
         private final ArrayList<String> ml;
+        private final ArrayList<String> dl;
 	private final String brand;
 
         public BrandType(String brand) {
             this.brand = brand;
             this.al = new ArrayList<Pattern>();
             this.ml = new ArrayList<String>();
+            this.dl = new ArrayList<String>();
         }
 
-        public void AddModel(Pattern pattern, String model) {
+        public void AddModel(Pattern pattern, String model, String device) {
 		this.al.add(pattern);
 		this.ml.add(model);
+		this.dl.add(device);
 	}
 
         public String GetBrand() {
@@ -121,6 +125,20 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
 		}
 		return "";
 	}
+
+        public String GetDevice(String val) {
+		String device;
+		for(int i = 0; i < this.al.size(); i++)
+		{
+			Pattern pattern = this.al.get(i);
+			Matcher matcher = pattern.matcher(val);
+			if (matcher.find()) {
+				return this.dl.get(i);
+			}
+		}
+		return "";
+	}
+
     }
 
     /**
@@ -135,6 +153,7 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
         private final String op;
         private final String searchBrand;
         private final String searchModel;
+        private final String searchDevice;
 
         /**
          * Factory creates this script on every
@@ -143,11 +162,12 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
          * @param brand (optional) the searched brand name
          * @param model (optional) the searched model name
          */
-        private ModelSearchScript(String fieldName, String operation, String brand, String model) {
+        private ModelSearchScript(String fieldName, String operation, String brand, String model, String device) {
             this.fieldName = fieldName;
             this.op = operation;
             this.searchBrand = brand;
             this.searchModel = model;
+            this.searchDevice = device;
             this.al = new ArrayList<Pattern>();
             this.bl = new ArrayList<BrandType>();
 {% block __ModelSearchScript__ %}{% endblock %}
@@ -159,6 +179,7 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
 	    BrandType brandObj;
 	    String brand = null;
 	    String model = null;
+	    String device = null;
 
             // First we get field using doc lookup
             ScriptDocValues<String> docValue = (ScriptDocValues<String>) doc().get(fieldName);
@@ -174,11 +195,14 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
 					brandObj = bl.get(i);
 					brand = brandObj.GetBrand();
 					model = brandObj.GetModel(fieldValue);
+					device = brandObj.GetDevice(fieldValue);
 	                                if (this.op.isEmpty()) {
        	                                       if(! this.searchModel.isEmpty())
 		                                       return this.searchModel.equals(model);
        	                                       else if(! this.searchBrand.isEmpty())
 		                                       return this.searchBrand.equals(brand);
+       	                                       else if(! this.searchDevice.isEmpty())
+		                                       return this.searchDevice.equals(device);
 					} else {
                                         	if (this.op.equals("getmodel")) {
        	                                        	if(this.searchModel.isEmpty() ||
@@ -189,6 +213,11 @@ public class ModelSearchScriptFactory implements NativeScriptFactory {
        	                                        	if(this.searchBrand.isEmpty() ||
        	                                                	this.searchBrand.equals(brand))
 	                                                        	return brand;
+						}
+                                        	else if (this.op.equals("getdevice")) {
+       	                                        	if(this.searchDevice.isEmpty() ||
+       	                                                	this.searchDevice.equals(device))
+	                                                        	return device;
 						}
 					}
 				}
