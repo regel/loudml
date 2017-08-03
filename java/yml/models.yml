@@ -332,7 +332,8 @@ TiPhone:
 # Apple
 Apple1:
   brand: 'Apple'
-  regex: '(?:iTunes-)?AppleTV|(?:Apple-)?(?:iPad|iPhone)|iPh[0-9],[0-9]|CFNetwork'
+  regex: '(?:iTunes-)?AppleTV|(?:Apple-)?(?:iPhone)|iPh[0-9],[0-9]|CFNetwork'
+  device: 'smartphone'
   models:
     # specific smartphone devices
     - regex: '(?:Apple-)?iPh(?:one)?1[C,]1'
@@ -375,6 +376,20 @@ Apple1:
       model: 'iPhone SE'
       device: 'smartphone'
 
+    - regex: '(?:iTunes-)?AppleTV'
+      model: 'Apple TV'
+      device: 'tv'
+    - regex: '(?:Apple-)?iPhone ?(3GS?|4S?|5[CS]?|6(:? Plus)?)?'
+      model: 'iPhone $1'
+      device: 'smartphone'
+
+
+# Apple
+Apple3:
+  brand: 'Apple'
+  regex: '(?:iTunes-)?AppleTV|(?:Apple-)?(?:iPad)|CFNetwork'
+  device: 'tablet'
+  models:
     # specific tablet devices
     - regex: '(?:Apple-)?iPad1[C,]1'
       model: 'iPad'
@@ -409,16 +424,9 @@ Apple1:
     - regex: '(?:Apple-)?iPad6[C,][78]'
       model: 'iPad Pro 12.9'
       device: 'tablet'
-
-    - regex: '(?:iTunes-)?AppleTV'
-      model: 'Apple TV'
-      device: 'tv'
     - regex: '(?:Apple-)?iPad'
       model: 'iPad'
       device: 'tablet'
-    - regex: '(?:Apple-)?iPhone ?(3GS?|4S?|5[CS]?|6(:? Plus)?)?'
-      model: 'iPhone $1'
-      device: 'smartphone'
 
 # micromax
 MicroMax:
