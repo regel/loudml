@@ -13,7 +13,7 @@
       "shutdown_command": "shutdown now",
       "disk_size": 10000,
       "format": "qcow2",
-      "headless": false,
+      "headless": true,
       "accelerator": "kvm",
       "http_directory": "http",
       "http_port_min": 10082,
