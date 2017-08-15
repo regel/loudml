@@ -72,3 +72,12 @@ systemctl enable blackbox_exporter
 mkdir -p /var/lib/elasticsearch
 wget -O /var/lib/elasticsearch/x-pack-5.4.3.zip \
      https://artifacts.elastic.co/downloads/packs/x-pack/x-pack-5.4.3.zip
+
+# Install TensorFlow (CPU)
+# Installation instructions: https://www.tensorflow.org/install/install_linux
+pkg="tensorflow-1.2.1-cp34-cp34m-linux_x86_64.whl"
+url="https://storage.googleapis.com/tensorflow/linux/cpu/$pkg"
+yum install -y epel-release
+yum install -y python34-pip
+pip3 install -U pip
+pip3 install --upgrade "$url"
