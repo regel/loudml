@@ -24,6 +24,15 @@ from tensorflow.contrib.keras.api.keras.layers import Activation
 from tensorflow.contrib.keras.api.keras.layers import LSTM
 from tensorflow.contrib.keras.api.keras.callbacks import EarlyStopping
 
+from hyperopt import hp
+from hyperopt import space_eval
+from hyperopt import fmin, tpe, STATUS_OK, Trials
+
+
+class HyperParameters:
+    def __init__(self):
+        return
+ 
 # global vars for easy reusability
 # This UNIX process is handling a unique model
 _model, _graph = None, None
@@ -170,17 +179,15 @@ def train(
         to_date=None,
         train_size=0.67,
         batch_size = 64,
-        hidden_neurons=100,
         num_epochs=100,
-        loss_fct='mean_squared_error',
-        optimizer='adam',
+        max_evals=10,
     ):
     global _model, _graph, _mins, _maxs
     _model, _graph = None, None
     _mins, _maxs = None, None
 
-    logging.info('train(%s) range=[%s, %s] train_size=%f batch_size=%d neurons=%d epochs=%d)' \
-                  % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), train_size, batch_size, hidden_neurons, num_epochs))
+    logging.info('train(%s) range=[%s, %s] train_size=%f batch_size=%d epochs=%d)' \
+                  % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), train_size, batch_size, num_epochs))
 
     to_date = 1000 * int(to_date / model._bucket_interval) * model._bucket_interval
     from_date = 1000 * int(from_date / model._bucket_interval) * model._bucket_interval
@@ -209,23 +216,90 @@ def train(
 
     (X_train, y_train), (X_test, y_test) = train_test_split(_dataset, n_prev=n_prev, train_size=train_size)
 
-    # expected input data shape: (batch_size, timesteps, num_features)
-    _model = Sequential()
-    _model.add(LSTM(hidden_neurons, input_shape=(None,num_features), return_sequences=False))
-    _model.add(Dense(num_features, input_dim=hidden_neurons))
-    _model.add(Activation('tanh'))
-    _model.compile(loss=loss_fct, optimizer=optimizer, metrics=['accuracy'])
+    def cross_val_model(params):
+        global _model, _graph
+        _model, _graph = None, None
 
-    _stop = EarlyStopping(monitor='val_loss', patience=5, verbose=_verbose, mode='auto')
-    _model.fit(X_train, y_train, epochs=num_epochs, batch_size=batch_size, verbose=_verbose, validation_data=(X_test, y_test), callbacks=[_stop])
+        # Destroys the current TF graph and creates a new one.
+        # Useful to avoid clutter from old models / layers.
+        K.clear_session()
+
+        # expected input data shape: (batch_size, timesteps, num_features)
+        _model = Sequential()
+        if (params.depth == 1):
+            _model.add(LSTM(params.l1, input_shape=(None,num_features), return_sequences=False))
+            _model.add(Dense(num_features, input_dim=params.l1))
+        elif (params.depth == 2):
+            _model.add(LSTM(params.l1, input_shape=(None,num_features), return_sequences=True))
+            _model.add(LSTM(params.l2, return_sequences=False))
+            _model.add(Dense(num_features, input_dim=params.l2))
+
+        _model.add(Activation(params.activation))
+        _model.compile(loss=params.loss_fct, optimizer=params.optimizer, metrics=['accuracy'])
     
-    # How well did it do? 
-    score = _model.evaluate(X_test, y_test, batch_size=batch_size, verbose=_verbose)
-    for j in range(len(score)):
-        logging.info("%s: %f" % (_model.metrics_names[j], score[j]))
+        _stop = EarlyStopping(monitor='val_loss', patience=5, verbose=_verbose, mode='auto')
+        _model.fit(X_train, y_train, epochs=num_epochs, batch_size=batch_size, verbose=_verbose, validation_data=(X_test, y_test), callbacks=[_stop])
+        
+        # How well did it do? 
+        score = _model.evaluate(X_test, y_test, batch_size=batch_size, verbose=_verbose)
+        for j in range(len(score)):
+            print("%s: %f" % (_model.metrics_names[j], score[j]))
+    
+        return score
+    
+    hyperparameters = HyperParameters();
+
+    # Parameter search space
+    def objective(args):
+        for key, value in args.items():
+            try:
+                if int(value) == value:
+                    value = int(value)
+                elif float(value) == value:
+                    value = float(value)
+            except(ValueError):
+                pass
+            setattr(hyperparameters, key, value)
+        score = cross_val_model(hyperparameters)
+        return {'loss': score[0], 'status': STATUS_OK}
+
+    space = {
+        'depth': hp.choice('depth', [1,2]),
+        'l1': 1+hp.randint('l1', 100),
+        'l2': 1+hp.randint('l2', 100),
+        'activation': hp.choice('activation', ['tanh']),
+        'loss_fct': hp.choice('loss_fct', ['mean_squared_error']),
+        'optimizer': hp.choice('optimizer', ['adam']),
+    }
+    
+    # The Trials object will store details of each iteration
+    trials = Trials()
+
+    # Run the hyperparameter search using the tpe algorithm
+    best = fmin(objective,
+            space,
+            algo=tpe.suggest,
+            max_evals=max_evals,
+            trials=trials)
+
+    # Get the values of the optimal parameters
+    best_params = space_eval(space, best)
+    print('best_params=', best_params)
+    hyperparameters = HyperParameters();
+    for key, value in best_params.items():
+        try:
+            if int(value) == value:
+                value = int(value)
+            elif float(value) == value:
+                value = float(value)
+        except(ValueError):
+            pass
+        setattr(hyperparameters, key, value)
+
+    score = cross_val_model(hyperparameters)
 
     predicted = _model.predict(X_test) 
-    return (score, y_test[:], predicted[:])
+    return (best_params, score, y_test[:], predicted[:])
 
 # Debug function to plot input data and predictions
 def plot(y_test, predicted, dimension):
@@ -391,12 +465,12 @@ def main():
         if to_date is None:
             to_date = get_current_time()
  
-        score, y_test, predicted = train(model, from_date, to_date)
+        best_params, score, y_test, predicted = train(model, from_date, to_date)
         for j in range(len(model._features)):
             if (arg.plot == True):
                 plot(y_test, predicted, j)
 
-        model.save_model(_model, mins=_mins, maxs=_maxs, loss_fct='mean_squared_error', optimizer='adam')
+        model.save_model(_model, mins=_mins, maxs=_maxs, best_params=best_params)
 
 if __name__ == "__main__":
     # execute only if run as a script

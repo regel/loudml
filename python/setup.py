@@ -33,6 +33,7 @@ setup(
         'elasticsearch',
         'tensorflow',
         'h5py',
+        'hyperopt',
     ],
 
     extras_require={

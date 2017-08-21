@@ -55,7 +55,6 @@ class Model:
             bucket_interval,
             interval,
             features,
-            hyperparameters,
             state,
         ):
         self._name = name
@@ -68,7 +67,6 @@ class Model:
         self._bucket_interval = bucket_interval
         self._interval = interval
         self._features = sorted(features, key=lambda k: k['name'])
-        self._h = hyperparameters
         self._state = state
         self.Y_ = None
 
@@ -258,8 +256,7 @@ class Model:
             model,
             mins,
             maxs,
-            loss_fct,
-            optimizer
+            best_params,
         ):
         import tempfile
         import base64
@@ -279,8 +276,7 @@ class Model:
         self._storage.save_keras_model(self._id,
                                        model_json.decode('utf-8'),
                                        serialized.decode('utf-8'),
-                                       loss_fct,
-                                       optimizer,
+                                       best_params,
                                        mins.tolist(),
                                        maxs.tolist())
 
@@ -318,8 +314,7 @@ class Storage:
             _id,
             model_json,
             model_weights,
-            loss_fct,
-            optimizer,
+            best_params,
             mins,
             maxs,
         ):
@@ -329,8 +324,9 @@ class Storage:
             doc = { 'doc': { '_state' : {
                 'graph': model_json,
                 'weights': model_weights, # H5PY data encoded in base64
-                'loss_fct': loss_fct,
-                'optimizer': optimizer,
+                'loss_fct': best_params['loss_fct'],
+                'optimizer': best_params['optimizer'],
+                'best_params': best_params,
                 'mins': mins,
                 'maxs': maxs,
             }}}
@@ -549,7 +545,6 @@ class Storage:
             bucket_interval=res['bucket_interval'],
             interval=res['interval'],
             features=res['features'],
-            hyperparameters=None,
             state=res['_state'])
 
 
