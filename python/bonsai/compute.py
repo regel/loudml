@@ -54,11 +54,11 @@ from threading import current_thread
 arg = None
 threadLocal = threading.local()
 
-def get_storage():
+def get_storage(elasticsearch_addr):
     global arg
     storage = getattr(threadLocal, 'storage', None)
     if storage is None:
-        storage = Storage(arg.elasticsearch_addr)
+        storage = Storage(elasticsearch_addr)
         threadLocal.storage = storage
 
     return storage
@@ -172,6 +172,33 @@ def predict(
         predicted.append(Z_)
 
     return (_mse, _dist, _score, np.array(y_test), np.array(predicted))
+
+def mp_train_model(
+        elasticsearch_addr,
+        name,
+        from_date=None,
+        to_date=None,
+    ):
+    global _model, _graph, _mins, _maxs
+    _model, _graph = None, None
+    _mins, _maxs = None, None
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    #initialize these variables
+    storage = get_storage(elasticsearch_addr)
+    model = storage.get_model(name)
+    if model is None:
+        logging.error('Cannot get model %s' % name)
+        raise Exception('Missing model information')
+    best_params, score, y_test, predicted = \
+        train(model,
+              from_date,
+              to_date)
+
+    model.save_model(_model, mins=_mins, maxs=_maxs, best_params=best_params)
+    return score
 
 def train(
         model,
@@ -440,7 +467,7 @@ def main():
     logger.setLevel(logging.INFO)
 
     #initialize these variables
-    storage = get_storage()
+    storage = get_storage(arg.elasticsearch_addr)
     model = storage.get_model(arg.model)
     if model is None:
         logging.error('Cannot get model %s' % name)

@@ -7,6 +7,12 @@ import json
 import os
 import sys
 
+import multiprocessing
+from multiprocessing import Pool
+from multiprocessing import TimeoutError 
+
+from .compute import mp_train_model
+
 get_current_time = lambda: int(round(time.time()))
 
 from flask import (
@@ -25,18 +31,24 @@ from .storage import (
     Storage,
 )
 
+
 import threading
 from threading import current_thread
 
+g_elasticsearch_addr = None
+g_job_id = 0
+g_jobs = {}
+g_pool = None
 arg = None
 threadLocal = threading.local()
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 
 def get_storage():
+    global g_elasticsearch_addr
     storage = getattr(threadLocal, 'storage', None)
     if storage is None:
-        storage = Storage(app.config['ES_ADDR'])
+        storage = Storage(g_elasticsearch_addr)
         threadLocal.storage = storage
 
     return storage
@@ -70,13 +82,47 @@ def error_msg(msg, code):
     return response
 
 
-def terminate_pending_jobs(name):
-    # FIXME
+def terminate_job(job_id, timeout):
+    global g_jobs
+    try:
+        res = g_jobs[job_id].wait(timeout)
+    except(TimeoutError):
+        g_jobs[job_id].terminate()
+        pass
+
+    g_jobs.pop(job_id, None)
     return 
 
 def start_training_job(name, from_date, to_date, train_test_split):
-    # FIXME
-    return 
+    global g_elasticsearch_addr
+    global g_pool
+    global g_job_id
+    global g_jobs
+
+    g_job_id = g_job_id + 1
+    args = (g_elasticsearch_addr, name, from_date, to_date)
+    g_jobs[g_job_id] = g_pool.apply_async(mp_train_model, args)
+
+    return g_job_id
+
+def get_job_status(job_id, timeout=1):
+    global g_jobs
+    res = g_jobs[job_id]
+    try:
+        successful = res.successful()
+    except (AssertionError):
+        successful = None
+
+    try:
+        result = res.get(timeout)
+    except(TimeoutError):
+        result = None
+
+    return {
+        'ready': res.ready(),
+        'successful': successful,
+        'result': result, 
+    }
 
 def start_predict_job(name):
     # FIXME
@@ -85,8 +131,6 @@ def start_predict_job(name):
 def stop_predict_job(name):
     # FIXME
     return 
-
-
 
 @app.route('/api/model/create', methods=['POST'])
 def create_model():
@@ -136,12 +180,19 @@ def delete_model():
     if name is None:
         return error_msg(msg='Bad Request', code=400)
 
-    terminate_pending_jobs(name)
-
     storage.delete_model(
         name=name,
     )
     return error_msg(msg='', code=200)
+
+@app.route('/api/model/get_job_status', methods=['GET'])
+def job_status():
+    job_id = request.args.get('job_id', None)
+    if job_id is None:
+        return error_msg(msg='Bad Request', code=400)
+
+    res = get_job_status(int(job_id))
+    return jsonify(res)
 
 @app.route('/api/model/train', methods=['POST'])
 def train_model():
@@ -151,13 +202,13 @@ def train_model():
     if name is None:
         return error_msg(msg='Bad Request', code=400)
 
-    from_date = request.args.get('from_date', 1000 * (get_current_time()-24*3600))
-    to_date = request.args.get('to_date', 1000 * get_current_time())
+    from_date = int(request.args.get('from_date', (get_current_time()-24*3600)))
+    to_date = int(request.args.get('to_date', get_current_time()))
     train_test_split = float(request.args.get('train_test_split', 0.67))
 
-    start_training_job(name, from_date, to_date, train_test_split)
+    job_id = start_training_job(name, from_date, to_date, train_test_split)
 
-    return error_msg(msg='Not found', code=404)
+    return jsonify({'job_id': job_id})
     
 @app.route('/api/model/start', methods=['POST'])
 def start_model():
@@ -201,6 +252,8 @@ def list_models():
         ))
 
 def main():
+    global g_elasticsearch_addr
+    global g_pool
     global arg
     parser = argparse.ArgumentParser(
         description=main.__doc__,
@@ -227,7 +280,7 @@ def main():
 
     app.logger.setLevel(logging.INFO)
 
-    app.config['ES_ADDR'] = arg.elasticsearch_addr
+    g_elasticsearch_addr = arg.elasticsearch_addr
 
     storage = get_storage()
     try:
@@ -239,9 +292,14 @@ def main():
                 pass
     except(StorageException):
         pass
-    
+   
+    g_pool = Pool(processes=multiprocessing.cpu_count(), maxtasksperchild=10)
+ 
     host, port = arg.listen.split(':')
     app.run(host=host, port=port)
+
+    g_pool.close()
+    g_pool.join()
 
 if __name__ == "__main__":
     # execute only if run as a script
