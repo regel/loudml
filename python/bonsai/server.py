@@ -4,6 +4,7 @@ import time
 import base64
 import logging
 import json
+import signal
 import os
 import sys
 
@@ -12,6 +13,7 @@ from multiprocessing import Pool
 from multiprocessing import TimeoutError 
 
 from .compute import mp_train_model
+from .compute import rt_predict
 
 get_current_time = lambda: int(round(time.time()))
 
@@ -37,6 +39,7 @@ from threading import current_thread
 
 g_elasticsearch_addr = None
 g_job_id = 0
+g_processes = {}
 g_jobs = {}
 g_pool = None
 arg = None
@@ -124,13 +127,24 @@ def get_job_status(job_id, timeout=1):
         'result': result, 
     }
 
-def start_predict_job(name):
-    # FIXME
+def start_predict_job(name, anomaly_threshold=30):
+    global g_processes
+    global g_elasticsearch_addr
+
+    args = (g_elasticsearch_addr, name, anomaly_threshold)
+    p = multiprocessing.Process(target=rt_predict, args=args)
+    p.start()
+    g_processes[name] = p
     return 
 
 def stop_predict_job(name):
-    # FIXME
-    return 
+    global g_processes
+    p = g_processes[name]
+    if p is not None:
+        del g_processes[name]
+        os.kill(p.pid, signal.SIGUSR1)
+        os.waitpid(p.pid, 0)
+        return 
 
 @app.route('/api/model/create', methods=['POST'])
 def create_model():
@@ -222,7 +236,8 @@ def start_model():
         name,
     )
     if res == True:
-        return start_predict_job(name)
+        start_predict_job(name)
+        return error_msg(msg='', code=200)
     else:
         return error_msg(msg='Not found', code=404)
 
@@ -238,7 +253,8 @@ def stop_model():
         name,
     )
     if res == True:
-        return stop_predict_job(name)
+        stop_predict_job(name)
+        return error_msg(msg='', code=200)
     else:
         return error_msg(msg='Not found', code=404)
 

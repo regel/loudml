@@ -359,6 +359,31 @@ def __predict(model, anomaly_threshold):
             to_date=to_date,
             anomaly_threshold=anomaly_threshold)
 
+
+def rt_predict(
+        elasticsearch_addr,
+        name,
+        anomaly_threshold=30,
+    ):
+    global _model, _graph, _mins, _maxs
+    _model, _graph = None, None
+    _mins, _maxs = None, None
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    #initialize these variables
+    storage = get_storage(elasticsearch_addr)
+    model = storage.get_model(name)
+    if model is None:
+        logging.error('Cannot get model %s' % name)
+        raise Exception('Missing model information')
+
+    s = sched.scheduler(time.time, time.sleep)
+    periodic(s, model._interval, __predict, (model, anomaly_threshold))
+    s.run()
+
+
 def periodic_predict(
         model,
         from_date=None,
