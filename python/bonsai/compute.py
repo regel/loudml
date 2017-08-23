@@ -178,6 +178,10 @@ def mp_train_model(
         name,
         from_date=None,
         to_date=None,
+        train_size=0.67,
+        batch_size = 64,
+        num_epochs=100,
+        max_evals=10,
     ):
     global _model, _graph, _mins, _maxs
     _model, _graph = None, None
@@ -195,7 +199,12 @@ def mp_train_model(
     best_params, score, y_test, predicted = \
         train(model,
               from_date,
-              to_date)
+              to_date,
+              train_size=train_size,
+              batch_size = batch_size,
+              num_epochs=num_epochs,
+              max_evals=max_evals,
+              )
 
     model.save_model(_model, mins=_mins, maxs=_maxs, best_params=best_params)
     return score
@@ -459,6 +468,30 @@ def main():
         type=int,
         default=0,
     )
+    parser.add_argument(
+        '--train_size',
+        help="Train and test split",
+        type=float,
+        default=0.67,
+    )
+    parser.add_argument(
+        '--batch_size',
+        help="Batch size",
+        type=int,
+        default=64,
+    )
+    parser.add_argument(
+        '--num_epochs',
+        help="Epochs used in training",
+        type=int,
+        default=100,
+    )
+    parser.add_argument(
+        '--max_evals',
+        help="Maximum evals for Bayesian hyperparams optimization",
+        type=int,
+        default=10,
+    )
 
     arg = parser.parse_args()
     _verbose = arg.verbose
@@ -492,7 +525,14 @@ def main():
         if to_date is None:
             to_date = get_current_time()
  
-        best_params, score, y_test, predicted = train(model, from_date, to_date)
+        best_params, score, y_test, predicted = train(model,
+                                                      from_date,
+                                                      to_date,
+                                                      train_size=arg.train_size,
+                                                      batch_size=arg.batch_size,
+                                                      num_epochs=arg.num_epochs,
+                                                      max_evals=arg.max_evals
+                                                      )
         for j in range(len(model._features)):
             if (arg.plot == True):
                 plot(y_test, predicted, j)

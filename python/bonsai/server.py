@@ -272,6 +272,18 @@ def main():
         type=str,
         default="0.0.0.0:8077",
     )
+    parser.add_argument(
+        '--maxtasksperchild',
+        help="Maxtasksperchild in process pool size",
+        type=int,
+        default=10,
+    )
+    parser.add_argument(
+        '-w', '--workers',
+        help="Worker processes pool size",
+        type=int,
+        default=multiprocessing.cpu_count(),
+    )
 
     arg = parser.parse_args()
 
@@ -293,7 +305,7 @@ def main():
     except(StorageException):
         pass
    
-    g_pool = Pool(processes=multiprocessing.cpu_count(), maxtasksperchild=10)
+    g_pool = Pool(processes=arg.workers, maxtasksperchild=arg.maxtasksperchild)
  
     host, port = arg.listen.split(':')
     app.run(host=host, port=port)
