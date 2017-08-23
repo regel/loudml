@@ -169,7 +169,7 @@ def predict(
 
         # min/max inverse operation
         Z_ = _maxs - rng * (1 - Y_)
-        predicted.append(Z_)
+        predicted.append(Z_[0])
 
     return (_mse, _dist, _score, np.array(y_test), np.array(predicted))
 
