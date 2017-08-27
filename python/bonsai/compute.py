@@ -296,8 +296,11 @@ def train(
             except(ValueError):
                 pass
             setattr(hyperparameters, key, value)
-        score = cross_val_model(hyperparameters)
-        return {'loss': score[0], 'status': STATUS_OK}
+        try:
+            score = cross_val_model(hyperparameters)
+            return {'loss': score[0], 'status': STATUS_OK}
+        except(Exception):
+            return {'loss': None, 'status': STATUS_FAIL}
 
     space = hp.choice('case', [
         { 'depth': 1,
