@@ -193,10 +193,19 @@ class Model:
                 name = feature['name']
                 metric = feature['metric']
                 agg_val = k[name][metric]
+                if 'nan_is_zero' in feature:
+                    nan_is_zero = feature['nan_is_zero']
+                else:
+                    nan_is_zero = False
+
                 if (agg_val is None):
                     logging.info('Aggregations(%s) for model %s: Missing data @timestamp: %s' % (name, self._name, timeval))
-                    # Use NaN to encode missing data
-                    agg_val = np.nan
+                    if (nan_is_zero == True):
+                        # Write zeros to encode missing data
+                        agg_val = 0
+                    else:
+                        # Use NaN to encode missing data
+                        agg_val = np.nan
                 X[i] = agg_val
                 i += 1
 
