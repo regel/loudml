@@ -299,14 +299,21 @@ def train(
         score = cross_val_model(hyperparameters)
         return {'loss': score[0], 'status': STATUS_OK}
 
-    space = {
-        'depth': hp.choice('depth', [1,2]),
-        'l1': 1+hp.randint('l1', 100),
-        'l2': 1+hp.randint('l2', 100),
-        'activation': hp.choice('activation', ['tanh']),
-        'loss_fct': hp.choice('loss_fct', ['mean_squared_error']),
-        'optimizer': hp.choice('optimizer', ['adam']),
-    }
+    space = hp.choice('case', [
+        { 'depth': 1,
+          'l1': 1+hp.randint('d1_l1', 100),
+          'activation': hp.choice('d1_activation', ['tanh']),
+          'loss_fct': hp.choice('d1_loss_fct', ['mean_squared_error']),
+          'optimizer': hp.choice('d1_optimizer', ['adam']),
+        },
+        { 'depth': 2,
+          'l1': 1+hp.randint('d2_l1', 100),
+          'l2': 1+hp.randint('d2_l2', 100),
+          'activation': hp.choice('d2_activation', ['tanh']),
+          'loss_fct': hp.choice('d2_loss_fct', ['mean_squared_error']),
+          'optimizer': hp.choice('d2_optimizer', ['adam']),
+        }
+    ])
     
     # The Trials object will store details of each iteration
     trials = Trials()
