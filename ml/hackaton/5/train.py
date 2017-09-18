@@ -93,7 +93,7 @@ def walk(d):
                 _std_deviation = float(s['std_deviation'])
 
                 X = np.array( [_count, _sum, _sum_of_squares] )
-                profile[(quadrant*9 +3):(quadrant*9 +6)] += X
+                profile[(quadrant*9 +6):(quadrant*9 +9)] += X
 
         for quadrant in range(4):
             for j in range(3):
