@@ -1,0 +1,104 @@
+{
+  "template": ".bonsai",
+    "mappings": {
+      "model": {
+        "_all": {
+            "enabled": false
+        },
+        "properties": {
+          "_state": {
+            "properties": {
+              "best_params": {
+                "properties": {
+                  "activation": {
+                    "type": "keyword",
+                    "index": "no"
+                  },
+                  "dense1": { "type": "long" },
+                  "depth": { "type": "long" },
+                  "l1": { "type": "long" },
+                  "l2": { "type": "long" },
+                  "loss_fct": {
+                      "type": "keyword",
+                      "index": "no"
+                  },
+                  "optimizer": {
+                      "type": "keyword",
+                      "index": "no"
+                  }
+                }
+              },
+              "ckpt": {
+                  "type": "binary",
+                  "doc_values": false,
+                  "index": "no"
+              },
+              "graph": {
+                  "type": "binary",
+                  "doc_values": false,
+                  "index": "no"
+              },
+              "index": {
+                  "type": "binary",
+                  "doc_values": false,
+                  "index": "no"
+              },
+              "loss_fct": {
+                  "type": "keyword",
+                  "index": "no"
+              },
+              "maxs": { "type": "float" },
+              "meta": {
+                  "type": "binary",
+                  "doc_values": false,
+                  "index": "no"
+              },
+              "mins": { "type": "float" },
+              "optimizer": {
+                  "type": "keyword",
+                  "index": "no"
+              },
+              "weights": {
+                  "type": "binary",
+                  "doc_values": false,
+                  "index": "no"
+              }
+            }
+          },
+          "bucket_interval": { "type": "long" },
+          "features": {
+            "properties": {
+              "field": {
+                "type": "keyword",
+                "index": "no"
+              },
+              "metric": {
+                "type": "keyword",
+                "index": "no"
+              },
+              "name": {
+                "type": "keyword",
+                "index": "no"
+              },
+              "nan_is_zero": { "type": "boolean" },
+              "script": {
+                "type": "keyword",
+                "index": "no"
+              }
+            }
+          },
+          "index": { "type": "keyword" },
+          "interval": { "type": "long" },
+          "max_terms": { "type": "long" },
+          "name": { "type": "keyword" },
+          "offset": { "type": "long" },
+          "span": { "type": "long" },
+          "term": { "type": "keyword" }
+        }
+      }
+    },
+    "settings": {
+        "number_of_shards": "1",
+        "number_of_replicas": "2"
+    }
+}
