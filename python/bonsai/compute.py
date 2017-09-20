@@ -26,7 +26,7 @@ from tensorflow.contrib.keras.api.keras.callbacks import EarlyStopping
 
 from hyperopt import hp
 from hyperopt import space_eval
-from hyperopt import fmin, tpe, STATUS_OK, Trials
+from hyperopt import fmin, tpe, STATUS_OK, STATUS_FAIL, Trials
 
 
 class HyperParameters:
