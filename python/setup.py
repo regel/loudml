@@ -34,6 +34,7 @@ setup(
         'tensorflow',
         'h5py',
         'hyperopt',
+        'Pillow',
     ],
 
     extras_require={
