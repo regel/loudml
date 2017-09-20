@@ -12,11 +12,14 @@ from elasticsearch import helpers
 from elasticsearch import TransportError
 
 import numpy as np
+import math
 
 from . import (
     StorageException,
 )
 
+_SUNSHINE_NUM_FEATURES = 4 * 9
+ 
 get_current_time = lambda: int(round(time.time()))
 
 def get_date_range(field, from_date=None, to_date=None):
@@ -40,6 +43,282 @@ def get_date_range(field, from_date=None, to_date=None):
 
 class HTTPError(StorageException):
     """HTTP error"""
+
+
+class NNSOM:
+
+    def __init__(
+            self,
+            _id,
+            storage,
+            index,
+            routing,
+            name,
+            offset,
+            interval,
+            term,
+            max_terms,
+            state,
+        ):
+        self._name = name
+        self._id = _id
+        self._storage = storage
+        self._index = index
+        self._routing = routing
+        self._offset = offset
+        self._interval = interval
+        self._term = term
+        self._max_terms = max_terms
+        # 4 quadrants model = 24 hours
+        self._span = 24 * 3600
+        self._state = state
+
+    def get_es_agg(
+            self,
+            from_date=None,
+            to_date=None,
+        ):
+        body = {
+          "timeout": "10s",
+          "size": 0,
+          "query": {
+            "bool": {
+              "must": [
+              ],
+              "should": [
+              ],
+              "minimum_should_match": 0,
+            }
+          },
+          "aggs": {
+            "account": {
+              "terms": {
+                "field": self._term,
+                "size": self._max_terms,
+              },
+              "aggs": {
+                "count": {
+                  "date_histogram": {
+                    "field": "@timestamp",
+                    "interval": "6h",
+                    "min_doc_count": 0,
+                    "extended_bounds": {
+                      "min": from_date,
+                      "max": to_date,
+                    }
+                  },
+                  "aggs": {
+                    "duration_stats": {
+                      "extended_stats": {
+                        "field": "duration"
+                      }
+                    },
+                    "international": {
+                      "terms": {
+                        "script": {
+                          "lang": "painless",
+                          "inline": "if(doc['international'].value) return true"
+                        }
+                      },
+                      "aggs": {
+                        "duration_stats": {
+                          "extended_stats": {
+                            "field": "duration"
+                          }
+                        }
+                      }
+                    },
+                    "premium": {
+                      "terms": {
+                        "script": {
+                          "lang": "painless",
+                          "inline": "if(doc['toll_call'].value) return true"
+                        }
+                      },
+                      "aggs": {
+                        "duration_stats": {
+                          "extended_stats": {
+                            "field": "duration"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        must = []
+        must.append(get_date_range('@timestamp', from_date, to_date))
+        if len(must) > 0:
+            body['query'] = {
+                'bool': {
+                    'must': must,
+                }
+            }
+
+        return body
+
+    def get_profile_data(
+            self,
+            from_date=None,
+            to_date=None,
+        ):
+        num_features = _SUNSHINE_NUM_FEATURES
+        es_params={}
+        if self._routing is not None:
+            es_params['routing']=self._routing
+       
+        body = self.get_es_agg(
+                   from_date=from_date,
+                   to_date=to_date,
+               )
+
+        try:
+            es_res = self._storage.es.search(
+                index=self._index,
+                size=0,
+                body=body,
+                params=es_params,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("get_profile_data: %s", str(exn))
+            raise StorageException(str(exn))
+
+        hits = es_res['hits']['total'] 
+        if (hits == 0):
+            logging.info('Aggregations for model %s: Missing data' % self._name)
+            return
+
+        t0=0
+        for k in es_res['aggregations']['account']['buckets']:
+            profile=np.zeros(num_features)
+            account=k['key']
+            val=k['count']['buckets']
+            for l in val:
+                timestamp=l['key']
+                timeval=l['key_as_string']
+                s=l['duration_stats']
+                _count = float(s['count'])
+                if _count == 0:
+                    continue
+                quadrant = int( ((int(timestamp) / (3600*1000)) % 24)/6 )
+                _min = float(s['min'])
+                _max = float(s['max'])
+                _avg = float(s['avg'])
+                _sum = float(s['sum'])
+                _sum_of_squares = float(s['sum_of_squares'])
+                _variance = float(s['variance'])
+                _std_deviation = float(s['std_deviation'])
+                
+                X = np.array( [_count, _sum, _sum_of_squares] )
+                profile[(quadrant*9):(quadrant*9 +3)] += X
+    
+                if len(l['international']['buckets']) > 0:
+                    s=l['international']['buckets'][0]['duration_stats']
+                    _count = s['count']
+                    if _count == 0:
+                        continue
+                    _min = float(s['min'])
+                    _max = float(s['max'])
+                    _avg = float(s['avg'])
+                    _sum = float(s['sum'])
+                    _sum_of_squares = float(s['sum_of_squares'])
+                    _variance = float(s['variance'])
+                    _std_deviation = float(s['std_deviation'])
+    
+                    X = np.array( [_count, _sum, _sum_of_squares] )
+                    profile[(quadrant*9 +3):(quadrant*9 +6)] += X
+    
+                if len(l['premium']['buckets']) > 0:
+                    s=l['premium']['buckets'][0]['duration_stats']
+                    _count = s['count']
+                    if _count == 0:
+                        continue
+                    _min = float(s['min'])
+                    _max = float(s['max'])
+                    _avg = float(s['avg'])
+                    _sum = float(s['sum'])
+                    _sum_of_squares = float(s['sum_of_squares'])
+                    _variance = float(s['variance'])
+                    _std_deviation = float(s['std_deviation'])
+    
+                    X = np.array( [_count, _sum, _sum_of_squares] )
+                    profile[(quadrant*9 +6):(quadrant*9 +9)] += X
+    
+            for quadrant in range(4):
+                for j in range(3):
+                    _count = profile[quadrant*9 + 3*j]
+                    _sum = profile[quadrant*9 + 3*j +1]
+                    _sum_of_squares = profile[quadrant*9 + 3*j +2]
+                    if _count > 0:
+                        profile[quadrant*9 + 3*j +1] = _sum / _count
+                        profile[quadrant*9 + 3*j +2] = math.sqrt(_sum_of_squares/_count - (_sum/_count)**2)
+        
+            yield account, profile
+
+    def load_model(self):
+        import tempfile
+        import base64
+        from .som import SOM
+
+        _model = None
+        fd, base_path = tempfile.mkstemp()
+        try:
+            with os.open(base_path + '.data-00000-of-00001', 'wb') as tmp:
+                tmp.write(base64.b64decode(self._state['ckpt'].encode('utf-8')))
+                tmp.close()
+            with os.open(base_path + '.index', 'wb') as tmp:
+                tmp.write(base64.b64decode(self._state['index'].encode('utf-8')))
+                tmp.close()
+            with os.open(base_path + '.meta', 'wb') as tmp:
+                tmp.write(base64.b64decode(self._state['meta'].encode('utf-8')))
+                tmp.close()
+
+        finally:
+            # load weights into new model
+            data_dimens = _SUNSHINE_NUM_FEATURES
+            _model = SOM(self._map_w, self._map_h, data_dimens, 0)
+            _model.restore_model(base_path)
+            os.remove(base_path)
+
+        return _model
+    
+    def save_model(
+            self,
+            model,
+        ):
+        import tempfile
+        import base64
+        from .som import SOM
+
+        # serialize model to base64
+        fd, base_path = tempfile.mkstemp()
+        try:
+            model.save_model(base_path)
+            with open(base_path + '.data-00000-of-00001', 'rb') as tmp:
+                data = base64.b64encode(tmp.read())
+                tmp.close()
+            with open(base_path + '.index', 'rb') as tmp:
+                idx = base64.b64encode(tmp.read())
+                tmp.close()
+            with open(base_path + '.meta', 'rb') as tmp:
+                meta = base64.b64encode(tmp.read())
+                tmp.close()
+
+        finally:
+            print(base_path)
+            os.remove(base_path)
+
+        self._storage.save_nnsom_model(self._id,
+                                       data.decode('utf-8'),
+                                       idx.decode('utf-8'),
+                                       meta.decode('utf-8'))
 
 class Model:
 
@@ -289,7 +568,7 @@ class Model:
                                        mins.tolist(),
                                        maxs.tolist())
 
-    
+
 class Storage:
     def __init__(self, addr, vlan='*'):
         self.addr = addr
@@ -317,6 +596,36 @@ class Storage:
         es_logger.setLevel(logging.CRITICAL)
 
         return self._es
+
+    def save_nnsom_model(
+        self,
+        _id,
+        model_ckpt,
+        model_idx,
+        model_meta,
+        ):
+        es_params={}
+        es_params['refresh']='true'
+        try:
+            doc = { 'doc': { '_state' : {
+                        'ckpt': model_ckpt, # TF CKPT data encoded in base64
+                        'index': model_idx,
+                        'meta': model_meta,
+            }}}
+
+            es_res = self.es.update(
+                index=self._model_index,
+                id=_id,
+                doc_type='model',
+                body=doc,
+                params=es_params,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("save_nnsom_model: %s", str(exn))
+            raise StorageException(str(exn))
 
     def save_keras_model(
             self,
@@ -405,6 +714,44 @@ class Storage:
             urllib3.exceptions.HTTPError,
         ) as exn:
             logging.error("create_model: %s", str(exn))
+            raise StorageException(str(exn))
+
+    def create_nnsom(
+        self,
+        name,
+        index,
+        routing,
+        offset,
+        term,
+        max_terms,
+        interval,
+        ):
+        es_params={}
+        es_params['refresh']='true'
+
+        try:
+            document = {
+                'name': name,
+                'index': index,
+                'routing': routing,
+                'offset': offset,
+                'interval': interval,
+                'term': term,
+                'max_terms': max_terms,
+            }
+
+            es_res = self.es.index(
+                index=self._model_index,
+                id=None,
+                doc_type='model',
+                body=document,
+                params=es_params,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("create_nnsom: %s", str(exn))
             raise StorageException(str(exn))
 
     def delete_model(
@@ -554,6 +901,56 @@ class Storage:
             bucket_interval=res['bucket_interval'],
             interval=res['interval'],
             features=res['features'],
+            state=res['_state'])
+
+    def get_nnsom(
+            self,
+            name,
+        ):
+        try:
+            body = {
+                'timeout': "10s",
+                'query': [
+                    {'timestamp': {'order': 'desc'}},
+                ],
+            }
+            must = [
+                {'match': {'name': name}},
+            ]
+            if len(must) > 0:
+                body['query'] = {
+                    'bool': {
+                        'must': must,
+                    }
+                }
+
+            es_res = self.es.search(
+                index=self._model_index,
+                doc_type='model',
+                body=body,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("get_nnsom: %s", str(exn))
+            raise StorageException(str(exn))
+
+        _id = es_res['hits']['hits'][0]['_id']
+        res = es_res['hits']['hits'][0]['_source']
+        if not '_state' in res:
+            res['_state'] = None
+
+        return NNSOM(
+            storage=self,
+            _id=_id,
+            index=res['index'],
+            routing=res['routing'],
+            name=res['name'],
+            offset=res['offset'],
+            interval=res['interval'],
+            term=res['term'],
+            max_terms=res['max_terms'],
             state=res['_state'])
 
 
