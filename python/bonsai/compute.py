@@ -207,7 +207,69 @@ def mp_train_model(
               )
 
     model.save_model(_model, mins=_mins, maxs=_maxs, best_params=best_params)
-    return score
+    return { 'best_params': best_params, 'score': score }
+
+def range_predict(
+        elasticsearch_addr,
+        name,
+        from_date=None,
+        to_date=None,
+    ):
+    global _model, _graph, _mins, _maxs
+    _model, _graph = None, None
+    _mins, _maxs = None, None
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    #initialize these variables
+    storage = get_storage(elasticsearch_addr)
+    model = storage.get_model(name)
+    if model is None:
+        logging.error('Cannot get model %s' % name)
+        raise Exception('Missing model information')
+
+    if (model.is_trained() == False):
+        logging.error('Not yet trained: %s' % name)
+        raise Exception('Missing training data')
+
+    _model, _graph, _mins, _maxs = model.load_model()
+
+    to_date = 1000 * int(to_date / model._bucket_interval) * model._bucket_interval
+    from_date = 1000 * int(from_date / model._bucket_interval) * model._bucket_interval
+    num_buckets = int( (to_date - from_date) / (1000 * model._bucket_interval) ) + 1
+    num_features = len(model._features)
+    n_prev = int(model._span / model._bucket_interval)
+    dlen = num_buckets
+    dataset = np.zeros((dlen, num_features), dtype=float)
+
+    j = 0
+    X = []
+    for _, val, timeval in model.get_np_data(from_date=from_date, to_date=to_date):
+        dataset[j] = val
+        X.append(timeval)
+        j += 1
+
+    logging.info('Found %d time period' % j)
+
+    rng = _maxs - _mins
+    _dataset = 1.0 - (((_maxs - dataset)) / rng)
+
+    (_, _), (X_test, y_test) = train_test_split(_dataset, n_prev=n_prev, train_size=0)
+    Y_ = _model.predict(X_test)
+    # min/max inverse operation
+    Z_ = _maxs - rng * (1 - Y_)
+    y_test = _maxs - rng * (1 - y_test)
+
+    y={}
+    y_={}
+    for j in range(len(model._features)):
+        name = model._features[j]['name']
+        y[name] = y_test[:][:,j].tolist()
+        y_[name] = Z_[:][:,j].tolist()
+
+    return { 'X': X, 'y': y, 'y_': y_ }
+
 
 def train(
         model,

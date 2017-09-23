@@ -13,6 +13,7 @@ from multiprocessing import Pool
 from multiprocessing import TimeoutError 
 
 from .compute import mp_train_model
+from .compute import range_predict
 from .compute import rt_predict
 
 from .nnsom import nnsom_train_model
@@ -108,6 +109,18 @@ def start_training_job(name, from_date, to_date, train_test_split):
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date)
     g_jobs[g_job_id] = g_pool.apply_async(mp_train_model, args)
+
+    return g_job_id
+
+def start_inference_job(name, from_date, to_date):
+    global g_elasticsearch_addr
+    global g_pool
+    global g_job_id
+    global g_jobs
+
+    g_job_id = g_job_id + 1
+    args = (g_elasticsearch_addr, name, from_date, to_date)
+    g_jobs[g_job_id] = g_pool.apply_async(range_predict, args)
 
     return g_job_id
 
@@ -338,7 +351,7 @@ def job_status():
         return error_msg(msg='Bad Request', code=400)
 
     res = get_job_status(int(job_id))
-    return jsonify(res)
+    return make_response(json.dumps(res))
 
 @app.route('/api/model/train', methods=['POST'])
 def train_model():
@@ -355,6 +368,22 @@ def train_model():
     job_id = start_training_job(name, from_date, to_date, train_test_split)
 
     return jsonify({'job_id': job_id})
+
+@app.route('/api/model/inference', methods=['POST'])
+def timeseries_inference():
+    storage = get_storage()
+    # The model name 
+    name = request.args.get('name', None)
+    if name is None:
+        return error_msg(msg='Bad Request', code=400)
+
+    from_date = int(request.args.get('from_date', (get_current_time()-24*3600)))
+    to_date = int(request.args.get('to_date', get_current_time()))
+
+    job_id = start_inference_job(name, from_date, to_date)
+
+    return jsonify({'job_id': job_id})
+
     
 @app.route('/api/model/start', methods=['POST'])
 def start_model():

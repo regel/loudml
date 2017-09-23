@@ -505,6 +505,9 @@ class Model:
             else:
                 yield (timestamp-t0)/1000, X, timeval
 
+    def is_trained(self):
+        return (self._state is not None and 'weights' in self._state)
+
     def load_model(self):
         import tempfile
         import base64
