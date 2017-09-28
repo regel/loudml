@@ -1,0 +1,7 @@
+# Configuration file for the Bonsai service
+
+# Options passed to daemon
+
+LISTEN="localhost:8077"
+ELASTICSEARCH_ADDR="localhost:9200"
+OPTIONS=

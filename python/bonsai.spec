@@ -16,6 +16,9 @@ Source0:        %{srcname}-%{version}.tar.gz
 BuildArch:      noarch
 #BuildRequires:  python2-devel
 BuildRequires:  python%{python3_pkgversion}-devel
+BuildRequires: python34 python34-pip
+BuildRequires: systemd
+BuildRequires: systemd-units
 
 %description
 An python module to control, train, and run inference
@@ -30,6 +33,15 @@ with ML models.
 
 %package -n python%{python3_pkgversion}-%{srcname}
 Summary:        %{sum}
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
+Requires: python34
+Requires: python34-pip
+Requires: python34-yaml
+Requires: nginx
+Requires: curl
+
 %{?python_provide:%python_provide python%{python3_pkgversion}-%{srcname}}
 
 %description -n python%{python3_pkgversion}-%{srcname}
@@ -43,6 +55,15 @@ python%{python3_pkgversion} build of %{srcname}.
 %py3_build
 
 %install
+%{__install} -m 0755 -d %{buildroot}/%{_sbindir}
+%{__install} -m 0755 %{srcname}-exec_start_pre %{buildroot}/%{_sbindir}/
+%{__install} -m 0644 -D lib/systemd/%{srcname}.service %{buildroot}/%{_unitdir}/%{srcname}.service 
+%{__install} -m 0644 -D etc/sysconfig/%{srcname} %{buildroot}/%{_sysconfdir}/sysconfig/%{srcname} 
+%{__install} -m 0644 -D etc/%{srcname}.template.json %{buildroot}/%{_sysconfdir}/%{srcname}/%{srcname}.template.json 
+%{__install} -m 0755 -d %{buildroot}/%{_sysconfdir}/nginx/conf.d
+%{__install} -m 0644 %{srcname}-main.conf %{buildroot}/%{_sysconfdir}/nginx/
+%{__install} -m 0644 %{srcname}.conf %{buildroot}/%{_sysconfdir}/nginx/conf.d/
+
 # Must do the python3_other install first, then python3 and then python2.
 # The scripts in /usr/bin are overwritten with every setup.py install.
 %py3_install
@@ -67,6 +88,20 @@ done
 #%{python2_sitelib}/*
 #%{_bindir}/sample-exec-%{python2_version}
 
+%post
+/usr/bin/sed -i -e '/^    server {/,/^    }/{/.*/d}' /etc/nginx/nginx.conf
+setsebool -P httpd_can_network_connect 1
+/usr/sbin/semanage port -a -t http_port_t -p tcp 8078
+%systemd_post %{srcname}.service
+systemctl daemon-reload
+
+%preun
+%systemd_preun %{srcname}.service
+
+%postun
+%systemd_postun_with_restart %{srcname}.service
+
+
 %files -n python%{python3_pkgversion}-%{srcname}
 # Exclude source .py files, and PEP3147 __pycache__
 %exclude %{python3_sitelib}/%{srcname}/*.py
@@ -75,6 +110,12 @@ done
 %{_bindir}/bonsaid
 %{_bindir}/bonsai_series
 %{_bindir}/bonsai_segmap
+%{_sbindir}/*
+%{_unitdir}/%{srcname}.service
+%{_sysconfdir}/nginx/%{srcname}-main.conf
+%{_sysconfdir}/nginx/conf.d/%{srcname}.conf
+%config %{_sysconfdir}/sysconfig/*
+%config %{_sysconfdir}/%{srcname}
 
 
 %changelog

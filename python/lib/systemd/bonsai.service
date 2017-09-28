@@ -1,0 +1,13 @@
+[Unit]
+Description=Bonsai App
+Requires=nginx.service
+After=nginx.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/sbin/bonsai-exec_start_pre
+ExecStart=/usr/bin/bonsaid 
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
