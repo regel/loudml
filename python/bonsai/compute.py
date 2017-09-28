@@ -79,13 +79,15 @@ def log_error(format, *args):
 
 def _load_data(dataset, n_prev=1):
     dataX, dataY = [], []
+    indexes = []
     for i in range(len(dataset)-n_prev):
         if (np.isnan(dataset[i:(i+n_prev), :]).any() == False) and \
                 (np.isnan(dataset[(i+n_prev), :]).any() == False):
             dataX.append(dataset[i:(i+n_prev), :])
             dataY.append(dataset[(i+n_prev), :])
+            indexes.append(i)
 
-    return np.array(dataX), np.array(dataY)
+    return np.array(indexes), np.array(dataX), np.array(dataY)
 
 def train_test_split(df, n_prev=1, train_size=0.67):
     """
@@ -93,9 +95,9 @@ def train_test_split(df, n_prev=1, train_size=0.67):
     """
     ntrn = round(len(df) * (train_size))
 
-    X_train, y_train = _load_data(df[0:ntrn], n_prev=n_prev)
-    X_test, y_test = _load_data(df[ntrn:], n_prev=n_prev)
-    return (X_train, y_train), (X_test, y_test)
+    i_sel, X_train, y_train = _load_data(df[0:ntrn], n_prev=n_prev)
+    j_sel, X_test, y_test = _load_data(df[ntrn:], n_prev=n_prev)
+    return (i_sel, X_train, y_train), (j_sel, X_test, y_test)
 
 def predict(
         model,
@@ -255,7 +257,8 @@ def range_predict(
     rng = _maxs - _mins
     _dataset = 1.0 - (((_maxs - dataset)) / rng)
 
-    (_, _), (X_test, y_test) = train_test_split(_dataset, n_prev=n_prev, train_size=0)
+    (_, _, _), (j_sel, X_test, y_test) = train_test_split(_dataset, n_prev=n_prev, train_size=0)
+
     Y_ = _model.predict(X_test)
     # min/max inverse operation
     Z_ = _maxs - rng * (1 - Y_)
@@ -265,8 +268,12 @@ def range_predict(
     y_={}
     for j in range(len(model._features)):
         name = model._features[j]['name']
-        y[name] = y_test[:][:,j].tolist()
-        y_[name] = Z_[:][:,j].tolist()
+        out_y = np.array([None] * len(X))
+        out_y[j_sel] = y_test[:][:,j]
+        out_y_ = np.array([None] * len(X))
+        out_y_[j_sel] = Z_[:][:,j]
+        y[name] = out_y.tolist()
+        y_[name] = out_y_.tolist()
 
     return { 'X': X, 'y': y, 'y_': y_ }
 
@@ -312,7 +319,7 @@ def train(
 
     logging.info('Preprocessing. mins: %s maxs: %s ranges: %s' % (_mins, _maxs, rng))
 
-    (X_train, y_train), (X_test, y_test) = train_test_split(_dataset, n_prev=n_prev, train_size=train_size)
+    (_, X_train, y_train), (_, X_test, y_test) = train_test_split(_dataset, n_prev=n_prev, train_size=train_size)
 
     def cross_val_model(params):
         global _model, _graph
