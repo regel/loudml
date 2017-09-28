@@ -52,7 +52,8 @@ setup(
     entry_points={
         'console_scripts': [
             'bonsaid=bonsai.server:main',
-            'bonsai_model=bonsai.compute:main',
+            'bonsai_series=bonsai.compute:main',
+            'bonsai_segmap=bonsai.nnsom:main',
         ],
     },
 )
