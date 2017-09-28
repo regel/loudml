@@ -14,9 +14,11 @@ from elasticsearch import TransportError
 import numpy as np
 import math
 
-from . import (
-    StorageException,
-)
+class StorageException(Exception):
+    """Storage exception"""
+    def __init__(self, msg="Query to database failed", code=500):
+        super().__init__(msg)
+        self._code = code
 
 _SUNSHINE_NUM_FEATURES = 4 * 9
  
