@@ -21,8 +21,92 @@ class StorageException(Exception):
         self._code = code
 
 _SUNSHINE_NUM_FEATURES = 4 * 9
+
+def map_quadrant_names(data):
+    """
+    Build structured quadrant data from a numpy array
+    """
+
+    return { 'quadrant_0': {
+               '*': {
+                 'count': data[0],
+                 'duration_avg': data[1],
+                 'duration_std': data[2],
+               },
+               'international': {
+                 'count': data[3],
+                 'duration_avg': data[4],
+                 'duration_std': data[5],
+               },
+               'premium': {
+                 'count': data[6],
+                 'duration_avg': data[7],
+                 'duration_std': data[8],
+               },
+             },
+             'quadrant_1': {
+               '*': {
+                 'count': data[9],
+                 'duration_avg': data[10],
+                 'duration_std': data[11],
+               },
+               'international': {
+                 'count': data[12],
+                 'duration_avg': data[13],
+                 'duration_std': data[14],
+               },
+               'premium': {
+                 'count': data[15],
+                 'duration_avg': data[16],
+                 'duration_std': data[17],
+               },
+             },
+             'quadrant_2': {
+               '*': {
+                 'count': data[18],
+                 'duration_avg': data[19],
+                 'duration_std': data[20],
+               },
+               'international': {
+                 'count': data[21],
+                 'duration_avg': data[22],
+                 'duration_std': data[23],
+               },
+               'premium': {
+                 'count': data[24],
+                 'duration_avg': data[25],
+                 'duration_std': data[26],
+               },
+             },
+             'quadrant_3': {
+               '*': {
+                 'count': data[27],
+                 'duration_avg': data[28],
+                 'duration_std': data[29],
+               },
+               'international': {
+                 'count': data[30],
+                 'duration_avg': data[31],
+                 'duration_std': data[32],
+               },
+               'premium': {
+                 'count': data[33],
+                 'duration_avg': data[34],
+                 'duration_std': data[35],
+               },
+             },
+           }
  
 get_current_time = lambda: int(round(time.time()))
+
+def get_account_cond(field, account_name):
+    """
+    Build account name filter for search query
+    """
+
+    return {'match': {
+        field: account_name,
+    }}
 
 def get_date_range(field, from_date=None, to_date=None):
     """
@@ -60,6 +144,8 @@ class NNSOM:
             interval,
             term,
             max_terms,
+            map_w,
+            map_h,
             state,
         ):
         self._name = name
@@ -71,6 +157,8 @@ class NNSOM:
         self._interval = interval
         self._term = term
         self._max_terms = max_terms
+        self._map_w = map_w
+        self._map_h = map_h
         # 4 quadrants model = 24 hours
         self._span = 24 * 3600
         self._state = state
@@ -79,6 +167,7 @@ class NNSOM:
             self,
             from_date=None,
             to_date=None,
+            account_name=None,
         ):
         body = {
           "timeout": "10s",
@@ -154,6 +243,9 @@ class NNSOM:
 
         must = []
         must.append(get_date_range('@timestamp', from_date, to_date))
+        if account_name is not None:
+            must.append(get_account_cond(self._term, account_name))
+
         if len(must) > 0:
             body['query'] = {
                 'bool': {
@@ -167,6 +259,7 @@ class NNSOM:
             self,
             from_date=None,
             to_date=None,
+            account_name=None,
         ):
         num_features = _SUNSHINE_NUM_FEATURES
         es_params={}
@@ -176,6 +269,7 @@ class NNSOM:
         body = self.get_es_agg(
                    from_date=from_date,
                    to_date=to_date,
+                   account_name=account_name,
                )
 
         try:
@@ -264,6 +358,9 @@ class NNSOM:
         
             yield account, profile
 
+    def is_trained(self):
+        return (self._state is not None and 'ckpt' in self._state)
+
     def load_model(self):
         import tempfile
         import base64
@@ -272,22 +369,26 @@ class NNSOM:
         _model = None
         fd, base_path = tempfile.mkstemp()
         try:
-            with os.open(base_path + '.data-00000-of-00001', 'wb') as tmp:
+            with open(base_path + '.data-00000-of-00001', 'wb') as tmp:
                 tmp.write(base64.b64decode(self._state['ckpt'].encode('utf-8')))
                 tmp.close()
-            with os.open(base_path + '.index', 'wb') as tmp:
+            with open(base_path + '.index', 'wb') as tmp:
                 tmp.write(base64.b64decode(self._state['index'].encode('utf-8')))
                 tmp.close()
-            with os.open(base_path + '.meta', 'wb') as tmp:
+            with open(base_path + '.meta', 'wb') as tmp:
                 tmp.write(base64.b64decode(self._state['meta'].encode('utf-8')))
                 tmp.close()
-
+        except(Exception) as exn:
+            logging.error("load_model(): %s", str(exn))
         finally:
             # load weights into new model
             data_dimens = _SUNSHINE_NUM_FEATURES
             _model = SOM(self._map_w, self._map_h, data_dimens, 0)
             _model.restore_model(base_path)
             os.remove(base_path)
+            os.remove(base_path + '.data-00000-of-00001')
+            os.remove(base_path + '.index')
+            os.remove(base_path + '.meta')
 
         return _model
     
@@ -312,10 +413,13 @@ class NNSOM:
             with open(base_path + '.meta', 'rb') as tmp:
                 meta = base64.b64encode(tmp.read())
                 tmp.close()
-
+        except(Exception) as exn:
+            logging.error("save_model(): %s", str(exn))
         finally:
-            print(base_path)
             os.remove(base_path)
+            os.remove(base_path + '.data-00000-of-00001')
+            os.remove(base_path + '.index')
+            os.remove(base_path + '.meta')
 
         self._storage.save_nnsom_model(self._id,
                                        data.decode('utf-8'),
@@ -730,6 +834,8 @@ class Storage:
         term,
         max_terms,
         interval,
+        map_w,
+        map_h,
         ):
         es_params={}
         es_params['refresh']='true'
@@ -743,6 +849,8 @@ class Storage:
                 'interval': interval,
                 'term': term,
                 'max_terms': max_terms,
+                'map_w': map_w,
+                'map_h': map_h,
             }
 
             es_res = self.es.index(
@@ -956,6 +1064,9 @@ class Storage:
             interval=res['interval'],
             term=res['term'],
             max_terms=res['max_terms'],
-            state=res['_state'])
+            map_w=res['map_w'],
+            map_h=res['map_h'],
+            state=res['_state'],
+            )
 
 

@@ -17,6 +17,7 @@ from .compute import range_predict
 from .compute import rt_predict
 
 from .nnsom import nnsom_train_model
+from .nnsom import async_map_account
 from .nnsom import nnsom_rt_predict
 
 get_current_time = lambda: int(round(time.time()))
@@ -128,16 +129,30 @@ def run_nnsom_training_job(name,
                            from_date,
                            to_date,
                            num_epochs=100,
-                           map_w=50,
-                           map_h=50):
+                           ):
     global g_elasticsearch_addr
     global g_pool
     global g_job_id
     global g_jobs
 
     g_job_id = g_job_id + 1
-    args = (g_elasticsearch_addr, name, from_date, to_date, num_epochs, map_w, map_h)
+    args = (g_elasticsearch_addr, name, from_date, to_date, num_epochs)
     g_jobs[g_job_id] = g_pool.apply_async(nnsom_train_model, args)
+
+    return g_job_id
+
+def run_async_map_account(name,
+                           from_date,
+                           to_date,
+                           account_name):
+    global g_elasticsearch_addr
+    global g_pool
+    global g_job_id
+    global g_jobs
+
+    g_job_id = g_job_id + 1
+    args = (g_elasticsearch_addr, name, account_name, from_date, to_date)
+    g_jobs[g_job_id] = g_pool.apply_async(async_map_account, args)
 
     return g_job_id
 
@@ -262,6 +277,9 @@ def nnsom_create():
     routing = request.args.get('routing', None)
     # time offset, in seconds, when querying the index 
     offset = int(request.args.get('offset', 30))
+    map_w = int(request.args.get('map_w', 50))
+    map_h = int(request.args.get('map_h', 50))
+
     # periodic interval to run queries
     interval = int(request.args.get('interval', 60))
     if name is None or index is None or term is None:
@@ -275,6 +293,8 @@ def nnsom_create():
         interval=interval,
         term=term,
         max_terms=max_terms,
+        map_w=map_w,
+        map_h=map_h,
     )
   
     return error_msg(msg='', code=200)
@@ -298,15 +318,36 @@ def __nnsom_train_model():
     from_date = int(request.args.get('from_date', (get_current_time()-30*24*3600)))
     to_date = int(request.args.get('to_date', get_current_time()))
     num_epochs = int(request.args.get('epochs', 100))
-    map_w = int(request.args.get('map_w', 50))
-    map_h = int(request.args.get('map_h', 50))
 
     job_id = run_nnsom_training_job(name,
                                     from_date=from_date,
                                     to_date=to_date,
                                     num_epochs=num_epochs,
-                                    map_w=map_w,
-                                    map_h=map_h)
+                                    )
+
+    return jsonify({'job_id': job_id})
+
+@app.route('/api/nnsom/map', methods=['POST'])
+def nnsom_map():
+    storage = get_storage()
+    # The model name 
+    name = request.args.get('name', None)
+    if name is None:
+        return error_msg(msg='Bad Request', code=400)
+
+    account_name = request.args.get('account')
+    if account_name is None:
+        return error_msg(msg='Bad Request', code=400)
+
+    # By default: calculate the short term (7 days) signature
+    from_date = int(request.args.get('from_date', (get_current_time()-7*24*3600)))
+    to_date = int(request.args.get('to_date', get_current_time()))
+
+    job_id = run_async_map_account(name,
+                                   from_date=from_date,
+                                   to_date=to_date,
+                                   account_name=account_name,
+                                  )
 
     return jsonify({'job_id': job_id})
     

@@ -29,7 +29,8 @@ np.set_printoptions(formatter={'float_kind':float_formatter})
 
 from .storage import (
     Storage,
-    _SUNSHINE_NUM_FEATURES, 
+    _SUNSHINE_NUM_FEATURES,
+    map_quadrant_names,
 )
 
 get_current_time = lambda: int(round(time.time()))
@@ -68,8 +69,6 @@ def nnsom_train_model(
         from_date=None,
         to_date=None,
         num_epochs=100,
-        map_w=50,
-        map_h=50,
     ):
     global _model
     _model = None
@@ -87,8 +86,6 @@ def nnsom_train_model(
           from_date,
           to_date,
           num_epochs=num_epochs,
-          map_w=map_w,
-          map_h=map_h,
           )
 
     model.save_model(_model)
@@ -99,8 +96,6 @@ def train(
         from_date=None,
         to_date=None,
         num_epochs=100,
-        map_w=50,
-        map_h=50,
     ):
     global _model
     _model = None
@@ -132,7 +127,7 @@ def train(
     logging.info('Found %d profiles' % len(profiles))
     # Hyperparameters
     data_dimens = _SUNSHINE_NUM_FEATURES
-    _model = SOM(map_w, map_h, data_dimens, num_epochs)
+    _model = SOM(model._map_w, model._map_h, data_dimens, num_epochs)
     # Start Training
     _model.train(profiles)
 
@@ -147,13 +142,111 @@ def train(
     # print(X)
     return X
 
+def get_account(model,
+            account_name,
+            from_date=None,
+            to_date=None,
+    ):
+    logging.info('get_account(%s) range=[%s, %s])' \
+                  % (account_name, str(time.ctime(from_date)), str(time.ctime(to_date))))
+
+    g=model.get_profile_data(from_date=from_date, to_date=to_date, account_name=account_name)
+    try:
+        key, val = next(g)
+    except(StopIteration):
+        return None
+
+    Y = np.array(val)
+
+    # Apply data standardization to each feature individually
+    # https://en.wikipedia.org/wiki/Feature_scaling 
+    # x_ = (x - mean(x)) / std(x)
+    # means = np.mean(profiles, axis=0)
+    # stds = np.std(profiles, axis=0)
+    zY = preprocessing.scale(Y)
+    res = { 'key': key,
+             'time_range_ms': (from_date, to_date),
+             'Y': map_quadrant_names(Y),
+             'zY': map_quadrant_names(zY) }
+    return res
+
+def map_account(model,
+            account_name,
+            from_date=None,
+            to_date=None,
+    ):
+    global _model
+
+    logging.info('map_account(%s) range=[%s, %s])' \
+                  % (account_name, str(time.ctime(from_date)), str(time.ctime(to_date))))
+
+    g=model.get_profile_data(from_date=from_date, to_date=to_date, account_name=account_name)
+    try:
+        key, val = next(g)
+    except(StopIteration):
+        return None
+
+    Y = np.array(val)
+
+    # Apply data standardization to each feature individually
+    # https://en.wikipedia.org/wiki/Feature_scaling 
+    # x_ = (x - mean(x)) / std(x)
+    # means = np.mean(profiles, axis=0)
+    # stds = np.std(profiles, axis=0)
+    zY = preprocessing.scale(Y)
+    #Map profile to its closest neurons
+    mapped = _model.map_vects(zY)
+
+    res = { 'key': key,
+             'time_range_ms': (from_date, to_date),
+             'Y': map_quadrant_names(Y),
+             'zY': map_quadrant_names(zY),
+             'mapped': ( mapped[0][0].item(), mapped[0][1].item() ),
+             'dimension': ( model._map_w, model._map_h ),
+           }
+    return res
+
+def async_map_account(
+        elasticsearch_addr,
+        name,
+        account_name,
+        from_date=None,
+        to_date=None,
+    ):
+    global _model
+    _model = None
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    #initialize these variables
+    storage = get_storage(elasticsearch_addr)
+    model = storage.get_nnsom(name)
+    if model is None:
+        logging.error('Cannot get model %s' % name)
+        raise Exception('Missing model information')
+
+    if (model.is_trained() == False):
+        logging.error('Not yet trained: %s' % name)
+        raise Exception('Missing training data')
+
+    _model = model.load_model()
+
+    to_date = 1000 * int(to_date / model._interval) * model._interval
+    from_date = 1000 * int(from_date / model._interval) * model._interval
+
+    return map_account(model,
+          account_name=account_name,
+          from_date=from_date,
+          to_date=to_date,
+          )
+
 def predict(model,
             from_date=None,
             to_date=None,
             anomaly_threshold=30,
     ):
     global _model
-    _model = None
 
     logging.info('predict(%s) range=[%s, %s] threshold=%d)' \
                   % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), anomaly_threshold))
@@ -219,6 +312,12 @@ def nnsom_rt_predict(
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
+
+    if (model.is_trained() == False):
+        logging.error('Not yet trained: %s' % name)
+        raise Exception('Missing training data')
+
+    _model = model.load_model()
 
     s = sched.scheduler(time.time, time.sleep)
     periodic(s, model._interval, __predict, (model, anomaly_threshold))
@@ -377,8 +476,6 @@ def main():
               from_date,
               to_date,
               num_epochs=arg.num_epochs,
-              map_w=arg.map_w,
-              map_h=arg.map_h,
               )
 
         model.save_model(_model)
