@@ -206,6 +206,40 @@ def map_account(model,
            }
     return res
 
+def map_accounts(model,
+            from_date=None,
+            to_date=None,
+    ):
+    global _model
+
+    logging.info('map_accounts() range=[%s, %s])' \
+                  % (str(time.ctime(from_date)), str(time.ctime(to_date))))
+
+    res = []
+    for key, val in model.get_profile_data(from_date=from_date, to_date=to_date):
+        # print("key[%s]=" % key, val)
+
+        Y = np.array(val)
+    
+        # Apply data standardization to each feature individually
+        # https://en.wikipedia.org/wiki/Feature_scaling 
+        # x_ = (x - mean(x)) / std(x)
+        # means = np.mean(profiles, axis=0)
+        # stds = np.std(profiles, axis=0)
+        zY = preprocessing.scale(Y)
+        #Map profile to its closest neurons
+        mapped = _model.map_vects(zY)
+    
+        res.append({ 'key': key,
+                 'time_range_ms': (from_date, to_date),
+                 'Y': map_quadrant_names(Y),
+                 'zY': map_quadrant_names(zY),
+                 'mapped': ( mapped[0][0].item(), mapped[0][1].item() ),
+                 'dimension': ( model._map_w, model._map_h ),
+               })
+    return res
+
+
 def async_map_account(
         elasticsearch_addr,
         name,
@@ -240,6 +274,40 @@ def async_map_account(
           from_date=from_date,
           to_date=to_date,
           )
+
+def async_map_accounts(
+        elasticsearch_addr,
+        name,
+        from_date=None,
+        to_date=None,
+    ):
+    global _model
+    _model = None
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    #initialize these variables
+    storage = get_storage(elasticsearch_addr)
+    model = storage.get_nnsom(name)
+    if model is None:
+        logging.error('Cannot get model %s' % name)
+        raise Exception('Missing model information')
+
+    if (model.is_trained() == False):
+        logging.error('Not yet trained: %s' % name)
+        raise Exception('Missing training data')
+
+    _model = model.load_model()
+
+    to_date = 1000 * int(to_date / model._interval) * model._interval
+    from_date = 1000 * int(from_date / model._interval) * model._interval
+
+    return map_accounts(model,
+          from_date=from_date,
+          to_date=to_date,
+          )
+
 
 def predict(model,
             from_date=None,
