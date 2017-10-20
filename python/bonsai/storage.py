@@ -395,6 +395,7 @@ class NNSOM:
     def save_model(
             self,
             model,
+            mapped_info,
         ):
         import tempfile
         import base64
@@ -421,10 +422,14 @@ class NNSOM:
             os.remove(base_path + '.index')
             os.remove(base_path + '.meta')
 
+        s_mapped_info = json.dumps(mapped_info)
+        b_mapped_info = base64.b64encode(s_mapped_info.encode('utf-8'))
         self._storage.save_nnsom_model(self._id,
                                        data.decode('utf-8'),
                                        idx.decode('utf-8'),
-                                       meta.decode('utf-8'))
+                                       meta.decode('utf-8'),
+                                       b_mapped_info.decode('utf-8'),
+                                       )
 
 class Model:
 
@@ -712,6 +717,7 @@ class Storage:
         model_ckpt,
         model_idx,
         model_meta,
+        mapped_info,
         ):
         es_params={}
         es_params['refresh']='true'
@@ -720,6 +726,7 @@ class Storage:
                         'ckpt': model_ckpt, # TF CKPT data encoded in base64
                         'index': model_idx,
                         'meta': model_meta,
+                        'mapped_info': mapped_info,
             }}}
 
             es_res = self.es.update(

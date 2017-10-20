@@ -43,6 +43,11 @@
                   "doc_values": false,
                   "index": "no"
               },
+              "mapped_info": {
+                  "type": "binary",
+                  "doc_values": false,
+                  "index": "no"
+              },
               "loss_fct": {
                   "type": "keyword",
                   "index": "no"

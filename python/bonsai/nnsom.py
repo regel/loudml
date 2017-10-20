@@ -82,13 +82,13 @@ def nnsom_train_model(
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
-    train(model,
+    mapped_info = train(model,
           from_date,
           to_date,
           num_epochs=num_epochs,
           )
 
-    model.save_model(_model)
+    model.save_model(_model, mapped_info)
     return
 
 def train(
@@ -106,41 +106,44 @@ def train(
     to_date = 1000 * int(to_date / model._interval) * model._interval
     from_date = 1000 * int(from_date / model._interval) * model._interval
 
-    profiles = []
+    Y = []
     terms = []
     for key, val in model.get_profile_data(from_date=from_date, to_date=to_date):
         # print("key[%s]=" % key, val)
-        profiles.append(val)
+        Y.append(val)
         terms.append(key)
 
-    if (len(profiles) == 0):
+    if (len(Y) == 0):
         return None
-    profiles = np.array(profiles)
+    Y = np.array(Y)
 
     # Apply data standardization to each feature individually
     # https://en.wikipedia.org/wiki/Feature_scaling 
     # x_ = (x - mean(x)) / std(x)
     # means = np.mean(profiles, axis=0)
     # stds = np.std(profiles, axis=0)
-    profiles = preprocessing.scale(profiles)
+    zY = preprocessing.scale(Y)
 
-    logging.info('Found %d profiles' % len(profiles))
+    logging.info('Found %d profiles' % len(Y))
     # Hyperparameters
     data_dimens = _SUNSHINE_NUM_FEATURES
     _model = SOM(model._map_w, model._map_h, data_dimens, num_epochs)
     # Start Training
-    _model.train(profiles)
+    _model.train(zY)
 
     #Map profiles to their closest neurons
-    mapped = _model.map_vects(profiles)
-
-    X = {}
+    mapped = _model.map_vects(zY)
+    mapped_info = []
     for x in range(len(mapped)):
-        term = terms[x]
-        X[term] = [ mapped[x][0], mapped[x][1] ]
+        key = terms[x]
+        mapped_info.append({ 'key': key,
+             'time_range_ms': (from_date, to_date),
+             'Y': Y[x].tolist(),
+             'zY': zY[x].tolist(),
+             'mapped': ( mapped[x][0].item(), mapped[x][1].item() ),
+           })
 
-    # print(X)
-    return X
+    return mapped_info
 
 def get_account(model,
             account_name,
@@ -319,34 +322,27 @@ def predict(model,
     logging.info('predict(%s) range=[%s, %s] threshold=%d)' \
                   % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), anomaly_threshold))
 
-    profiles = []
+    Y = []
     terms = []
     for key, val in model.get_profile_data(from_date=from_date, to_date=to_date):
         # print("key[%s]=" % key, val)
-        profiles.append(val)
+        Y.append(val)
         terms.append(key)
     
-    if (len(profiles) == 0):
+    if (len(Y) == 0):
         return
 
-    profiles = np.array(profiles)
+    Y = np.array(Y)
 
     # Apply data standardization to each feature individually
     # https://en.wikipedia.org/wiki/Feature_scaling 
     # x_ = (x - mean(x)) / std(x)
     # means = np.mean(profiles, axis=0)
     # stds = np.std(profiles, axis=0)
-    profiles = preprocessing.scale(profiles)
+    zY = preprocessing.scale(Y)
 
     #Map profiles to their closest neurons
-    mapped = _model.map_vects(profiles)
-    X = {}
-    for x in range(len(mapped)):
-        term = terms[x]
-        X[term] = [ mapped[x][0], mapped[x][1] ]
-
-    # FIXME: measure distance and score
-
+    mapped = _model.map_vects(zY)
     return  
 
 def periodic(scheduler, interval, action, actionargs=()):
@@ -540,13 +536,13 @@ def main():
         if to_date is None:
             to_date = get_current_time()
  
-        train(model,
+        mapped_info = train(model,
               from_date,
               to_date,
               num_epochs=arg.num_epochs,
               )
 
-        model.save_model(_model)
+        model.save_model(_model, mapped_info)
 
 if __name__ == "__main__":
     # execute only if run as a script
