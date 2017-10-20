@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import sched, time
+import base64
 
 import numpy as np
 import math
@@ -62,6 +63,22 @@ def log_message(format, *args):
 
 def log_error(format, *args):
     log_message(format, *args)
+
+def distance(x,
+             y,
+    ):
+    dim = np.array(x['dimension'])
+    x = np.array(x['mapped'])
+    y = np.array(y['mapped'])
+    # norm2 
+    max_norm = np.linalg.norm(dim)
+    dist = np.linalg.norm(x-y)
+    score = int(100 * dist / max_norm) if max_norm > 0 else 0
+    res = {
+              'distance': dist,
+              'score': score,
+          }
+    return res
 
 def nnsom_train_model(
         elasticsearch_addr,
@@ -169,8 +186,8 @@ def get_account(model,
     zY = preprocessing.scale(Y)
     res = { 'key': key,
              'time_range_ms': (from_date, to_date),
-             'Y': map_quadrant_names(Y),
-             'zY': map_quadrant_names(zY) }
+             'Y': Y.tolist(),
+             'zY': zY.tolist() }
     return res
 
 def map_account(model,
@@ -202,8 +219,8 @@ def map_account(model,
 
     res = { 'key': key,
              'time_range_ms': (from_date, to_date),
-             'Y': map_quadrant_names(Y),
-             'zY': map_quadrant_names(zY),
+             'Y': Y.tolist(),
+             'zY': zY.tolist(),
              'mapped': ( mapped[0][0].item(), mapped[0][1].item() ),
              'dimension': ( model._map_w, model._map_h ),
            }
@@ -218,6 +235,7 @@ def map_accounts(model,
     logging.info('map_accounts() range=[%s, %s])' \
                   % (str(time.ctime(from_date)), str(time.ctime(to_date))))
 
+    stored = stored_accounts(model)
     res = []
     for key, val in model.get_profile_data(from_date=from_date, to_date=to_date):
         # print("key[%s]=" % key, val)
@@ -232,16 +250,45 @@ def map_accounts(model,
         zY = preprocessing.scale(Y)
         #Map profile to its closest neurons
         mapped = _model.map_vects(zY)
-    
-        res.append({ 'key': key,
+
+        mapped_res = { 'key': key,
                  'time_range_ms': (from_date, to_date),
-                 'Y': map_quadrant_names(Y),
-                 'zY': map_quadrant_names(zY),
+                 'Y': Y.tolist(),
+                 'zY': zY.tolist(),
                  'mapped': ( mapped[0][0].item(), mapped[0][1].item() ),
                  'dimension': ( model._map_w, model._map_h ),
-               })
+               }
+        if key in stored:
+            diff = distance(mapped_res, stored[key])
+        else:
+            diff = None
+        res.append({'current': mapped_res, 'orig': stored[key], 'diff': diff})
+
     return res
 
+def stored_account(model,
+            key,
+    ):
+    if not 'mapped_info' in model._state:
+        return None
+
+    enc = model._state['mapped_info']
+    object_list = json.loads(base64.b64decode(enc.encode('utf-8')).decode('utf-8'))
+    mapped_info = dict((x['key'], x) for x in object_list)
+    if key in mapped_info:
+        return mapped_info[key]
+    else:
+        return None
+
+def stored_accounts(model,
+    ):
+    if not 'mapped_info' in model._state:
+        return None
+
+    enc = model._state['mapped_info']
+    object_list = json.loads(base64.b64decode(enc.encode('utf-8')).decode('utf-8'))
+    mapped_info = dict((x['key'], x) for x in object_list)
+    return mapped_info
 
 def async_map_account(
         elasticsearch_addr,
@@ -272,11 +319,14 @@ def async_map_account(
     to_date = 1000 * int(to_date / model._interval) * model._interval
     from_date = 1000 * int(from_date / model._interval) * model._interval
 
-    return map_account(model,
-          account_name=account_name,
-          from_date=from_date,
-          to_date=to_date,
-          )
+    mapped = map_account(model,
+                         account_name=account_name,
+                         from_date=from_date,
+                         to_date=to_date,
+                         )
+    stored = stored_account(model, account_name)
+    diff = distance(mapped, stored)
+    return { 'current': mapped, 'orig': stored, 'diff': diff }
 
 def async_map_accounts(
         elasticsearch_addr,
