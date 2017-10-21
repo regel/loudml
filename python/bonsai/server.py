@@ -19,6 +19,7 @@ from .compute import rt_predict
 from .nnsom import nnsom_train_model
 from .nnsom import async_map_account
 from .nnsom import async_map_accounts
+from .nnsom import async_score_hist
 from .nnsom import nnsom_rt_predict
 
 get_current_time = lambda: int(round(time.time()))
@@ -168,6 +169,23 @@ def run_async_map_accounts(name,
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date)
     g_jobs[g_job_id] = g_pool.apply_async(async_map_accounts, args)
+
+    return g_job_id
+
+def run_async_score_hist(name,
+                         from_date,
+                         to_date,
+                         span,
+                         interval,
+    ):
+    global g_elasticsearch_addr
+    global g_pool
+    global g_job_id
+    global g_jobs
+
+    g_job_id = g_job_id + 1
+    args = (g_elasticsearch_addr, name, from_date, to_date, span, interval)
+    g_jobs[g_job_id] = g_pool.apply_async(async_score_hist, args)
 
     return g_job_id
 
@@ -384,6 +402,30 @@ def nnsom_map_x():
                                   )
 
     return jsonify({'job_id': job_id})
+
+@app.route('/api/nnsom/score_hist', methods=['POST'])
+def nnsom_score_hist():
+    storage = get_storage()
+    # The model name 
+    name = request.args.get('name', None)
+    if name is None:
+        return error_msg(msg='Bad Request', code=400)
+
+    # By default: trend the scoring histogram over the last 30 days
+    from_date = int(request.args.get('from_date', (get_current_time()-30*24*3600)))
+    to_date = int(request.args.get('to_date', get_current_time()))
+    span = int(request.args.get('span', 7*24*3600))
+    interval = int(request.args.get('interval', 7*24*3600))
+
+    job_id = run_async_score_hist(name,
+                                   from_date=from_date,
+                                   to_date=to_date,
+                                   span=span,
+                                   interval=interval,
+                                  )
+
+    return jsonify({'job_id': job_id})
+
     
 @app.route('/api/nnsom/start', methods=['POST'])
 def nnsom_start_model():

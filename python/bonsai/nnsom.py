@@ -198,7 +198,7 @@ def map_account(model,
     global _model
 
     logging.info('map_account(%s) range=[%s, %s])' \
-                  % (account_name, str(time.ctime(from_date)), str(time.ctime(to_date))))
+                  % (account_name, str(time.ctime(from_date/1000)), str(time.ctime(to_date/1000))))
 
     g=model.get_profile_data(from_date=from_date, to_date=to_date, account_name=account_name)
     try:
@@ -233,7 +233,7 @@ def map_accounts(model,
     global _model
 
     logging.info('map_accounts() range=[%s, %s])' \
-                  % (str(time.ctime(from_date)), str(time.ctime(to_date))))
+                  % (str(time.ctime(from_date/1000)), str(time.ctime(to_date/1000))))
 
     stored = stored_accounts(model)
     res = []
@@ -302,6 +302,8 @@ def async_map_account(
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+    logging.info('async_map_account() range=[%s, %s])' \
+                  % (str(time.ctime(from_date)), str(time.ctime(to_date))))
 
     #initialize these variables
     storage = get_storage(elasticsearch_addr)
@@ -339,6 +341,8 @@ def async_map_accounts(
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+    logging.info('async_map_accounts() range=[%s, %s])' \
+                  % (str(time.ctime(from_date)), str(time.ctime(to_date))))
 
     #initialize these variables
     storage = get_storage(elasticsearch_addr)
@@ -361,6 +365,53 @@ def async_map_accounts(
           to_date=to_date,
           )
 
+def async_score_hist(
+        elasticsearch_addr,
+        name,
+        from_date=None,
+        to_date=None,
+        span=None,
+        interval=None,
+    ):
+    global _model
+    _model = None
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    #initialize these variables
+    storage = get_storage(elasticsearch_addr)
+    model = storage.get_nnsom(name)
+    if model is None:
+        logging.error('Cannot get model %s' % name)
+        raise Exception('Missing model information')
+
+    if (model.is_trained() == False):
+        logging.error('Not yet trained: %s' % name)
+        raise Exception('Missing training data')
+
+    _model = model.load_model()
+
+    bins = np.linspace(0, 100, 11)
+
+    _start = int(from_date / model._interval) * model._interval
+    _end = int(to_date / model._interval) * model._interval
+    res = []
+    while _start < _end:
+        _from_date = (_start - span)
+        _to_date = _start
+        val = map_accounts(model,
+              from_date=1000*_from_date,
+              to_date=1000*_to_date,
+              )
+        data = []
+        for i in val:
+            data.append(i['diff']['score'])
+        h = np.histogram(data, bins, weights=data)[0]
+        res.append({'timestamp': _from_date, 'counts': h.tolist()})
+        _start = _start + interval
+
+    return {'bins': bins.tolist(), 'histogram': res }
 
 def predict(model,
             from_date=None,
