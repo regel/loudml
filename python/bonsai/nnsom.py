@@ -416,12 +416,11 @@ def async_score_hist(
 def predict(model,
             from_date=None,
             to_date=None,
-            anomaly_threshold=30,
     ):
     global _model
 
     logging.info('predict(%s) range=[%s, %s] threshold=%d)' \
-                  % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), anomaly_threshold))
+                  % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), model._threshold))
 
     Y = []
     terms = []
@@ -451,19 +450,18 @@ def periodic(scheduler, interval, action, actionargs=()):
                     (scheduler, interval, action, actionargs))
     action(*actionargs)
 
-def __predict(model, anomaly_threshold):
+def __predict(model):
     tick = get_current_time()
     to_date = 1000 * int((tick - model._offset))
     from_date = (to_date - 1000 * model._span)
     predict(model,
             from_date=from_date,
             to_date=to_date,
-            anomaly_threshold=anomaly_threshold)
+            )
 
 def nnsom_rt_predict(
         elasticsearch_addr,
         name,
-        anomaly_threshold=30,
     ):
     global _model
     _model = None
@@ -485,7 +483,7 @@ def nnsom_rt_predict(
     _model = model.load_model()
 
     s = sched.scheduler(time.time, time.sleep)
-    periodic(s, model._interval, __predict, (model, anomaly_threshold))
+    periodic(s, model._interval, __predict, (model,))
     s.run()
 
 
@@ -493,7 +491,6 @@ def periodic_predict(
         model,
         from_date=None,
         to_date=None,
-        anomaly_threshold=30,
         real_time=False,
     ):
     if from_date is not None and to_date is not None:
@@ -502,11 +499,11 @@ def periodic_predict(
         predict(model,
                 from_date,
                 to_date,
-                anomaly_threshold)
+                )
 
     if (real_time == True):
         s = sched.scheduler(time.time, time.sleep)
-        periodic(s, model._interval, __predict, (model, anomaly_threshold))
+        periodic(s, model._interval, __predict, (model,))
         s.run()
 
 def str2bool(v):
@@ -550,7 +547,7 @@ def main():
         '--threshold',
         help="Anomaly threshold in range [0, 100]",
         type=int,
-        default=30,
+        default=70,
     )
     parser.add_argument(
         '-t', '--train',
@@ -620,7 +617,6 @@ def main():
 
     from_date = arg.start
     to_date = arg.end
-    anomaly_threshold = arg.threshold
 
     if (arg.predict == True):
         _model = model.load_model()
@@ -628,7 +624,6 @@ def main():
             model,
             from_date=from_date,
             to_date=to_date,
-            anomaly_threshold=anomaly_threshold,
             real_time=arg.real_time)
     elif (arg.train == True):
         if from_date is None:

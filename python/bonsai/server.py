@@ -49,7 +49,6 @@ g_job_id = 0
 g_processes = {}
 g_jobs = {}
 g_pool = None
-arg = None
 threadLocal = threading.local()
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
@@ -208,11 +207,11 @@ def get_job_status(job_id, timeout=1):
         'result': result, 
     }
 
-def start_predict_job(name, anomaly_threshold=30):
+def start_predict_job(name):
     global g_processes
     global g_elasticsearch_addr
 
-    args = (g_elasticsearch_addr, name, anomaly_threshold)
+    args = (g_elasticsearch_addr, name)
     p = multiprocessing.Process(target=rt_predict, args=args)
     p.start()
     g_processes[name] = p
@@ -227,11 +226,11 @@ def stop_predict_job(name):
         os.waitpid(p.pid, 0)
         return 
 
-def start_nnsom_job(name, anomaly_threshold=30):
+def start_nnsom_job(name):
     global g_processes
     global g_elasticsearch_addr
 
-    args = (g_elasticsearch_addr, name, anomaly_threshold)
+    args = (g_elasticsearch_addr, name)
     p = multiprocessing.Process(target=nnsom_rt_predict, args=args)
     p.start()
     g_processes[name] = p
@@ -240,9 +239,24 @@ def start_nnsom_job(name, anomaly_threshold=30):
 def stop_nnsom_job(name):
     return stop_predict_job(name)
 
+@app.route('/api/model/set_threshold', methods=['POST'])
+def set_threshold():
+    storage = get_storage()
+    # The model name 
+    name = request.args.get('name', None)
+    # anomaly threshold between 0 and 100
+    threshold = int(request.args.get('threshold', 30))
+
+    if name is None:
+        return error_msg(msg='Bad Request', code=400)
+
+    storage.set_threshold(
+        name=name,
+        threshold=threshold)
+    return error_msg(msg='', code=200)
+
 @app.route('/api/model/create', methods=['POST'])
 def create_model():
-    global arg
     storage = get_storage()
     # The model name 
     name = request.args.get('name', None)
@@ -545,6 +559,14 @@ def list_models():
             size=size,
         ))
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 def main():
     global g_elasticsearch_addr
     global g_pool
@@ -573,6 +595,14 @@ def main():
         default=10,
     )
     parser.add_argument(
+        '--autostart',
+        help="Autostart inference jobs",
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+    )
+    parser.add_argument(
         '-w', '--workers',
         help="Worker processes pool size",
         type=int,
@@ -593,9 +623,9 @@ def main():
         es_res = storage.get_model_list()
         for doc in es_res:
             try:
-                if 'term' in doc:
-                    continue # start_nnsom_job(doc['name'])
-                else:
+                if 'term' in doc and (arg.autostart == True):
+                    start_nnsom_job(doc['name'])
+                elif (arg.autostart == True):
                     start_predict_job(doc['name'])
             except(Exception):
                 pass

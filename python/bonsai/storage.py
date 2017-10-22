@@ -147,6 +147,7 @@ class NNSOM:
             map_w,
             map_h,
             state,
+            threshold,
         ):
         self._name = name
         self._id = _id
@@ -162,6 +163,7 @@ class NNSOM:
         # 4 quadrants model = 24 hours
         self._span = 24 * 3600
         self._state = state
+        self._threshold = threshold
 
     def get_es_agg(
             self,
@@ -446,6 +448,7 @@ class Model:
             interval,
             features,
             state,
+            threshold,
         ):
         self._name = name
         self._id = _id
@@ -459,6 +462,7 @@ class Model:
         self._features = sorted(features, key=lambda k: k['name'])
         self._state = state
         self.Y_ = None
+        self._threshold = threshold
 
     def get_es_agg(
             self,
@@ -711,6 +715,61 @@ class Storage:
 
         return self._es
 
+    def set_threshold(
+        self,
+        name,
+        threshold,
+        ):
+        try:
+            body = {
+                'timeout': "10s",
+                'query': [
+                    {'timestamp': {'order': 'desc'}},
+                ],
+            }
+            must = [
+                {'match': {'name': name}},
+            ]
+            if len(must) > 0:
+                body['query'] = {
+                    'bool': {
+                        'must': must,
+                    }
+                }
+
+            es_res = self.es.search(
+                index=self._model_index,
+                doc_type='model',
+                body=body,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("set_threshold: %s", str(exn))
+            raise StorageException(str(exn))
+
+        _id = es_res['hits']['hits'][0]['_id']
+        es_params={}
+        es_params['refresh']='true'
+        try:
+            doc = { 'doc': { 'threshold' : threshold
+            }}
+
+            es_res = self.es.update(
+                index=self._model_index,
+                id=_id,
+                doc_type='model',
+                body=doc,
+                params=es_params,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("set_threshold: %s", str(exn))
+            raise StorageException(str(exn))
+
     def save_nnsom_model(
         self,
         _id,
@@ -789,6 +848,7 @@ class Storage:
         bucket_interval,
         interval,
         features,
+        threshold=30,
         ):
         es_params={}
         es_params['refresh']='true'
@@ -816,6 +876,7 @@ class Storage:
                 'bucket_interval': bucket_interval,
                 'interval': interval,
                 'features': features,
+                'threshold': threshold,
             }
 
             es_res = self.es.index(
@@ -843,6 +904,7 @@ class Storage:
         interval,
         map_w,
         map_h,
+        threshold=30,
         ):
         es_params={}
         es_params['refresh']='true'
@@ -858,6 +920,7 @@ class Storage:
                 'max_terms': max_terms,
                 'map_w': map_w,
                 'map_h': map_h,
+                'threshold': threshold,
             }
 
             es_res = self.es.index(
@@ -1021,6 +1084,7 @@ class Storage:
             bucket_interval=res['bucket_interval'],
             interval=res['interval'],
             features=res['features'],
+            threshold=res['threshold'],
             state=res['_state'])
 
     def get_nnsom(
@@ -1073,6 +1137,7 @@ class Storage:
             max_terms=res['max_terms'],
             map_w=res['map_w'],
             map_h=res['map_h'],
+            threshold=res['threshold'],
             state=res['_state'],
             )
 

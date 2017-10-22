@@ -98,6 +98,7 @@
           "name": { "type": "keyword" },
           "offset": { "type": "long" },
           "span": { "type": "long" },
+          "threshold": { "type": "long" },
           "term": { "type": "keyword" }
         }
       }
