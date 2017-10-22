@@ -420,29 +420,23 @@ def predict(model,
     global _model
 
     logging.info('predict(%s) range=[%s, %s] threshold=%d)' \
-                  % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), model._threshold))
+                  % (model._name, str(time.ctime(from_date/1000)), str(time.ctime(to_date/1000)), model._threshold))
 
-    Y = []
-    terms = []
-    for key, val in model.get_profile_data(from_date=from_date, to_date=to_date):
-        # print("key[%s]=" % key, val)
-        Y.append(val)
-        terms.append(key)
-    
-    if (len(Y) == 0):
-        return
+    val = map_accounts(model,
+          from_date=from_date,
+          to_date=to_date,
+          )
+    for k in val:
+        key = k['orig']['key']
+        score = k['diff']['score']
+        if score > model._threshold:
+            # NOTE: A good spot for PagerDuty integration ?
+            print("Anomaly @timestamp:", get_current_time(),
+                         "score=", score,
+                         "original=", k['orig']['mapped'],
+                         "current=", k['current']['mapped'],
+                         )
 
-    Y = np.array(Y)
-
-    # Apply data standardization to each feature individually
-    # https://en.wikipedia.org/wiki/Feature_scaling 
-    # x_ = (x - mean(x)) / std(x)
-    # means = np.mean(profiles, axis=0)
-    # stds = np.std(profiles, axis=0)
-    zY = preprocessing.scale(Y)
-
-    #Map profiles to their closest neurons
-    mapped = _model.map_vects(zY)
     return  
 
 def periodic(scheduler, interval, action, actionargs=()):

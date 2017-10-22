@@ -327,6 +327,8 @@ def nnsom_create():
     map_w = int(request.args.get('map_w', 50))
     map_h = int(request.args.get('map_h', 50))
 
+    # time span in periodic queries
+    span = int(request.args.get('span', 7*24*3600))
     # periodic interval to run queries
     interval = int(request.args.get('interval', 60))
     if name is None or index is None or term is None:
@@ -338,6 +340,7 @@ def nnsom_create():
         routing=routing,
         offset=offset,
         interval=interval,
+        span=span,
         term=term,
         max_terms=max_terms,
         map_w=map_w,

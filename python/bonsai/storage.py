@@ -142,6 +142,7 @@ class NNSOM:
             name,
             offset,
             interval,
+            span,
             term,
             max_terms,
             map_w,
@@ -156,12 +157,11 @@ class NNSOM:
         self._routing = routing
         self._offset = offset
         self._interval = interval
+        self._span = span
         self._term = term
         self._max_terms = max_terms
         self._map_w = map_w
         self._map_h = map_h
-        # 4 quadrants model = 24 hours
-        self._span = 24 * 3600
         self._state = state
         self._threshold = threshold
 
@@ -902,6 +902,7 @@ class Storage:
         term,
         max_terms,
         interval,
+        span,
         map_w,
         map_h,
         threshold=30,
@@ -916,6 +917,7 @@ class Storage:
                 'routing': routing,
                 'offset': offset,
                 'interval': interval,
+                'span': span,
                 'term': term,
                 'max_terms': max_terms,
                 'map_w': map_w,
@@ -1133,6 +1135,7 @@ class Storage:
             name=res['name'],
             offset=res['offset'],
             interval=res['interval'],
+            span=res['span'],
             term=res['term'],
             max_terms=res['max_terms'],
             map_w=res['map_w'],
