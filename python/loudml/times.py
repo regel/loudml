@@ -174,7 +174,7 @@ def predict(
 
     return (_mse, _dist, _score, np.array(y_test), np.array(predicted))
 
-def mp_train_model(
+def async_times_train_model(
         elasticsearch_addr,
         name,
         from_date=None,
@@ -210,7 +210,7 @@ def mp_train_model(
     model.save_model(_model, mins=_mins, maxs=_maxs, best_params=best_params)
     return { 'best_params': best_params, 'score': score }
 
-def range_predict(
+def async_times_range_predict(
         elasticsearch_addr,
         name,
         from_date=None,
@@ -438,7 +438,7 @@ def __predict(model):
             )
 
 
-def rt_predict(
+def async_times_live_predict(
         elasticsearch_addr,
         name,
     ):

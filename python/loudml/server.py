@@ -12,9 +12,9 @@ import multiprocessing
 from multiprocessing import Pool
 from multiprocessing import TimeoutError 
 
-from .times import mp_train_model
-from .times import range_predict
-from .times import rt_predict
+from .times import async_times_train_model
+from .times import async_times_range_predict
+from .times import async_times_live_predict
 
 from .nnsom import nnsom_train_model
 from .nnsom import async_map_account
@@ -110,7 +110,7 @@ def start_training_job(name, from_date, to_date, train_test_split):
 
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date)
-    g_jobs[g_job_id] = g_pool.apply_async(mp_train_model, args)
+    g_jobs[g_job_id] = g_pool.apply_async(async_times_train_model, args)
 
     return g_job_id
 
@@ -122,7 +122,7 @@ def start_inference_job(name, from_date, to_date):
 
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date)
-    g_jobs[g_job_id] = g_pool.apply_async(range_predict, args)
+    g_jobs[g_job_id] = g_pool.apply_async(async_times_range_predict, args)
 
     return g_job_id
 
@@ -212,7 +212,7 @@ def start_predict_job(name):
     global g_elasticsearch_addr
 
     args = (g_elasticsearch_addr, name)
-    p = multiprocessing.Process(target=rt_predict, args=args)
+    p = multiprocessing.Process(target=async_times_live_predict, args=args)
     p.start()
     g_processes[name] = p
     return 
