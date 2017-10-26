@@ -109,7 +109,7 @@ systemctl daemon-reload
 %{python3_sitelib}/*
 %{_bindir}/loudmld
 %{_bindir}/loudml_times
-%{_bindir}/loudml_segmap
+%{_bindir}/loudml_ivoip
 %{_sbindir}/*
 %{_unitdir}/%{srcname}.service
 %{_sysconfdir}/nginx/%{srcname}-main.conf

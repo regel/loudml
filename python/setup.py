@@ -53,7 +53,7 @@ setup(
         'console_scripts': [
             'loudmld=loudml.server:main',
             'loudml_times=loudml.times:main',
-            'loudml_segmap=loudml.nnsom:main',
+            'loudml_ivoip=loudml.ivoip:main',
         ],
     },
 )

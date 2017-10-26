@@ -16,11 +16,11 @@ from .times import async_times_train_model
 from .times import async_times_range_predict
 from .times import async_times_live_predict
 
-from .nnsom import nnsom_train_model
-from .nnsom import async_map_account
-from .nnsom import async_map_accounts
-from .nnsom import async_score_hist
-from .nnsom import nnsom_rt_predict
+from .ivoip import nnsom_train_model
+from .ivoip import async_map_account
+from .ivoip import async_map_accounts
+from .ivoip import async_score_hist
+from .ivoip import nnsom_rt_predict
 
 get_current_time = lambda: int(round(time.time()))
 
