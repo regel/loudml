@@ -52,7 +52,7 @@ setup(
     entry_points={
         'console_scripts': [
             'loudmld=loudml.server:main',
-            'loudml_series=loudml.compute:main',
+            'loudml_times=loudml.times:main',
             'loudml_segmap=loudml.nnsom:main',
         ],
     },

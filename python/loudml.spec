@@ -108,7 +108,7 @@ systemctl daemon-reload
 %exclude %{python3_sitelib}/%{srcname}/__pycache__
 %{python3_sitelib}/*
 %{_bindir}/loudmld
-%{_bindir}/loudml_series
+%{_bindir}/loudml_times
 %{_bindir}/loudml_segmap
 %{_sbindir}/*
 %{_unitdir}/%{srcname}.service

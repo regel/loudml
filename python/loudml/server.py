@@ -12,9 +12,9 @@ import multiprocessing
 from multiprocessing import Pool
 from multiprocessing import TimeoutError 
 
-from .compute import mp_train_model
-from .compute import range_predict
-from .compute import rt_predict
+from .times import mp_train_model
+from .times import range_predict
+from .times import rt_predict
 
 from .nnsom import nnsom_train_model
 from .nnsom import async_map_account
@@ -239,7 +239,7 @@ def start_nnsom_job(name):
 def stop_nnsom_job(name):
     return stop_predict_job(name)
 
-@app.route('/api/model/set_threshold', methods=['POST'])
+@app.route('/api/core/set_threshold', methods=['POST'])
 def set_threshold():
     storage = get_storage()
     # The model name 
@@ -255,7 +255,7 @@ def set_threshold():
         threshold=threshold)
     return error_msg(msg='', code=200)
 
-@app.route('/api/model/create', methods=['POST'])
+@app.route('/api/times/create', methods=['POST'])
 def create_model():
     storage = get_storage()
     # The model name 
@@ -294,7 +294,7 @@ def create_model():
   
     return error_msg(msg='', code=200)
 
-@app.route('/api/model/delete', methods=['POST'])
+@app.route('/api/times/delete', methods=['POST'])
 def delete_model():
     storage = get_storage()
     # The model name 
@@ -478,7 +478,7 @@ def nnsom_stop_model():
     else:
         return error_msg(msg='Not found', code=404)
 
-@app.route('/api/model/get_job_status', methods=['GET'])
+@app.route('/api/core/get_job_status', methods=['GET'])
 def job_status():
     job_id = request.args.get('job_id', None)
     if job_id is None:
@@ -487,7 +487,7 @@ def job_status():
     res = get_job_status(int(job_id))
     return make_response(json.dumps(res))
 
-@app.route('/api/model/train', methods=['POST'])
+@app.route('/api/times/train', methods=['POST'])
 def train_model():
     storage = get_storage()
     # The model name 
@@ -503,7 +503,7 @@ def train_model():
 
     return jsonify({'job_id': job_id})
 
-@app.route('/api/model/inference', methods=['POST'])
+@app.route('/api/times/inference', methods=['POST'])
 def timeseries_inference():
     storage = get_storage()
     # The model name 
@@ -519,7 +519,7 @@ def timeseries_inference():
     return jsonify({'job_id': job_id})
 
     
-@app.route('/api/model/start', methods=['POST'])
+@app.route('/api/times/start', methods=['POST'])
 def start_model():
     storage = get_storage()
     # The model name 
@@ -536,7 +536,7 @@ def start_model():
     else:
         return error_msg(msg='Not found', code=404)
 
-@app.route('/api/model/stop', methods=['POST'])
+@app.route('/api/times/stop', methods=['POST'])
 def stop_model():
     storage = get_storage()
     # The model name 
@@ -553,7 +553,7 @@ def stop_model():
     else:
         return error_msg(msg='Not found', code=404)
 
-@app.route('/api/model/list', methods=['GET'])
+@app.route('/api/core/list', methods=['GET'])
 def list_models():
     storage = get_storage()
     size = int(request.args.get('size', 10))
