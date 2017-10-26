@@ -1,4 +1,4 @@
-NAME := bonsai
+NAME := loudml
 VERSION ?= $(shell git describe --tags --match 'v*.*.*' | \
                        sed -e 's/^v//' -e 's/-/./g')
 FULLNAME := $(NAME)-$(VERSION)
@@ -27,11 +27,11 @@ rpmbuild --define "name $(2)" \
          -bb "$<"
 endef
 
-python-bonsai.rpm: bonsai.spec
+python-loudml.rpm: loudml.spec
 	$(call rpmsrc,$(FULLNAME))
 	$(call rpmbuild,$(FULLNAME),$(NAME))
 
-rpm: python-bonsai.rpm
+rpm: python-loudml.rpm
 
 .PHONY: rpm
 

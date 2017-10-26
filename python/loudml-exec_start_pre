@@ -8,7 +8,7 @@
 elastic="http://${ELASTICSEARCH_ADDR:-"localhost:9200"}"
 
 # Elasticsearch template
-template=/etc/bonsai/bonsai.template.json
+template=/etc/loudml/loudml.template.json
 
 # Wait for Elasticsearch to be ready
 # Services dependencies is not sufficient. If one day there is a systemd
@@ -40,10 +40,10 @@ es_put() {
 configure_elasticsearch() {
     [[ "$elastic" == *"localhost"* ]] && wait_for_es
 
-    cur="$(curl -XGET $elastic/_template/bonsai)"
+    cur="$(curl -XGET $elastic/_template/loudml)"
 #FIXME: template versioning
     if [ "$cur" = "{}" ]; then
-        es_put _template/bonsai @$template
+        es_put _template/loudml @$template
     fi
 }
 

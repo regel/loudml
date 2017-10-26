@@ -1,5 +1,5 @@
 {
-  "template": ".bonsai",
+  "template": ".loudml",
     "mappings": {
       "model": {
         "_all": {

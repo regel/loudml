@@ -691,7 +691,7 @@ class Storage:
     def __init__(self, addr, vlan='*'):
         self.addr = addr
         self._es = None
-        self._model_index = '.bonsai'
+        self._model_index = '.loudml'
         self._ano_index = '.ml-anomalies-custom-%s' % vlan
 
     @property

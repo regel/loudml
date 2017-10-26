@@ -1,4 +1,4 @@
-# bonsai
+# loudml
 
 A REST API to run ML jobs using Tensorflow
 
@@ -55,13 +55,13 @@ Training a model and saving model weights in the configuration:
 ```bash
 START=$(( ($(date +%s)) - 3600*24*10 )) 
 END=$(( ($(date +%s)) - 3600*24*6 )) 
-python3 -m bonsai.compute -t --model foo -s $START -e $END 127.0.0.1:9200 
+python3 -m loudml.compute -t --model foo -s $START -e $END 127.0.0.1:9200 
 ```
 
 Predicting next values in real time mode:
 
 ```bash
-python3 -m bonsai.compute -r -p --model foo 127.0.0.1:9200 
+python3 -m loudml.compute -r -p --model foo 127.0.0.1:9200 
 ```
 
 

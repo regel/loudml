@@ -2,7 +2,7 @@
 # in the minimal buildroot; %%python3_pkgversion is also available in Fedora, so it's possible to have a common
 # specfile for EPEL and Fedora
 
-%global srcname bonsai
+%global srcname loudml
 %global sum A ML wizard REST API
 
 Name:           %{srcname}
@@ -107,9 +107,9 @@ systemctl daemon-reload
 %exclude %{python3_sitelib}/%{srcname}/*.py
 %exclude %{python3_sitelib}/%{srcname}/__pycache__
 %{python3_sitelib}/*
-%{_bindir}/bonsaid
-%{_bindir}/bonsai_series
-%{_bindir}/bonsai_segmap
+%{_bindir}/loudmld
+%{_bindir}/loudml_series
+%{_bindir}/loudml_segmap
 %{_sbindir}/*
 %{_unitdir}/%{srcname}.service
 %{_sysconfdir}/nginx/%{srcname}-main.conf

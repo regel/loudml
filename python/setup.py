@@ -8,7 +8,7 @@ from setuptools import setup
 from os import path
 
 setup(
-    name='bonsai',
+    name='loudml',
 
     version='0.1.0',
 
@@ -18,7 +18,7 @@ setup(
     ],
 
     packages=[
-        'bonsai',
+        'loudml',
     ],
 
     setup_requires=[
@@ -51,9 +51,9 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'bonsaid=bonsai.server:main',
-            'bonsai_series=bonsai.compute:main',
-            'bonsai_segmap=bonsai.nnsom:main',
+            'loudmld=loudml.server:main',
+            'loudml_series=loudml.compute:main',
+            'loudml_segmap=loudml.nnsom:main',
         ],
     },
 )
