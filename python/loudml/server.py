@@ -16,11 +16,11 @@ from .times import async_times_train_model
 from .times import async_times_range_predict
 from .times import async_times_live_predict
 
-from .ivoip import nnsom_train_model
+from .ivoip import ivoip_train_model
 from .ivoip import async_map_account
 from .ivoip import async_map_accounts
 from .ivoip import async_score_hist
-from .ivoip import nnsom_rt_predict
+from .ivoip import ivoip_rt_predict
 
 get_current_time = lambda: int(round(time.time()))
 
@@ -126,7 +126,7 @@ def start_inference_job(name, from_date, to_date):
 
     return g_job_id
 
-def run_nnsom_training_job(name,
+def run_ivoip_training_job(name,
                            from_date,
                            to_date,
                            num_epochs=100,
@@ -138,7 +138,7 @@ def run_nnsom_training_job(name,
 
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date, num_epochs)
-    g_jobs[g_job_id] = g_pool.apply_async(nnsom_train_model, args)
+    g_jobs[g_job_id] = g_pool.apply_async(ivoip_train_model, args)
 
     return g_job_id
 
@@ -226,17 +226,17 @@ def stop_predict_job(name):
         os.waitpid(p.pid, 0)
         return 
 
-def start_nnsom_job(name):
+def start_ivoip_job(name):
     global g_processes
     global g_elasticsearch_addr
 
     args = (g_elasticsearch_addr, name)
-    p = multiprocessing.Process(target=nnsom_rt_predict, args=args)
+    p = multiprocessing.Process(target=ivoip_rt_predict, args=args)
     p.start()
     g_processes[name] = p
     return 
 
-def stop_nnsom_job(name):
+def stop_ivoip_job(name):
     return stop_predict_job(name)
 
 @app.route('/api/core/set_threshold', methods=['POST'])
@@ -308,8 +308,8 @@ def delete_model():
     return error_msg(msg='', code=200)
 
 # Custom API to create quadrant data based on SUNSHINE paper.
-@app.route('/api/nnsom/create', methods=['POST'])
-def nnsom_create():
+@app.route('/api/ivoip/create', methods=['POST'])
+def ivoip_create():
     global arg
     storage = get_storage()
     # The model name 
@@ -334,7 +334,7 @@ def nnsom_create():
     if name is None or index is None or term is None:
         return error_msg(msg='Bad Request', code=400)
 
-    storage.create_nnsom(
+    storage.create_ivoip(
         name=name,
         index=index,
         routing=routing,
@@ -349,16 +349,16 @@ def nnsom_create():
   
     return error_msg(msg='', code=200)
 
-@app.route('/api/nnsom/delete', methods=['POST'])
-def nnsom_delete():
+@app.route('/api/ivoip/delete', methods=['POST'])
+def ivoip_delete():
     return delete_model()
 
-@app.route('/api/nnsom/get_job_status', methods=['GET'])
-def nnsom_job_status():
+@app.route('/api/ivoip/get_job_status', methods=['GET'])
+def ivoip_job_status():
     return job_status()
 
-@app.route('/api/nnsom/train', methods=['POST'])
-def __nnsom_train_model():
+@app.route('/api/ivoip/train', methods=['POST'])
+def __ivoip_train_model():
     storage = get_storage()
     # The model name 
     name = request.args.get('name', None)
@@ -369,7 +369,7 @@ def __nnsom_train_model():
     to_date = int(request.args.get('to_date', get_current_time()))
     num_epochs = int(request.args.get('epochs', 100))
 
-    job_id = run_nnsom_training_job(name,
+    job_id = run_ivoip_training_job(name,
                                     from_date=from_date,
                                     to_date=to_date,
                                     num_epochs=num_epochs,
@@ -377,8 +377,8 @@ def __nnsom_train_model():
 
     return jsonify({'job_id': job_id})
 
-@app.route('/api/nnsom/map', methods=['POST'])
-def nnsom_map():
+@app.route('/api/ivoip/map', methods=['POST'])
+def ivoip_map():
     storage = get_storage()
     # The model name 
     name = request.args.get('name', None)
@@ -401,8 +401,8 @@ def nnsom_map():
 
     return jsonify({'job_id': job_id})
 
-@app.route('/api/nnsom/map_x', methods=['POST'])
-def nnsom_map_x():
+@app.route('/api/ivoip/map_x', methods=['POST'])
+def ivoip_map_x():
     storage = get_storage()
     # The model name 
     name = request.args.get('name', None)
@@ -420,8 +420,8 @@ def nnsom_map_x():
 
     return jsonify({'job_id': job_id})
 
-@app.route('/api/nnsom/score_hist', methods=['POST'])
-def nnsom_score_hist():
+@app.route('/api/ivoip/score_hist', methods=['POST'])
+def ivoip_score_hist():
     storage = get_storage()
     # The model name 
     name = request.args.get('name', None)
@@ -444,8 +444,8 @@ def nnsom_score_hist():
     return jsonify({'job_id': job_id})
 
     
-@app.route('/api/nnsom/start', methods=['POST'])
-def nnsom_start_model():
+@app.route('/api/ivoip/start', methods=['POST'])
+def ivoip_start_model():
     storage = get_storage()
     # The model name 
     name = request.args.get('name', None)
@@ -456,13 +456,13 @@ def nnsom_start_model():
         name,
     )
     if res == True:
-        start_nnsom_job(name)
+        start_ivoip_job(name)
         return error_msg(msg='', code=200)
     else:
         return error_msg(msg='Not found', code=404)
 
-@app.route('/api/nnsom/stop', methods=['POST'])
-def nnsom_stop_model():
+@app.route('/api/ivoip/stop', methods=['POST'])
+def ivoip_stop_model():
     storage = get_storage()
     # The model name 
     name = request.args.get('name', None)
@@ -473,7 +473,7 @@ def nnsom_stop_model():
         name,
     )
     if res == True:
-        stop_nnsom_job(name)
+        stop_ivoip_job(name)
         return error_msg(msg='', code=200)
     else:
         return error_msg(msg='Not found', code=404)
@@ -627,7 +627,7 @@ def main():
         for doc in es_res:
             try:
                 if 'term' in doc and (arg.autostart == True):
-                    start_nnsom_job(doc['name'])
+                    start_ivoip_job(doc['name'])
                 elif (arg.autostart == True):
                     start_predict_job(doc['name'])
             except(Exception):

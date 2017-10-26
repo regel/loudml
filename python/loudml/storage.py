@@ -426,7 +426,7 @@ class NNSOM:
 
         s_mapped_info = json.dumps(mapped_info)
         b_mapped_info = base64.b64encode(s_mapped_info.encode('utf-8'))
-        self._storage.save_nnsom_model(self._id,
+        self._storage.save_ivoip_model(self._id,
                                        data.decode('utf-8'),
                                        idx.decode('utf-8'),
                                        meta.decode('utf-8'),
@@ -770,7 +770,7 @@ class Storage:
             logging.error("set_threshold: %s", str(exn))
             raise StorageException(str(exn))
 
-    def save_nnsom_model(
+    def save_ivoip_model(
         self,
         _id,
         model_ckpt,
@@ -799,7 +799,7 @@ class Storage:
             elasticsearch.exceptions.TransportError,
             urllib3.exceptions.HTTPError,
         ) as exn:
-            logging.error("save_nnsom_model: %s", str(exn))
+            logging.error("save_ivoip_model: %s", str(exn))
             raise StorageException(str(exn))
 
     def save_keras_model(
@@ -893,7 +893,7 @@ class Storage:
             logging.error("create_model: %s", str(exn))
             raise StorageException(str(exn))
 
-    def create_nnsom(
+    def create_ivoip(
         self,
         name,
         index,
@@ -936,7 +936,7 @@ class Storage:
             elasticsearch.exceptions.TransportError,
             urllib3.exceptions.HTTPError,
         ) as exn:
-            logging.error("create_nnsom: %s", str(exn))
+            logging.error("create_ivoip: %s", str(exn))
             raise StorageException(str(exn))
 
     def delete_model(
@@ -1089,7 +1089,7 @@ class Storage:
             threshold=res['threshold'],
             state=res['_state'])
 
-    def get_nnsom(
+    def get_ivoip(
             self,
             name,
         ):
@@ -1119,7 +1119,7 @@ class Storage:
             elasticsearch.exceptions.TransportError,
             urllib3.exceptions.HTTPError,
         ) as exn:
-            logging.error("get_nnsom: %s", str(exn))
+            logging.error("get_ivoip: %s", str(exn))
             raise StorageException(str(exn))
 
         _id = es_res['hits']['hits'][0]['_id']

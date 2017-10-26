@@ -80,7 +80,7 @@ def distance(x,
           }
     return res
 
-def nnsom_train_model(
+def ivoip_train_model(
         elasticsearch_addr,
         name,
         from_date=None,
@@ -95,7 +95,7 @@ def nnsom_train_model(
 
     #initialize these variables
     storage = get_storage(elasticsearch_addr)
-    model = storage.get_nnsom(name)
+    model = storage.get_ivoip(name)
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
@@ -307,7 +307,7 @@ def async_map_account(
 
     #initialize these variables
     storage = get_storage(elasticsearch_addr)
-    model = storage.get_nnsom(name)
+    model = storage.get_ivoip(name)
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
@@ -346,7 +346,7 @@ def async_map_accounts(
 
     #initialize these variables
     storage = get_storage(elasticsearch_addr)
-    model = storage.get_nnsom(name)
+    model = storage.get_ivoip(name)
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
@@ -381,7 +381,7 @@ def async_score_hist(
 
     #initialize these variables
     storage = get_storage(elasticsearch_addr)
-    model = storage.get_nnsom(name)
+    model = storage.get_ivoip(name)
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
@@ -453,7 +453,7 @@ def __predict(model):
             to_date=to_date,
             )
 
-def nnsom_rt_predict(
+def ivoip_rt_predict(
         elasticsearch_addr,
         name,
     ):
@@ -465,7 +465,7 @@ def nnsom_rt_predict(
 
     #initialize these variables
     storage = get_storage(elasticsearch_addr)
-    model = storage.get_nnsom(name)
+    model = storage.get_ivoip(name)
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
@@ -604,7 +604,7 @@ def main():
 
     #initialize these variables
     storage = get_storage(arg.elasticsearch_addr)
-    model = storage.get_nnsom(arg.model)
+    model = storage.get_ivoip(arg.model)
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
