@@ -16,11 +16,11 @@ from .times import async_times_train_model
 from .times import async_times_range_predict
 from .times import async_times_live_predict
 
-from .ivoip import ivoip_train_model
-from .ivoip import async_map_account
-from .ivoip import async_map_accounts
-from .ivoip import async_score_hist
-from .ivoip import ivoip_rt_predict
+from .ivoip import async_ivoip_train_model
+from .ivoip import async_ivoip_map_account
+from .ivoip import async_ivoip_map_accounts
+from .ivoip import async_ivoip_score_hist
+from .ivoip import async_ivoip_live_predict
 
 get_current_time = lambda: int(round(time.time()))
 
@@ -138,7 +138,7 @@ def run_ivoip_training_job(name,
 
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date, num_epochs)
-    g_jobs[g_job_id] = g_pool.apply_async(ivoip_train_model, args)
+    g_jobs[g_job_id] = g_pool.apply_async(async_ivoip_train_model, args)
 
     return g_job_id
 
@@ -153,7 +153,7 @@ def run_async_map_account(name,
 
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, account_name, from_date, to_date)
-    g_jobs[g_job_id] = g_pool.apply_async(async_map_account, args)
+    g_jobs[g_job_id] = g_pool.apply_async(async_ivoip_map_account, args)
 
     return g_job_id
 
@@ -167,7 +167,7 @@ def run_async_map_accounts(name,
 
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date)
-    g_jobs[g_job_id] = g_pool.apply_async(async_map_accounts, args)
+    g_jobs[g_job_id] = g_pool.apply_async(async_ivoip_map_accounts, args)
 
     return g_job_id
 
@@ -184,7 +184,7 @@ def run_async_score_hist(name,
 
     g_job_id = g_job_id + 1
     args = (g_elasticsearch_addr, name, from_date, to_date, span, interval)
-    g_jobs[g_job_id] = g_pool.apply_async(async_score_hist, args)
+    g_jobs[g_job_id] = g_pool.apply_async(async_ivoip_score_hist, args)
 
     return g_job_id
 
@@ -231,7 +231,7 @@ def start_ivoip_job(name):
     global g_elasticsearch_addr
 
     args = (g_elasticsearch_addr, name)
-    p = multiprocessing.Process(target=ivoip_rt_predict, args=args)
+    p = multiprocessing.Process(target=async_ivoip_live_predict, args=args)
     p.start()
     g_processes[name] = p
     return 

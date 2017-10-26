@@ -80,7 +80,7 @@ def distance(x,
           }
     return res
 
-def ivoip_train_model(
+def async_ivoip_train_model(
         elasticsearch_addr,
         name,
         from_date=None,
@@ -290,7 +290,7 @@ def stored_accounts(model,
     mapped_info = dict((x['key'], x) for x in object_list)
     return mapped_info
 
-def async_map_account(
+def async_ivoip_map_account(
         elasticsearch_addr,
         name,
         account_name,
@@ -302,7 +302,7 @@ def async_map_account(
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    logging.info('async_map_account() range=[%s, %s])' \
+    logging.info('async_ivoip_map_account() range=[%s, %s])' \
                   % (str(time.ctime(from_date)), str(time.ctime(to_date))))
 
     #initialize these variables
@@ -330,7 +330,7 @@ def async_map_account(
     diff = distance(mapped, stored)
     return { 'current': mapped, 'orig': stored, 'diff': diff }
 
-def async_map_accounts(
+def async_ivoip_map_accounts(
         elasticsearch_addr,
         name,
         from_date=None,
@@ -341,7 +341,7 @@ def async_map_accounts(
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    logging.info('async_map_accounts() range=[%s, %s])' \
+    logging.info('async_ivoip_map_accounts() range=[%s, %s])' \
                   % (str(time.ctime(from_date)), str(time.ctime(to_date))))
 
     #initialize these variables
@@ -365,7 +365,7 @@ def async_map_accounts(
           to_date=to_date,
           )
 
-def async_score_hist(
+def async_ivoip_score_hist(
         elasticsearch_addr,
         name,
         from_date=None,
@@ -453,7 +453,7 @@ def __predict(model):
             to_date=to_date,
             )
 
-def ivoip_rt_predict(
+def async_ivoip_live_predict(
         elasticsearch_addr,
         name,
     ):
