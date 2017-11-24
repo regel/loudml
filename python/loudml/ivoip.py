@@ -262,7 +262,11 @@ def map_accounts(model,
             diff = distance(mapped_res, stored[key])
         else:
             diff = None
-        res.append({'current': mapped_res, 'orig': stored[key], 'diff': diff})
+        try:
+            res.append({'current': mapped_res, 'orig': stored[key], 'diff': diff})
+        except (KeyError):
+            # Key wasn't present (New account) at model creation time.
+            res.append({'current': mapped_res, 'orig': {}, 'diff': diff})
 
     return res
 
