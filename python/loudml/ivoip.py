@@ -215,7 +215,7 @@ def map_account(model,
     # stds = np.std(profiles, axis=0)
     zY = preprocessing.scale(Y)
     #Map profile to its closest neurons
-    mapped = _model.map_vects(zY)
+    mapped = _model.map_vects([zY])
 
     res = { 'key': key,
              'time_range_ms': (from_date, to_date),
@@ -249,7 +249,7 @@ def map_accounts(model,
         # stds = np.std(profiles, axis=0)
         zY = preprocessing.scale(Y)
         #Map profile to its closest neurons
-        mapped = _model.map_vects(zY)
+        mapped = _model.map_vects([zY])
 
         mapped_res = { 'key': key,
                  'time_range_ms': (from_date, to_date),
