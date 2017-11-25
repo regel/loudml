@@ -178,7 +178,7 @@ class SOM(object):
             centroid_grid[loc[0]].append(self._weightages[i])
         self._centroid_grid = centroid_grid
  
-        self._tree = spatial.KDTree(self._weightages)
+        self._tree = spatial.cKDTree(self._weightages)
         self._trained = True
  
     def get_centroids(self):
@@ -230,7 +230,7 @@ class SOM(object):
             centroid_grid[loc[0]].append(self._weightages[i])
         self._centroid_grid = centroid_grid
 
-        self._tree = spatial.KDTree(self._weightages)
+        self._tree = spatial.cKDTree(self._weightages)
         self._trained = True
 
     def show(self):
