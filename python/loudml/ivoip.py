@@ -13,12 +13,22 @@ import os
 import sys
 import sched, time
 import base64
+import time
 
 import numpy as np
 import math
 from sklearn import preprocessing
 
 from .som import SOM
+
+def timing_val(func):
+    def wrapper(*arg, **kw):
+        t1 = time.time()
+        res = func(*arg, **kw)
+        t2 = time.time()
+        print( '%s took %0.3f ms' % (func.__name__, (t2 - t1)*1000.0) )
+        return res, (t2 - t1)
+    return wrapper
  
 # global vars for easy reusability
 # This UNIX process is handling a unique model
@@ -99,15 +109,16 @@ def async_ivoip_train_model(
     if model is None:
         logging.error('Cannot get model %s' % name)
         raise Exception('Missing model information')
-    mapped_info = train(model,
+    mapped_info, took = train(model,
           from_date,
           to_date,
           num_epochs=num_epochs,
           )
 
     model.save_model(_model, mapped_info)
-    return
+    return { 'took': int(took*1000) }
 
+@timing_val
 def train(
         model,
         from_date=None,
@@ -190,6 +201,7 @@ def get_account(model,
              'zY': zY.tolist() }
     return res
 
+@timing_val
 def map_account(model,
             account_name,
             from_date=None,
@@ -226,6 +238,7 @@ def map_account(model,
            }
     return res
 
+@timing_val
 def map_accounts(model,
             from_date=None,
             to_date=None,
@@ -325,14 +338,14 @@ def async_ivoip_map_account(
     to_date = 1000 * int(to_date / model._interval) * model._interval
     from_date = 1000 * int(from_date / model._interval) * model._interval
 
-    mapped = map_account(model,
+    mapped, took = map_account(model,
                          account_name=account_name,
                          from_date=from_date,
                          to_date=to_date,
                          )
     stored = stored_account(model, account_name)
     diff = distance(mapped, stored)
-    return { 'current': mapped, 'orig': stored, 'diff': diff }
+    return { 'took': int(took*1000), 'current': mapped, 'orig': stored, 'diff': diff }
 
 def async_ivoip_map_accounts(
         elasticsearch_addr,
@@ -364,10 +377,11 @@ def async_ivoip_map_accounts(
     to_date = 1000 * int(to_date / model._interval) * model._interval
     from_date = 1000 * int(from_date / model._interval) * model._interval
 
-    return map_accounts(model,
+    res, took = map_accounts(model,
           from_date=from_date,
           to_date=to_date,
           )
+    return res
 
 def async_ivoip_score_hist(
         elasticsearch_addr,
@@ -404,7 +418,7 @@ def async_ivoip_score_hist(
     while _start < _end:
         _from_date = (_start - span)
         _to_date = _start
-        val = map_accounts(model,
+        val, took = map_accounts(model,
               from_date=1000*_from_date,
               to_date=1000*_to_date,
               )
@@ -417,6 +431,7 @@ def async_ivoip_score_hist(
 
     return {'bins': bins.tolist(), 'histogram': res }
 
+@timing_val
 def predict(model,
             from_date=None,
             to_date=None,
@@ -426,7 +441,7 @@ def predict(model,
     logging.info('predict(%s) range=[%s, %s] threshold=%d)' \
                   % (model._name, str(time.ctime(from_date/1000)), str(time.ctime(to_date/1000)), model._threshold))
 
-    val = map_accounts(model,
+    val, took = map_accounts(model,
           from_date=from_date,
           to_date=to_date,
           )
@@ -630,7 +645,7 @@ def main():
         if to_date is None:
             to_date = get_current_time()
  
-        mapped_info = train(model,
+        mapped_info, took = train(model,
               from_date,
               to_date,
               num_epochs=arg.num_epochs,
