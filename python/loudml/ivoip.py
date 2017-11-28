@@ -21,6 +21,11 @@ from sklearn import preprocessing
 
 from .som import SOM
 
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
 def timing_val(func):
     def wrapper(*arg, **kw):
         t1 = time.time()
@@ -218,7 +223,8 @@ def map_account(model,
     except(StopIteration):
         return None
 
-    Y = np.array(val)
+    Y = [val]
+    Y = np.array(Y)
 
     # Apply data standardization to each feature individually
     # https://en.wikipedia.org/wiki/Feature_scaling 
@@ -227,7 +233,7 @@ def map_account(model,
     # stds = np.std(profiles, axis=0)
     zY = preprocessing.scale(Y)
     #Map profile to its closest neurons
-    mapped = _model.map_vects([zY])
+    mapped = _model.map_vects(zY)
 
     res = { 'key': key,
              'time_range_ms': (from_date, to_date),
@@ -244,42 +250,38 @@ def map_accounts(model,
             to_date=None,
     ):
     global _model
+    batch = 1024
 
     logging.info('map_accounts() range=[%s, %s])' \
                   % (str(time.ctime(from_date/1000)), str(time.ctime(to_date/1000))))
 
     stored = stored_accounts(model)
     res = []
-    for key, val in model.get_profile_data(from_date=from_date, to_date=to_date):
-        # print("key[%s]=" % key, val)
+    for l in chunks(list(model.get_profile_data(from_date=from_date, to_date=to_date)), batch):
+        lY = [val[1] for val in l]
+        lY = np.array(lY)
+        lzY = preprocessing.scale(lY)
 
-        Y = np.array(val)
-    
-        # Apply data standardization to each feature individually
-        # https://en.wikipedia.org/wiki/Feature_scaling 
-        # x_ = (x - mean(x)) / std(x)
-        # means = np.mean(profiles, axis=0)
-        # stds = np.std(profiles, axis=0)
-        zY = preprocessing.scale(Y)
-        #Map profile to its closest neurons
-        mapped = _model.map_vects([zY])
+        # Map profile to their closest neurons
+        _mapped = _model.map_vects(lzY)
 
-        mapped_res = { 'key': key,
-                 'time_range_ms': (from_date, to_date),
-                 'Y': Y.tolist(),
-                 'zY': zY.tolist(),
-                 'mapped': ( mapped[0][0].item(), mapped[0][1].item() ),
-                 'dimension': ( model._map_w, model._map_h ),
-               }
-        if key in stored:
-            diff = distance(mapped_res, stored[key])
-        else:
-            diff = None
+        for key_val, Y, zY, mapped in zip(l, lY, lzY, _mapped):
+            key, val = key_val
+            mapped_res = { 'key': key,
+                     'time_range_ms': (from_date, to_date),
+                     'Y': Y.tolist(),
+                     'zY': zY.tolist(),
+                     'mapped': ( mapped[0].item(), mapped[1].item() ),
+                     'dimension': ( model._map_w, model._map_h ),
+                   }
+
         try:
-            res.append({'current': mapped_res, 'orig': stored[key], 'diff': diff})
-        except (KeyError):
-            # Key wasn't present (New account) at model creation time.
-            res.append({'current': mapped_res, 'orig': {}, 'diff': diff})
+            orig = stored[key]
+            diff = distance(mapped_res, orig)
+        except KeyError:
+            orig = {}
+            diff = None
+        res.append({'current': mapped_res, 'orig': orig, 'diff': diff})
 
     return res
 

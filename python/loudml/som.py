@@ -6,10 +6,27 @@ import numpy as np
  # fix random seed for reproducibility.
 np.random.seed(7)
 from scipy import spatial
+from functools import partial
+import multiprocessing
+
 from PIL import Image 
 
 float_formatter = lambda x: "%.2f" % x
 np.set_printoptions(formatter={'float_kind':float_formatter})
+
+def get_nearest(tree, l):
+    out=[]
+    for x in l:
+        distance, nearest = tree.query(x,k=1)
+        out.append([distance, nearest])
+    return out
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+flatten = lambda l: [item for sublist in l for item in sublist]
 
 class SOM(object):
     """
@@ -37,6 +54,7 @@ class SOM(object):
         """
  
         #Assign required variables first
+        self._pool = multiprocessing.Pool()
         self._dim = dim
         self._m = m
         self._n = n
@@ -139,6 +157,14 @@ class SOM(object):
             # 'Saver' op to save and restore all the variables
             self._saver = tf.train.Saver()
             self._sess.run(init_op)
+
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._pool.close()
+        self._pool.join()
  
     def _neuron_locations(self, m, n):
         """
@@ -150,7 +176,7 @@ class SOM(object):
         for i in range(m):
             for j in range(n):
                 yield np.array([i, j])
- 
+
     def train(self, input_vects, verbose=1):
         """
         Trains the SOM.
@@ -189,7 +215,7 @@ class SOM(object):
         if not self._trained:
             raise ValueError("SOM not trained yet")
         return self._centroid_grid
- 
+
     def map_vects(self, input_vects):
         """
         Maps each input vector to the relevant neuron in the SOM
@@ -200,13 +226,13 @@ class SOM(object):
         info for each input vector(in the same order), corresponding
         to mapped neuron.
         """
- 
+        batch = 64
         if not self._trained:
             raise ValueError("SOM not trained yet")
  
         to_return = []
-        for vect in input_vects:
-            dd, ii = self._tree.query(vect, k=1)
+        func = partial(get_nearest, self._tree)
+        for dd, ii in flatten(self._pool.map(func, list(chunks(input_vects, batch)))):
             to_return.append(self._locations[ii])
  
         return to_return
