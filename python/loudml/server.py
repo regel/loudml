@@ -9,7 +9,7 @@ import os
 import sys
 
 import multiprocessing
-from multiprocessing import Pool
+import multiprocessing.pool
 from multiprocessing import TimeoutError 
 
 from .times import async_times_train_model
@@ -39,6 +39,19 @@ from .storage import (
     StorageException,
     Storage,
 )
+
+class NoDaemonProcess(multiprocessing.Process):
+    # make 'daemon' attribute always return False
+    def _get_daemon(self):
+        return False
+    def _set_daemon(self, value):
+        pass
+    daemon = property(_get_daemon, _set_daemon)
+
+# We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
+# because the latter is only a wrapper function, not a proper class.
+class Pool(multiprocessing.pool.Pool):
+    Process = NoDaemonProcess
 
 
 import threading
