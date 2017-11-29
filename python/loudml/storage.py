@@ -172,7 +172,6 @@ class NNSOM:
             account_name=None,
         ):
         body = {
-          "timeout": "10s",
           "size": 0,
           "query": {
             "bool": {
@@ -476,7 +475,6 @@ class Model:
             to_date=None,
         ):
         body = {
-          "timeout": "10s",
           "size": 0,
           "query": {
             "bool": {
@@ -694,8 +692,9 @@ class Model:
 
 
 class Storage:
-    def __init__(self, addr, vlan='*'):
+    def __init__(self, addr, vlan='*', timeout=60):
         self.addr = addr
+        self.timeout = timeout # global request timeout, if unspecified
         self._es = None
         self._model_index = '.loudml'
         self._ano_index = '.ml-anomalies-custom-%s' % vlan
@@ -710,7 +709,7 @@ class Storage:
             }
             logging.info('connecting to elasticsearch on %s:%d',
                          addr['host'], addr['port'])
-            self._es = Elasticsearch([addr], timeout=30)
+            self._es = Elasticsearch([addr], timeout=self.timeout)
 
         # urllib3 & elasticsearch modules log exceptions, even if they are
         # caught! Disable this.
@@ -728,7 +727,6 @@ class Storage:
         ):
         try:
             body = {
-                'timeout': "10s",
                 'query': [
                     {'timestamp': {'order': 'desc'}},
                 ],
@@ -747,6 +745,7 @@ class Storage:
                 index=self._model_index,
                 doc_type='model',
                 body=body,
+                request_timeout=10,
             )
         except (
             elasticsearch.exceptions.TransportError,
@@ -955,7 +954,6 @@ class Storage:
         ):
         try:
             body = {
-                'timeout': "10s",
                 'query': [
                     {'timestamp': {'order': 'desc'}},
                 ],
@@ -974,6 +972,7 @@ class Storage:
                 index=self._model_index,
                 doc_type='model',
                 body=body,
+                request_timeout=10,
             )
         except (
             elasticsearch.exceptions.TransportError,
@@ -988,7 +987,6 @@ class Storage:
         ):
         try:
             body = {
-                'timeout': "10s",
                 'size': size,
                 'query': {
                     'bool': {
@@ -1001,6 +999,7 @@ class Storage:
                 index=self._model_index,
                 doc_type='model',
                 body=body,
+                request_timeout=10,
             )
         except (
             elasticsearch.exceptions.TransportError,
@@ -1018,7 +1017,6 @@ class Storage:
         ):
         try:
             body = {
-                'timeout': "10s",
                 'query': [
                     {'timestamp': {'order': 'desc'}},
                 ],
@@ -1037,6 +1035,7 @@ class Storage:
                 index=self._model_index,
                 doc_type='model',
                 body=body,
+                request_timeout=10,
             )
         except (
             elasticsearch.exceptions.TransportError,
@@ -1053,7 +1052,6 @@ class Storage:
         ):
         try:
             body = {
-                'timeout': "10s",
                 'query': [
                     {'timestamp': {'order': 'desc'}},
                 ],
@@ -1072,6 +1070,7 @@ class Storage:
                 index=self._model_index,
                 doc_type='model',
                 body=body,
+                request_timeout=10,
             )
         except (
             elasticsearch.exceptions.TransportError,
@@ -1105,7 +1104,6 @@ class Storage:
         ):
         try:
             body = {
-                'timeout': "10s",
                 'query': [
                     {'timestamp': {'order': 'desc'}},
                 ],
@@ -1124,6 +1122,7 @@ class Storage:
                 index=self._model_index,
                 doc_type='model',
                 body=body,
+                request_timeout=10,
             )
         except (
             elasticsearch.exceptions.TransportError,
