@@ -16,8 +16,8 @@ import base64
 import time
 
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 import math
-from sklearn import preprocessing
 
 from .som import SOM
 
@@ -38,6 +38,8 @@ def timing_val(func):
 # global vars for easy reusability
 # This UNIX process is handling a unique model
 _model = None
+_means = None
+_stds = None
 _verbose = 0
 
 float_formatter = lambda x: "%.2f" % x
@@ -103,7 +105,11 @@ def async_ivoip_train_model(
         num_epochs=100,
     ):
     global _model
+    global _means
+    global _stds
     _model = None
+    _means = None
+    _stds = None
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -120,7 +126,7 @@ def async_ivoip_train_model(
           num_epochs=num_epochs,
           )
 
-    model.save_model(_model, mapped_info)
+    model.save_model(_model, _means, _stds, mapped_info)
     return { 'took': int(took*1000) }
 
 @timing_val
@@ -131,7 +137,11 @@ def train(
         num_epochs=100,
     ):
     global _model
+    global _means
+    global _stds
     _model = None
+    _means = None
+    _stds = None
 
     logging.info('train(%s) range=[%s, %s] epochs=%d)' \
                   % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), num_epochs))
@@ -152,10 +162,9 @@ def train(
 
     # Apply data standardization to each feature individually
     # https://en.wikipedia.org/wiki/Feature_scaling 
-    # x_ = (x - mean(x)) / std(x)
-    # means = np.mean(profiles, axis=0)
-    # stds = np.std(profiles, axis=0)
-    zY = preprocessing.scale(Y)
+    _means = np.mean(Y, axis=0)
+    _stds = np.std(Y, axis=0)
+    zY = np.nan_to_num((Y - _means) / _stds)
 
     logging.info('Found %d profiles' % len(Y))
     # Hyperparameters
@@ -185,6 +194,8 @@ def map_account(model,
             to_date=None,
     ):
     global _model
+    global _means
+    global _stds
 
     logging.info('map_account(%s) range=[%s, %s])' \
                   % (account_name, str(time.ctime(from_date/1000)), str(time.ctime(to_date/1000))))
@@ -200,10 +211,8 @@ def map_account(model,
 
     # Apply data standardization to each feature individually
     # https://en.wikipedia.org/wiki/Feature_scaling 
-    # x_ = (x - mean(x)) / std(x)
-    # means = np.mean(profiles, axis=0)
-    # stds = np.std(profiles, axis=0)
-    zY = preprocessing.scale(Y)
+    zY = np.nan_to_num((Y - _means) / _stds)
+
     #Map profile to its closest neurons
     mapped = _model.map_vects(zY)
 
@@ -222,6 +231,8 @@ def map_accounts(model,
             to_date=None,
     ):
     global _model
+    global _means
+    global _stds
     batch = 1024
 
     logging.info('map_accounts() range=[%s, %s])' \
@@ -232,7 +243,7 @@ def map_accounts(model,
     for l in chunks(list(model.get_profile_data(from_date=from_date, to_date=to_date)), batch):
         lY = [val[1] for val in l]
         lY = np.array(lY)
-        lzY = preprocessing.scale(lY)
+        lzY = np.nan_to_num((lY - _means) / _stds)
 
         # Map profile to their closest neurons
         _mapped = _model.map_vects(lzY)
@@ -289,7 +300,11 @@ def async_ivoip_map_account(
         to_date=None,
     ):
     global _model
+    global _means
+    global _stds
     _model = None
+    _means = None
+    _stds = None
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -307,7 +322,7 @@ def async_ivoip_map_account(
         logging.error('Not yet trained: %s' % name)
         raise Exception('Missing training data')
 
-    _model = model.load_model()
+    _model, _means, _stds = model.load_model()
 
     to_date = 1000 * int(to_date / model._interval) * model._interval
     from_date = 1000 * int(from_date / model._interval) * model._interval
@@ -328,7 +343,11 @@ def async_ivoip_map_accounts(
         to_date=None,
     ):
     global _model
+    global _means
+    global _stds
     _model = None
+    _means = None
+    _stds = None
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -346,7 +365,7 @@ def async_ivoip_map_accounts(
         logging.error('Not yet trained: %s' % name)
         raise Exception('Missing training data')
 
-    _model = model.load_model()
+    _model, _means, _stds  = model.load_model()
 
     to_date = 1000 * int(to_date / model._interval) * model._interval
     from_date = 1000 * int(from_date / model._interval) * model._interval
@@ -366,7 +385,11 @@ def async_ivoip_score_hist(
         interval=None,
     ):
     global _model
+    global _means
+    global _stds
     _model = None
+    _means = None
+    _stds = None
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -382,7 +405,7 @@ def async_ivoip_score_hist(
         logging.error('Not yet trained: %s' % name)
         raise Exception('Missing training data')
 
-    _model = model.load_model()
+    _model, _means, _stds  = model.load_model()
 
     bins = np.linspace(0, 100, 11)
 
@@ -411,6 +434,8 @@ def predict(model,
             to_date=None,
     ):
     global _model
+    global _means
+    global _stds
 
     logging.info('predict(%s) range=[%s, %s] threshold=%d)' \
                   % (model._name, str(time.ctime(from_date/1000)), str(time.ctime(to_date/1000)), model._threshold))
@@ -451,7 +476,11 @@ def async_ivoip_live_predict(
         name,
     ):
     global _model
+    global _means
+    global _stds
     _model = None
+    _means = None
+    _stds = None
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -467,7 +496,7 @@ def async_ivoip_live_predict(
         logging.error('Not yet trained: %s' % name)
         raise Exception('Missing training data')
 
-    _model = model.load_model()
+    _model, _means, _stds  = model.load_model()
 
     s = sched.scheduler(time.time, time.sleep)
     periodic(s, model._interval, __predict, (model,))
@@ -503,6 +532,8 @@ def str2bool(v):
 
 def main():
     global _model
+    global _means
+    global _stds
     global _verbose
     global arg
     parser = argparse.ArgumentParser(
@@ -606,7 +637,7 @@ def main():
     to_date = arg.end
 
     if (arg.predict == True):
-        _model = model.load_model()
+        _model, _means, _stds  = model.load_model()
         periodic_predict(
             model,
             from_date=from_date,
@@ -625,7 +656,7 @@ def main():
               num_epochs=arg.num_epochs,
               )
 
-        model.save_model(_model, mapped_info)
+        model.save_model(_model, _means, _stds, mapped_info)
 
 if __name__ == "__main__":
     # execute only if run as a script

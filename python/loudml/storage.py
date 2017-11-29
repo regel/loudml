@@ -368,6 +368,8 @@ class NNSOM:
         import base64
         from .som import SOM
 
+        _means = np.array(self._state['means'])
+        _stds = np.array(self._state['stds'])
         _model = None
         fd, base_path = tempfile.mkstemp()
         try:
@@ -392,11 +394,13 @@ class NNSOM:
             os.remove(base_path + '.index')
             os.remove(base_path + '.meta')
 
-        return _model
+        return _model, _means, _stds
     
     def save_model(
             self,
             model,
+            means,
+            stds,
             mapped_info,
         ):
         import tempfile
@@ -431,6 +435,8 @@ class NNSOM:
                                        idx.decode('utf-8'),
                                        meta.decode('utf-8'),
                                        b_mapped_info.decode('utf-8'),
+                                       means.tolist(),
+                                       stds.tolist(),
                                        )
 
 class Model:
@@ -777,6 +783,8 @@ class Storage:
         model_idx,
         model_meta,
         mapped_info,
+        means,
+        stds,
         ):
         es_params={}
         es_params['refresh']='true'
@@ -786,6 +794,8 @@ class Storage:
                         'index': model_idx,
                         'meta': model_meta,
                         'mapped_info': mapped_info,
+                        'means': means,
+                        'stds': stds,
             }}}
 
             es_res = self.es.update(
