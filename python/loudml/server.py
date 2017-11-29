@@ -143,6 +143,7 @@ def run_ivoip_training_job(name,
                            from_date,
                            to_date,
                            num_epochs=100,
+                           limit=-1,
                            ):
     global g_elasticsearch_addr
     global g_pool
@@ -150,7 +151,7 @@ def run_ivoip_training_job(name,
     global g_jobs
 
     g_job_id = g_job_id + 1
-    args = (g_elasticsearch_addr, name, from_date, to_date, num_epochs)
+    args = (g_elasticsearch_addr, name, from_date, to_date, num_epochs, limit)
     g_jobs[g_job_id] = g_pool.apply_async(async_ivoip_train_model, args)
 
     return g_job_id
@@ -381,11 +382,13 @@ def __ivoip_train_model():
     from_date = int(request.args.get('from_date', (get_current_time()-30*24*3600)))
     to_date = int(request.args.get('to_date', get_current_time()))
     num_epochs = int(request.args.get('epochs', 100))
+    limit = int(request.args.get('limit', -1))
 
     job_id = run_ivoip_training_job(name,
                                     from_date=from_date,
                                     to_date=to_date,
                                     num_epochs=num_epochs,
+                                    limit=limit,
                                     )
 
     return jsonify({'job_id': job_id})

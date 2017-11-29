@@ -103,6 +103,7 @@ def async_ivoip_train_model(
         from_date=None,
         to_date=None,
         num_epochs=100,
+        limit=-1,
     ):
     global _model
     global _means
@@ -124,6 +125,7 @@ def async_ivoip_train_model(
           from_date,
           to_date,
           num_epochs=num_epochs,
+          limit=limit,
           )
 
     model.save_model(_model, _means, _stds, mapped_info)
@@ -135,6 +137,7 @@ def train(
         from_date=None,
         to_date=None,
         num_epochs=100,
+        limit=-1,
     ):
     global _model
     global _means
@@ -143,8 +146,8 @@ def train(
     _means = None
     _stds = None
 
-    logging.info('train(%s) range=[%s, %s] epochs=%d)' \
-                  % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), num_epochs))
+    logging.info('train(%s) range=[%s, %s] epochs=%d limit=%d)' \
+                  % (model._name, str(time.ctime(from_date)), str(time.ctime(to_date)), num_epochs, limit))
 
     to_date = 1000 * int(to_date / model._interval) * model._interval
     from_date = 1000 * int(from_date / model._interval) * model._interval
@@ -171,7 +174,7 @@ def train(
     data_dimens = _SUNSHINE_NUM_FEATURES
     _model = SOM(model._map_w, model._map_h, data_dimens, num_epochs)
     # Start Training
-    _model.train(zY)
+    _model.train(zY, truncate=limit)
 
     #Map profiles to their closest neurons
     mapped = _model.map_vects(zY)
@@ -619,6 +622,12 @@ def main():
         type=int,
         default=100,
     )
+    parser.add_argument(
+        '-l', '--limit',
+        help="Limit profiles count used in training",
+        type=int,
+        default=-1,
+    )
 
     arg = parser.parse_args()
     _verbose = arg.verbose
@@ -654,6 +663,7 @@ def main():
               from_date,
               to_date,
               num_epochs=arg.num_epochs,
+              limit=arg.limit,
               )
 
         model.save_model(_model, _means, _stds, mapped_info)
