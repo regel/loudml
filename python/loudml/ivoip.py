@@ -178,34 +178,6 @@ def train(
 
     return mapped_info
 
-def get_account(model,
-            account_name,
-            from_date=None,
-            to_date=None,
-    ):
-    logging.info('get_account(%s) range=[%s, %s])' \
-                  % (account_name, str(time.ctime(from_date)), str(time.ctime(to_date))))
-
-    g=model.get_profile_data(from_date=from_date, to_date=to_date, account_name=account_name)
-    try:
-        key, val = next(g)
-    except(StopIteration):
-        return None
-
-    Y = np.array(val)
-
-    # Apply data standardization to each feature individually
-    # https://en.wikipedia.org/wiki/Feature_scaling 
-    # x_ = (x - mean(x)) / std(x)
-    # means = np.mean(profiles, axis=0)
-    # stds = np.std(profiles, axis=0)
-    zY = preprocessing.scale(Y)
-    res = { 'key': key,
-             'time_range_ms': (from_date, to_date),
-             'Y': Y.tolist(),
-             'zY': zY.tolist() }
-    return res
-
 @timing_val
 def map_account(model,
             account_name,
