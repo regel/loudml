@@ -127,6 +127,67 @@ def get_date_range(field, from_date=None, to_date=None):
         field: date_range,
     }}
 
+def calc_quadrants(agg):
+    num_features = _SUNSHINE_NUM_FEATURES
+    profile=np.zeros(num_features)
+    for l in agg:
+        timestamp=l['key']
+        timeval=l['key_as_string']
+        s=l['duration_stats']
+        _count = float(s['count'])
+        if _count == 0:
+            continue
+        quadrant = int( ((int(timestamp) / (3600*1000)) % 24)/6 )
+        _min = float(s['min'])
+        _max = float(s['max'])
+        _avg = float(s['avg'])
+        _sum = float(s['sum'])
+        _sum_of_squares = float(s['sum_of_squares'])
+        _variance = float(s['variance'])
+        _std_deviation = float(s['std_deviation'])
+        
+        X = np.array( [_count, _sum, _sum_of_squares] )
+        profile[(quadrant*9):(quadrant*9 +3)] += X
+
+        s=l['international']['duration_stats']
+        _count = s['count']
+        if _count != 0:
+            _min = float(s['min'])
+            _max = float(s['max'])
+            _avg = float(s['avg'])
+            _sum = float(s['sum'])
+            _sum_of_squares = float(s['sum_of_squares'])
+            _variance = float(s['variance'])
+            _std_deviation = float(s['std_deviation'])
+
+            X = np.array( [_count, _sum, _sum_of_squares] )
+            profile[(quadrant*9 +3):(quadrant*9 +6)] += X
+
+        s=l['premium']['duration_stats']
+        _count = s['count']
+        if _count != 0:
+            _min = float(s['min'])
+            _max = float(s['max'])
+            _avg = float(s['avg'])
+            _sum = float(s['sum'])
+            _sum_of_squares = float(s['sum_of_squares'])
+            _variance = float(s['variance'])
+            _std_deviation = float(s['std_deviation'])
+
+            X = np.array( [_count, _sum, _sum_of_squares] )
+            profile[(quadrant*9 +6):(quadrant*9 +9)] += X
+
+    for quadrant in range(4):
+        for j in range(3):
+            _count = profile[quadrant*9 + 3*j]
+            _sum = profile[quadrant*9 + 3*j +1]
+            _sum_of_squares = profile[quadrant*9 + 3*j +2]
+            if _count > 0:
+                profile[quadrant*9 + 3*j +1] = _sum / _count
+                profile[quadrant*9 + 3*j +2] = math.sqrt(_sum_of_squares/_count - (_sum/_count)**2)
+
+    return profile
+
 class HTTPError(StorageException):
     """HTTP error"""
 
@@ -170,6 +231,8 @@ class NNSOM:
             from_date=None,
             to_date=None,
             account_name=None,
+            partition=0,
+            num_partitions=1,
         ):
         body = {
           "size": 0,
@@ -187,6 +250,11 @@ class NNSOM:
               "terms": {
                 "field": self._term,
                 "size": self._max_terms,
+                "collect_mode" : "breadth_first",
+                "include": {
+                  "partition": partition,
+                  "num_partitions": num_partitions,
+                },
               },
               "aggs": {
                 "count": {
@@ -206,10 +274,12 @@ class NNSOM:
                       }
                     },
                     "international": {
-                      "terms": {
+                      "filter": {
                         "script": {
-                          "lang": "painless",
-                          "inline": "if(doc['international'].value) return true"
+                        "script": {
+                          "lang": "expression",
+                          "inline": "doc['international'].value"
+                        }
                         }
                       },
                       "aggs": {
@@ -221,10 +291,12 @@ class NNSOM:
                       }
                     },
                     "premium": {
-                      "terms": {
+                      "filter": {
                         "script": {
-                          "lang": "painless",
-                          "inline": "if(doc['toll_call'].value) return true"
+                        "script": {
+                          "lang": "expression",
+                          "inline": "doc['toll_call'].value"
+                        }
                         }
                       },
                       "aggs": {
@@ -262,102 +334,47 @@ class NNSOM:
             to_date=None,
             account_name=None,
         ):
-        num_features = _SUNSHINE_NUM_FEATURES
         es_params={}
         if self._routing is not None:
             es_params['routing']=self._routing
-       
-        body = self.get_es_agg(
-                   from_date=from_date,
-                   to_date=to_date,
-                   account_name=account_name,
-               )
-
-        try:
-            es_res = self._storage.es.search(
-                index=self._index,
-                size=0,
-                body=body,
-                params=es_params,
-            )
-        except (
-            elasticsearch.exceptions.TransportError,
-            urllib3.exceptions.HTTPError,
-        ) as exn:
-            logging.error("get_profile_data: %s", str(exn))
-            raise StorageException(str(exn))
-
-        hits = es_res['hits']['total'] 
-        if (hits == 0):
-            logging.info('Aggregations for model %s: Missing data' % self._name)
-            return
-
-        t0=0
-        for k in es_res['aggregations']['account']['buckets']:
-            profile=np.zeros(num_features)
-            account=k['key']
-            val=k['count']['buckets']
-            for l in val:
-                timestamp=l['key']
-                timeval=l['key_as_string']
-                s=l['duration_stats']
-                _count = float(s['count'])
-                if _count == 0:
-                    continue
-                quadrant = int( ((int(timestamp) / (3600*1000)) % 24)/6 )
-                _min = float(s['min'])
-                _max = float(s['max'])
-                _avg = float(s['avg'])
-                _sum = float(s['sum'])
-                _sum_of_squares = float(s['sum_of_squares'])
-                _variance = float(s['variance'])
-                _std_deviation = float(s['std_deviation'])
-                
-                X = np.array( [_count, _sum, _sum_of_squares] )
-                profile[(quadrant*9):(quadrant*9 +3)] += X
-    
-                if len(l['international']['buckets']) > 0:
-                    s=l['international']['buckets'][0]['duration_stats']
-                    _count = s['count']
-                    if _count == 0:
-                        continue
-                    _min = float(s['min'])
-                    _max = float(s['max'])
-                    _avg = float(s['avg'])
-                    _sum = float(s['sum'])
-                    _sum_of_squares = float(s['sum_of_squares'])
-                    _variance = float(s['variance'])
-                    _std_deviation = float(s['std_deviation'])
-    
-                    X = np.array( [_count, _sum, _sum_of_squares] )
-                    profile[(quadrant*9 +3):(quadrant*9 +6)] += X
-    
-                if len(l['premium']['buckets']) > 0:
-                    s=l['premium']['buckets'][0]['duration_stats']
-                    _count = s['count']
-                    if _count == 0:
-                        continue
-                    _min = float(s['min'])
-                    _max = float(s['max'])
-                    _avg = float(s['avg'])
-                    _sum = float(s['sum'])
-                    _sum_of_squares = float(s['sum_of_squares'])
-                    _variance = float(s['variance'])
-                    _std_deviation = float(s['std_deviation'])
-    
-                    X = np.array( [_count, _sum, _sum_of_squares] )
-                    profile[(quadrant*9 +6):(quadrant*9 +9)] += X
-    
-            for quadrant in range(4):
-                for j in range(3):
-                    _count = profile[quadrant*9 + 3*j]
-                    _sum = profile[quadrant*9 + 3*j +1]
-                    _sum_of_squares = profile[quadrant*9 + 3*j +2]
-                    if _count > 0:
-                        profile[quadrant*9 + 3*j +1] = _sum / _count
-                        profile[quadrant*9 + 3*j +2] = math.sqrt(_sum_of_squares/_count - (_sum/_count)**2)
         
-            yield account, profile
+        num_partitions = math.ceil(self._max_terms / 1000)
+
+        for partition in range(0,num_partitions):
+            logging.info('Running aggregations for model %s partition %d/%d'
+                % (self._name, partition, num_partitions))
+            body = self.get_es_agg(
+                       from_date=from_date,
+                       to_date=to_date,
+                       account_name=account_name,
+                       partition=partition,
+                       num_partitions=num_partitions,
+                   )
+    
+            try:
+                es_res = self._storage.es.search(
+                    index=self._index,
+                    size=0,
+                    body=body,
+                    params=es_params,
+                )
+            except (
+                elasticsearch.exceptions.TransportError,
+                urllib3.exceptions.HTTPError,
+            ) as exn:
+                logging.error("get_profile_data: %s", str(exn))
+                raise StorageException(str(exn))
+    
+            hits = es_res['hits']['total']
+            logging.info('Aggregations for model %s partition %d/%d got terms: %d doc_hits: %d'
+                % (self._name, partition, num_partitions,
+                   len(es_res['aggregations']['account']['buckets']), hits))
+    
+            for k in es_res['aggregations']['account']['buckets']:
+                account=k['key']
+                val=k['count']['buckets']
+                profile = calc_quadrants(val)
+                yield account, profile
 
     def is_trained(self):
         return (self._state is not None and 'ckpt' in self._state)
