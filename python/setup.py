@@ -19,6 +19,7 @@ setup(
 
     packages=[
         'loudml',
+        'loudml_new',
     ],
 
     setup_requires=[
@@ -30,6 +31,7 @@ setup(
 
     install_requires=[
         'uuid',
+        'dateutils',
         'flask',
         'elasticsearch',
         'tensorflow',
