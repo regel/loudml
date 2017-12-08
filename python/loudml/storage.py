@@ -14,6 +14,11 @@ from elasticsearch import TransportError
 import numpy as np
 import math
 
+from .util import getsize
+
+# limit ES query output to 500 MB
+g_max_partition_mem = 500 * 1024 * 1024
+
 class StorageException(Exception):
     """Storage exception"""
     def __init__(self, msg="Query to database failed", code=500):
@@ -328,17 +333,129 @@ class NNSOM:
 
         return body
 
+    def get_cardinality(self,
+                        from_date=None,
+                        to_date=None,
+        ):
+        body = {
+          "size": 0,
+          "query": {
+            "bool": {
+              "must": [
+              ],
+            }
+          },
+          "aggs": {
+            "count": {
+              "cardinality": {
+                "field": self._term
+              }
+            }
+          }
+        }
+        es_params={}
+        if self._routing is not None:
+            es_params['routing']=self._routing
+        
+        must = []
+        must.append(get_date_range('@timestamp', from_date, to_date))
+        if len(must) > 0:
+            body['query'] = {
+                'bool': {
+                    'must': must,
+                }
+            }
+
+        try:
+            es_res = self._storage.es.search(
+                index=self._index,
+                size=0,
+                body=body,
+                params=es_params,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("get_cardinality: %s", str(exn))
+            raise StorageException(str(exn))
+
+        return int(es_res['aggregations']['count']['value'])
+
+    def partition_mem(
+            self,
+            from_date=None,
+            to_date=None,
+        ):
+        quad = {
+                "key_as_string": "2016-12-31T18:00:00.000Z",
+                "key": 1483207200000,
+                "doc_count": 0,
+                "duration_stats": {
+                  "count": 0,
+                  "min": 0,
+                  "max": 0,
+                  "avg": 0.0,
+                  "sum": 0.0,
+                  "sum_of_squares": 0.0,
+                  "variance": 0.0,
+                  "std_deviation": 0.0,
+                  "std_deviation_bounds": {
+                    "upper": 0.0,
+                    "lower": 0.0
+                  }
+                },
+                "premium": {
+                  "doc_count": 0,
+                  "duration_stats": {
+                    "count": 0,
+                    "min": 0,
+                    "max": 0,
+                    "avg": 0.0,
+                    "sum": 0.0,
+                    "sum_of_squares": 0.0,
+                    "variance": 0.0,
+                    "std_deviation": 0.0,
+                    "std_deviation_bounds": {
+                      "upper": 0.0,
+                      "lower": 0.0
+                    }
+                  }
+                },
+                "international": {
+                  "doc_count": 0,
+                  "duration_stats": {
+                    "count": 0,
+                    "min": 0,
+                    "max": 0,
+                    "avg": 0.0,
+                    "sum": 0.0,
+                    "sum_of_squares": 0.0,
+                    "variance": 0.0,
+                    "std_deviation": 0.0,
+                    "std_deviation_bounds": {
+                      "upper": 0.0,
+                      "lower": 0.0
+                    }
+                  }
+                }
+              }
+        return self.get_cardinality(from_date, to_date) * \
+            getsize(quad) * 4 * ((to_date - from_date) / (24 * 3600 * 1000))
+
     def get_profile_data(
             self,
             from_date=None,
             to_date=None,
             account_name=None,
         ):
+        global g_max_partition_mem
         es_params={}
         if self._routing is not None:
             es_params['routing']=self._routing
         
-        num_partitions = math.ceil(self._max_terms / 1000)
+        mem = self.partition_mem(from_date, to_date)
+        num_partitions = math.ceil(mem / g_max_partition_mem)
 
         for partition in range(0,num_partitions):
             logging.info('Running aggregations for model %s partition %d/%d'
