@@ -3,7 +3,9 @@
 # From: https://codesachin.wordpress.com/2015/11/28/self-organizing-maps-with-googles-tensorflow/
 import tensorflow as tf
 import numpy as np
- # fix random seed for reproducibility.
+from scipy.spatial.distance import pdist
+ 
+# fix random seed for reproducibility.
 np.random.seed(7)
 from random import shuffle
 from scipy import spatial
@@ -211,6 +213,7 @@ class SOM(object):
         self._centroid_grid = centroid_grid
  
         self._tree = spatial.cKDTree(self._weightages)
+        self._pdist = np.percentile(pdist(self._weightages), 99)
         self._trained = True
  
     def get_centroids(self):
@@ -243,6 +246,24 @@ class SOM(object):
  
         return to_return
 
+    def distance(self,
+                 x,
+                 y,
+        ):
+        xl = x[0] * self._m + x[1] 
+        x = self._weightages[xl]
+        yl = y[0] * self._m + y[1] 
+        y = self._weightages[yl]
+        dist = np.linalg.norm(x - y)
+        score = int(100 * dist / self._pdist) if self._pdist > 0 else 0
+        if score > 100:
+            score = 100
+        res = {
+                  'distance': dist.item(),
+                  'score': score,
+              }
+        return res
+
     def save_model(self, model_path='/tmp'):
         if not self._trained:
             raise ValueError("SOM not trained yet")
@@ -263,6 +284,7 @@ class SOM(object):
         self._centroid_grid = centroid_grid
 
         self._tree = spatial.cKDTree(self._weightages)
+        self._pdist = np.percentile(pdist(self._weightages), 99)
         self._trained = True
 
     def show(self):

@@ -81,21 +81,6 @@ def log_message(format, *args):
 def log_error(format, *args):
     log_message(format, *args)
 
-def distance(x,
-             y,
-    ):
-    dim = np.array(x['dimension'])
-    x = np.array(x['mapped'])
-    y = np.array(y['mapped'])
-    # norm2 
-    max_norm = np.linalg.norm(dim)
-    dist = np.linalg.norm(x-y)
-    score = int(100 * dist / max_norm) if max_norm > 0 else 0
-    res = {
-              'distance': dist,
-              'score': score,
-          }
-    return res
 
 def async_ivoip_train_model(
         elasticsearch_addr,
@@ -263,7 +248,7 @@ def map_accounts(model,
 
             try:
                 orig = stored[key]
-                diff = distance(mapped_res, orig)
+                diff = _model.distance(mapped_res['mapped'], orig['mapped'])
             except KeyError:
                 orig = {}
                 diff = None
@@ -336,7 +321,7 @@ def async_ivoip_map_account(
                          to_date=to_date,
                          )
     stored = stored_account(model, account_name)
-    diff = distance(mapped, stored)
+    diff = _model.distance(mapped['mapped'], stored['mapped'])
     return { 'took': int(took*1000), 'current': mapped, 'orig': stored, 'diff': diff }
 
 def async_ivoip_map_accounts(
