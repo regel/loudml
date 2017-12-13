@@ -424,7 +424,8 @@ def async_ivoip_score_hist(
               )
         data = []
         for i in val:
-            data.append(i['diff']['score'])
+            if i['diff'] is not None:
+                data.append(i['diff']['score'])
         h = np.histogram(data, bins, weights=data)[0]
         res.append({'timestamp': _from_date, 'counts': h.tolist()})
         _start = _start + interval
