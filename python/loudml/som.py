@@ -178,7 +178,7 @@ class SOM(object):
             for j in range(n):
                 yield np.array([i, j])
 
-    def train(self, input_vects, verbose=1, truncate=-1):
+    def train(self, vects, verbose=1, truncate=-1):
         """
         Trains the SOM.
         'input_vects' should be an iterable of 1-D NumPy arrays with
@@ -186,7 +186,8 @@ class SOM(object):
         Current weightage vectors for all neurons(initially random) are
         taken as starting conditions for training.
         """
-
+        
+        input_vects = list(vects)
         shuffle(input_vects)
         if truncate > 0:
             input_vects = input_vects[0:truncate]
