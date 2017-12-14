@@ -434,11 +434,15 @@ def predict(model,
           to_date=to_date,
           )
     for k in val:
+        if not ('key' in k['orig']):
+           #FIXME: deal with absent keys (new accounts)
+           continue
         key = k['orig']['key']
         score = k['diff']['score']
         if score > model._threshold:
             # NOTE: A good spot for PagerDuty integration ?
             print("Anomaly @timestamp:", get_current_time(),
+                         "key=", key,
                          "score=", score,
                          "original=", k['orig']['mapped'],
                          "current=", k['current']['mapped'],
@@ -511,6 +515,22 @@ def periodic_predict(
         periodic(s, model._interval, __predict, (model,))
         s.run()
 
+def replay_predict(
+        model,
+        from_date,
+        to_date,
+    ):
+    _start = int(from_date / model._interval) * model._interval
+    _end = int(to_date / model._interval) * model._interval
+    while (_start + model._span) < _end:
+        _from = 1000 * _start
+        _to = 1000 * (_start + model._span)
+        predict(model,
+                from_date=_from,
+                to_date=_to,
+                )
+        _start = _start + model._interval
+
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
@@ -573,6 +593,14 @@ def main():
         default=False,
     )
     parser.add_argument(
+        '-R', '--replay',
+        help="Replay history data",
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+    )
+    parser.add_argument(
         '-s', '--start',
         help="Start date",
         type=int,
@@ -623,6 +651,10 @@ def main():
 
     #initialize these variables
     storage = get_storage(arg.elasticsearch_addr)
+    storage.set_threshold(
+        name=arg.model,
+        threshold=int(arg.threshold))
+
     model = storage.get_ivoip(arg.model)
     if model is None:
         logging.error('Cannot get model %s' % name)
@@ -633,11 +665,17 @@ def main():
 
     if (arg.predict == True):
         _model, _means, _stds  = model.load_model()
-        periodic_predict(
-            model,
-            from_date=from_date,
-            to_date=to_date,
-            real_time=arg.real_time)
+        if (arg.replay == True):
+            replay_predict(
+                model,
+                from_date=from_date,
+                to_date=to_date)
+        else:
+            periodic_predict(
+                model,
+                from_date=from_date,
+                to_date=to_date,
+                real_time=arg.real_time)
     elif (arg.train == True):
         if from_date is None:
             logging.error('Missing datetime argument')

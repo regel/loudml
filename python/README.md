@@ -64,4 +64,11 @@ Predicting next values in real time mode:
 python3 -m loudml.times -r -p --model foo 127.0.0.1:9200 
 ```
 
+# Unsupervised Anomaly Detection
+
+To replay data with the fraud detection model, run:
+
+```bash
+python3 -m loudml.ivoip -m <name> -p -R -s $(date +%s --date="2017/03/04") -e $(date +%s --date="2017/03/15") --threshold 99
+```
 
