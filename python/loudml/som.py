@@ -3,7 +3,9 @@
 # From: https://codesachin.wordpress.com/2015/11/28/self-organizing-maps-with-googles-tensorflow/
 import tensorflow as tf
 import numpy as np
- # fix random seed for reproducibility.
+from scipy.spatial.distance import pdist
+ 
+# fix random seed for reproducibility.
 np.random.seed(7)
 from random import shuffle
 from scipy import spatial
@@ -178,7 +180,7 @@ class SOM(object):
             for j in range(n):
                 yield np.array([i, j])
 
-    def train(self, input_vects, verbose=1, truncate=-1):
+    def train(self, vects, verbose=1, truncate=-1):
         """
         Trains the SOM.
         'input_vects' should be an iterable of 1-D NumPy arrays with
@@ -186,7 +188,8 @@ class SOM(object):
         Current weightage vectors for all neurons(initially random) are
         taken as starting conditions for training.
         """
-
+        
+        input_vects = list(vects)
         shuffle(input_vects)
         if truncate > 0:
             input_vects = input_vects[0:truncate]
@@ -210,6 +213,7 @@ class SOM(object):
         self._centroid_grid = centroid_grid
  
         self._tree = spatial.cKDTree(self._weightages)
+        self._pdist = np.percentile(pdist(self._weightages), 99)
         self._trained = True
  
     def get_centroids(self):
@@ -242,6 +246,24 @@ class SOM(object):
  
         return to_return
 
+    def distance(self,
+                 x,
+                 y,
+        ):
+        xl = x[0] * self._m + x[1] 
+        x = self._weightages[xl]
+        yl = y[0] * self._m + y[1] 
+        y = self._weightages[yl]
+        dist = np.linalg.norm(x - y)
+        score = int(100 * dist / self._pdist) if self._pdist > 0 else 0
+        if score > 100:
+            score = 100
+        res = {
+                  'distance': dist.item(),
+                  'score': score,
+              }
+        return res
+
     def save_model(self, model_path='/tmp'):
         if not self._trained:
             raise ValueError("SOM not trained yet")
@@ -262,6 +284,7 @@ class SOM(object):
         self._centroid_grid = centroid_grid
 
         self._tree = spatial.cKDTree(self._weightages)
+        self._pdist = np.percentile(pdist(self._weightages), 99)
         self._trained = True
 
     def show(self):

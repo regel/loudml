@@ -611,7 +611,7 @@ def main():
         '--maxtasksperchild',
         help="Maxtasksperchild in process pool size",
         type=int,
-        default=10,
+        default=1,
     )
     parser.add_argument(
         '--autostart',

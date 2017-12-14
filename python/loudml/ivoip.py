@@ -81,21 +81,6 @@ def log_message(format, *args):
 def log_error(format, *args):
     log_message(format, *args)
 
-def distance(x,
-             y,
-    ):
-    dim = np.array(x['dimension'])
-    x = np.array(x['mapped'])
-    y = np.array(y['mapped'])
-    # norm2 
-    max_norm = np.linalg.norm(dim)
-    dist = np.linalg.norm(x-y)
-    score = int(100 * dist / max_norm) if max_norm > 0 else 0
-    res = {
-              'distance': dist,
-              'score': score,
-          }
-    return res
 
 def async_ivoip_train_model(
         elasticsearch_addr,
@@ -261,13 +246,13 @@ def map_accounts(model,
                      'dimension': ( model._map_w, model._map_h ),
                    }
 
-        try:
-            orig = stored[key]
-            diff = distance(mapped_res, orig)
-        except KeyError:
-            orig = {}
-            diff = None
-        res.append({'current': mapped_res, 'orig': orig, 'diff': diff})
+            try:
+                orig = stored[key]
+                diff = _model.distance(mapped_res['mapped'], orig['mapped'])
+            except KeyError:
+                orig = {}
+                diff = None
+            res.append({'current': mapped_res, 'orig': orig, 'diff': diff})
 
     return res
 
@@ -336,7 +321,7 @@ def async_ivoip_map_account(
                          to_date=to_date,
                          )
     stored = stored_account(model, account_name)
-    diff = distance(mapped, stored)
+    diff = _model.distance(mapped['mapped'], stored['mapped'])
     return { 'took': int(took*1000), 'current': mapped, 'orig': stored, 'diff': diff }
 
 def async_ivoip_map_accounts(
@@ -424,7 +409,8 @@ def async_ivoip_score_hist(
               )
         data = []
         for i in val:
-            data.append(i['diff']['score'])
+            if i['diff'] is not None:
+                data.append(i['diff']['score'])
         h = np.histogram(data, bins, weights=data)[0]
         res.append({'timestamp': _from_date, 'counts': h.tolist()})
         _start = _start + interval

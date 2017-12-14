@@ -454,8 +454,11 @@ class NNSOM:
         if self._routing is not None:
             es_params['routing']=self._routing
         
-        mem = self.partition_mem(from_date, to_date)
-        num_partitions = math.ceil(mem / g_max_partition_mem)
+        if account_name is None:
+            mem = self.partition_mem(from_date, to_date)
+            num_partitions = math.ceil(mem / g_max_partition_mem)
+        else:
+            num_partitions = 1
 
         for partition in range(0,num_partitions):
             logging.info('Running aggregations for model %s partition %d/%d'
