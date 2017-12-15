@@ -601,6 +601,12 @@ def main():
         default=False,
     )
     parser.add_argument(
+        '-i', '--interval',
+        help="Inference periodic interval",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
         '-s', '--start',
         help="Start date",
         type=int,
@@ -654,6 +660,10 @@ def main():
     storage.set_threshold(
         name=arg.model,
         threshold=int(arg.threshold))
+    if arg.interval > 0:
+        storage.set_interval(
+            name=arg.model,
+            interval=int(arg.interval))
 
     model = storage.get_ivoip(arg.model)
     if model is None:

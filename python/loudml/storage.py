@@ -857,6 +857,61 @@ class Storage:
 
         return self._es
 
+    def set_interval(
+        self,
+        name,
+        interval,
+        ):
+        try:
+            body = {
+                'query': [
+                    {'timestamp': {'order': 'desc'}},
+                ],
+            }
+            must = [
+                {'match': {'name': name}},
+            ]
+            if len(must) > 0:
+                body['query'] = {
+                    'bool': {
+                        'must': must,
+                    }
+                }
+
+            es_res = self.es.search(
+                index=self._model_index,
+                doc_type='model',
+                body=body,
+                request_timeout=10,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("set_interval: %s", str(exn))
+            raise StorageException(str(exn))
+
+        _id = es_res['hits']['hits'][0]['_id']
+        es_params={}
+        es_params['refresh']='true'
+        try:
+            doc = { 'doc': { 'interval' : interval
+            }}
+
+            es_res = self.es.update(
+                index=self._model_index,
+                id=_id,
+                doc_type='model',
+                body=doc,
+                params=es_params,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("set_interval: %s", str(exn))
+            raise StorageException(str(exn))
+
     def set_threshold(
         self,
         name,
