@@ -3,6 +3,7 @@ import logging
 import time
 import os
 import json
+import uuid
 
 import elasticsearch.exceptions
 import urllib3.exceptions
@@ -15,9 +16,14 @@ import numpy as np
 import math
 
 from .util import getsize
+from .util import DictDiffer
 
 # limit ES query output to 500 MB
 g_max_partition_mem = 500 * 1024 * 1024
+
+def notify(anomaly):
+#FIXME: notifications not implemented yet
+    return
 
 class StorageException(Exception):
     """Storage exception"""
@@ -230,6 +236,7 @@ class NNSOM:
         self._map_h = map_h
         self._state = state
         self._threshold = threshold
+        self._anomalies = {}
 
     def get_es_agg(
             self,
@@ -495,6 +502,26 @@ class NNSOM:
                 val=k['count']['buckets']
                 profile = calc_quadrants(val)
                 yield account, profile
+
+
+    def set_anomalies(self,
+                      anomalies
+        ):
+        
+        d = DictDiffer(anomalies, self._anomalies)
+        
+        for k in d.changed():
+            anomalies[k]['uuid'] = self._anomalies[k]['uuid']
+            anomalies[k]['@timestamp'] = self._anomalies[k]['@timestamp']
+            anomalies[k]['max_score'] = max(self._anomalies[k]['max_score'],
+                                            anomalies[k]['score'])
+        for k in d.added():
+            anomalies[k]['max_score'] = anomalies[k]['score'] 
+            anomalies[k]['uuid'] = str(uuid.uuid4())
+            notify(anomalies[k])
+        
+        self._anomalies = anomalies
+        self._storage.index_anomalies(self._anomalies)
 
     def is_trained(self):
         return (self._state is not None and 'ckpt' in self._state)
@@ -829,12 +856,16 @@ class Model:
 
 
 class Storage:
-    def __init__(self, addr, vlan='*', timeout=60):
+    def __init__(self, addr, label=None, timeout=60):
         self.addr = addr
         self.timeout = timeout # global request timeout, if unspecified
         self._es = None
-        self._model_index = '.loudml'
-        self._ano_index = '.ml-anomalies-custom-%s' % vlan
+        if label is None:
+            self._model_index = '.loudml'
+            self._ano_index = '.loudml-anomalies'
+        else:
+            self._model_index = '.loudml-%s' % label
+            self._ano_index = '.loudml-anomalies-%s' % label
 
     @property
     def es(self):
@@ -856,6 +887,31 @@ class Storage:
         es_logger.setLevel(logging.CRITICAL)
 
         return self._es
+
+    def index_anomalies(
+        self,
+        anomalies,
+        ):
+
+        data=[]
+        for _, doc in anomalies.items():
+            data.append({
+                '_index': self._ano_index,
+                '_type': 'anomaly',
+                '_id': doc['uuid'],
+                '_source': doc,
+            })
+
+        try:
+            helpers.bulk(self.es,
+                         data)
+        except (
+            elasticsearch.exceptions.TransportError,
+            elasticsearch.helpers.BulkIndexError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("index_anomalies: %s", str(exn))
+            raise StorageException(str(exn))
 
     def set_interval(
         self,

@@ -433,6 +433,8 @@ def predict(model,
           from_date=from_date,
           to_date=to_date,
           )
+
+    anomalies = {}
     for k in val:
         if not ('key' in k['orig']):
            #FIXME: deal with absent keys (new accounts)
@@ -440,14 +442,16 @@ def predict(model,
         key = k['orig']['key']
         score = k['diff']['score']
         if score > model._threshold:
-            # NOTE: A good spot for PagerDuty integration ?
-            print("Anomaly @timestamp:", get_current_time(),
-                         "key=", key,
-                         "score=", score,
-                         "original=", k['orig']['mapped'],
-                         "current=", k['current']['mapped'],
-                         )
+            anomalies[key] = { '@timestamp': to_date,
+                         'until': to_date,
+                         'key': key,
+                         'score': score,
+                         'max_score': score,
+                         'model': model._name,
+                         'uuid': '',
+                       }
 
+    model.set_anomalies(anomalies)
     return  
 
 def periodic(scheduler, interval, action, actionargs=()):

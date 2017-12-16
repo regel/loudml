@@ -29,6 +29,7 @@ setup(
     test_suite='nose.collector',
 
     install_requires=[
+        'uuid',
         'flask',
         'elasticsearch',
         'tensorflow',

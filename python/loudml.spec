@@ -60,6 +60,7 @@ python%{python3_pkgversion} build of %{srcname}.
 %{__install} -m 0644 -D lib/systemd/%{srcname}.service %{buildroot}/%{_unitdir}/%{srcname}.service 
 %{__install} -m 0644 -D etc/sysconfig/%{srcname} %{buildroot}/%{_sysconfdir}/sysconfig/%{srcname} 
 %{__install} -m 0644 -D etc/%{srcname}.template.json %{buildroot}/%{_sysconfdir}/%{srcname}/%{srcname}.template.json 
+%{__install} -m 0644 -D etc/%{srcname}-anomalies.template.json %{buildroot}/%{_sysconfdir}/%{srcname}/%{srcname}-anomalies.template.json 
 %{__install} -m 0755 -d %{buildroot}/%{_sysconfdir}/nginx/conf.d
 %{__install} -m 0644 %{srcname}-main.conf %{buildroot}/%{_sysconfdir}/nginx/
 %{__install} -m 0644 %{srcname}.conf %{buildroot}/%{_sysconfdir}/nginx/conf.d/

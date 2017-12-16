@@ -1,0 +1,27 @@
+{
+  "template": ".loudml-anomalies*",
+    "mappings": {
+      "anomaly": {
+        "_all": {
+            "enabled": false
+        },
+        "properties": {
+          "@timestamp": {
+              "type": "date"
+          },
+          "until": {
+              "type": "date"
+          },
+          "uuid": { "type": "keyword", "index": "no" },
+          "key": { "type": "keyword" },
+          "model": { "type": "keyword" },
+          "score": { "type": "long" },
+          "max_score": { "type": "long" }
+        }
+      }
+    },
+    "settings": {
+        "number_of_shards": "1",
+        "number_of_replicas": "2"
+    }
+}
