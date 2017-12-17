@@ -23,6 +23,7 @@ g_max_partition_mem = 500 * 1024 * 1024
 
 def notify(anomaly):
 #FIXME: notifications not implemented yet
+    print(anomaly['description'])
     return
 
 class StorageException(Exception):

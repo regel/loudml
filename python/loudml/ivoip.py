@@ -82,6 +82,38 @@ def log_error(format, *args):
     log_message(format, *args)
 
 
+def annotate_col(j):
+    quadrants = ["00h-06h", "06h-12h", "12h-18h", "18h-24h"]
+    features = ["count(total)", "avg(duration)", "std(duration)",
+                "count(international)", "avg(international.duration)", "std(international.duration)",
+                "count(premium)", "avg(premium.duration)", "std(premium.duration)",
+               ]
+    quadrant = quadrants[int(j / len(features))]
+    feature = features[int(j % len(features))]
+    return quadrant, feature
+
+def get_description(Yc, Yo, yc, yo):
+    Yc = np.array(Yc)
+    Yo = np.array(Yo)
+    yc = np.array(yc)
+    yo = np.array(yo)
+    try:
+        diff = (Yc - Yo) / np.abs(Yo)
+        diff[np.isinf(diff)] = np.nan
+        max_arg = np.nanargmax(np.abs(diff))
+        max_val = diff[max_arg]
+        quadrant, feature = annotate_col(max_arg)
+        mul = int(max_val)
+        if mul < 0:
+            kind, desc = 'Low', 'Low %s in range %s. %d times lower than usual. Actual=%f Typical=%f' \
+                             % (feature, quadrant, abs(mul), yc[max_arg], yo[max_arg])
+        else:
+            kind, desc = 'High', 'High %s in range %s. %d times higher than usual. Actual=%f Typical=%f' \
+                             % (feature, quadrant, abs(mul), yc[max_arg], yo[max_arg]) 
+    except(ValueError):
+        kind, desc = 'None', 'None'
+    return kind, desc
+
 def async_ivoip_train_model(
         elasticsearch_addr,
         name,
@@ -442,6 +474,10 @@ def predict(model,
         key = k['orig']['key']
         score = k['diff']['score']
         if score > model._threshold:
+            kind, desc = get_description(k['current']['zY'],
+                                         k['orig']['zY'],
+                                         k['current']['Y'],
+                                         k['orig']['Y'])
             anomalies[key] = { '@timestamp': to_date,
                          'until': to_date,
                          'key': key,
@@ -449,6 +485,8 @@ def predict(model,
                          'max_score': score,
                          'model': model._name,
                          'uuid': '',
+                         'kind': kind, 
+                         'description': desc, 
                        }
 
     model.set_anomalies(anomalies)
