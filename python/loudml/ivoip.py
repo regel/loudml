@@ -45,6 +45,11 @@ _verbose = 0
 float_formatter = lambda x: "%.2f" % x
 np.set_printoptions(formatter={'float_kind':float_formatter})
 
+time_span = lambda x: x['time_range_ms'][1] - x['time_range_ms'][0] 
+time_from = lambda x: x['time_range_ms'][0]
+time_to = lambda x: x['time_range_ms'][1]
+time_exist = lambda x: 'time_range_ms' in x
+
 from .storage import (
     Storage,
     _SUNSHINE_NUM_FEATURES,
@@ -467,10 +472,19 @@ def predict(model,
           )
 
     anomalies = {}
+    changed = []
     for k in val:
         if not ('key' in k['orig']):
-           #FIXME: deal with absent keys (new accounts)
-           continue
+            # signature = initial
+            k['current']['time_range_ms'] = (to_date, to_date)
+            changed.append(k['current'])
+            continue
+
+        if time_span(k['orig']) < (1000 * model._span):
+            # signature = extended range (_span)
+            k['current']['time_range_ms'] = (time_from(k['orig']), to_date)
+            changed.append(k['current'])
+
         key = k['orig']['key']
         score = k['diff']['score']
         if score > model._threshold:
@@ -490,7 +504,29 @@ def predict(model,
                        }
 
     model.set_anomalies(anomalies)
-    return  
+
+    # signature = full range (train_span)
+    train_span = max([time_span(x['orig']) for x in val if time_exist(x['orig'])])
+    not_trained = [x['orig']['key'] for x in val if time_exist(x['orig']) \
+                              and time_span(x['orig']) < train_span \
+                              and time_from(x['orig']) < (to_date - train_span)]
+
+    for key in not_trained:
+        mapped, took = map_account(model,
+                         account_name=key,
+                         from_date=(to_date - train_span),
+                         to_date=to_date,
+                         )
+        changed.append(mapped)
+
+    # Write changes to configuration
+    if len(changed) > 0:
+        stored = stored_accounts(model)
+        d = { k['key']:k for k in changed }
+        stored.update(d)
+        model.set_mapped_info(list(stored.values()))
+
+    return
 
 def periodic(scheduler, interval, action, actionargs=()):
     scheduler.enter(interval, 1, periodic,

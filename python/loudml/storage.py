@@ -603,6 +603,20 @@ class NNSOM:
                                        stds.tolist(),
                                        )
 
+    def set_mapped_info(
+            self,
+            mapped_info,
+        ):
+        import base64
+
+        s_mapped_info = json.dumps(mapped_info)
+        b_mapped_info = base64.b64encode(s_mapped_info.encode('utf-8'))
+        enc = b_mapped_info.decode('utf-8')
+        self._state['mapped_info'] = enc
+        self._storage.save_mapped_info(self._id,
+                                       enc)
+
+
 class Model:
 
     def __init__(
@@ -1058,6 +1072,32 @@ class Storage:
             urllib3.exceptions.HTTPError,
         ) as exn:
             logging.error("save_ivoip_model: %s", str(exn))
+            raise StorageException(str(exn))
+
+    def save_mapped_info(
+        self,
+        _id,
+        mapped_info,
+        ):
+        es_params={}
+        es_params['refresh']='true'
+        try:
+            doc = { 'doc': { '_state' : {
+                        'mapped_info': mapped_info,
+            }}}
+
+            es_res = self.es.update(
+                index=self._model_index,
+                id=_id,
+                doc_type='model',
+                body=doc,
+                params=es_params,
+            )
+        except (
+            elasticsearch.exceptions.TransportError,
+            urllib3.exceptions.HTTPError,
+        ) as exn:
+            logging.error("save_mapped_info: %s", str(exn))
             raise StorageException(str(exn))
 
     def save_keras_model(
