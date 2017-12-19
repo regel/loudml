@@ -17,7 +17,7 @@ class Model:
         self.data = data
         self.index = data['index']
         self.data['name'] = name
-        self._state = None
+        self.state = None
 
     @property
     def features(self):

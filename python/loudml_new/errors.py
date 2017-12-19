@@ -11,8 +11,11 @@ class ModelExists(LoudMLException):
 class ModelNotFound(LoudMLException):
     """Model not found"""
 
+class ModelNotTrained(LoudMLException):
+    """Model not trained"""
+
 class UnsupportedMetric(LoudMLException):
-    """UnsupportedMetric"""
+    """Unsupported metric"""
 
 class NoData(LoudMLException):
-    """NoData"""
+    """No data"""
