@@ -655,7 +655,7 @@ def main():
     g_pool = Pool(processes=arg.workers, maxtasksperchild=arg.maxtasksperchild)
  
     host, port = arg.listen.split(':')
-    app.run(host=host, port=port)
+    app.run(host=host, port=int(port))
 
     g_pool.close()
     g_pool.join()
