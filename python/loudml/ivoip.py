@@ -243,8 +243,8 @@ def map_account(model,
 
     res = { 'key': key,
              'time_range_ms': (from_date, to_date),
-             'Y': Y.tolist(),
-             'zY': zY.tolist(),
+             'Y': Y[0].tolist(),
+             'zY': zY[0].tolist(),
              'mapped': ( mapped[0][0].item(), mapped[0][1].item() ),
              'dimension': ( model._map_w, model._map_h ),
            }
