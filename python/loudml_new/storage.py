@@ -29,14 +29,5 @@ class Storage(metaclass=ABCMeta):
         """Set model threshold"""
 
     @abstractmethod
-    def get_times_data(
-        self,
-        model,
-        from_date=None,
-        to_date=None,
-    ):
-        """Get numeric data"""
-
-    @abstractmethod
     def save_model(self, model):
         """Save model"""

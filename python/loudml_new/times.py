@@ -265,7 +265,7 @@ class TimesModel(Model):
 
     def train(
         self,
-        storage,
+        datasource,
         from_date=None,
         to_date=None,
         train_size=0.67,
@@ -281,9 +281,9 @@ class TimesModel(Model):
         _mins, _maxs = None, None
 
         if not from_date:
-            from_date = storage.get_times_start(self.index)
+            from_date = datasource.get_times_start(self.index)
         if not to_date:
-            to_date = storage.get_times_end(self.index)
+            to_date = datasource.get_times_end(self.index)
 
         logging.info(
             "train(%s) range=[%s, %s] train_size=%f batch_size=%d epochs=%d)",
@@ -301,7 +301,7 @@ class TimesModel(Model):
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
 
         # Fill dataset
-        data = storage.get_times_data(self, from_date, to_date)
+        data = datasource.get_times_data(self, from_date, to_date)
         for i, (_, val, _) in enumerate(data):
             dataset[i] = val
 
