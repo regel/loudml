@@ -19,3 +19,6 @@ class UnsupportedMetric(LoudMLException):
 
 class NoData(LoudMLException):
     """No data"""
+
+class TransportError(LoudMLException):
+    """Transport error"""

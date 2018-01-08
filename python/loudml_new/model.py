@@ -16,6 +16,7 @@ class Model:
         self.name = name
         self.data = data
         self.index = data['index']
+        self.routing = data.get('routing')
         self.data['name'] = name
         self.state = None
 
