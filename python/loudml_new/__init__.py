@@ -60,3 +60,10 @@ def ts_to_str(ts):
     Convert timestamp to string
     """
     return datetime_to_str(ts_to_datetime(ts))
+
+def parse_addr(addr, default_port=None):
+    addr = addr.split(':')
+    return {
+        'host': 'localhost' if len(addr[0]) == 0 else addr[0],
+        'port': default_port if len(addr) == 1 else int(addr[1]),
+    }

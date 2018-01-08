@@ -17,6 +17,9 @@ from elasticsearch import (
 )
 
 from .datasource import DataSource
+from . import (
+    parse_addr,
+)
 
 def get_date_range(field, from_date=None, to_date=None):
     """
@@ -52,11 +55,7 @@ class ElasticsearchDataSource(DataSource):
     @property
     def es(self):
         if self._es is None:
-            addr = self.addr.split(':')
-            addr = {
-                'host': 'localhost' if len(addr[0]) == 0 else addr[0],
-                'port': 9200 if len(addr) == 1 else int(addr[1]),
-            }
+            addr = parse_addr(self.addr, default_port=9200)
             logging.info('connecting to elasticsearch on %s:%d',
                          addr['host'], addr['port'])
             self._es = Elasticsearch([addr], timeout=self._timeout)

@@ -6,6 +6,7 @@ from loudml_new import (
     make_ts,
     str_to_ts,
     ts_to_str,
+    parse_addr,
 )
 
 class TestMisc(unittest.TestCase):
@@ -43,4 +44,21 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(
             str_to_ts("2018-01-08T09:39:26.123Z"),
             1515404366.123,
+        )
+
+    def test_parse_addr(self):
+        self.assertEqual(
+            parse_addr("localhost", default_port=80),
+            {
+                'host': "localhost",
+                'port': 80,
+            }
+        )
+
+        self.assertEqual(
+            parse_addr("localhost:8080", default_port=80),
+            {
+                'host': "localhost",
+                'port': 8080,
+            }
         )
