@@ -37,6 +37,7 @@ setup(
         'tensorflow',
         'h5py',
         'hyperopt',
+        'influxdb',
         'Pillow',
     ],
 
