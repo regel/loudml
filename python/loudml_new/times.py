@@ -25,6 +25,7 @@ from hyperopt import (
 )
 
 from . import (
+    errors,
     ts_to_str,
 )
 
@@ -285,11 +286,14 @@ class TimesModel(Model):
         if not to_date:
             to_date = datasource.get_times_end(self.index)
 
+        from_str = ts_to_str(from_date)
+        to_str = ts_to_str(to_date)
+
         logging.info(
             "train(%s) range=[%s, %s] train_size=%f batch_size=%d epochs=%d)",
             self.name,
-            ts_to_str(from_date),
-            ts_to_str(to_date),
+            from_str,
+            to_str,
             train_size,
             batch_size,
             num_epochs,
@@ -302,10 +306,17 @@ class TimesModel(Model):
 
         # Fill dataset
         data = datasource.get_times_data(self, from_date, to_date)
+        i = 0
         for i, (_, val, _) in enumerate(data):
             dataset[i] = val
 
-        logging.info("found %d time period", i)
+        if i == 0:
+            raise errors.NoData("no data found for time range {}-{}".format(
+                from_str,
+                to_str,
+            ))
+
+        logging.info("found %d time periods", i)
 
         best_params, _, _, _ = self._train_on_dataset(
             dataset,
