@@ -2,6 +2,7 @@ import datetime
 import logging
 import numpy as np
 import os
+import random
 import time
 import unittest
 
@@ -16,6 +17,9 @@ from loudml_new.influx import (
 logging.getLogger('tensorflow').disabled = True
 
 from loudml_new.times import TimesModel
+from loudml_new.randevents import EventGenerator
+from loudml_new.memstorage import MemStorage
+
 
 FEATURES = [
     {
@@ -34,13 +38,13 @@ FEATURES = [
     },
 ]
 
-class TestInfluxDataSource(unittest.TestCase):
-    def setUp(self):
-        if 'INFLUXDB_ADDR' in os.environ:
-            addr = os.environ['INFLUXDB_ADDR']
-        else:
-            addr = 'localhost'
+if 'INFLUXDB_ADDR' in os.environ:
+    ADDR = os.environ['INFLUXDB_ADDR']
+else:
+    ADDR = 'localhost'
 
+class TestInfluxQuick(unittest.TestCase):
+    def setUp(self):
         bucket_interval = 3
 
         t0 = int(datetime.datetime.now().timestamp())
@@ -53,7 +57,7 @@ class TestInfluxDataSource(unittest.TestCase):
 
         self.db = 'test-{}'.format(t0)
         logging.info("creating database %s", self.db)
-        self.source = InfluxDataSource(addr=addr, db=self.db)
+        self.source = InfluxDataSource(addr=ADDR, db=self.db)
         self.source.delete_db()
         self.source.create_db()
 
@@ -147,3 +151,46 @@ class TestInfluxDataSource(unittest.TestCase):
 
         self.assertEqual(foo_avg, [2.5, 0, 4.0])
         self.assertEqual(bar_count, [2.0, 0, 1.0])
+
+
+class TestInfluxLong(unittest.TestCase):
+    def setUp(self):
+
+        self.db = "test-{}".format(int(datetime.datetime.now().timestamp()))
+        self.source = InfluxDataSource(addr=ADDR, db=self.db)
+        self.source.delete_db()
+        self.source.create_db()
+        self.storage = MemStorage()
+
+        generator = EventGenerator(lo=2, hi=4, sigma=0.05)
+
+        self.to_date = datetime.datetime.now().timestamp()
+        self.from_date = self.to_date - 3600 * 24 * 7
+
+        for ts in generator.generate_ts(self.from_date, self.to_date, step=60):
+            self.source.insert_times_data(
+                measurement='measure1',
+                ts=ts,
+                data={
+                    'foo': random.lognormvariate(10, 1)
+                },
+            )
+        self.source.commit()
+
+    def test_train(self):
+        model = TimesModel('test', dict(
+            db=self.db,
+            offset=30,
+            span=24 * 3600,
+            bucket_interval=20 * 60,
+            interval=60,
+            features=FEATURES[0:1],
+            threshold=30,
+            max_evals=1,
+        ))
+
+        # Train
+        model.train(self.source, from_date=self.from_date, to_date=self.to_date)
+
+        # Check
+        self.assertTrue(model.is_trained)
