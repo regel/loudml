@@ -27,7 +27,7 @@ def dump_to_json(generator):
 
     print(json.dumps(data,indent=4))
 
-def dump_to_influx(generator, addr, db, measurement, clear=False):
+def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
     from loudml_new.influx import InfluxDataSource
 
     source = InfluxDataSource(
@@ -39,11 +39,18 @@ def dump_to_influx(generator, addr, db, measurement, clear=False):
         source.delete_db()
     source.create_db()
 
+    tag_dict = {}
+    if tags:
+        for tag in tags.split(','):
+            k, v = tag.split(':')
+            tag_dict[k] = v
+
     for ts, data in generator:
         source.insert_times_data(
             measurement=measurement,
             ts=ts,
             data=data,
+            tags=tag_dict,
         )
 
 def main():
@@ -104,6 +111,11 @@ def main():
              "(risk of data loss! Use with caution!)",
         action='store_true',
     )
+    parser.add_argument(
+        '--tags',
+        help="Tags",
+        type=str,
+    )
 
     arg = parser.parse_args()
 
@@ -128,6 +140,7 @@ def main():
                 db=arg.database,
                 clear=arg.clear,
                 measurement=arg.measurement,
+                tags=arg.tags,
             )
         elif arg.output == 'elastic':
             pass

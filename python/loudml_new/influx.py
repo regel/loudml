@@ -118,16 +118,19 @@ class InfluxDataSource(DataSource):
     def insert_data(self):
         raise errors.NotImplemented("InfluxDB is a pure time-series database")
 
-    def insert_times_data(self, ts, data, measurement):
+    def insert_times_data(self, ts, data, measurement, tags=None):
         """
         Insert data
         """
 
-        self.enqueue({
+        entry = {
             'measurement': measurement,
             'time': ts_to_ns(ts),
             'fields': data,
-        })
+        }
+        if tags:
+            entry['tags'] = tags
+        self.enqueue(entry)
 
     def send_bulk(self, requests):
         """
