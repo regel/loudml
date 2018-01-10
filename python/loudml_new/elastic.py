@@ -46,11 +46,10 @@ class ElasticsearchDataSource(DataSource):
     """
 
     def __init__(self, addr, timeout=30):
+        super().__init__()
         self.addr = addr
         self._es = None
         self._timeout = 30
-        self._pending = []
-        self._last_commit = datetime.datetime.now()
 
     @property
     def es(self):
@@ -83,47 +82,24 @@ class ElasticsearchDataSource(DataSource):
         """
         self.es.indices.delete(index=name, ignore=404)
 
-    def _must_commit(self):
-        """
-        Tell if pending data must be sent to Elasticsearch
-        """
-        if len(self._pending) >= 1000:
-            return True
-        if (datetime.datetime.now() - self._last_commit).seconds >= 1:
-            return True
-        return False
-
-    def commit(self):
+    def send_bulk(self, requests):
         """
         Send data to Elasticsearch
         """
-        if len(self._pending) > 0:
-            logging.info("commit %d change(s) to elasticsearch",
-                         len(self._pending))
-            try:
-                helpers.bulk(
-                    self.es,
-                    self._pending,
-                    chunk_size=5000,
-                    timeout="30s",
-                )
-            except (
-                urllib3.exceptions.HTTPError,
-                elasticsearch.exceptions.TransportError,
-            ) as exn:
-                raise errors.TransportError(str(exn))
+        logging.info("commit %d change(s) to elasticsearch", len(requests))
 
-            del self._pending[:]
-        self._last_commit = datetime.datetime.now()
-
-    def _enqueue(self, req):
-        """
-        Enqueue Elastic request in bulk buffer
-        """
-        self._pending.append(req)
-
-        if self._must_commit():
-            self.commit()
+        try:
+            helpers.bulk(
+                self.es,
+                requests,
+                chunk_size=5000,
+                timeout="30s",
+            )
+        except (
+            urllib3.exceptions.HTTPError,
+            elasticsearch.exceptions.TransportError,
+        ) as exn:
+            raise errors.TransportError(str(exn))
 
     def insert_data(self, index, data, doc_type='generic', doc_id=None):
         """
@@ -139,7 +115,7 @@ class ElasticsearchDataSource(DataSource):
         if doc_id is not None:
             req['_id'] = doc_id
 
-        self._enqueue(req)
+        self.enqueue(req)
 
     def insert_times_data(self, ts, data, index):
         """

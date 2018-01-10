@@ -66,6 +66,7 @@ class MemDataSource(DataSource):
     """
 
     def __init__(self):
+        super().__init__()
         self.data = {}
 
     def _ensure_index_exists(self, index):
@@ -85,6 +86,9 @@ class MemDataSource(DataSource):
         """
         self._ensure_index_exists(index)
         bisect.insort(self.data[index], OrderedEntry(data['timestamp'], data))
+
+    def commit(self):
+        pass
 
     @staticmethod
     def _compute_bucket_avg(bucket, field, default=None):

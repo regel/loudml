@@ -84,6 +84,7 @@ class InfluxDataSource(DataSource):
     """
 
     def __init__(self, addr, db):
+        super().__init__()
         self.addr = addr
         self.db = db
         self._influxdb = None
@@ -122,15 +123,17 @@ class InfluxDataSource(DataSource):
         Insert data
         """
 
-        args = [
-            {
-                'measurement': measurement,
-                'time': ts_to_ns(ts),
-                'fields': data,
-            },
-        ]
-        self.influxdb.write_points(args)
+        self.enqueue({
+            'measurement': measurement,
+            'time': ts_to_ns(ts),
+            'fields': data,
+        })
 
+    def send_bulk(self, requests):
+        """
+        Send data to InfluxDB
+        """
+        self.influxdb.write_points(requests)
 
     def get_times_data(
         self,

@@ -92,6 +92,8 @@ class TestInfluxDataSource(unittest.TestCase):
                 }
             )
 
+        self.source.commit()
+
     def tearDown(self):
         self.source.delete_db()
 
