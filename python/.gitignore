@@ -94,3 +94,5 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+*.swn
