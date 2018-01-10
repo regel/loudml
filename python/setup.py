@@ -58,6 +58,7 @@ setup(
             'loudmld=loudml.server:main',
             'loudml_times=loudml.times:main',
             'loudml_ivoip=loudml.ivoip:main',
+            'loudml-faker=loudml.faker:main',
         ],
     },
 )
