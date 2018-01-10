@@ -7,9 +7,22 @@ from loudml_new import (
     str_to_ts,
     ts_to_str,
     parse_addr,
+    parse_timedelta,
 )
 
 class TestMisc(unittest.TestCase):
+    def test_timedelta(self):
+        def to_sec(string):
+            return parse_timedelta(string).total_seconds()
+
+        self.assertEqual(to_sec("42"), 42)
+        self.assertEqual(to_sec("42s"), 42)
+        self.assertEqual(to_sec("42m"), 42 * 60)
+        self.assertEqual(to_sec("42h"), 42 * 60 * 60)
+        self.assertEqual(to_sec("42d"), 42 * 60 * 60 * 24)
+        self.assertEqual(to_sec("42w"), 42 * 60 * 60 * 24 * 7)
+        self.assertEqual(to_sec("-42s"), -42)
+
     def test_datetime(self):
         expected = datetime.datetime(
             year=2018,

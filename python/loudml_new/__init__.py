@@ -5,6 +5,31 @@ Loud ML
 import datetime
 import dateutil.parser
 
+def parse_timedelta(delta):
+    """
+    Parse time delta
+    """
+
+    delta = str(delta)
+
+    if len(delta) > 1:
+        unit = delta[-1]
+        value = int(delta[:-1])
+
+        if unit == 's':
+            return datetime.timedelta(seconds=value)
+        if unit == 'm':
+            return datetime.timedelta(minutes=value)
+        if unit == 'h':
+            return datetime.timedelta(hours=value)
+        if unit == 'd':
+            return datetime.timedelta(days=value)
+        if unit == 'w':
+            return datetime.timedelta(weeks=value)
+
+    # Assume the value is in seconds
+    return datetime.timedelta(seconds=int(delta))
+
 def ts_to_datetime(ts):
     """
     Convert timestamp to datetime
@@ -19,9 +44,15 @@ def ts_to_str(ts):
 
 def str_to_datetime(string):
     """
-    Convert string to timestamp
+    Convert string (ISO or relative) to timestamp
     """
-    return dateutil.parser.parse(string)
+    if string.startswith("now"):
+        now = datetime.datetime.now()
+        if len(string) == 3:
+            return now
+        return now + parse_timedelta(string[3:])
+    else:
+        return dateutil.parser.parse(string)
 
 def str_to_ts(string):
     """
@@ -41,7 +72,7 @@ def make_datetime(mixed):
 
 def make_ts(mixed):
     """
-    Build a timestamp from a mixed input (second timestamp or string)
+    Build a timestamp from a mixed input (second timestamp or ISO string or relative)
     """
 
     try:
