@@ -7,14 +7,16 @@ from loudml_new import (
     errors,
     make_datetime,
 )
-from loudml_new.randevents import EventGenerator
+from loudml_new.randevents import (
+    FlatEventGenerator,
+    SinEventGenerator,
+)
 
-class DataFaker(EventGenerator):
-    def generate_data(self, from_date, to_date):
-        for ts in self.generate_ts(from_date, to_date, step=60):
-            yield ts, {
-                'foo': random.lognormvariate(10, 1),
-            }
+def generate_data(ts_generator, from_date, to_date):
+    for ts in ts_generator.generate_ts(from_date, to_date, step=60):
+        yield ts, {
+            'foo': random.lognormvariate(10, 1),
+        }
 
 def dump_to_json(generator):
     import json
@@ -106,6 +108,18 @@ def main():
         dest='to_date',
     )
     parser.add_argument(
+        '--shape',
+        help="Data shape",
+        choices=['flat', 'sin'],
+        default='sin',
+    )
+    parser.add_argument(
+        '--avg',
+        help="Average rate",
+        type=float,
+        default=5,
+    )
+    parser.add_argument(
         '-c', '--clear',
         help="Clear database or index before insertion "\
              "(risk of data loss! Use with caution!)",
@@ -122,13 +136,17 @@ def main():
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    ts_generator = DataFaker(lo=2, hi=4, sigma=0.05)
+    if arg.shape == 'flat':
+        ts_generator = FlatEventGenerator(avg=arg.avg)
+    else:
+        ts_generator = SinEventGenerator(lo=0, hi=arg.avg * 2, sigma=1)
+
     from_date = make_datetime(arg.from_date)
     to_date = make_datetime(arg.to_date)
 
     logging.info("generating data from %s to %s", from_date, to_date)
 
-    generator = ts_generator.generate_data(from_date.timestamp(), to_date.timestamp())
+    generator = generate_data(ts_generator, from_date.timestamp(), to_date.timestamp())
 
     try:
         if arg.output == 'json':

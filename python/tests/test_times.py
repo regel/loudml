@@ -6,7 +6,7 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml_new.randevents import EventGenerator
+from loudml_new.randevents import SinEventGenerator
 from loudml_new.times import TimesModel
 from loudml_new.memdatasource import MemDataSource
 from loudml_new.memstorage import MemStorage
@@ -25,7 +25,7 @@ class TestTimes(unittest.TestCase):
         self.source = MemDataSource()
         self.storage = MemStorage()
 
-        generator = EventGenerator(lo=2, hi=4, sigma=0.05)
+        generator = SinEventGenerator(lo=2, hi=4, sigma=0.05)
 
         self.to_date = datetime.datetime.now().timestamp()
         self.from_date = self.to_date - 3600 * 24 * 7
