@@ -13,9 +13,21 @@ class DataSource(metaclass=ABCMeta):
     Abstract class for LoudML storage
     """
 
-    def __init__(self):
+    def __init__(self, cfg):
+        self._cfg = cfg
         self._pending = []
         self._last_commit = datetime.datetime.now()
+
+    @property
+    def cfg(self):
+        """
+        Return data source configuration
+        """
+        return self._cfg
+
+    @property
+    def name(self):
+        return self._cfg.get('name')
 
     def commit(self):
         """

@@ -57,7 +57,10 @@ class TestInfluxQuick(unittest.TestCase):
 
         self.db = 'test-{}'.format(t0)
         logging.info("creating database %s", self.db)
-        self.source = InfluxDataSource(addr=ADDR, db=self.db)
+        self.source = InfluxDataSource({
+            'addr': ADDR,
+            'db': self.db,
+        })
         self.source.delete_db()
         self.source.create_db()
 
@@ -157,7 +160,10 @@ class TestInfluxLong(unittest.TestCase):
     def setUp(self):
 
         self.db = "test-{}".format(int(datetime.datetime.now().timestamp()))
-        self.source = InfluxDataSource(addr=ADDR, db=self.db)
+        self.source = InfluxDataSource({
+            'addr': ADDR,
+            'db': self.db,
+        })
         self.source.delete_db()
         self.source.create_db()
         self.storage = MemStorage()

@@ -32,10 +32,10 @@ def dump_to_json(generator):
 def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
     from loudml_new.influx import InfluxDataSource
 
-    source = InfluxDataSource(
-        addr=addr,
-        db=db,
-    )
+    source = InfluxDataSource({
+        'addr': addr,
+        'database': db,
+    })
 
     if clear:
         source.delete_db()

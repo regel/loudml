@@ -45,8 +45,6 @@ FEATURES = [
 
 class TestElasticDataSource(unittest.TestCase):
     def setUp(self):
-        addr = os.environ['ELASTICSEARCH_ADDR']
-
         bucket_interval = 3
 
         t0 = int(datetime.datetime.now().timestamp())
@@ -55,7 +53,9 @@ class TestElasticDataSource(unittest.TestCase):
 
         self.index = 'test-%d' % t0
         logging.info("creating index %s", self.index)
-        self.source = ElasticsearchDataSource(addr=addr)
+        self.source = ElasticsearchDataSource({
+            'addr': os.environ['ELASTICSEARCH_ADDR'],
+        })
         self.source.delete_index(self.index)
         self.source.create_index(self.index, TEMPLATE)
 

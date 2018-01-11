@@ -83,11 +83,17 @@ class InfluxDataSource(DataSource):
     Elasticsearch datasource
     """
 
-    def __init__(self, addr, db):
-        super().__init__()
-        self.addr = addr
-        self.db = db
+    def __init__(self, cfg):
+        super().__init__(cfg)
         self._influxdb = None
+
+    @property
+    def addr(self):
+        return self.cfg['addr']
+
+    @property
+    def db(self):
+        return self.cfg['db']
 
     @property
     def influxdb(self):

@@ -45,11 +45,21 @@ class ElasticsearchDataSource(DataSource):
     Elasticsearch datasource
     """
 
-    def __init__(self, addr, timeout=30):
-        super().__init__()
-        self.addr = addr
+    def __init__(self, cfg):
+        super().__init__(cfg)
         self._es = None
-        self._timeout = 30
+
+    @property
+    def addr(self):
+        return self.cfg['addr']
+
+    @property
+    def index(self):
+        return self.cfg['index']
+
+    @property
+    def timeout(self):
+        return self.cfg.get('timeout', 30)
 
     @property
     def es(self):
@@ -57,7 +67,7 @@ class ElasticsearchDataSource(DataSource):
             addr = parse_addr(self.addr, default_port=9200)
             logging.info('connecting to elasticsearch on %s:%d',
                          addr['host'], addr['port'])
-            self._es = Elasticsearch([addr], timeout=self._timeout)
+            self._es = Elasticsearch([addr], timeout=self.timeout)
 
         # urllib3 & elasticsearch modules log exceptions, even if they are
         # caught! Disable this.

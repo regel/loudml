@@ -66,7 +66,7 @@ class MemDataSource(DataSource):
     """
 
     def __init__(self):
-        super().__init__()
+        super().__init__({})
         self.data = {}
 
     def _ensure_index_exists(self, index):
