@@ -59,7 +59,8 @@ class TestElasticDataSource(unittest.TestCase):
         self.source.delete_index(self.index)
         self.source.create_index(self.index, TEMPLATE)
 
-        self.model = TimesModel(self.index, dict(
+        self.model = TimesModel(dict(
+            name='test',
             index=self.index,
             offset=30,
             span=300,

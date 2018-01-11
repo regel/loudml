@@ -64,8 +64,8 @@ class TestInfluxQuick(unittest.TestCase):
         self.source.delete_db()
         self.source.create_db()
 
-        self.model = TimesModel(
-            name="test-model", data=dict(
+        self.model = TimesModel(dict(
+            name="test-model",
             db=self.db,
             offset=30,
             span=300,
@@ -184,7 +184,8 @@ class TestInfluxLong(unittest.TestCase):
         self.source.commit()
 
     def test_train(self):
-        model = TimesModel('test', dict(
+        model = TimesModel(dict(
+            name='test',
             db=self.db,
             offset=30,
             span=24 * 3600,

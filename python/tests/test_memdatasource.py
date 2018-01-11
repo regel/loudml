@@ -24,7 +24,8 @@ class TestMemDataSource(unittest.TestCase):
     def setUp(self):
         self.source = MemDataSource()
 
-        self.model = TimesModel("test", dict(
+        self.model = TimesModel(dict(
+            name='test',
             index='test',
             offset=30,
             span=300,

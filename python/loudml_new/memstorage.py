@@ -6,9 +6,6 @@ from . import (
     errors,
     ts_to_str,
 )
-from .model import (
-    Model,
-)
 
 from .storage import (
     Storage,
@@ -24,14 +21,16 @@ class MemStorage(Storage):
 
     def get_model(self, name):
         try:
-            data = self.models[name]
-            return Model(name, data)
+            return self.models[name]
         except KeyError:
             raise errors.ModelNotFound()
 
+    def list_models(self):
+        return self.models.keys()
+
     def set_threshold(self, name, threshold):
-        model = self.get_model(name)
-        model.data['threshold'] = threshold
+        data = self.get_model(name)
+        data['settings']['threshold'] = threshold
 
     def create_model(self, model):
         if model.name in self.models:

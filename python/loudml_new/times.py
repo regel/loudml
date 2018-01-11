@@ -102,12 +102,13 @@ class TimesModel(Model):
     Time-series model
     """
 
-    def __init__(self, name, data):
-        super().__init__(name, data)
+    def __init__(self, settings, state=None):
+        super().__init__(settings, state)
 
-        self.bucket_interval = data['bucket_interval']
-        self.interval = data['interval']
-        self.span = data['span']
+        self.bucket_interval = settings.get('bucket_interval')
+        self.interval = settings.get('interval')
+        self.offset = settings.get('offset')
+        self.span = settings.get('span')
         self.sequential = None
 
     def _compute_nb_buckets(self, from_date, to_date):

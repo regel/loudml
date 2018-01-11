@@ -17,6 +17,10 @@ class Storage(metaclass=ABCMeta):
         """Get model"""
 
     @abstractmethod
+    def list_models(self):
+        """List models"""
+
+    @abstractmethod
     def create_model(self, model):
         """Create model"""
 

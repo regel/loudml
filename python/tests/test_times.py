@@ -39,7 +39,8 @@ class TestTimes(unittest.TestCase):
     def test_train(self):
         self.assertGreater(len(self.source.data['test']), 0)
 
-        model = TimesModel('test', dict(
+        model = TimesModel(dict(
+            name='test',
             index='test',
             offset=30,
             span=24 * 3600,
