@@ -53,7 +53,10 @@ class FileStorage(Storage):
         self._write_model(self.model_path(model.name), model.data)
 
     def delete_model(self, name):
-        os.unlink(self.model_path(name))
+        try:
+            os.unlink(self.model_path(name))
+        except FileNotFoundError:
+            return
 
     def get_model_data(self, name):
         model_path = self.model_path(name)

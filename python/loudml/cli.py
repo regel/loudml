@@ -122,6 +122,24 @@ class ListModelsCommand(Command):
             print(model)
 
 
+class DeleteModelCommand(Command):
+    """
+    Delete a model
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        config = load_config(args)
+        storage = FileStorage(config['storage']['path'])
+        storage.delete_model(args.model_name)
+
+
 def main():
     """
     LoudML command-line tool

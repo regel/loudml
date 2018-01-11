@@ -65,6 +65,7 @@ setup(
         ],
         'loudml.commands': [
             'create-model=loudml.cli:CreateModelCommand',
+            'delete-model=loudml.cli:DeleteModelCommand',
             'list-models=loudml.cli:ListModelsCommand',
         ],
         'loudml.datasources': [
