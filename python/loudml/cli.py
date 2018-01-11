@@ -38,7 +38,19 @@ def load_config(args):
 
     return config
 
-class CreateModelCommand:
+class Command:
+    def add_args(self, parser):
+        """
+        Declare command arguments
+        """
+
+    def exec(self, args):
+        """
+        Execute command
+        """
+
+
+class CreateModelCommand(Command):
     """
     Create model
     """
@@ -88,10 +100,6 @@ class CreateModelCommand:
         return settings
 
     def exec(self, args):
-        """
-        Execute command
-        """
-
         config = load_config(args)
 
         model_settings = self.load_model_file(args.model_file)
@@ -99,6 +107,19 @@ class CreateModelCommand:
 
         storage = FileStorage(config['storage']['path'])
         storage.create_model(model)
+
+
+class ListModelsCommand(Command):
+    """
+    List models
+    """
+
+    def exec(self, args):
+        config = load_config(args)
+        storage = FileStorage(config['storage']['path'])
+
+        for model in storage.list_models():
+            print(model)
 
 
 def main():

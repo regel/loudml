@@ -65,6 +65,7 @@ setup(
         ],
         'loudml.commands': [
             'create-model=loudml.cli:CreateModelCommand',
+            'list-models=loudml.cli:ListModelsCommand',
         ],
         'loudml.datasources': [
             'elasticsearch=loudml_new.elastic:ElasticsearchDataSource',
