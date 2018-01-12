@@ -9,6 +9,7 @@ import os
 import sys
 import yaml
 
+import loudml_new.datasource
 import loudml_new.model
 
 from loudml_new.errors import (
@@ -37,6 +38,15 @@ def load_config(args):
         config['storage']['path'] = "/var/lib/loudml"
 
     return config
+
+def get_datasource(config, src_name):
+    """
+    Get data source by name
+    """
+    settings = config['datasources'].get(src_name)
+    if settings is None:
+        raise LoudMLException("unknown datasource '{}'".format(src_name))
+    return loudml_new.datasource.load_datasource(settings)
 
 class Command:
     def add_args(self, parser):
@@ -138,6 +148,56 @@ class DeleteModelCommand(Command):
         config = load_config(args)
         storage = FileStorage(config['storage']['path'])
         storage.delete_model(args.model_name)
+
+
+class TrainCommand(Command):
+    """
+    Train model on data set
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+        parser.add_argument(
+            'datasource',
+            help="Data source name",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--from',
+            help="From date",
+            type=str,
+            dest='from_date',
+        )
+        parser.add_argument(
+            '-t', '--to',
+            help="To date",
+            type=str,
+            default="now",
+            dest='to_date',
+        )
+
+    def exec(self, args):
+        config = load_config(args)
+        storage = FileStorage(config['storage']['path'])
+        source = get_datasource(config, args.datasource)
+        model = storage.load_model(args.model_name)
+
+        if model.type == 'timeseries':
+            if not args.from_date:
+                raise LoudMLException(
+                    "'from' argument is required for time-series",
+                )
+            if not args.to_date:
+                raise LoudMLException(
+                    "'to' argument is required for time-series",
+                )
+            model.train(source, args.from_date, args.to_date)
+            storage.save_model(model)
+
 
 
 def main():

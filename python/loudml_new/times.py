@@ -26,7 +26,9 @@ from hyperopt import (
 
 from . import (
     errors,
+    make_ts,
     ts_to_str,
+    parse_timedelta,
 )
 
 from .model import (
@@ -105,9 +107,11 @@ class TimesModel(Model):
     def __init__(self, settings, state=None):
         super().__init__(settings, state)
 
-        self.bucket_interval = settings.get('bucket_interval')
-        self.interval = settings.get('interval')
-        self.offset = settings.get('offset')
+        # TODO use voluptuous to check settings validity
+
+        self.bucket_interval = int(parse_timedelta(settings.get('bucket_interval')).total_seconds())
+        self.interval = int(parse_timedelta(settings.get('interval')).total_seconds())
+        self.offset = int(parse_timedelta(settings.get('offset')).total_seconds())
         self.span = settings.get('span')
         self.sequential = None
 
@@ -115,11 +119,11 @@ class TimesModel(Model):
     def type(self):
         return 'timeseries'
 
-    def _compute_nb_buckets(self, from_date, to_date):
+    def _compute_nb_buckets(self, from_ts, to_ts):
         """
-        Compute the number of bucket between `from_date` and `to_date`
+        Compute the number of bucket between `from_ts` and `to_ts`
         """
-        return int((to_date - from_date) / self.bucket_interval) + 1
+        return int((to_ts - from_ts) / self.bucket_interval) + 1
 
     def _train_on_dataset(
         self,
@@ -286,13 +290,18 @@ class TimesModel(Model):
         _keras_model, _graph = None, None
         _mins, _maxs = None, None
 
-        if not from_date:
-            from_date = datasource.get_times_start(self.index)
-        if not to_date:
-            to_date = datasource.get_times_end(self.index)
+        if from_date:
+            from_ts = make_ts(from_date)
+        else:
+            from_ts = datasource.get_times_start(self.index)
 
-        from_str = ts_to_str(from_date)
-        to_str = ts_to_str(to_date)
+        if to_date:
+            to_ts = make_ts(to_date)
+        else:
+            to_ts = datasource.get_times_end(self.index)
+
+        from_str = ts_to_str(from_ts)
+        to_str = ts_to_str(to_ts)
 
         logging.info(
             "train(%s) range=[%s, %s] train_size=%f batch_size=%d epochs=%d)",
@@ -305,12 +314,12 @@ class TimesModel(Model):
         )
 
         # Prepare dataset
-        nb_buckets = self._compute_nb_buckets(from_date, to_date)
+        nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
 
         # Fill dataset
-        data = datasource.get_times_data(self, from_date, to_date)
+        data = datasource.get_times_data(self, from_ts, to_ts)
         i = 0
         for i, (_, val, _) in enumerate(data):
             dataset[i] = val

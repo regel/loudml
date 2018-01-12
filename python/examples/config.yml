@@ -2,10 +2,12 @@ datasources:
   - name: influx
     type: influxdb
     addr: localhost
+    database: dummy
 
   - name: elastic
     type: elasticsearch
     addr: localhost:9200
+    index: dummy
 
 storage:
   path: /var/lib/loudml

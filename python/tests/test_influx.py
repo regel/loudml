@@ -59,14 +59,14 @@ class TestInfluxQuick(unittest.TestCase):
         logging.info("creating database %s", self.db)
         self.source = InfluxDataSource({
             'addr': ADDR,
-            'db': self.db,
+            'database': self.db,
         })
         self.source.delete_db()
         self.source.create_db()
 
         self.model = TimesModel(dict(
             name="test-model",
-            db=self.db,
+            database=self.db,
             offset=30,
             span=300,
             bucket_interval=3,
@@ -162,7 +162,7 @@ class TestInfluxLong(unittest.TestCase):
         self.db = "test-{}".format(int(datetime.datetime.now().timestamp()))
         self.source = InfluxDataSource({
             'addr': ADDR,
-            'db': self.db,
+            'database': self.db,
         })
         self.source.delete_db()
         self.source.create_db()
@@ -186,7 +186,7 @@ class TestInfluxLong(unittest.TestCase):
     def test_train(self):
         model = TimesModel(dict(
             name='test',
-            db=self.db,
+            database=self.db,
             offset=30,
             span=24 * 3600,
             bucket_interval=20 * 60,

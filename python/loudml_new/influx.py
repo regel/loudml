@@ -93,7 +93,7 @@ class InfluxDataSource(DataSource):
 
     @property
     def db(self):
-        return self.cfg['db']
+        return self.cfg['database']
 
     @property
     def influxdb(self):

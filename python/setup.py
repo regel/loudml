@@ -67,6 +67,7 @@ setup(
             'create-model=loudml.cli:CreateModelCommand',
             'delete-model=loudml.cli:DeleteModelCommand',
             'list-models=loudml.cli:ListModelsCommand',
+            'train=loudml.cli:TrainCommand',
         ],
         'loudml.datasources': [
             'elasticsearch=loudml_new.elastic:ElasticsearchDataSource',
