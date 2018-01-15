@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 import os
 import random
 import unittest
@@ -13,10 +14,16 @@ from loudml_new.memstorage import MemStorage
 
 FEATURES = [
     {
+        'name': 'count_foo',
+        'metric': 'count',
+        'field': 'foo',
+        'nan_is_zero': True,
+    },
+    {
         'name': 'avg_foo',
         'metric': 'avg',
         'field': 'foo',
-        'nan_is_zero': True,
+        'nan_is_zero': False,
     },
 ]
 
@@ -50,6 +57,38 @@ class TestTimes(unittest.TestCase):
             threshold=30,
             max_evals=1,
         ))
+
+    def test_format(self):
+        import numpy as np
+
+        data = [0, 2, 4, 6, 8, 10, 12, 14]
+        dataset = np.zeros((8, 1), dtype=float)
+        for i, val in enumerate(data):
+            dataset[i] = val
+
+        model = TimesModel(dict(
+            name='test_fmt',
+            index='test_fmt',
+            offset=30,
+            span=3,
+            bucket_interval=20 * 60,
+            interval=60,
+            features=FEATURES,
+            threshold=30,
+            max_evals=10,
+        ))
+
+        indexes, x, y = model._format_dataset(dataset)
+
+        self.assertEqual(indexes.tolist(), [3, 4, 5, 6, 7])
+        self.assertEqual(x.tolist(), [
+            [[0], [2], [4]],
+            [[2], [4], [6]],
+            [[4], [6], [8]],
+            [[6], [8], [10]],
+            [[8], [10], [12]],
+        ])
+        self.assertEqual(y.tolist(), [[6], [8], [10], [12], [14]])
 
         # Train
         model.train(self.source)

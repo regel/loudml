@@ -261,16 +261,58 @@ class TimesModel(Model):
         predicted = _keras_model.predict(X_test)
         return (best_params, score, y_test[:], predicted[:])
 
+    def _format_dataset(self, dataset):
+        """
+        Format dataset for time-series prediction
+
+        It is assumed that a value for a given bucket can be predicted
+        according the preceding ones. The number of preceding buckets used
+        for prediction is given by `self.span`.
+
+        input:
+        [v0, v1, v2, v3, ,v4 ..., vn]
+
+        output:
+        indexes = [3, 4, ..., n]
+        X = [
+            [v0, v1, v2], # span = 3
+            [v1, v2, v3],
+            [v2, v3, v4],
+            ...
+            [..., .., vn],
+        ]
+        y = [
+            v3,
+            v4,
+            ...
+            vn,
+        ]
+
+        Buckets with missing values are skipped.
+        """
+        data_x, data_y = [], []
+        indexes = []
+
+        for i in range(len(dataset) - self.span):
+            j = i + self.span
+            partX = dataset[i:j, :]
+            partY = dataset[j, :]
+
+            if not np.isnan(partX).any() and not np.isnan(partY).any():
+                data_x.append(partX)
+                data_y.append(partY)
+                indexes.append(j)
+
+        return np.array(indexes), np.array(data_x), np.array(data_y)
+
     def train_test_split(self, dataset, train_size=0.67):
         """
         Splits data to training and testing parts
         """
 
-        n_prev = int(self.span / self.bucket_interval)
         ntrn = round(len(dataset) * train_size)
-
-        i_sel, X_train, y_train = _load_data(dataset[0:ntrn], n_prev=n_prev)
-        j_sel, X_test, y_test = _load_data(dataset[ntrn:], n_prev=n_prev)
+        i_sel, X_train, y_train = self._format_dataset(dataset[0:ntrn])
+        j_sel, X_test, y_test = self._format_dataset(dataset[ntrn:])
         return (i_sel, X_train, y_train), (j_sel, X_test, y_test)
 
     def train(
@@ -330,7 +372,7 @@ class TimesModel(Model):
                 to_str,
             ))
 
-        logging.info("found %d time periods", i)
+        logging.info("found %d time periods", i + 1)
 
         best_params, _, _, _ = self._train_on_dataset(
             dataset,
