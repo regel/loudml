@@ -84,20 +84,81 @@ def _serialize_keras_model(keras_model):
 
     return model_b64.decode('utf-8'), weights_b64.decode('utf-8')
 
-def _load_data(dataset, n_prev=1):
-    data_x, data_y = [], []
-    indexes = []
+def _load_keras_model(model_b64, weights_b64, loss_fct, optimizer):
+    """
+    Load Keras model
+    """
+    import tempfile
+    import base64
+    import h5py
+    # Note: the import were moved here to avoid the speed penalty
+    # in code that imports the storage module
+    import tensorflow as tf
+    import tensorflow.contrib.keras.api.keras.models
+    from tensorflow.contrib.keras.api.keras.models import model_from_json
 
-    for i in range(len(dataset)-n_prev):
-        partX = dataset[i:(i+n_prev), :]
-        partY = dataset[(i+n_prev), :]
+    model_json = base64.b64decode(model_b64.encode('utf-8')).decode('utf-8')
+    keras_model = model_from_json(model_json)
 
-        if not np.isnan(partX).any() and not np.isnan(partY).any():
-            data_x.append(partX)
-            data_y.append(partY)
-            indexes.append(i)
+    fd, path = tempfile.mkstemp()
+    try:
+        with os.fdopen(fd, 'wb') as tmp:
+            tmp.write(base64.b64decode(weights_b64.encode('utf-8')))
+            tmp.close()
+    finally:
+        # load weights into new model
+        keras_model.load_weights(path)
+        os.remove(path)
 
-    return np.array(indexes), np.array(data_x), np.array(data_y)
+    keras_model.compile(loss=loss_fct, optimizer=optimizer)
+    graph = tf.get_default_graph()
+
+    return keras_model, graph
+
+class TimesPrediction:
+    """
+    Time-series prediction
+    """
+
+    def __init__(self, timestamps, observed, predicted):
+        self.timestamps = timestamps
+        self.observed = observed
+        self.predicted = predicted
+
+    def format_series(self):
+        """
+        Return prediction data as a time-series
+        """
+        return {
+            'timestamps': self.timestamps,
+            'observed': self.observed,
+            'predicted': self.predicted,
+        }
+
+    def _format_bucket(self, ts):
+        """
+        Format a bucket
+        """
+
+    def format_buckets(self):
+        """
+        Return prediction data as buckets
+        """
+        return [
+            {
+                'timestamp': ts,
+                'observed': {
+                    feature: self.observed[feature][i]
+                    for feature in self.predicted.keys()
+                },
+                'predicted': {
+                    feature: self.predicted[feature][i]
+                    for feature in self.predicted.keys()
+                }
+            }
+            for i, ts in enumerate(self.timestamps)
+        ]
+
 
 class TimesModel(Model):
     """
@@ -392,9 +453,100 @@ class TimesModel(Model):
             'maxs': _maxs.tolist(),
         }
 
+    def load(self):
+        """
+        Load current model
+        """
+        global _keras_model, _graph, _mins, _maxs
+
+        if not self.is_trained:
+            raise errors.ModelNotTrained()
+
+        _keras_model, _graph = _load_keras_model(
+            self.state['graph'],
+            self.state['weights'],
+            self.state['loss_fct'],
+            self.state['optimizer'],
+        )
+
+        _mins = np.array(self.state['mins'])
+        _maxs = np.array(self.state['maxs'])
+
     @property
     def is_trained(self):
         """
         Tells if model is trained
         """
         return self.state and 'weights' in self.state
+
+    def predict(
+        self,
+        datasource,
+        from_date,
+        to_date,
+    ):
+        global _keras_model
+
+        from_ts = make_ts(from_date)
+        to_ts = make_ts(to_date)
+
+        from_str = ts_to_str(from_ts)
+        to_str = ts_to_str(to_ts)
+
+        logging.info("predict(%s) range=[%s, %s]",
+                     self.name, from_str, to_str)
+
+        self.load()
+
+        # Extra data are required to predict first buckets
+        from_ts -= self.span * self.bucket_interval
+        from_str = ts_to_str(from_ts)
+
+        # Prepare dataset
+        nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
+        nb_features = len(self.features)
+        dataset = np.zeros((nb_buckets, nb_features), dtype=float)
+        X = []
+
+        # Fill dataset
+        logging.info("extracting data for range=[%s, %s]",
+                     from_ts, to_ts)
+        data = datasource.get_times_data(self, from_ts, to_ts)
+        for i, (_, val, ts) in enumerate(data):
+            dataset[i] = val
+            X.append(ts)
+
+        nb_buckets_found = i + 1
+        if nb_buckets_found < nb_buckets:
+            dataset = np.resize(dataset, (nb_buckets_found, nb_features))
+
+        logging.info("found %d time periods", nb_buckets_found)
+
+        rng = _maxs - _mins
+        dataset = 1.0 - (_maxs - dataset) / rng
+
+        j_sel, X_test, y_test = self._format_dataset(dataset)
+
+        logging.info("generating prediction")
+        Y_ = _keras_model.predict(X_test)
+
+        # min/max inverse operation
+        Z_ = _maxs - rng * (1.0 - Y_)
+        y_test = _maxs - rng * (1.0 - y_test)
+
+        y = {}
+        y_ = {}
+        for j, feature in enumerate(self.features):
+            name = feature['name']
+            out_y = np.array([None] * (len(X) - self.span))
+            out_y[j_sel - self.span] = y_test[:][:,j]
+            out_y_ = np.array([None] * (len(X) - self.span))
+            out_y_[j_sel - self.span] = Z_[:][:,j]
+            y[name] = out_y.tolist()
+            y_[name] = out_y_.tolist()
+
+        return TimesPrediction(
+            timestamps=X[self.span:],
+            observed=y,
+            predicted=y_,
+        )

@@ -52,14 +52,15 @@ class TestTimes(unittest.TestCase):
             name='test',
             index='test',
             offset=30,
-            span=20,
+            span=5,
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES,
             threshold=30,
             max_evals=10,
         ))
-        self.model.train(self.source)
+
+        self.model.train(self.source, self.from_date, self.to_date)
 
     def test_train(self):
         self._require_training()
@@ -100,3 +101,33 @@ class TestTimes(unittest.TestCase):
     def test_train(self):
         self._require_training()
         self.assertTrue(self.model.is_trained)
+
+    def test_predict(self):
+        to_date = self.to_date
+        from_date = to_date - 24 * 3600
+
+        self._require_training()
+        prediction = self.model.predict(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / self.model.bucket_interval
+        )
+
+        obs_avg = prediction.observed['avg_foo']
+        obs_count = prediction.observed['count_foo']
+        pred_avg = prediction.predicted['avg_foo']
+        pred_count = prediction.predicted['count_foo']
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(len(obs_avg), expected)
+        self.assertEqual(len(pred_avg), expected)
+        self.assertEqual(len(obs_count), expected)
+        self.assertEqual(len(pred_count), expected)
+
+        for i in range(expected):
+            self.assertAlmostEqual(
+                pred_avg[i], obs_avg[i], delta=2.0,
+            )
+            self.assertAlmostEqual(
+                pred_count[i], obs_count[i], delta=12,
+            )
