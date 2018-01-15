@@ -144,7 +144,8 @@ class TimesModel(Model):
         dataset = 1.0 - (_maxs - dataset) / rng
         nb_features = len(self.features)
 
-        logging.info("Preprocessing. mins: %s maxs: %s ranges: %s", _mins, _maxs, rng)
+        logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
+                     _mins, _maxs, rng)
 
         (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
             dataset,
@@ -206,8 +207,6 @@ class TimesModel(Model):
                 batch_size=batch_size,
                 verbose=_verbose,
             )
-            for j, score in enumerate(scores):
-                print("%s: %f" % (_keras_model.metrics_names[j], score))
 
             return scores
 
@@ -256,7 +255,6 @@ class TimesModel(Model):
 
         # Get the values of the optimal parameters
         best_params = space_eval(space, best)
-        print('best_params=', best_params)
         score = cross_val_model(HyperParameters(best_params))
         predicted = _keras_model.predict(X_test)
         return (best_params, score, y_test[:], predicted[:])

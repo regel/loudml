@@ -188,7 +188,7 @@ class TestInfluxLong(unittest.TestCase):
             name='test',
             database=self.db,
             offset=30,
-            span=24 * 3600,
+            span=5,
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES[0:1],

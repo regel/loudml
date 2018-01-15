@@ -16,7 +16,7 @@ FEATURES = [
         'name': 'avg_foo',
         'metric': 'avg',
         'field': 'foo',
-        'nan_is_zero': True,
+        'default': 0,
     },
 ]
 
