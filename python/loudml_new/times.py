@@ -111,6 +111,10 @@ class TimesModel(Model):
         self.span = settings.get('span')
         self.sequential = None
 
+    @property
+    def type(self):
+        return 'timeseries'
+
     def _compute_nb_buckets(self, from_date, to_date):
         """
         Compute the number of bucket between `from_date` and `to_date`

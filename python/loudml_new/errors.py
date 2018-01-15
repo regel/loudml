@@ -17,6 +17,9 @@ class ModelNotTrained(LoudMLException):
 class UnsupportedMetric(LoudMLException):
     """Unsupported metric"""
 
+class UnsupportedModel(LoudMLException):
+    """Unsupported model"""
+
 class NoData(LoudMLException):
     """No data"""
 

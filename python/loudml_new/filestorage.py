@@ -55,7 +55,7 @@ class FileStorage(Storage):
     def delete_model(self, name):
         os.unlink(self.model_path(name))
 
-    def get_model(self, name):
+    def get_model_data(self, name):
         model_path = self.model_path(name)
         try:
             with open(model_path) as model_file:
@@ -66,7 +66,7 @@ class FileStorage(Storage):
             raise errors.ModelNotFound()
 
     def set_threshold(self, name, threshold):
-        data = self.get_model(name)
+        data = self.get_model_data(name)
         data['settings']['threshold'] = threshold
         self._write_model(os.path.join(name), data)
 

@@ -37,6 +37,7 @@ class TestFileStorage(unittest.TestCase):
                 features=FEATURES,
                 threshold=30,
             ))
+            self.assertEqual(model.type, 'timeseries')
             storage.create_model(model)
 
             # Create
@@ -60,11 +61,11 @@ class TestFileStorage(unittest.TestCase):
             self.assertEqual(storage.list_models(), ["test-2"])
 
             with self.assertRaises(errors.ModelNotFound):
-                storage.get_model("test-1")
+                storage.get_model_data("test-1")
 
             # Rebuild
-            data = storage.get_model("test-2")
-            model = TimesModel(data['settings'], data.get('state'))
+            model = storage.load_model("test-2")
+            self.assertEqual(model.type, 'timeseries')
             self.assertEqual(model.name, 'test-2')
             self.assertEqual(model.index, 'test')
             self.assertEqual(model.offset, 56)

@@ -19,7 +19,7 @@ class MemStorage(Storage):
     def __init__(self):
         self.models = {}
 
-    def get_model(self, name):
+    def get_model_data(self, name):
         try:
             return self.models[name]
         except KeyError:
@@ -29,7 +29,7 @@ class MemStorage(Storage):
         return self.models.keys()
 
     def set_threshold(self, name, threshold):
-        data = self.get_model(name)
+        data = self.get_model_data(name)
         data['settings']['threshold'] = threshold
 
     def create_model(self, model):

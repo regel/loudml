@@ -39,6 +39,7 @@ setup(
         'hyperopt',
         'influxdb',
         'Pillow',
+        'requests>=2.17.0',
     ],
 
     extras_require={
@@ -59,6 +60,9 @@ setup(
             'loudml_times=loudml.times:main',
             'loudml_ivoip=loudml.ivoip:main',
             'loudml-faker=loudml.faker:main',
+        ],
+        'loudml.models': [
+            'timeseries=loudml_new.times:TimesModel',
         ],
     },
 )
