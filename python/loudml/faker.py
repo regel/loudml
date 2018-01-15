@@ -139,7 +139,7 @@ def main():
     if arg.shape == 'flat':
         ts_generator = FlatEventGenerator(avg=arg.avg)
     else:
-        ts_generator = SinEventGenerator(lo=0, hi=arg.avg * 2, sigma=1)
+        ts_generator = SinEventGenerator(avg=10, sigma=2)
 
     from_date = make_datetime(arg.from_date)
     to_date = make_datetime(arg.to_date)

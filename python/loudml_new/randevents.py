@@ -75,13 +75,11 @@ class SinEventGenerator(EventGenerator):
     Random event generator with sinusoid shape
     """
 
-    def __init__(self, lo=0, hi=10, sigma=1):
-        super().__init__(avg=(hi - lo) / 2, sigma=sigma)
-        self.lo = lo
-        self.hi = hi
+    def __init__(self, avg=5, sigma=1):
+        super().__init__(avg=avg, sigma=sigma)
 
     def variate(self, ts):
-        return max((self.hi - self.lo) * (1 + day_sin_variate(ts)) / 2 + self.lo, 0)
+        return max(self.avg * day_sin_variate(ts) + self.avg, 0)
 
 
 def example():

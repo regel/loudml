@@ -13,7 +13,7 @@ max_evals: 1
 
 features:
   - name: avg_foo
-    measurement: dummy
+    measurement: dummy_data
     metric: avg
     field: foo
     nan_is_zero: true

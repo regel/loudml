@@ -25,7 +25,7 @@ class TestTimes(unittest.TestCase):
         self.source = MemDataSource()
         self.storage = MemStorage()
 
-        generator = SinEventGenerator(lo=2, hi=4, sigma=0.05)
+        generator = SinEventGenerator(avg=3, sigma=0.05)
 
         self.to_date = datetime.datetime.now().timestamp()
         self.from_date = self.to_date - 3600 * 24 * 7
