@@ -124,13 +124,31 @@ class ListModelsCommand(Command):
     List models
     """
 
+    def add_args(self, parser):
+        parser.add_argument(
+            '-i', '--info',
+            help="Display model information",
+            action='store_true',
+        )
+
     def exec(self, args):
         config = load_config(args)
         storage = FileStorage(config['storage']['path'])
 
-        for model in storage.list_models():
-            print(model)
+        if args.info:
+            print("MODEL                            type             trained")
+            print("=========================================================")
+            for name in storage.list_models():
+                model = storage.load_model(name)
 
+                print("{:32} {:16} {:3}".format(
+                    name,
+                    model.type,
+                    'yes' if model.is_trained else 'no',
+                ))
+        else:
+            for model in storage.list_models():
+                print(model)
 
 class DeleteModelCommand(Command):
     """
