@@ -5,6 +5,9 @@ LoudML errors
 class LoudMLException(Exception):
     """LoudML exception"""
 
+    def __init__(self, msg=None):
+        super().__init__(msg or self.__doc__)
+
 class ModelExists(LoudMLException):
     """Model exists"""
 
