@@ -14,6 +14,9 @@ class ModelNotFound(LoudMLException):
 class ModelNotTrained(LoudMLException):
     """Model not trained"""
 
+class UnsupportedDataSource(LoudMLException):
+    """Unsupported data source"""
+
 class UnsupportedMetric(LoudMLException):
     """Unsupported metric"""
 

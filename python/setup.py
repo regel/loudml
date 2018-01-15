@@ -60,6 +60,9 @@ setup(
             'loudml_times=loudml.times:main',
             'loudml_ivoip=loudml.ivoip:main',
             'loudml-faker=loudml.faker:main',
+        'loudml.datasources': [
+            'elasticsearch=loudml_new.elastic:ElasticsearchDataSource',
+            'influxdb=loudml_new.influx:InfluxDataSource',
         ],
         'loudml.models': [
             'timeseries=loudml_new.times:TimesModel',

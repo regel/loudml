@@ -2,6 +2,7 @@
 Base interface for LoudML data source
 """
 import datetime
+import pkg_resources
 
 from abc import (
     ABCMeta,
@@ -83,3 +84,13 @@ class DataSource(metaclass=ABCMeta):
         """
         Insert time-indexed entry
         """
+
+def load_datasource(settings):
+    """
+    Load datasource
+    """
+    src_type = settings['type']
+    for ep in pkg_resources.iter_entry_points('loudml.datasources', src_type):
+        if ep.name == src_type:
+            return ep.load()(settings)
+    raise errors.UnsupportedDataSource(src_type)
