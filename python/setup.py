@@ -30,7 +30,6 @@ setup(
     test_suite='nose.collector',
 
     install_requires=[
-        'uuid',
         'dateutils',
         'flask',
         'elasticsearch',
