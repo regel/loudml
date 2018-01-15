@@ -105,6 +105,13 @@ class MemDataSource(DataSource):
 
         return avg
 
+    @staticmethod
+    def _compute_bucket_count(bucket, field):
+        """
+        Compute metric count
+        """
+        return sum(field in entry.data for entry in bucket.data)
+
     def get_times_buckets(
         self,
         index,
@@ -146,6 +153,8 @@ class MemDataSource(DataSource):
 
         if metric == 'avg':
             agg_val = cls._compute_bucket_avg(bucket, field)
+        elif metric == 'count':
+            agg_val = cls._compute_bucket_count(bucket, field)
         else:
             logging.error("unknown metric: %s", metric)
             raise errors.UnsupportedMetric()
