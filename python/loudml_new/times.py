@@ -159,6 +159,18 @@ class TimesPrediction:
             for i, ts in enumerate(self.timestamps)
         ]
 
+    def plot(self, feature):
+        """
+        Plot prediction
+        """
+
+        import matplotlib.pylab as plt
+
+        plt.rcParams["figure.figsize"] = (17, 9)
+        plt.plot(self.observed[feature],"--")
+        plt.plot(self.predicted[feature],":")
+        plt.show()
+
 
 class TimesModel(Model):
     """
