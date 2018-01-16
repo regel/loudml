@@ -3,6 +3,7 @@ LoudML command line tool
 """
 
 import argparse
+import json
 import logging
 import pkg_resources
 import os
@@ -14,6 +15,7 @@ import loudml_new.model
 
 from loudml_new.errors import (
     LoudMLException,
+    ModelNotTrained,
 )
 from loudml_new.filestorage import (
     FileStorage,
@@ -224,6 +226,95 @@ class TrainCommand(Command):
                 )
             model.train(source, args.from_date, args.to_date)
             storage.save_model(model)
+
+
+class PredictCommand(Command):
+    """
+    Ask model for a prediction
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+        parser.add_argument(
+            'datasource',
+            help="Data source",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--from',
+            help="From date",
+            type=str,
+            dest='from_date',
+        )
+        parser.add_argument(
+            '-t', '--to',
+            help="To date",
+            type=str,
+            dest='to_date',
+        )
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument(
+            '-b', '--buckets',
+            action='store_true',
+            help="Format as buckets instead of time-series",
+        )
+        group.add_argument(
+            '-s', '--save',
+            action='store_true',
+            help="Save prediction into the data source",
+        )
+
+    def _dump(self, prediction, buckets=True):
+        """
+        Dump prediction to stdout
+        """
+        if buckets:
+            data = prediction.format_buckets()
+        else:
+            data = prediction.format_series()
+        print(json.dumps(data, indent=4))
+
+    def _save(self, prediction, datasource, model):
+        """
+        Save prediction to a data source
+        """
+
+        for bucket in prediction.format_buckets():
+            datasource.insert_times_data(
+                measurement='prediction_{}'.format(model.name), # Add id? timestamp?
+                ts=bucket['timestamp'],
+                data=bucket['predicted'],
+            )
+        datasource.commit()
+
+    def exec(self, args):
+        config = load_config(args)
+        storage = FileStorage(config['storage']['path'])
+        source = get_datasource(config, args.datasource)
+        model = storage.load_model(args.model_name)
+
+        if not model.is_trained:
+            raise ModelNotTrained()
+
+        if model.type == 'timeseries':
+            if not args.from_date:
+                raise LoudMLException("'from' argument is required for time-series")
+            if not args.to_date:
+                raise LoudMLException("'to' argument is required for time-series")
+
+            prediction = model.predict(
+                source,
+                args.from_date,
+                args.to_date,
+            )
+            if args.save:
+                self._save(prediction, source, model)
+            else:
+                self._dump(prediction, args.buckets)
 
 
 def main():

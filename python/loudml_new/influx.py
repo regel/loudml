@@ -129,6 +129,8 @@ class InfluxDataSource(DataSource):
         Insert data
         """
 
+        ts = make_ts(ts)
+
         entry = {
             'measurement': measurement,
             'time': ts_to_ns(ts),
