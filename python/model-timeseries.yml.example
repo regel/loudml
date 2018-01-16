@@ -1,0 +1,18 @@
+name: mymodel1
+type: timeseries
+
+index: dummy-idx
+database: dummy-db
+
+offset: 30
+span: 5
+bucket_interval: 20m
+interval: 60
+threshold: 30
+max_evals: 1
+
+features:
+  - name: avg_foo
+    metric: avg
+    field: foo
+    nan_is_zero: true

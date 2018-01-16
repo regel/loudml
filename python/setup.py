@@ -39,6 +39,7 @@ setup(
         'hyperopt',
         'influxdb',
         'Pillow',
+        'PyYAML',
         'requests>=2.17.0',
     ],
 
@@ -60,6 +61,11 @@ setup(
             'loudml_times=loudml.times:main',
             'loudml_ivoip=loudml.ivoip:main',
             'loudml-faker=loudml.faker:main',
+            'loudml=loudml.cli:main',
+        ],
+        'loudml.commands': [
+            'create-model=loudml.cli:CreateModelCommand',
+        ],
         'loudml.datasources': [
             'elasticsearch=loudml_new.elastic:ElasticsearchDataSource',
             'influxdb=loudml_new.influx:InfluxDataSource',

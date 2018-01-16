@@ -1,0 +1,11 @@
+datasources:
+  - name: influx
+    type: influxdb
+    addr: localhost
+
+  - name: elastic
+    type: elasticsearch
+    addr: localhost:9200
+
+storage:
+  path: /var/lib/loudml
