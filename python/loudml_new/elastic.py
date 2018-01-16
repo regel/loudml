@@ -182,29 +182,28 @@ class ElasticsearchDataSource(DataSource):
 
         aggs = {}
         for feature in model.features:
-            if feature['metric'] == 'std_deviation' \
-                or feature['metric'] == 'variance':
+            if feature.metric in ['std_deviation', 'variance']:
                 sub_agg = 'extended_stats'
             else:
                 sub_agg = 'stats'
 
-            if 'script' in feature:
+            if feature.script:
                 agg = {
                     sub_agg: {
                         "script": {
                             "lang": "painless",
-                            "inline": feature['script'],
+                            "inline": feature.script,
                         }
                     }
                 }
-            elif 'field' in feature:
+            elif feature.field:
                 agg = {
                     sub_agg: {
-                        "field": feature['field'],
+                        "field": feature.field,
                     }
                 }
 
-            aggs[feature['name']] = agg
+            aggs[feature.name] = agg
 
         for x in sorted(aggs):
             body['aggs']['histogram']['aggs'][x] = aggs[x]
@@ -216,21 +215,15 @@ class ElasticsearchDataSource(DataSource):
         """
         Get aggregation value for the bucket returned by Elasticsearch
         """
-        name = feature['name']
-        metric = feature['metric']
-        agg_val = bucket[name][metric]
+        agg_val = bucket[feature.name].get(feature.metric)
 
         if agg_val is None:
-            logging.info(
-                "missing data: field '%s', metric: '%s', bucket: %s",
-                feature['field'], metric, bucket['key'],
-            )
-            if feature.get('nan_is_zero', False):
-                # Write zeros to encode missing data
-                agg_val = 0
-            else:
-                # Use NaN to encode missing data
-                agg_val = np.nan
+            if feature.default is np.nan:
+                logging.info(
+                    "missing data: field '%s', metric: '%s', bucket: %s",
+                    feature.field, feature.metric, bucket['key'],
+                )
+            agg_val = feature.default
 
         return agg_val
 

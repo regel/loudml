@@ -537,13 +537,12 @@ class TimesModel(Model):
         y = {}
         y_ = {}
         for j, feature in enumerate(self.features):
-            name = feature['name']
             out_y = np.array([None] * (len(X) - self.span))
             out_y[j_sel - self.span] = y_test[:][:,j]
             out_y_ = np.array([None] * (len(X) - self.span))
             out_y_[j_sel - self.span] = Z_[:][:,j]
-            y[name] = out_y.tolist()
-            y_[name] = out_y_.tolist()
+            y[feature.name] = out_y.tolist()
+            y_[feature.name] = out_y_.tolist()
 
         return TimesPrediction(
             timestamps=X[self.span:],

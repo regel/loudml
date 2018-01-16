@@ -17,13 +17,13 @@ FEATURES = [
         'name': 'count_foo',
         'metric': 'count',
         'field': 'foo',
-        'nan_is_zero': True,
+        'default': 0,
     },
     {
         'name': 'avg_foo',
         'metric': 'avg',
         'field': 'foo',
-        'nan_is_zero': False,
+        'default': 10,
     },
 ]
 

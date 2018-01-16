@@ -36,16 +36,19 @@ def _build_agg(feature):
     Build requested aggregation
     """
 
-    metric = feature['metric']
+    metric = feature.metric
+    field = feature.field
 
     if metric == 'avg':
-        agg = "MEAN({})".format(feature['field'])
+        agg = "MEAN({})".format(field)
     elif metric == 'count':
-        agg = "COUNT({})".format(feature['field'])
+        agg = "COUNT({})".format(field)
     else:
-        raise errors.NotImplemented("unsupported aggregation '{}'".format(metric))
+        raise errors.NotImplemented(
+            "unsupported aggregation '{}'".format(metric),
+        )
 
-    return "{} as {}".format(agg, feature['name'])
+    return "{} as {}".format(agg, feature.name)
 
 def _build_time_predicates(from_date=None, to_date=None):
     """
@@ -73,7 +76,7 @@ def _build_queries(model, from_date=None, to_date=None):
     for feature in model.features:
         yield "select {} from {}{} group by time({}s);".format(
             _build_agg(feature),
-            feature['measurement'],
+            feature.measurement,
             where,
             model.bucket_interval,
         )
@@ -167,10 +170,9 @@ class InfluxDataSource(DataSource):
         # Merge results
         for i, result in enumerate(results):
             feature = features[i]
-            name = feature['name']
 
             for j, point in enumerate(result.get_points()):
-                agg_val = point.get(name)
+                agg_val = point.get(feature.name)
                 timeval = point['time']
 
                 if j < len(buckets):
@@ -183,7 +185,7 @@ class InfluxDataSource(DataSource):
                     }
                     buckets.append(bucket)
 
-                bucket['values'][name] = agg_val
+                bucket['values'][feature.name] = agg_val
 
         # XXX Note that the buckets of InfluxDB results are aligned on
         # modulo(bucket_interval)
@@ -196,9 +198,17 @@ class InfluxDataSource(DataSource):
             ts = str_to_ts(timeval)
 
             for i, feature in enumerate(features):
-                default = 0 if feature.get('nan_is_zero', False) else np.nan
-                X[i] = bucket['values'][feature['name']] or default
+                agg_val = bucket['values'].get(feature.name)
 
+                if agg_val is None:
+                    if feature.default is np.nan:
+                        logging.info(
+                            "missing data: field '%s', metric '%s', bucket: %s",
+                            feature.field, feature.metric, timeval,
+                        )
+                    agg_val = feature.default
+
+                X[i] = agg_val
 
             if t0 is None:
                 t0 = ts

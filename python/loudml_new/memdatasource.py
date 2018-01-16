@@ -147,9 +147,8 @@ class MemDataSource(DataSource):
         """
         Compute aggregation value
         """
-        metric = feature['metric']
-        field = feature['field']
-        nan_is_zero = feature.get('nan_is_zero', False)
+        metric = feature.metric
+        field = feature.field
 
         if metric == 'avg':
             agg_val = cls._compute_bucket_avg(bucket, field)
@@ -160,11 +159,12 @@ class MemDataSource(DataSource):
             raise errors.UnsupportedMetric()
 
         if agg_val is None:
-            logging.info(
-                "missing data: field '%s', metric '%s', bucket '%s'",
-                field, metric, bucket.format_key(),
-            )
-            agg_val = 0 if nan_is_zero else np.nan
+            if feature.default is np.nan:
+                logging.info(
+                    "missing data: field '%s', metric '%s', bucket '%s'",
+                    field, metric, bucket.format_key(),
+                )
+            agg_val = feature.default
 
         return agg_val
 

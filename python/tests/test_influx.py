@@ -27,14 +27,14 @@ FEATURES = [
         'metric': 'avg',
         'measurement': 'measure1',
         'field': 'foo',
-        'nan_is_zero': True,
+        'default': 0,
     },
     {
         'name': 'count_bar',
         'metric': 'count',
         'measurement': 'measure2',
         'field': 'bar',
-        'nan_is_zero': True,
+        'default': 0,
     },
 ]
 

@@ -15,5 +15,8 @@ features:
   - name: avg_foo
     measurement: dummy_data
     metric: avg
+  - name: count_foo
+    measurement: dummy_data
+    metric: count
     field: foo
-    nan_is_zero: true
+    default: 0

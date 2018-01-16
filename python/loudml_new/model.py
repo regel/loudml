@@ -5,9 +5,35 @@ LoudML model
 import copy
 import pkg_resources
 
+import numpy as np
+
 from . import (
     errors,
 )
+
+class Feature:
+    """
+    Model feature
+    """
+
+    def __init__(
+        self,
+        name,
+        metric,
+        measurement=None,
+        field=None,
+        default=None,
+        script=None,
+    ):
+        # TODO use voluptuous to check field validity
+
+        self.name = name
+        self.metric = metric
+        self.measurement = measurement
+        self.field = field
+        self.default = np.nan if default is None else default
+        self.script = script
+
 
 class Model:
     """
@@ -19,6 +45,8 @@ class Model:
         name -- model settings
         """
 
+        # TODO use voluptuous to check field validity
+
         settings = copy.deepcopy(settings)
         settings['type'] = 'timeseries'
         self._settings = settings
@@ -29,15 +57,11 @@ class Model:
         self.measurement = settings.get('measurement')
         self.routing = settings.get('routing')
         self.state = state
+        self.features = [Feature(**feature) for feature in settings['features']]
 
     @property
     def type(self):
         return self.settings['type']
-
-    @property
-    def features(self):
-        """Model features"""
-        return self.settings['features']
 
     @property
     def settings(self):
