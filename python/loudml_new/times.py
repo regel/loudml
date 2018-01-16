@@ -421,11 +421,12 @@ class TimesModel(Model):
 
         # Fill dataset
         data = datasource.get_times_data(self, from_ts, to_ts)
-        i = 0
+
+        i = None
         for i, (_, val, _) in enumerate(data):
             dataset[i] = val
 
-        if i == 0:
+        if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
                 from_str,
                 to_str,

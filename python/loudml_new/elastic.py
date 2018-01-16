@@ -279,10 +279,8 @@ class ElasticsearchDataSource(DataSource):
             timestamp = int(bucket['key'])
             timeval = bucket['key_as_string']
 
-            i = 0
-            for feature in features:
+            for i, feature in enumerate(features):
                 X[i] = self._get_agg_val(bucket, feature)
-                i += 1
 
             # TODO: last bucket may contain incomplete data when to_date == now
             """

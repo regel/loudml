@@ -191,10 +191,8 @@ class MemDataSource(DataSource):
             timestamp = bucket.key
             timeval = ts_to_str(timestamp)
 
-            i = 0
-            for feature in features:
+            for i, feature in enumerate(features):
                 X[i] = self._compute_agg_val(bucket, feature)
-                i += 1
 
             if t0 is None:
                 t0 = timestamp
