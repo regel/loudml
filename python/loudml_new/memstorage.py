@@ -19,6 +19,9 @@ class MemStorage(Storage):
     def __init__(self):
         self.models = {}
 
+    def model_exists(self, name):
+        return name in self.models
+
     def get_model_data(self, name):
         try:
             return self.models[name]

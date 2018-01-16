@@ -39,6 +39,7 @@ class TestFileStorage(unittest.TestCase):
             ))
             self.assertEqual(model.type, 'timeseries')
             storage.create_model(model)
+            self.assertTrue(storage.model_exists(model.name))
 
             # Create
             model = TimesModel(dict(
@@ -58,6 +59,7 @@ class TestFileStorage(unittest.TestCase):
 
             # Delete
             storage.delete_model("test-1")
+            self.assertFalse(storage.model_exists("test-1"))
             self.assertEqual(storage.list_models(), ["test-2"])
 
             with self.assertRaises(errors.ModelNotFound):

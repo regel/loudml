@@ -71,6 +71,11 @@ class CreateModelCommand(Command):
             help="Model file",
             type=str,
         )
+        parser.add_argument(
+            '-f', '--force',
+            help="Overwrite if present (warning: training data will be lost!)",
+            action='store_true',
+        )
 
     def _load_model_json(self, path):
         """
@@ -116,6 +121,10 @@ class CreateModelCommand(Command):
         model = loudml_new.model.load_model(settings=model_settings)
 
         storage = FileStorage(config['storage']['path'])
+
+        if args.force and storage.model_exists(model.name):
+            storage.delete_model(model.name)
+
         storage.create_model(model)
 
 
@@ -215,7 +224,6 @@ class TrainCommand(Command):
                 )
             model.train(source, args.from_date, args.to_date)
             storage.save_model(model)
-
 
 
 def main():

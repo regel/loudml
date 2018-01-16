@@ -58,6 +58,9 @@ class FileStorage(Storage):
         except FileNotFoundError:
             return
 
+    def model_exists(self, name):
+        return os.path.exists(self.model_path(name))
+
     def get_model_data(self, name):
         model_path = self.model_path(name)
         try:

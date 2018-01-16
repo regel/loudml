@@ -17,6 +17,10 @@ class Storage(metaclass=ABCMeta):
     """
 
     @abstractmethod
+    def model_exists(self, name):
+        """Tell if a model exists"""
+
+    @abstractmethod
     def get_model_data(self, name):
         """Get model"""
 
