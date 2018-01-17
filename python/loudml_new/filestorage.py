@@ -24,7 +24,10 @@ class FileStorage(Storage):
         self.path = path
         self.model_dir = os.path.join(path, 'models')
 
-        os.makedirs(self.model_dir, exist_ok=True)
+        try:
+            os.makedirs(self.model_dir, exist_ok=True)
+        except OSError as exn:
+            raise errors.LoudMLException(str(exn))
 
     def model_path(self, name):
         """
