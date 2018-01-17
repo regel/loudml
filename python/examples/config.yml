@@ -1,3 +1,4 @@
+---
 datasources:
   - name: influx
     type: influxdb
@@ -11,3 +12,6 @@ datasources:
 
 storage:
   path: /var/lib/loudml
+
+server:
+  listen: localhost:8077

@@ -32,6 +32,7 @@ setup(
     install_requires=[
         'dateutils',
         'flask',
+        'flask_restful',
         'elasticsearch',
         'tensorflow',
         'h5py',
@@ -56,7 +57,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'loudmld=loudml.server:main',
+            'loudmld_old=loudml.server:main',
+            'loudmld=loudml_new.server:main',
             'loudml_times=loudml.times:main',
             'loudml_ivoip=loudml.ivoip:main',
             'loudml-faker=loudml.faker:main',
