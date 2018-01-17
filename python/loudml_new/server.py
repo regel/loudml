@@ -100,20 +100,17 @@ api.add_resource(ModelResource, "/models/<model_name>")
 
 class DataSourcesResource(Resource):
     def get(self):
-        datasources = [
-            datasource['name']
-            for datasource in g_config.get('datasources', [])
-        ]
-        return jsonify(datasources)
+        return jsonify(list(config.datasources.values()))
 
 
 class DataSourceResource(Resource):
     def get(self, datasource_name):
-        for datasource in g_config.get('datasources', []):
-            if datasource['name'] == datasource_name:
-                return jsonify(datasource)
+        try:
+            datasource = g_config.get_datasource(datasource_name)
+        except errors.DataSourceNotFound as exn:
+            return str(exn), 404
 
-        return "data source not found", 404
+        return jsonify(datasource)
 
 
 api.add_resource(DataSourcesResource, "/datasources")
@@ -147,10 +144,10 @@ def main():
 
     try:
         g_config = loudml_new.config.load_config(args.config)
-        g_storage = FileStorage(g_config['storage']['path'])
+        g_storage = FileStorage(g_config.storage['path'])
     except errors.LoudMLException as exn:
         logging.error(exn)
         sys.exit(1)
 
-    host, port = g_config['server']['listen'].split(':')
+    host, port = g_config.server['listen'].split(':')
     app.run(host=host, port=int(port))

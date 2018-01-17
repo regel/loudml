@@ -24,11 +24,9 @@ from loudml_new.filestorage import (
 
 def get_datasource(config, src_name):
     """
-    Get data source by name
+    Get and load data source by name
     """
-    settings = config['datasources'].get(src_name)
-    if settings is None:
-        raise LoudMLException("unknown datasource '{}'".format(src_name))
+    settings = config.get_datasource(src_name)
     return loudml_new.datasource.load_datasource(settings)
 
 class Command:
@@ -117,7 +115,7 @@ class CreateModelCommand(Command):
         model_settings = self.load_model_file(args.model_file)
         model = loudml_new.model.load_model(settings=model_settings)
 
-        storage = FileStorage(self.config['storage']['path'])
+        storage = FileStorage(self.config.storage['path'])
 
         if args.force and storage.model_exists(model.name):
             storage.delete_model(model.name)
@@ -138,7 +136,7 @@ class ListModelsCommand(Command):
         )
 
     def exec(self, args):
-        storage = FileStorage(self.config['storage']['path'])
+        storage = FileStorage(self.config.storage['path'])
 
         if args.info:
             print("MODEL                            type             trained")
@@ -168,7 +166,7 @@ class DeleteModelCommand(Command):
         )
 
     def exec(self, args):
-        storage = FileStorage(self.config['storage']['path'])
+        storage = FileStorage(self.config.storage['path'])
         storage.delete_model(args.model_name)
 
 
@@ -203,7 +201,7 @@ class TrainCommand(Command):
         )
 
     def exec(self, args):
-        storage = FileStorage(self.config['storage']['path'])
+        storage = FileStorage(self.config.storage['path'])
         source = get_datasource(self.config, args.datasource)
         model = storage.load_model(args.model_name)
 
@@ -284,7 +282,7 @@ class PredictCommand(Command):
         datasource.commit()
 
     def exec(self, args):
-        storage = FileStorage(self.config['storage']['path'])
+        storage = FileStorage(self.config.storage['path'])
         source = get_datasource(self.config, args.datasource)
         model = storage.load_model(args.model_name)
 

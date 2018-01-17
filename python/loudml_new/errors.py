@@ -8,6 +8,9 @@ class LoudMLException(Exception):
     def __init__(self, msg=None):
         super().__init__(msg or self.__doc__)
 
+class DataSourceNotFound(LoudMLException):
+    """Data source not found"""
+
 class ModelExists(LoudMLException):
     """Model exists"""
 
