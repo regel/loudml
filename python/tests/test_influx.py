@@ -66,7 +66,6 @@ class TestInfluxQuick(unittest.TestCase):
 
         self.model = TimesModel(dict(
             name="test-model",
-            database=self.db,
             offset=30,
             span=300,
             bucket_interval=3,
@@ -186,7 +185,6 @@ class TestInfluxLong(unittest.TestCase):
     def test_train(self):
         model = TimesModel(dict(
             name='test',
-            database=self.db,
             offset=30,
             span=5,
             bucket_interval=20 * 60,

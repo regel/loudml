@@ -1,6 +1,6 @@
 {
   "bucket_interval": "20m",
-  "database": "dummy-db",
+  "default_datasource": "my-datasource",
   "features": [
     {
       "measurement": "dummy_data",
@@ -15,10 +15,9 @@
       "name": "count_foo"
     }
   ],
-  "index": "dummy-idx",
   "interval": 60,
   "max_evals": 1,
-  "name": "mymodel1",
+  "name": "my-timeseries-model",
   "offset": 30,
   "span": 5,
   "threshold": 30,

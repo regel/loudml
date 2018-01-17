@@ -78,19 +78,22 @@ class ElasticsearchDataSource(DataSource):
 
         return self._es
 
-    def create_index(self, index, template):
+    def create_index(self, template):
         """
         Create index and put template
         """
 
-        self.es.indices.create(index=index)
-        self.es.indices.put_template(name='%s-template' % index, body=template)
+        self.es.indices.create(index=self.index)
+        self.es.indices.put_template(
+            name='{}-template'.format(self.index),
+            body=template,
+        )
 
-    def delete_index(self, name):
+    def delete_index(self):
         """
         Delete index
         """
-        self.es.indices.delete(index=name, ignore=404)
+        self.es.indices.delete(index=self.index, ignore=404)
 
     def send_bulk(self, requests):
         """
@@ -111,13 +114,13 @@ class ElasticsearchDataSource(DataSource):
         ) as exn:
             raise errors.TransportError(str(exn))
 
-    def insert_data(self, index, data, doc_type='generic', doc_id=None):
+    def insert_data(self, data, doc_type='generic', doc_id=None):
         """
         Insert entry into the index
         """
 
         req = {
-            '_index': index,
+            '_index': self.index,
             '_type': doc_type,
             '_source': data,
         }
@@ -127,12 +130,12 @@ class ElasticsearchDataSource(DataSource):
 
         self.enqueue(req)
 
-    def insert_times_data(self, ts, data, index):
+    def insert_times_data(self, ts, data, doc_type='generic', doc_id=None):
         """
         Insert time-indexed entry
         """
         data['timestamp'] = int(ts * 1000)
-        self.insert_data(index, data)
+        self.insert_data(data, doc_type, doc_id)
 
     def _get_es_agg(
             self,
@@ -248,9 +251,9 @@ class ElasticsearchDataSource(DataSource):
 
         try:
             es_res = self.es.search(
-                index=model.index,
+                index=self.index,
                 size=0,
-               body=body,
+                body=body,
                 params=es_params,
             )
         except (

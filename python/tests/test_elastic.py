@@ -55,13 +55,13 @@ class TestElasticDataSource(unittest.TestCase):
         logging.info("creating index %s", self.index)
         self.source = ElasticsearchDataSource({
             'addr': os.environ['ELASTICSEARCH_ADDR'],
+            'index': self.index,
         })
-        self.source.delete_index(self.index)
-        self.source.create_index(self.index, TEMPLATE)
+        self.source.delete_index()
+        self.source.create_index(TEMPLATE)
 
         self.model = TimesModel(dict(
             name='test',
-            index=self.index,
             offset=30,
             span=300,
             bucket_interval=bucket_interval,
@@ -80,7 +80,6 @@ class TestElasticDataSource(unittest.TestCase):
         ]
         for entry in data:
             self.source.insert_times_data(
-                index=self.index,
                 ts=entry[1],
                 data={
                     'foo': entry[0],
@@ -92,7 +91,7 @@ class TestElasticDataSource(unittest.TestCase):
         time.sleep(10)
 
     def tearDown(self):
-        self.source.delete_index(self.index)
+        self.source.delete_index()
 
     def test_get_times_data(self):
         res = self.source.get_times_data(

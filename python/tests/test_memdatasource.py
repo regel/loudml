@@ -26,7 +26,6 @@ class TestMemDataSource(unittest.TestCase):
 
         self.model = TimesModel(dict(
             name='test',
-            index='test',
             offset=30,
             span=300,
             bucket_interval=3,
@@ -43,14 +42,14 @@ class TestMemDataSource(unittest.TestCase):
             (5, 10), # excluded
         ]
         for entry in data:
-            self.source.insert_times_data('test', {
+            self.source.insert_times_data({
                 'foo': entry[0],
                 'timestamp': entry[1],
             })
         self.source.commit()
 
     def test_get_times_buckets(self):
-        res = self.source.get_times_buckets('test',
+        res = self.source.get_times_buckets(
             from_date=1,
             to_date=9,
             bucket_interval=3,

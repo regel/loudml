@@ -39,7 +39,7 @@ class TestTimes(unittest.TestCase):
         self.from_date = self.to_date - 3600 * 24 * 7
 
         for ts in generator.generate_ts(self.from_date, self.to_date, step=600):
-            self.source.insert_times_data('test', {
+            self.source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
             })
@@ -50,7 +50,6 @@ class TestTimes(unittest.TestCase):
 
         self.model = TimesModel(dict(
             name='test',
-            index='test',
             offset=30,
             span=5,
             bucket_interval=20 * 60,
@@ -76,7 +75,6 @@ class TestTimes(unittest.TestCase):
 
         model = TimesModel(dict(
             name='test_fmt',
-            index='test_fmt',
             offset=30,
             span=3,
             bucket_interval=20 * 60,

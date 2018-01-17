@@ -49,11 +49,10 @@ class Model:
 
         settings = copy.deepcopy(settings)
         settings['type'] = 'timeseries'
+
         self._settings = settings
         self.name = settings.get('name')
         self._settings = settings
-        self.index = settings.get('index')
-        self.db = settings.get('db')
         self.measurement = settings.get('measurement')
         self.routing = settings.get('routing')
         self.state = state
@@ -62,6 +61,10 @@ class Model:
     @property
     def type(self):
         return self.settings['type']
+
+    @property
+    def default_datasource(self):
+        return self._settings.get('default_datasource')
 
     @property
     def settings(self):

@@ -67,25 +67,19 @@ class MemDataSource(DataSource):
 
     def __init__(self):
         super().__init__({})
-        self.data = {}
+        self.data = []
 
-    def _ensure_index_exists(self, index):
-        if index not in self.data:
-            self.data[index] = []
-
-    def insert_data(self, index, data):
+    def insert_data(self, data):
         """
-        Insert entry into the index
+        Insert entry
         """
-        self._ensure_index_exists(index)
-        self.data[index].append(data)
+        self.data.append(data)
 
-    def insert_times_data(self, index, data):
+    def insert_times_data(self, data):
         """
         Insert time-indexed entry
         """
-        self._ensure_index_exists(index)
-        bisect.insort(self.data[index], OrderedEntry(data['timestamp'], data))
+        bisect.insort(self.data, OrderedEntry(data['timestamp'], data))
 
     def commit(self):
         pass
@@ -114,7 +108,6 @@ class MemDataSource(DataSource):
 
     def get_times_buckets(
         self,
-        index,
         from_date=None,
         to_date=None,
         bucket_interval=3600.0,
@@ -123,8 +116,7 @@ class MemDataSource(DataSource):
         Get buckets of time-series between `from_date` and `to_date`
         """
 
-        data = self.data[index]
-        lo = bisect.bisect_left(data, OrderedEntry(from_date)) if from_date else 0
+        lo = bisect.bisect_left(self.data, OrderedEntry(from_date)) if from_date else 0
         bucket_start = from_date
 
         i = lo
@@ -132,7 +124,7 @@ class MemDataSource(DataSource):
             bucket_end = bucket_start + bucket_interval
             bucket = TimeBucket(bucket_start)
 
-            for entry in data[lo:]:
+            for entry in self.data[lo:]:
                 if entry.value >= bucket_end:
                     break
                 bucket.data.append(entry)
@@ -178,7 +170,6 @@ class MemDataSource(DataSource):
         nb_features = len(features)
 
         buckets = self.get_times_buckets(
-            model.index,
             from_date,
             to_date,
             model.bucket_interval,
@@ -199,18 +190,16 @@ class MemDataSource(DataSource):
 
             yield (timestamp - t0), X, timeval
 
-    def get_times_start(self, index):
+    def get_times_start(sel):
         """Get timestamp of first entry"""
 
-        data = self.data.get(index)
-        if not data:
+        if not self.data:
             raise errors.NoData()
-        return data[0].value
+        return self.data[0].value
 
-    def get_times_end(self, index):
+    def get_times_end(self):
         """Get timestamp of last entry"""
 
-        data = self.data.get(index)
-        if not data:
+        if not self.data:
             raise errors.NoData()
-        return data[-1].value
+        return self.data[-1].value

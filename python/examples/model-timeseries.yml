@@ -1,8 +1,7 @@
-name: mymodel1
+name: my-timeseries-model
 type: timeseries
 
-index: dummy-idx
-database: dummy-db
+default_datasource: my-datasource
 
 offset: 30
 span: 5
