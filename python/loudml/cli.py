@@ -7,7 +7,6 @@ import json
 import logging
 import pkg_resources
 import os
-import sys
 import yaml
 
 import loudml_new.config
@@ -306,7 +305,7 @@ class PredictCommand(Command):
                 self._dump(prediction, args.buckets)
 
 
-def main():
+def main(argv=None):
     """
     LoudML command-line tool
     """
@@ -333,11 +332,12 @@ def main():
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         args.set_config(args.config)
         args.exec(args)
+        return 0
     except LoudMLException as exn:
         logging.error(exn)
-        sys.exit(1)
+    return 1
