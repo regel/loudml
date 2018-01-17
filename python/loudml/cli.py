@@ -10,6 +10,7 @@ import os
 import sys
 import yaml
 
+import loudml_new.config
 import loudml_new.datasource
 import loudml_new.model
 
@@ -21,26 +22,6 @@ from loudml_new.filestorage import (
     FileStorage,
 )
 
-def load_config(args):
-    """
-    Load configuration file
-    """
-    try:
-        with open(args.config) as config_file:
-            config = yaml.load(config_file)
-    except OSError as exn:
-        raise LoudMLException(exn)
-    except yaml.YAMLError as exn:
-        raise LoudMLException(exn)
-
-    if 'storage' not in config:
-        config['storage'] = {}
-
-    if 'path' not in config['storage']:
-        config['storage']['path'] = "/var/lib/loudml"
-
-    return config
-
 def get_datasource(config, src_name):
     """
     Get data source by name
@@ -51,6 +32,22 @@ def get_datasource(config, src_name):
     return loudml_new.datasource.load_datasource(settings)
 
 class Command:
+    def __init__(self):
+        self._config_path = None
+        self._config = None
+
+    def set_config(self, path):
+        """
+        Set path to the configuration file
+        """
+        self._config_path = path
+
+    @property
+    def config(self):
+        if self._config is None:
+            self._config = loudml_new.config.load_config(self._config_path)
+        return self._config
+
     def add_args(self, parser):
         """
         Declare command arguments
@@ -117,12 +114,10 @@ class CreateModelCommand(Command):
         return settings
 
     def exec(self, args):
-        config = load_config(args)
-
         model_settings = self.load_model_file(args.model_file)
         model = loudml_new.model.load_model(settings=model_settings)
 
-        storage = FileStorage(config['storage']['path'])
+        storage = FileStorage(self.config['storage']['path'])
 
         if args.force and storage.model_exists(model.name):
             storage.delete_model(model.name)
@@ -143,8 +138,7 @@ class ListModelsCommand(Command):
         )
 
     def exec(self, args):
-        config = load_config(args)
-        storage = FileStorage(config['storage']['path'])
+        storage = FileStorage(self.config['storage']['path'])
 
         if args.info:
             print("MODEL                            type             trained")
@@ -174,8 +168,7 @@ class DeleteModelCommand(Command):
         )
 
     def exec(self, args):
-        config = load_config(args)
-        storage = FileStorage(config['storage']['path'])
+        storage = FileStorage(self.config['storage']['path'])
         storage.delete_model(args.model_name)
 
 
@@ -210,9 +203,8 @@ class TrainCommand(Command):
         )
 
     def exec(self, args):
-        config = load_config(args)
-        storage = FileStorage(config['storage']['path'])
-        source = get_datasource(config, args.datasource)
+        storage = FileStorage(self.config['storage']['path'])
+        source = get_datasource(self.config, args.datasource)
         model = storage.load_model(args.model_name)
 
         if model.type == 'timeseries':
@@ -292,9 +284,8 @@ class PredictCommand(Command):
         datasource.commit()
 
     def exec(self, args):
-        config = load_config(args)
-        storage = FileStorage(config['storage']['path'])
-        source = get_datasource(config, args.datasource)
+        storage = FileStorage(self.config['storage']['path'])
+        source = get_datasource(self.config, args.datasource)
         model = storage.load_model(args.model_name)
 
         if not model.is_trained:
@@ -338,6 +329,7 @@ def main():
         subparser = subparsers.add_parser(ep.name)
         command = ep.load()()
         command.add_args(subparser)
+        subparser.set_defaults(set_config=command.set_config)
         subparser.set_defaults(exec=command.exec)
 
     logger = logging.getLogger()
@@ -346,6 +338,7 @@ def main():
     args = parser.parse_args()
 
     try:
+        args.set_config(args.config)
         args.exec(args)
     except LoudMLException as exn:
         logging.error(exn)
