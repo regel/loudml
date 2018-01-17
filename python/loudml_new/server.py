@@ -28,6 +28,7 @@ from loudml_new.filestorage import (
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 api = Api(app)
 
+g_config = None
 g_storage = None
 
 class ModelsResource(Resource):
@@ -97,12 +98,34 @@ class ModelResource(Resource):
 api.add_resource(ModelsResource, "/models")
 api.add_resource(ModelResource, "/models/<model_name>")
 
+class DataSourcesResource(Resource):
+    def get(self):
+        datasources = [
+            datasource['name']
+            for datasource in g_config.get('datasources', [])
+        ]
+        return jsonify(datasources)
+
+
+class DataSourceResource(Resource):
+    def get(self, datasource_name):
+        for datasource in g_config.get('datasources', []):
+            if datasource['name'] == datasource_name:
+                return jsonify(datasource)
+
+        return "data source not found", 404
+
+
+api.add_resource(DataSourcesResource, "/datasources")
+api.add_resource(DataSourceResource, "/datasources/<datasource_name>")
+
 def main():
     """
     LoudML server
     """
 
     global g_storage
+    global g_config
 
     parser = argparse.ArgumentParser(
         description=main.__doc__,
@@ -123,11 +146,11 @@ def main():
     app.logger.setLevel(logging.INFO)
 
     try:
-        config = loudml_new.config.load_config(args.config)
-        g_storage = FileStorage(config['storage']['path'])
+        g_config = loudml_new.config.load_config(args.config)
+        g_storage = FileStorage(g_config['storage']['path'])
     except errors.LoudMLException as exn:
         logging.error(exn)
         sys.exit(1)
 
-    host, port = config['server']['listen'].split(':')
+    host, port = g_config['server']['listen'].split(':')
     app.run(host=host, port=int(port))
