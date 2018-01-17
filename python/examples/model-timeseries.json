@@ -1,0 +1,26 @@
+{
+  "bucket_interval": "20m",
+  "database": "dummy-db",
+  "features": [
+    {
+      "measurement": "dummy_data",
+      "metric": "avg",
+      "name": "avg_foo"
+    },
+    {
+      "default": 0,
+      "field": "foo",
+      "measurement": "dummy_data",
+      "metric": "count",
+      "name": "count_foo"
+    }
+  ],
+  "index": "dummy-idx",
+  "interval": 60,
+  "max_evals": 1,
+  "name": "mymodel1",
+  "offset": 30,
+  "span": 5,
+  "threshold": 30,
+  "type": "timeseries"
+}
