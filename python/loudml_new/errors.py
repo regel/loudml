@@ -11,8 +11,12 @@ class LoudMLException(Exception):
 class DataSourceError(LoudMLException):
     """Error occured on data source query"""
 
-    def __init__(self, datasource, msg):
-        super().__init__("datasource[{}]: {}".format(datasource, msg))
+    def __init__(self, datasource, error=None):
+        self.datasource = datasource
+        self.error = error or self.__doc__
+
+    def __str__(self):
+        return "datasource[{}]: {}".format(self.datasource, self.error)
 
 class DataSourceNotFound(LoudMLException):
     """Data source not found"""
