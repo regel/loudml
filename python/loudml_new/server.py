@@ -37,6 +37,7 @@ api = Api(app)
 
 g_config = None
 g_jobs = {}
+g_training = {}
 g_storage = None
 g_pool = None
 g_queue = None
@@ -283,6 +284,75 @@ class JobResource(Resource):
 api.add_resource(JobsResource, "/jobs")
 api.add_resource(JobResource, "/jobs/<job_id>")
 
+class TrainingJob(Job):
+    """
+    Model training job
+    """
+    func = 'train'
+    job_type = 'training'
+
+    def __init__(self, model_name, **kwargs):
+        super().__init__()
+        self.model_name = model_name
+        self._kwargs = kwargs
+
+    @property
+    def args(self):
+        return [self.model_name]
+
+    @property
+    def kwargs(self):
+        return self._kwargs
+
+
+class TrainingJobsResource(Resource):
+    def get(self, model_name):
+        global g_training
+
+        jobs = g_training.get(model_name, {})
+        return jsonify([job.desc for job in jobs.values()])
+
+    def put(self, model_name):
+        global g_storage
+        global g_training
+
+        try:
+            model = g_storage.load_model(model_name)
+        except errors.ModelNotFound as exn:
+            return str(exn), 404
+
+        kwargs = {}
+
+        if model.type == 'timeseries':
+            kwargs['from_date'] = request.args.get('from', "now-1d")
+            kwargs['to_date'] = request.args.get('to', "now")
+
+        job = TrainingJob(model_name, **kwargs)
+        job.start()
+
+        if model_name not in g_training:
+            g_training[model_name] = {}
+
+        g_training[model_name][job.id] = job
+
+        return jsonify(job.id)
+
+
+class TrainingJobResource(Resource):
+    def get(self, model_name, job_id):
+        global g_jobs
+
+        jobs = g_training.get(model_name, {})
+        job = jobs.get(job_id)
+
+        if job is None:
+            return "training job not found", 404
+
+        return jsonify(job.desc)
+
+api.add_resource(TrainingJobsResource, "/training/<model_name>")
+api.add_resource(TrainingJobResource, "/training/<model_name>/<job_id>")
+
 """
 # Example of job
 #
@@ -345,7 +415,7 @@ def main():
     g_pool = Pool(
         processes=g_config.server['workers'],
         initializer=loudml_new.worker.init_worker,
-        initargs=[g_queue],
+        initargs=[args.config, g_queue],
         maxtasksperchild=g_config.server['maxtasksperchild'],
     )
 
