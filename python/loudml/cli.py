@@ -340,4 +340,7 @@ def main(argv=None):
         return 0
     except LoudMLException as exn:
         logging.error(exn)
+    except KeyboardInterrupt:
+        logging.error("operation aborted")
+
     return 1
