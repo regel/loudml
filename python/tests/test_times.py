@@ -129,3 +129,62 @@ class TestTimes(unittest.TestCase):
             self.assertAlmostEqual(
                 pred_count[i], obs_count[i], delta=12,
             )
+
+    def test_predict_with_nan(self):
+        source = MemDataSource()
+        storage = MemStorage()
+
+        to_date = datetime.datetime.now().timestamp()
+        from_date = to_date - 3600 * 24 * 7 * 3
+
+        # Generate 3 weeks of data
+        ts = from_date
+        for i in range(7 * 3):
+            # Generate 23h of data
+            for j in range(23):
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': j,
+                })
+                ts += 3600
+
+            # No data for last hour
+            ts += 3600
+
+        model = TimesModel(dict(
+            name='test',
+            offset=30,
+            span=3,
+            bucket_interval=3600,
+            interval=60,
+            features=[{
+                'name': 'avg_foo',
+                'metric': 'avg',
+                'field': 'foo',
+                #'default': None,
+            }],
+            threshold=30,
+            max_evals=10,
+        ))
+
+        model.train(source, from_date, to_date)
+        self.assertTrue(model.is_trained)
+
+        from_date = to_date - 3600 * 24
+        prediction = model.predict(source, from_date, to_date)
+
+        obs = prediction.observed['avg_foo']
+        pred = prediction.predicted['avg_foo']
+
+        self.assertEqual(len(prediction.timestamps), 24)
+        self.assertEqual(len(obs), 24)
+        self.assertEqual(len(pred), 24)
+
+        # Holes expected in prediction
+        self.assertEqual(pred[:model.span], [None] * model.span)
+        self.assertEqual(pred[-1], None)
+
+        for i in range(24):
+            self.assertAlmostEqual(
+                pred[i], obs[i], delta=2.0,
+            )
