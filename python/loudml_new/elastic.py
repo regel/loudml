@@ -18,6 +18,7 @@ from elasticsearch import (
 
 from .datasource import DataSource
 from . import (
+    errors,
     parse_addr,
 )
 
@@ -256,12 +257,10 @@ class ElasticsearchDataSource(DataSource):
                 body=body,
                 params=es_params,
             )
-        except (
-            elasticsearch.exceptions.TransportError,
-            urllib3.exceptions.HTTPError,
-        ) as exn:
-            logging.error("get_times_data: %s", str(exn))
-            raise TransportError(str(exn))
+        except elasticsearch.exceptions.TransportError as exn:
+            raise errors.TransportError(str(exn))
+        except urllib3.exceptions.HTTPError as exn:
+            raise errors.DataSourceError(self.name, str(exn))
 
         hits = es_res['hits']['total']
         if hits == 0:

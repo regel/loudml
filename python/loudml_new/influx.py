@@ -4,6 +4,7 @@ InfluxDB module for LoudML
 
 import logging
 
+import influxdb.exceptions
 import numpy as np
 
 from influxdb import (
@@ -160,7 +161,11 @@ class InfluxDataSource(DataSource):
 
         queries = _build_queries(model, from_date, to_date)
         queries = ''.join(queries)
-        results = self.influxdb.query(queries)
+
+        try:
+            results = self.influxdb.query(queries)
+        except influxdb.exceptions.InfluxDBClientError as exn:
+            raise errors.DataSourceError(self.name, str(exn))
 
         if not isinstance(results, list):
             results = [results]
