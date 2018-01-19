@@ -1,0 +1,11 @@
+[Unit]
+Description=LoudML daemon
+After=network.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/loudmld
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

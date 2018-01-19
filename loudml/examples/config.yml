@@ -1,14 +1,14 @@
 ---
-datasources:
-  - name: influx
-    type: influxdb
-    addr: localhost
-    database: dummy_db
+datasources: []
+# - name: influx
+#   type: influxdb
+#   addr: localhost
+#   database: mydatabase
 
-  - name: elastic
-    type: elasticsearch
-    addr: localhost:9200
-    index: dummy-idx
+# - name: elastic
+#   type: elasticsearch
+#   addr: localhost:9200
+#   index: myindex
 
 storage:
   path: /var/lib/loudml
