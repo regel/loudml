@@ -13,6 +13,9 @@ Requires: python34
 Requires: python34-pip
 Requires: loudml
 
+# Disable debug package
+%define debug_package %{nil}
+
 %description
 
 

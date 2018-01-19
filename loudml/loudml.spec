@@ -19,6 +19,9 @@ Requires: python34-pip
 Requires: python34-yaml
 Requires: curl
 
+# Disable debug package
+%define debug_package %{nil}
+
 %description
 
 
