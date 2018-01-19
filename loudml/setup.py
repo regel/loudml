@@ -27,14 +27,14 @@ setup(
     test_suite='nose.collector',
 
     install_requires=[
-        'dateutils',
-        'flask',
-        'flask_restful',
-        'tensorflow',
-        'h5py',
-        'hyperopt',
-        'PyYAML',
-        'requests>=2.17.0',
+        "dateutils>=0.6.6",
+        "Flask>=0.12.2",
+        "Flask-restful>=0.3.6",
+        "tensorflow>=1.3.0",
+        "h5py==2.7.1",
+        "hyperopt==0.1",
+        "PyYAML>=3.12",
+        "requests>=2.17.0",
     ],
 
     extras_require={

@@ -1,5 +1,7 @@
 *.egg-info/
 *.swn
 
+/build
+
 loudml*/dist
 loudml*/build

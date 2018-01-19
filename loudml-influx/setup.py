@@ -31,7 +31,7 @@ setup(
 
     install_requires=[
         'loudml',
-        'influxdb',
+        'influxdb>=5.0.0',
     ],
 
     include_package_data=True,
