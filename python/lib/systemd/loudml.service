@@ -3,8 +3,7 @@ Description=Bonsai App
 
 [Service]
 Type=simple
-ExecStartPre=/usr/sbin/loudml-exec_start_pre
-ExecStart=/usr/bin/loudmld 
+ExecStart=/usr/bin/loudmld
 Restart=always
 
 [Install]

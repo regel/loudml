@@ -55,7 +55,6 @@ python%{python3_pkgversion} build of %{srcname}.
 
 %install
 %{__install} -m 0755 -d %{buildroot}/%{_sbindir}
-%{__install} -m 0755 %{srcname}-exec_start_pre %{buildroot}/%{_sbindir}/
 %{__install} -m 0644 -D lib/systemd/%{srcname}.service %{buildroot}/%{_unitdir}/%{srcname}.service 
 %{__install} -m 0644 -D etc/sysconfig/%{srcname} %{buildroot}/%{_sysconfdir}/sysconfig/%{srcname} 
 %{__install} -m 0644 -D etc/%{srcname}.template.json %{buildroot}/%{_sysconfdir}/%{srcname}/%{srcname}.template.json 
