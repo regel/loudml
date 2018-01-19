@@ -9,15 +9,15 @@ import pkg_resources
 import os
 import yaml
 
-import loudml_new.config
-import loudml_new.datasource
-import loudml_new.model
+import loudml.config
+import loudml.datasource
+import loudml.model
 
-from loudml_new.errors import (
+from .errors import (
     LoudMLException,
     ModelNotTrained,
 )
-from loudml_new.filestorage import (
+from .filestorage import (
     FileStorage,
 )
 
@@ -26,7 +26,7 @@ def get_datasource(config, src_name):
     Get and load data source by name
     """
     settings = config.get_datasource(src_name)
-    return loudml_new.datasource.load_datasource(settings)
+    return loudml.datasource.load_datasource(settings)
 
 class Command:
     def __init__(self):
@@ -42,7 +42,7 @@ class Command:
     @property
     def config(self):
         if self._config is None:
-            self._config = loudml_new.config.load_config(self._config_path)
+            self._config = loudml.config.load_config(self._config_path)
         return self._config
 
     def add_args(self, parser):
@@ -112,7 +112,7 @@ class CreateModelCommand(Command):
 
     def exec(self, args):
         model_settings = self.load_model_file(args.model_file)
-        model = loudml_new.model.load_model(settings=model_settings)
+        model = loudml.model.load_model(settings=model_settings)
 
         storage = FileStorage(self.config.storage['path'])
 

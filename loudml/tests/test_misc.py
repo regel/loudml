@@ -1,7 +1,7 @@
 import datetime
 import unittest
 
-from loudml_new import (
+from loudml import (
     make_datetime,
     make_ts,
     str_to_ts,

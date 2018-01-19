@@ -1,29 +1,26 @@
 #!/usr/bin/env python3
 
 """
-Setup BONSAI ML python package
+Setup LoudML python package
 """
 
 from setuptools import setup
-from os import path
 
 setup(
     name='loudml',
 
     version='0.1.0',
 
-    description='BONSAI ML python package',
+    description="Machine Learning application",
 
     py_modules=[
     ],
 
     packages=[
         'loudml',
-        'loudml_new',
     ],
 
     setup_requires=[
-        'jinja2',
     ],
 
     tests_require=['nose'],
@@ -38,7 +35,6 @@ setup(
         'h5py',
         'hyperopt',
         'influxdb',
-        'Pillow',
         'PyYAML',
         'requests>=2.17.0',
     ],
@@ -57,10 +53,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'loudmld_old=loudml.server:main',
-            'loudmld=loudml_new.server:main',
-            'loudml_times=loudml.times:main',
-            'loudml_ivoip=loudml.ivoip:main',
+            'loudmld=loudml.server:main',
             'loudml-faker=loudml.faker:main',
             'loudml=loudml.cli:main',
         ],
@@ -72,11 +65,11 @@ setup(
             'predict=loudml.cli:PredictCommand',
         ],
         'loudml.datasources': [
-            'elasticsearch=loudml_new.elastic:ElasticsearchDataSource',
-            'influxdb=loudml_new.influx:InfluxDataSource',
+            'elasticsearch=loudml.elastic:ElasticsearchDataSource',
+            'influxdb=loudml.influx:InfluxDataSource',
         ],
         'loudml.models': [
-            'timeseries=loudml_new.times:TimesModel',
+            'timeseries=loudml.times:TimesModel',
         ],
     },
 )

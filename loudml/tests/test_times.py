@@ -7,10 +7,10 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml_new.randevents import SinEventGenerator
-from loudml_new.times import TimesModel
-from loudml_new.memdatasource import MemDataSource
-from loudml_new.memstorage import MemStorage
+from loudml.randevents import SinEventGenerator
+from loudml.times import TimesModel
+from loudml.memdatasource import MemDataSource
+from loudml.memstorage import MemStorage
 
 FEATURES = [
     {

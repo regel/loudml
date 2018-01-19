@@ -4,12 +4,12 @@ import numpy as np
 import os
 import unittest
 
-import loudml_new.errors as errors
-from loudml_new.memdatasource import MemDataSource
+import loudml.errors as errors
+from loudml.memdatasource import MemDataSource
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml_new.times import TimesModel
+from loudml.times import TimesModel
 
 FEATURES = [
     {

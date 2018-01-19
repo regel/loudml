@@ -3,11 +3,11 @@ import datetime
 import logging
 import random
 
-from loudml_new import (
+from . import (
     errors,
     make_datetime,
 )
-from loudml_new.randevents import (
+from .randevents import (
     FlatEventGenerator,
     SinEventGenerator,
 )
@@ -30,7 +30,7 @@ def dump_to_json(generator):
     print(json.dumps(data,indent=4))
 
 def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
-    from loudml_new.influx import InfluxDataSource
+    from .influx import InfluxDataSource
 
     source = InfluxDataSource({
         'addr': addr,

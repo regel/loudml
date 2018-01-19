@@ -5,12 +5,12 @@ import os
 import time
 import unittest
 
-import loudml_new.errors as errors
-from loudml_new.elastic import ElasticsearchDataSource
+import loudml.errors as errors
+from loudml.elastic import ElasticsearchDataSource
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml_new.times import TimesModel
+from loudml.times import TimesModel
 
 TEMPLATE = {
     "template": "test-*",

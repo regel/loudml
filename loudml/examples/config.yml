@@ -1,0 +1,17 @@
+---
+datasources:
+  - name: influx
+    type: influxdb
+    addr: localhost
+    database: dummy_db
+
+  - name: elastic
+    type: elasticsearch
+    addr: localhost:9200
+    index: dummy-idx
+
+storage:
+  path: /var/lib/loudml
+
+server:
+  listen: localhost:8077

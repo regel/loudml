@@ -10,9 +10,9 @@ import queue
 import sys
 import uuid
 
-import loudml_new.config
-import loudml_new.model
-import loudml_new.worker
+import loudml.config
+import loudml.model
+import loudml.worker
 
 from threading import Timer
 
@@ -25,10 +25,10 @@ from flask_restful import (
     Api,
     Resource,
 )
-from loudml_new import (
+from . import (
     errors,
 )
-from loudml_new.filestorage import (
+from .filestorage import (
     FileStorage,
 )
 
@@ -121,7 +121,7 @@ class Job:
         g_jobs[self.id] = self
         self.state = 'waiting'
         g_pool.apply_async(
-            func=loudml_new.worker.run,
+            func=loudml.worker.run,
             args=[self.id, self.func] + self.args,
             kwds=self.kwargs,
             callback=self.done,
@@ -196,7 +196,7 @@ class ModelsResource(Resource):
     def put(self):
         global g_storage
 
-        model = loudml_new.model.load_model(settings=request.json)
+        model = loudml.model.load_model(settings=request.json)
 
         try:
             g_storage.create_model(model)
@@ -232,7 +232,7 @@ class ModelResource(Resource):
 
         settings = request.json
         settings['name'] = model_name
-        model = loudml_new.model.load_model(settings=request.json)
+        model = loudml.model.load_model(settings=request.json)
 
         try:
             g_storage.delete_model(model_name)
@@ -405,7 +405,7 @@ def main():
     app.logger.setLevel(logging.INFO)
 
     try:
-        g_config = loudml_new.config.load_config(args.config)
+        g_config = loudml.config.load_config(args.config)
         g_storage = FileStorage(g_config.storage['path'])
     except errors.LoudMLException as exn:
         logging.error(exn)
@@ -414,7 +414,7 @@ def main():
     g_queue = multiprocessing.Queue()
     g_pool = Pool(
         processes=g_config.server['workers'],
-        initializer=loudml_new.worker.init_worker,
+        initializer=loudml.worker.init_worker,
         initargs=[args.config, g_queue],
         maxtasksperchild=g_config.server['maxtasksperchild'],
     )

@@ -5,12 +5,12 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml_new import (
+from loudml import (
     errors,
 )
 
-from loudml_new.times import TimesModel
-from loudml_new.filestorage import FileStorage
+from loudml.times import TimesModel
+from loudml.filestorage import FileStorage
 
 FEATURES = [
     {
@@ -29,7 +29,6 @@ class TestFileStorage(unittest.TestCase):
             # Create
             model = TimesModel(dict(
                 name='test-1',
-                index='test',
                 offset=30,
                 span=300,
                 bucket_interval=3,
@@ -44,7 +43,6 @@ class TestFileStorage(unittest.TestCase):
             # Create
             model = TimesModel(dict(
                 name='test-2',
-                index='test',
                 offset=56,
                 span=200,
                 bucket_interval=20,
@@ -69,5 +67,4 @@ class TestFileStorage(unittest.TestCase):
             model = storage.load_model("test-2")
             self.assertEqual(model.type, 'timeseries')
             self.assertEqual(model.name, 'test-2')
-            self.assertEqual(model.index, 'test')
             self.assertEqual(model.offset, 56)

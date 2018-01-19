@@ -6,9 +6,9 @@ import random
 import time
 import unittest
 
-import loudml_new.errors as errors
+import loudml.errors as errors
 
-from loudml_new.influx import (
+from loudml.influx import (
     _build_queries,
     _build_time_predicates,
     InfluxDataSource,
@@ -16,9 +16,9 @@ from loudml_new.influx import (
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml_new.times import TimesModel
-from loudml_new.randevents import SinEventGenerator
-from loudml_new.memstorage import MemStorage
+from loudml.times import TimesModel
+from loudml.randevents import SinEventGenerator
+from loudml.memstorage import MemStorage
 
 
 FEATURES = [
