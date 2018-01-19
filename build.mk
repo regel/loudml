@@ -1,8 +1,7 @@
 DESTDIR ?= /
 BUILD_DIR ?= $(CURDIR)/build
-rpmbuild_dir := $(BUILD_DIR)/rpmbuild
-rpmsrc_dir := $(rpmbuild_dir)/SOURCES
-repo_dir := $(BUILD_DIR)/repo
+RPMBUILD_DIR ?= $(BUILD_DIR)/rpmbuild
+rpmsrc_dir := $(RPMBUILD_DIR)/SOURCES
 
 VERSION ?= $(shell git describe --tags --match 'v*.*.*' | \
                        sed -e 's/^v//' -e 's/-/./g')
@@ -23,8 +22,8 @@ define rpmbuild
 @echo -e "  RPMBUILD\t$(1)"
 rpmbuild --define "name $(2)" \
          --define "version $(VERSION)" \
-         --define "_topdir $(rpmbuild_dir)" \
-         --define "_rpmdir $(repo_dir)" \
+         --define "_topdir $(RPMBUILD_DIR)" \
+         --define "_rpmdir $(RPMREPO_DIR)" \
          -bb "$<"
 endef
 

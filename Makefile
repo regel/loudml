@@ -1,4 +1,5 @@
 BUILD_DIR = $(CURDIR)/build
+RPMREPO_DIR := $(BUILD_DIR)/rpmrepo
 
 clean:
 	$(MAKE) -C loudml clean
@@ -22,6 +23,20 @@ test:
 	$(MAKE) -C loudml-influx test
 
 rpm:
-	$(MAKE) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
-	$(MAKE) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic rpm
-	$(MAKE) BUILD_DIR=$(BUILD_DIR) -C loudml-influx rpm
+	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
+	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic rpm
+	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-influx rpm
+
+$(RPMREPO_DIR)/repodata/repomd.xml: rpm
+	createrepo $(RPMREPO_DIR)
+
+.PHONY: rpmrepo
+rpmrepo: $(RPMREPO_DIR)/repodata/repomd.xml
+
+.PHONY: rpmrepo-archive
+rpmrepo-archive: $(BUILD_DIR)/rpmrepo-$(VERSION).tar
+
+$(BUILD_DIR)/rpmrepo-$(VERSION).tar: rpmrepo
+	tar -C $(BUILD_DIR) -cvf "$@" rpmrepo
+
+repo: rpmrepo
