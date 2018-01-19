@@ -11,13 +11,13 @@ from influxdb import (
     InfluxDBClient,
 )
 
-from . import (
+from loudml import (
     errors,
     make_ts,
     parse_addr,
     str_to_ts,
 )
-from .datasource import DataSource
+from loudml.datasource import DataSource
 
 def ts_to_ns(ts):
     """

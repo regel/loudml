@@ -30,11 +30,9 @@ setup(
         'dateutils',
         'flask',
         'flask_restful',
-        'elasticsearch',
         'tensorflow',
         'h5py',
         'hyperopt',
-        'influxdb',
         'PyYAML',
         'requests>=2.17.0',
     ],
@@ -63,10 +61,6 @@ setup(
             'list-models=loudml.cli:ListModelsCommand',
             'train=loudml.cli:TrainCommand',
             'predict=loudml.cli:PredictCommand',
-        ],
-        'loudml.datasources': [
-            'elasticsearch=loudml.elastic:ElasticsearchDataSource',
-            'influxdb=loudml.influx:InfluxDataSource',
         ],
         'loudml.models': [
             'timeseries=loudml.times:TimesModel',
