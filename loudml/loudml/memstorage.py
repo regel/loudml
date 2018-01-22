@@ -4,9 +4,10 @@ Local storage implementation for LoudML
 
 from . import (
     errors,
+)
+from .misc import (
     ts_to_str,
 )
-
 from .storage import (
     Storage,
 )

@@ -26,11 +26,12 @@ from hyperopt import (
 
 from . import (
     errors,
+)
+from .misc import (
     make_ts,
     ts_to_str,
     parse_timedelta,
 )
-
 from .model import (
     Model,
 )

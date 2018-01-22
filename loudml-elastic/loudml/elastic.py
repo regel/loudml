@@ -16,9 +16,9 @@ from elasticsearch import (
     TransportError,
 )
 
+from . import errors
 from loudml.datasource import DataSource
-from loudml import (
-    errors,
+from loudml.misc import (
     parse_addr,
 )
 

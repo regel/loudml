@@ -11,8 +11,8 @@ from influxdb import (
     InfluxDBClient,
 )
 
-from loudml import (
-    errors,
+from . import errors
+from loudml.misc import (
     make_ts,
     parse_addr,
     str_to_ts,

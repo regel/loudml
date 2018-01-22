@@ -4,6 +4,8 @@ import numpy as np
 
 from . import (
     errors,
+)
+from .misc import (
     ts_to_str,
 )
 from .datasource import DataSource
