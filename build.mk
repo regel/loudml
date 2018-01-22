@@ -11,6 +11,7 @@ FULLNAME := $(NAME)-$(VERSION)
 # Build RPM source archive
 define rpmsrc
 @echo -e "  RPMSRC\t$(rpmsrc_dir)/$(1).tar.gz"
+@[ -n "${VIRTUAL_ENV}" ] || exit 0 && echo -e "error: do not build RPM from a virtualenv!" && exit 1
 @mkdir -p "$(rpmsrc_dir)"
 @set -x && cd $(CURDIR)/.. && git ls-files | xargs tar -czf /tmp/$(1).tar.gz \
     --transform "s|^|$(1)/|"
