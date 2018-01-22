@@ -9,7 +9,7 @@ from loudml.memdatasource import MemDataSource
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml.times import TimesModel
+from loudml.timeseries import TimeSeriesModel
 
 FEATURES = [
     {
@@ -24,7 +24,7 @@ class TestMemDataSource(unittest.TestCase):
     def setUp(self):
         self.source = MemDataSource()
 
-        self.model = TimesModel(dict(
+        self.model = TimeSeriesModel(dict(
             name='test',
             offset=30,
             span=300,

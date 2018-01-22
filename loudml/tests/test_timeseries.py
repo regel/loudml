@@ -8,7 +8,7 @@ import unittest
 logging.getLogger('tensorflow').disabled = True
 
 from loudml.randevents import SinEventGenerator
-from loudml.times import TimesModel
+from loudml.timeseries import TimeSeriesModel
 from loudml.memdatasource import MemDataSource
 from loudml.memstorage import MemStorage
 
@@ -48,7 +48,7 @@ class TestTimes(unittest.TestCase):
         if self.model:
             return
 
-        self.model = TimesModel(dict(
+        self.model = TimeSeriesModel(dict(
             name='test',
             offset=30,
             span=5,
@@ -73,7 +73,7 @@ class TestTimes(unittest.TestCase):
         for i, val in enumerate(data):
             dataset[i] = val
 
-        model = TimesModel(dict(
+        model = TimeSeriesModel(dict(
             name='test_fmt',
             offset=30,
             span=3,
@@ -151,7 +151,7 @@ class TestTimes(unittest.TestCase):
             # No data for last hour
             ts += 3600
 
-        model = TimesModel(dict(
+        model = TimeSeriesModel(dict(
             name='test',
             offset=30,
             span=3,

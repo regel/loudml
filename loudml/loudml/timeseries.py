@@ -172,7 +172,7 @@ class TimesPrediction:
         plt.show()
 
 
-class TimesModel(Model):
+class TimeSeriesModel(Model):
     """
     Time-series model
     """

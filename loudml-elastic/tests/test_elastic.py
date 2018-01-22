@@ -10,7 +10,7 @@ from loudml.elastic import ElasticsearchDataSource
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml.times import TimesModel
+from loudml.timeseries import TimeSeriesModel
 
 TEMPLATE = {
     "template": "test-*",
@@ -60,7 +60,7 @@ class TestElasticDataSource(unittest.TestCase):
         self.source.delete_index()
         self.source.create_index(TEMPLATE)
 
-        self.model = TimesModel(dict(
+        self.model = TimeSeriesModel(dict(
             name='test',
             offset=30,
             span=300,

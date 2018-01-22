@@ -16,7 +16,7 @@ from loudml.influx import (
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml.times import TimesModel
+from loudml.timeseries import TimeSeriesModel
 from loudml.randevents import SinEventGenerator
 from loudml.memstorage import MemStorage
 
@@ -64,7 +64,7 @@ class TestInfluxQuick(unittest.TestCase):
         self.source.delete_db()
         self.source.create_db()
 
-        self.model = TimesModel(dict(
+        self.model = TimeSeriesModel(dict(
             name="test-model",
             offset=30,
             span=300,
@@ -183,7 +183,7 @@ class TestInfluxLong(unittest.TestCase):
         self.source.commit()
 
     def test_train(self):
-        model = TimesModel(dict(
+        model = TimeSeriesModel(dict(
             name='test',
             offset=30,
             span=5,

@@ -9,7 +9,7 @@ from loudml import (
     errors,
 )
 
-from loudml.times import TimesModel
+from loudml.timeseries import TimeSeriesModel
 from loudml.filestorage import FileStorage
 
 FEATURES = [
@@ -27,7 +27,7 @@ class TestFileStorage(unittest.TestCase):
             storage = FileStorage(tmp)
 
             # Create
-            model = TimesModel(dict(
+            model = TimeSeriesModel(dict(
                 name='test-1',
                 offset=30,
                 span=300,
@@ -41,7 +41,7 @@ class TestFileStorage(unittest.TestCase):
             self.assertTrue(storage.model_exists(model.name))
 
             # Create
-            model = TimesModel(dict(
+            model = TimeSeriesModel(dict(
                 name='test-2',
                 offset=56,
                 span=200,

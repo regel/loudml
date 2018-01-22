@@ -63,7 +63,7 @@ setup(
             'predict=loudml.cli:PredictCommand',
         ],
         'loudml.models': [
-            'timeseries=loudml.times:TimesModel',
+            'timeseries=loudml.timeseries:TimeSeriesModel',
         ],
     },
 )
