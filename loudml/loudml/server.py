@@ -254,6 +254,32 @@ class ModelResource(Resource):
 api.add_resource(ModelsResource, "/models")
 api.add_resource(ModelResource, "/models/<model_name>")
 
+@app.route("/models/<model_name>/_train", methods=['POST'])
+def model_train(model_name):
+    global g_storage
+    global g_training
+
+    try:
+        model = g_storage.load_model(model_name)
+    except errors.ModelNotFound as exn:
+        return str(exn), 404
+
+    kwargs = {}
+
+    if model.type == 'timeseries':
+        kwargs['from_date'] = request.args.get('from', "now-1d")
+        kwargs['to_date'] = request.args.get('to', "now")
+
+    job = TrainingJob(model_name, **kwargs)
+    job.start()
+
+    if model_name not in g_training:
+        g_training[model_name] = {}
+
+    g_training[model_name][job.id] = job
+
+    return jsonify(job.id)
+
 class DataSourcesResource(Resource):
     def get(self):
         return jsonify(list(g_config.datasources.values()))
@@ -319,32 +345,6 @@ class TrainingJobsResource(Resource):
 
         jobs = g_training.get(model_name, {})
         return jsonify([job.desc for job in jobs.values()])
-
-    def put(self, model_name):
-        global g_storage
-        global g_training
-
-        try:
-            model = g_storage.load_model(model_name)
-        except errors.ModelNotFound as exn:
-            return str(exn), 404
-
-        kwargs = {}
-
-        if model.type == 'timeseries':
-            kwargs['from_date'] = request.args.get('from', "now-1d")
-            kwargs['to_date'] = request.args.get('to', "now")
-
-        job = TrainingJob(model_name, **kwargs)
-        job.start()
-
-        if model_name not in g_training:
-            g_training[model_name] = {}
-
-        g_training[model_name][job.id] = job
-
-        return jsonify(job.id)
-
 
 class TrainingJobResource(Resource):
     def get(self, model_name, job_id):
