@@ -26,6 +26,8 @@ rpm:
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-influx rpm
+	@echo -e "\nRPM packages:"
+	@find $(BUILD_DIR) -name '*.rpm'
 
 $(RPMREPO_DIR)/repodata/repomd.xml: rpm
 	createrepo $(RPMREPO_DIR)
