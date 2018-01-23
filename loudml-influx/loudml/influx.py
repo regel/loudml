@@ -103,8 +103,12 @@ class InfluxDataSource(DataSource):
     def influxdb(self):
         if self._influxdb is None:
             addr = parse_addr(self.addr, default_port=8086)
-            logging.info('connecting to influxdb on %s:%d',
-                         addr['host'], addr['port'])
+            logging.info(
+                "connecting to influxdb on %s:%d, using database '%s'",
+                addr['host'],
+                addr['port'],
+                self.db,
+            )
             self._influxdb = InfluxDBClient(
                 host=addr['host'],
                 port=addr['port'],
