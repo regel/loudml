@@ -1,4 +1,3 @@
-DESTDIR ?= /
 BUILD_DIR ?= $(CURDIR)/build
 RPMBUILD_DIR ?= $(BUILD_DIR)/rpmbuild
 rpmsrc_dir := $(RPMBUILD_DIR)/SOURCES
@@ -7,6 +6,14 @@ VERSION ?= $(shell git describe --tags --match 'v*.*.*' | \
                        sed -e 's/^v//' -e 's/-/./g')
 
 FULLNAME := $(NAME)-$(VERSION)
+
+# setup.py install options
+
+INSTALL_OPTS ?=
+
+ifneq ($(DESTDIR),)
+	INSTALL_OPTS += "--root=$(DESTDIR)"
+endif
 
 # Build RPM source archive
 define rpmsrc

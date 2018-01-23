@@ -1,8 +1,7 @@
 NAME := loudml
-DESTDIR ?= /
 
 install:
-	./setup.py install --root=$(DESTDIR)
+	./setup.py install $(INSTALL_OPTS)
 
 uninstall:
 	pip3 uninstall -y loudml
