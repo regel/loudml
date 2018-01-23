@@ -3,6 +3,7 @@
   "default_datasource": "my-datasource",
   "features": [
     {
+      "field": "foo",
       "measurement": "dummy_data",
       "metric": "avg",
       "name": "avg_foo"

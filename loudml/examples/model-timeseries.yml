@@ -14,6 +14,7 @@ features:
   - name: avg_foo
     measurement: dummy_data
     metric: avg
+    field: foo
   - name: count_foo
     measurement: dummy_data
     metric: count
