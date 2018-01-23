@@ -181,8 +181,8 @@ class TrainCommand(Command):
             type=str,
         )
         parser.add_argument(
-            'datasource',
-            help="Data source name",
+            '-d', '--datasource',
+            help="Datasource",
             type=str,
         )
         parser.add_argument(
@@ -201,8 +201,8 @@ class TrainCommand(Command):
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
-        source = get_datasource(self.config, args.datasource)
         model = storage.load_model(args.model_name)
+        source = get_datasource(self.config, args.datasource or model.default_datasource)
 
         if model.type == 'timeseries':
             if not args.from_date:
