@@ -526,9 +526,17 @@ class TimeSeriesModel(Model):
         logging.info("extracting data for range=[%s, %s]",
                      from_ts, to_ts)
         data = datasource.get_times_data(self, from_ts, to_ts)
+
+        i = None
         for i, (_, val, ts) in enumerate(data):
             dataset[i] = val
             X.append(ts)
+
+        if i is None:
+            raise errors.NoData("no data found for time range {}-{}".format(
+                from_str,
+                to_str,
+            ))
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
