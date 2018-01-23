@@ -142,7 +142,7 @@ class Job:
         """
         self.state = 'done'
         self.result = result
-        logging.info("job done")
+        logging.info("job[%s] done", self.id)
 
     def fail(self, error):
         """
@@ -150,7 +150,7 @@ class Job:
         """
         self.state = 'failed'
         self.error = str(error)
-        logging.info("job failed: %s", self.error)
+        logging.info("job[%s] failed: %s", self.id, self.error)
 
 
 def set_job_state(job_id, state):

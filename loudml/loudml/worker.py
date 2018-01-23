@@ -24,6 +24,7 @@ class Worker:
         self.config = loudml.config.load_config(config_path)
         self.storage = FileStorage(self.config.storage['path'])
         self._msg_queue = msg_queue
+        self.job_id = None
         signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     def run(self, job_id, func_name, *args, **kwargs):
@@ -36,7 +37,15 @@ class Worker:
             'job_id': job_id,
             'state': 'running',
         })
-        return getattr(self, func_name)(*args, **kwargs)
+        logging.info("job[%s] starting", job_id)
+        self.job_id = job_id
+
+        try:
+            res = getattr(self, func_name)(*args, **kwargs)
+        finally:
+            self.job_id = None
+
+        return res
 
     def train(self, model_name, **kwargs):
         """
