@@ -17,6 +17,7 @@ Requires(postun): systemd
 Requires: python34
 Requires: python34-pip
 Requires: python34-yaml
+Requires: python34-psutil
 Requires: curl
 
 # Disable debug package
@@ -45,6 +46,13 @@ pip3 install requests>=2.17.0
 
 %install
 cd loudml
+
+# Enable instance checking
+sed -i 's/# *DISABLED check_instance()/check_instance()/' loudml/server.py
+
+[ -n $(grep -E "^    check_instance()$" loudml/server.py) ] && \
+    echo -e "error: instance checking no present"
+
 make install DESTDIR=%{buildroot}
 
 # PYC binary distribution, mv files to pre-PEP-3147 location to be able to

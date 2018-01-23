@@ -10,6 +10,10 @@ import queue
 import sys
 import uuid
 
+import fcntl
+import psutil
+import inspect
+
 import loudml.config
 import loudml.model
 import loudml.worker
@@ -41,6 +45,10 @@ g_training = {}
 g_storage = None
 g_pool = None
 g_queue = None
+
+# Do not change: pid file to ensure we're running single instance
+APP_NAME = "/usr/bin/loudmld"
+PID_FILE = "/var/run/loudmld.pid"
 
 class RepeatingTimer(object):
     def __init__(self, interval, cb, *args, **kwargs):
@@ -376,6 +384,31 @@ def do_things():
     return str(job.id)
 """
 
+def check_instance():
+    stack_data = inspect.stack()
+    app_name = stack_data[-1][0].f_code.co_filename
+    if app_name != APP_NAME:
+        logging.error("Unauthorized instance")
+        sys.exit(1)
+
+    fp = open(PID_FILE, 'w')
+    try:
+        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        running = 0
+        for p in psutil.process_iter():
+            cmd = p.cmdline()
+            if len(cmd) > 1 and cmd[1] == APP_NAME:
+                running = running + 1
+
+        if running > 1:
+            logging.error("Another instance running")
+            sys.exit(1)
+
+    except IOError as exn:
+        logging.error("Another instance running")
+        sys.exit(1)
+
+
 def main():
     """
     LoudML server
@@ -403,6 +436,8 @@ def main():
     logger.setLevel(logging.INFO)
 
     app.logger.setLevel(logging.INFO)
+
+    #DISABLED check_instance()
 
     try:
         g_config = loudml.config.load_config(args.config)

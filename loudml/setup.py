@@ -34,6 +34,7 @@ setup(
         "tensorflow >=1.3.0, <=1.3.1",
         "h5py==2.7.1",
         "hyperopt==0.1",
+        "psutil>=2.2.1",
         "PyYAML>=3.12",
         "requests>=2.17.0",
     ],
