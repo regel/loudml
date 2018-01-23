@@ -35,7 +35,7 @@ setup(
         "h5py==2.7.1",
         "hyperopt==0.1",
         "psutil>=2.2.1",
-        "PyYAML>=3.12",
+        "PyYAML>=3.11",
     ],
 
     extras_require={
