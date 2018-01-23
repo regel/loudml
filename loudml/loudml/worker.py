@@ -60,6 +60,25 @@ class Worker:
 
         # TODO return loss and accuracy
 
+    def predict(self, model_name, **kwargs):
+        """
+        Ask model for a prediction
+        """
+
+        model = self.storage.load_model(model_name)
+        src_settings = self.config.get_datasource(model.default_datasource)
+        source = loudml.datasource.load_datasource(src_settings)
+        prediction = model.predict(source, **kwargs)
+
+        if model.type == 'timeseries':
+            logging.info("job[%s] predicted values for %d time buckets",
+                         self.job_id, len(prediction.timestamps))
+            source.save_timeseries_prediction(prediction, model)
+        else:
+            logging.info("job[%s] prediction done", self.job_id)
+
+        return prediction.format_series()
+
 
     """
     # Example

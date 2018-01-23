@@ -3,6 +3,7 @@ LoudML server
 """
 
 import argparse
+import datetime
 import logging
 import multiprocessing
 import multiprocessing.pool
@@ -18,7 +19,9 @@ import loudml.config
 import loudml.model
 import loudml.worker
 
-from threading import Timer
+from threading import (
+    Timer,
+)
 
 from flask import (
     Flask,
@@ -45,6 +48,7 @@ g_training = {}
 g_storage = None
 g_pool = None
 g_queue = None
+g_running_models = {}
 
 # Do not change: pid file to ensure we're running single instance
 APP_NAME = "/usr/bin/loudmld"
@@ -360,6 +364,76 @@ class TrainingJobResource(Resource):
 
 api.add_resource(TrainingJobsResource, "/training/<model_name>")
 api.add_resource(TrainingJobResource, "/training/<model_name>/<job_id>")
+
+class PredictionJob(Job):
+    """
+    Prediction job
+    """
+    func = 'predict'
+    job_type = 'prediction'
+
+    def __init__(self, model_name, **kwargs):
+        super().__init__()
+        self.model_name = model_name
+        self._kwargs = kwargs
+
+    @property
+    def args(self):
+        return [self.model_name]
+
+    @property
+    def kwargs(self):
+        return self._kwargs
+
+@app.route("/models/<model_name>/_start", methods=['POST'])
+def model_start(model_name):
+    global g_storage
+    global g_running_models
+
+    try:
+        model = g_storage.load_model(model_name)
+    except errors.ModelNotFound as exn:
+        return str(exn), 404
+
+    if model_name in g_running_models:
+        return "real-time prediction is already active for this model", 409
+
+    def create_job(from_date=None):
+        kwargs = {}
+
+        if model.type == 'timeseries':
+            to_date = datetime.datetime.now().timestamp() - model.offset
+
+            if from_date is None:
+                from_date = to_date - model.bucket_interval
+
+            kwargs['from_date'] = from_date
+            kwargs['to_date'] = to_date
+
+        job = PredictionJob(model_name, **kwargs)
+        job.start()
+
+    from_date = request.args.get('from')
+    create_job(from_date)
+
+    timer = RepeatingTimer(model.interval, create_job)
+    g_running_models[model_name] = timer
+    timer.start()
+
+    return "real-time prediction started", 200
+
+@app.route("/models/<model_name>/_stop", methods=['POST'])
+def model_stop(model_name):
+    global g_running_models
+
+    timer = g_running_models.get(model_name)
+    if timer is None:
+        return "model is not active", 404
+
+    timer.cancel()
+    del g_running_models[model_name]
+    logging.info("model '%s' deactivated", model_name)
+    return "model deactivated"
 
 """
 # Example of job
