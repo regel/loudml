@@ -304,6 +304,13 @@ class PredictCommand(Command):
             else:
                 self._dump(prediction, args.buckets)
 
+def get_commands():
+    """
+    Get LoudML CLI commands
+    """
+    for ep in pkg_resources.iter_entry_points('loudml.commands'):
+        yield ep.name, ep.load()()
+
 
 def main(argv=None):
     """
@@ -322,9 +329,8 @@ def main(argv=None):
     )
     subparsers = parser.add_subparsers(title="Commands")
 
-    for ep in pkg_resources.iter_entry_points('loudml.commands'):
-        subparser = subparsers.add_parser(ep.name)
-        command = ep.load()()
+    for name, command in get_commands():
+        subparser = subparsers.add_parser(name)
         command.add_args(subparser)
         subparser.set_defaults(set_config=command.set_config)
         subparser.set_defaults(exec=command.exec)

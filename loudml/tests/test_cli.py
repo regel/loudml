@@ -57,12 +57,26 @@ class TestCli(unittest.TestCase):
             "model-timeseries.yml",
         )
 
+    def test_commands(self):
+        commands = set([name for name, _ in loudml.cli.get_commands()])
+
+        self.assertEqual(
+            commands,
+            set([
+                "create-model",
+                "delete-model",
+                "list-models",
+                "train",
+                "predict",
+            ]),
+        )
+
     def test_create_list_delete(self):
         base = ['-c', self.config]
 
         # Create
         execute(base + ['create-model', self.model])
-        
+
         # List
         out = execute(base + ['list-models'])
         self.assertEqual(out, "my-timeseries-model")
