@@ -41,8 +41,6 @@ pip3 install networkx==1.11
 pip3 install tensorflow==1.3.0
 pip3 install h5py==2.7.1
 pip3 install hyperopt==0.1
-pip3 install requests>=2.17.0
-
 
 %install
 cd loudml

@@ -36,7 +36,6 @@ setup(
         "hyperopt==0.1",
         "psutil>=2.2.1",
         "PyYAML>=3.12",
-        "requests>=2.17.0",
     ],
 
     extras_require={
