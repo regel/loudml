@@ -47,6 +47,7 @@ class Worker:
         src_settings = self.config.get_datasource(model.default_datasource)
         source = loudml.datasource.load_datasource(src_settings)
         model.train(source, **kwargs)
+        self.storage.save_model(model)
 
         # TODO return loss and accuracy
 

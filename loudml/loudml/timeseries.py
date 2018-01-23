@@ -116,7 +116,7 @@ def _load_keras_model(model_b64, weights_b64, loss_fct, optimizer):
 
     return keras_model, graph
 
-class TimesPrediction:
+class TimeSeriesPrediction:
     """
     Time-series prediction
     """
@@ -197,7 +197,7 @@ class TimeSeriesModel(Model):
         """
         Compute the number of bucket between `from_ts` and `to_ts`
         """
-        return int((to_ts - from_ts) / self.bucket_interval) + 1
+        return int((to_ts - from_ts) / self.bucket_interval) + 2
 
     def _train_on_dataset(
         self,
@@ -558,7 +558,7 @@ class TimeSeriesModel(Model):
             y[feature.name] = out_y.tolist()
             y_[feature.name] = out_y_.tolist()
 
-        return TimesPrediction(
+        return TimeSeriesPrediction(
             timestamps=X[self.span:],
             observed=y,
             predicted=y_,

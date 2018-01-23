@@ -302,3 +302,6 @@ class ElasticsearchDataSource(DataSource):
                 t0 = timestamp
 
             yield (timestamp - t0) / 1000, X, timeval
+
+    def save_timeseries_prediction(self, prediction, model):
+        raise NotImplemented()

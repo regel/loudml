@@ -267,19 +267,6 @@ class PredictCommand(Command):
             data = prediction.format_series()
         print(json.dumps(data, indent=4))
 
-    def _save(self, prediction, datasource, model):
-        """
-        Save prediction to a data source
-        """
-
-        for bucket in prediction.format_buckets():
-            datasource.insert_times_data(
-                measurement='prediction_{}'.format(model.name), # Add id? timestamp?
-                ts=bucket['timestamp'],
-                data=bucket['predicted'],
-            )
-        datasource.commit()
-
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         source = get_datasource(self.config, args.datasource)
@@ -300,7 +287,7 @@ class PredictCommand(Command):
                 args.to_date,
             )
             if args.save:
-                self._save(prediction, source, model)
+                source.save_timeseries_prediction(prediction, model)
             else:
                 self._dump(prediction, args.buckets)
 

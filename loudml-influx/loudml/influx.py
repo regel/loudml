@@ -223,3 +223,12 @@ class InfluxDataSource(DataSource):
                 t0 = ts
 
             yield (ts - t0) / 1000, X, timeval
+
+    def save_timeseries_prediction(self, prediction, model):
+        for bucket in prediction.format_buckets():
+            self.insert_times_data(
+                measurement='prediction_{}'.format(model.name), # Add id? timestamp?
+                ts=bucket['timestamp'],
+                data=bucket['predicted'],
+            )
+        self.commit()

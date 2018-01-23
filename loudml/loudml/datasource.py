@@ -85,6 +85,12 @@ class DataSource(metaclass=ABCMeta):
         Insert time-indexed entry
         """
 
+    @abstractmethod
+    def save_timeseries_prediction(self, prediction):
+        """
+        Save time-series prediction to the datasource
+        """
+
 def load_datasource(settings):
     """
     Load datasource

@@ -205,3 +205,6 @@ class MemDataSource(DataSource):
         if not self.data:
             raise errors.NoData()
         return self.data[-1].value
+
+    def save_timeseries_prediction(self, prediction, model):
+        raise NotImplemented()
