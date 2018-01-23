@@ -9,6 +9,10 @@ import loudml.config
 import loudml.datasource
 import loudml.model
 
+from loudml import (
+    errors,
+)
+
 from loudml.filestorage import (
     FileStorage,
 )
@@ -42,6 +46,11 @@ class Worker:
 
         try:
             res = getattr(self, func_name)(*args, **kwargs)
+        except errors.LoudMLException as exn:
+            raise exn
+        except Exception as exn:
+            logging.exception(exn)
+            raise exn
         finally:
             self.job_id = None
 
