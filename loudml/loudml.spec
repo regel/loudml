@@ -36,6 +36,7 @@ make clean
 pip3 install dateutils>=0.6.6
 pip3 install Flask>=0.12.2
 pip3 install Flask-restful>=0.3.6
+pip3 install networkx==1.11
 pip3 install tensorflow==1.3.0
 pip3 install h5py==2.7.1
 pip3 install hyperopt==0.1

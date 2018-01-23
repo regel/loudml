@@ -31,6 +31,7 @@ setup(
         "Flask>=0.12.2",
         "Flask-restful>=0.3.6",
         "tensorflow>=1.3.0",
+        "networkx==1.11",
         "h5py==2.7.1",
         "hyperopt==0.1",
         "PyYAML>=3.12",
