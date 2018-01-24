@@ -54,7 +54,7 @@ MAX_RUNNING_MODELS = 3
 
 # Do not change: pid file to ensure we're running single instance
 APP_NAME = "/usr/bin/loudmld"
-PID_FILE = "/var/run/loudmld.pid"
+LOCK_FILE = "/var/tmp/loudmld.lock"
 
 class RepeatingTimer(object):
     def __init__(self, interval, cb, *args, **kwargs):
@@ -474,7 +474,7 @@ def check_instance():
         logging.error("Unauthorized instance")
         sys.exit(1)
 
-    fp = open(PID_FILE, 'w')
+    fp = open(LOCK_FILE, 'w')
     try:
         fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
         running = 0

@@ -43,6 +43,14 @@ pip3 install h5py==2.7.1
 pip3 install hyperopt==0.1
 pip3 install voluptuous==0.10.5
 
+if ! getent group loudml; then
+  groupadd --system loudml
+fi
+if ! getent passwd loudml; then
+  useradd --comment "LoudML" --gid loudml --no-create-home --system loudml
+fi
+
+
 %install
 cd loudml
 
@@ -81,7 +89,7 @@ install -m 0755 -d %{buildroot}/%{_sharedstatedir}/loudml
 # LoudML daemon configuration
 %{_sysconfdir}/loudml/config.yml
 %{_unitdir}/loudmld.service
-%{_sharedstatedir}/loudml
+%attr(-,loudml,loudml) %{_sharedstatedir}/loudml
 
 %doc
 

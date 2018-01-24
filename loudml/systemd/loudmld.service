@@ -6,6 +6,8 @@ After=network.service
 Type=simple
 ExecStart=/usr/bin/loudmld
 Restart=always
+User=loudml
+Group=loudml
 
 [Install]
 WantedBy=multi-user.target
