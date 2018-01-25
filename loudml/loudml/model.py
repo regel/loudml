@@ -31,7 +31,7 @@ class Feature:
         self.metric = metric
         self.measurement = measurement
         self.field = field
-        self.default = np.nan if default is None else default
+        self.default = np.nan if default is None else float(default)
         self.script = script
 
 

@@ -343,7 +343,7 @@ class TimeSeriesModel(Model):
         for prediction is given by `self.span`.
 
         input:
-        [v0, v1, v2, v3, ,v4 ..., vn]
+        [v0, v1, v2, v3, v4 ..., vn]
 
         output:
         indexes = [3, 4, ..., n]
@@ -503,7 +503,7 @@ class TimeSeriesModel(Model):
         for prediction is given by `self.span`.
 
         input:
-        [v0, v1, v2, v3, ,v4 ..., vn]
+        [v0, v1, v2, v3, v4 ..., vn]
 
         output:
         indexes = [3, 4, ..., n]
@@ -547,6 +547,9 @@ class TimeSeriesModel(Model):
 
         from_str = ts_to_str(from_ts)
         to_str = ts_to_str(to_ts)
+
+        # This is the number of buckets that the function MUST return
+        predict_len = int((to_ts - from_ts) / self.bucket_interval)
 
         logging.info("predict(%s) range=[%s, %s]",
                      self.name, from_str, to_str)
@@ -594,35 +597,47 @@ class TimeSeriesModel(Model):
         logging.info("found %d time periods", nb_buckets_found)
 
         rng = _maxs - _mins
-        dataset = 1.0 - (_maxs - dataset) / rng
+        norm_dataset = 1.0 - (_maxs - dataset) / rng
 
-        j_sel, X_test = self._format_dataset_predict(dataset[:X_until])
-
-        y_test = np.array(dataset[self.span:])
+        j_sel, X_test = self._format_dataset_predict(norm_dataset[:X_until])
 
         logging.info("generating prediction")
         Y_ = _keras_model.predict(X_test)
 
         # min/max inverse operation
         Z_ = _maxs - rng * (1.0 - Y_)
-        y_test = _maxs - rng * (1.0 - y_test)
 
-        y = {}
-        y_ = {}
-        for j, feature in enumerate(self.features):
-            out_y = np.array([None] * (len(X) - self.span + 1))
-            out_y[j_sel - self.span] = y_test[:][:,j]
-            out_y_ = np.array([None] * (len(X) - self.span + 1))
-            out_y_[j_sel - self.span] = Z_[:][:,j]
-            y[feature.name] = out_y.tolist()
-            y_[feature.name] = out_y_.tolist()
-
+        # Build final result
         timestamps = X[self.span:]
         last_ts = make_ts(X[-1])
         timestamps.append(ts_to_str(last_ts + self.bucket_interval))
 
+        observed = {}
+        predicted = {}
+
+        for i, feature in enumerate(self.features):
+            default = None if feature.default is np.nan else feature.default
+            init = [default] * predict_len
+
+            feature_y = dataset[self.span:][:,i]
+
+            def apply_default(x):
+                if x is None or x is np.nan or np.isnan(x):
+                    return default
+                return x
+
+            observed[feature.name] = [
+                apply_default(x) for x in feature_y
+            ]
+
+            feature_y_ = np.array(init)
+            feature_y_[j_sel - self.span] = Z_[:][:,i]
+            predicted[feature.name] = [
+                apply_default(x) for x in feature_y_
+            ]
+
         return TimeSeriesPrediction(
             timestamps=timestamps,
-            observed=y,
-            predicted=y_,
+            observed=observed,
+            predicted=predicted,
         )

@@ -36,7 +36,7 @@ class TestTimes(unittest.TestCase):
         generator = SinEventGenerator(avg=3, sigma=0.05)
 
         self.to_date = datetime.datetime.now().timestamp()
-        self.from_date = self.to_date - 3600 * 24 * 7
+        self.from_date = self.to_date - 3600 * 24 * 7 * 2
 
         for ts in generator.generate_ts(self.from_date, self.to_date, step=600):
             self.source.insert_times_data({
@@ -112,6 +112,8 @@ class TestTimes(unittest.TestCase):
             (to_date - from_date) / self.model.bucket_interval
         )
 
+        # prediction.plot('count_foo')
+
         obs_avg = prediction.observed['avg_foo']
         obs_count = prediction.observed['count_foo']
         pred_avg = prediction.predicted['avg_foo']
@@ -169,22 +171,38 @@ class TestTimes(unittest.TestCase):
         source = MemDataSource()
         storage = MemStorage()
 
-        to_date = datetime.datetime.now().timestamp()
-        from_date = to_date - 3600 * 24 * 7 * 3
+        to_date = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        ).timestamp()
 
-        # Generate 3 weeks of data
-        ts = from_date
-        for i in range(7 * 3):
-            # Generate 23h of data
-            for j in range(23):
+        # Generate 3 days of data
+        nb_days = 3
+        hist_to = to_date
+        hist_from = to_date - 3600 * 24 * nb_days
+        ts = hist_from
+
+        for i in range(nb_days):
+            # [0h-12h[
+            for j in range(12):
                 source.insert_times_data({
                     'timestamp': ts,
                     'foo': j,
                 })
                 ts += 3600
 
-            # No data for last hour
+            # No data for [12h, 13h[
             ts += 3600
+
+            # [13h-0h[
+            for j in range(11):
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': j,
+                })
+                ts += 3600
 
         model = TimeSeriesModel(dict(
             name='test',
@@ -192,19 +210,30 @@ class TestTimes(unittest.TestCase):
             span=3,
             bucket_interval=3600,
             interval=60,
-            features=[{
-                'name': 'avg_foo',
-                'metric': 'avg',
-                'field': 'foo',
-                #'default': None,
-            }],
+            features=[
+                {
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                },
+                {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': None,
+                },
+            ],
             threshold=30,
-            max_evals=10,
+            max_evals=1,
         ))
 
-        model.train(source, from_date, to_date)
+        # train on all dataset
+        model.train(source, hist_from, hist_to)
         self.assertTrue(model.is_trained)
 
+        # predict on last 24h
+        to_date = hist_to
         from_date = to_date - 3600 * 24
         prediction = model.predict(source, from_date, to_date)
 
@@ -216,10 +245,4 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(len(pred), 24)
 
         # Holes expected in prediction
-        self.assertEqual(pred[:model.span], [None] * model.span)
-        self.assertEqual(pred[-1], None)
-
-        for i in range(24):
-            self.assertAlmostEqual(
-                pred[i], obs[i], delta=2.0,
-            )
+        self.assertEqual(pred[13:13+model.span], [None] * model.span)
