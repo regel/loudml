@@ -10,6 +10,7 @@ from .misc import (
     make_datetime,
 )
 from .randevents import (
+    LoudMLEventGenerator,
     FlatEventGenerator,
     SinEventGenerator,
 )
@@ -112,7 +113,7 @@ def main():
     parser.add_argument(
         '--shape',
         help="Data shape",
-        choices=['flat', 'sin'],
+        choices=['flat', 'sin', 'loudml'],
         default='sin',
     )
     parser.add_argument(
@@ -140,6 +141,8 @@ def main():
 
     if arg.shape == 'flat':
         ts_generator = FlatEventGenerator(avg=arg.avg)
+    elif arg.shape == 'loudml':
+        ts_generator = LoudMLEventGenerator()
     else:
         ts_generator = SinEventGenerator(avg=10, sigma=2)
 

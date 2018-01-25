@@ -81,6 +81,54 @@ class SinEventGenerator(EventGenerator):
     def variate(self, ts):
         return max(self.avg * day_sin_variate(ts) + self.avg, 0)
 
+class LoudMLEventGenerator(EventGenerator):
+    """
+    Random event generator with a LoudML shape
+    """
+
+    MARGIN = 6
+    SCHEME = \
+"""
+XX                                                    XX         XXX               XXX
+XX                                                    XX        X   X             X   X
+XX                                                    XX        X   X             X   X
+XX                                                    XX       X     X           X     X
+XX        XXXX        XX            XX        XXXX    XX       X     X           X     X
+XX     XXXXXXXXXX     XX            XX     XXXXXXXXXX XX      X       X         X       X
+XX   XXXXXXXXXXXXXX   XX            XX   XXXXXXXXXXXXXXX      X       X         X       X
+XX  XXXXXXXXXXXXXXXX  XX            XX  XXXXXXXXXXXXXXXX     X         X       X         X
+XX  XXXXXXXXXXXXXXXX  XX            XX  XXXXXXXXXXXXXXXX     X         X       X         X
+XX  XXXXXXXXXXXXXXXX  XX            XX  XXXXXXXXXXXXXXXX    X           X     X           X
+XX  XXXXXXXXXXXXXXXX  XX            XX  XXXXXXXXXXXXXXXX    X           X     X           X
+XX  XXXXXXXXXXXXXXXX  XXX          XXX  XXXXXXXXXXXXXXXX   X             X   X             XXXXXXXXXXXXXXX
+XX  XXXXXXXXXXXXXXXX  XXXX        XXXX  XXXXXXXXXXXXXXXX   X             X   X             XXXXXXXXXXXXXXXXX
+XX  XXXXXXXXXXXXXXXX  XXXXXXXXXXXXXXXX  XXXXXXXXXXXXXXXX  X               XXX               XXXXXXXXXXXXXXXXX
+XX  XXXXXXXXXXXXXXXX  XXXXXXXXXXXXXXXX  XXXXXXXXXXXXXXXX  X                                 XXXXXXXXXXXXXXXXX
+"""
+
+
+    def __init__(self, base=1, factor=8):
+        super().__init__(sigma=0)
+        self.base = base
+        self.factor = factor
+
+        scheme = self.SCHEME.strip().splitlines()
+        values = [0] * len(max(scheme, key=len))
+
+        for i, line in enumerate(reversed(scheme)):
+            value = (i + 1) / len(scheme)
+
+            for j, char in enumerate(line):
+                values[j] = max(values[j], 0 if char == ' ' else value)
+
+        self._values = [0] * self.MARGIN + values + [0] * self.MARGIN
+
+    def variate(self, ts):
+        t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
+        x = int(len(self._values) * (ts - t0) / (24 * 3600)) % len(self._values)
+
+        return self.base + self.factor * self._values[x]
+
 
 def example():
     """
