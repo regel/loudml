@@ -304,4 +304,10 @@ class ElasticsearchDataSource(DataSource):
             yield (timestamp - t0) / 1000, X, timeval
 
     def save_timeseries_prediction(self, prediction, model):
-        raise NotImplemented()
+        for bucket in prediction.format_buckets():
+            self.insert_times_data(
+                doc_type='prediction_{}'.format(model_name),
+                ts=bucket['timestamp'],
+                data=bucket['predicted'],
+            )
+        self.commit()
