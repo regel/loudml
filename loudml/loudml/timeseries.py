@@ -3,6 +3,7 @@ LoudML time-series module
 """
 
 import logging
+import math
 import os
 import numpy as np
 
@@ -335,7 +336,7 @@ class TimeSeriesModel(Model):
 
     def _format_dataset(self, dataset):
         """
-        Format dataset for time-series prediction
+        Format dataset for time-series training
 
         It is assumed that a value for a given bucket can be predicted
         according the preceding ones. The number of preceding buckets used
@@ -493,6 +494,42 @@ class TimeSeriesModel(Model):
         """
         return self.state and 'weights' in self.state
 
+    def _format_dataset_predict(self, dataset):
+        """
+        Format dataset for time-series prediction
+
+        It is assumed that a value for a given bucket can be predicted
+        according the preceding ones. The number of preceding buckets used
+        for prediction is given by `self.span`.
+
+        input:
+        [v0, v1, v2, v3, ,v4 ..., vn]
+
+        output:
+        indexes = [3, 4, ..., n]
+        X = [
+            [v0, v1, v2], # span = 3
+            [v1, v2, v3],
+            [v2, v3, v4],
+            ...
+            [..., .., vn],
+        ]
+
+        Buckets with missing values are skipped.
+        """
+        data_x = []
+        indexes = []
+
+        for i in range(len(dataset) - self.span + 1):
+            j = i + self.span
+            partX = dataset[i:j, :]
+
+            if not np.isnan(partX).any():
+                data_x.append(partX)
+                indexes.append(j)
+
+        return np.array(indexes), np.array(data_x)
+
     def predict(
         self,
         datasource,
@@ -504,6 +541,10 @@ class TimeSeriesModel(Model):
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
 
+        # Fixup range to be sure that it is a multiple of bucket_interval
+        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
+        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
+
         from_str = ts_to_str(from_ts)
         to_str = ts_to_str(to_ts)
 
@@ -512,30 +553,38 @@ class TimeSeriesModel(Model):
 
         self.load()
 
+        # Build history time range
         # Extra data are required to predict first buckets
-        from_ts -= self.span * self.bucket_interval
-        from_str = ts_to_str(from_ts)
+        hist_from_ts = from_ts - self.span * self.bucket_interval
+        hist_to_ts = to_ts
+        hist_from_str = ts_to_str(hist_from_ts)
+        hist_to_str = ts_to_str(hist_to_ts)
 
         # Prepare dataset
-        nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
+        nb_buckets = self._compute_nb_buckets(hist_from_ts, hist_to_ts)
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
         X = []
 
         # Fill dataset
         logging.info("extracting data for range=[%s, %s]",
-                     from_ts, to_ts)
-        data = datasource.get_times_data(self, from_ts, to_ts)
+                     hist_from_str, hist_to_str)
+        data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
 
+        # Only a subset of history will be used for computing the prediction
+        X_until = None # right bound for prediction
         i = None
         for i, (_, val, ts) in enumerate(data):
             dataset[i] = val
-            X.append(ts)
+
+            if make_ts(ts) < to_ts - self.bucket_interval:
+                X.append(ts)
+                X_until = i + 1
 
         if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
-                from_str,
-                to_str,
+                hist_from_str,
+                hist_to_str,
             ))
 
         nb_buckets_found = i + 1
@@ -547,7 +596,9 @@ class TimeSeriesModel(Model):
         rng = _maxs - _mins
         dataset = 1.0 - (_maxs - dataset) / rng
 
-        j_sel, X_test, y_test = self._format_dataset(dataset)
+        j_sel, X_test = self._format_dataset_predict(dataset[:X_until])
+
+        y_test = np.array(dataset[self.span:])
 
         logging.info("generating prediction")
         Y_ = _keras_model.predict(X_test)
@@ -559,15 +610,19 @@ class TimeSeriesModel(Model):
         y = {}
         y_ = {}
         for j, feature in enumerate(self.features):
-            out_y = np.array([None] * (len(X) - self.span))
+            out_y = np.array([None] * (len(X) - self.span + 1))
             out_y[j_sel - self.span] = y_test[:][:,j]
-            out_y_ = np.array([None] * (len(X) - self.span))
+            out_y_ = np.array([None] * (len(X) - self.span + 1))
             out_y_[j_sel - self.span] = Z_[:][:,j]
             y[feature.name] = out_y.tolist()
             y_[feature.name] = out_y_.tolist()
 
+        timestamps = X[self.span:]
+        last_ts = make_ts(X[-1])
+        timestamps.append(ts_to_str(last_ts + self.bucket_interval))
+
         return TimeSeriesPrediction(
-            timestamps=X[self.span:],
+            timestamps=timestamps,
             observed=y,
             predicted=y_,
         )

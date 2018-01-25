@@ -100,11 +100,12 @@ class TestTimes(unittest.TestCase):
         self._require_training()
         self.assertTrue(self.model.is_trained)
 
-    def test_predict(self):
-        to_date = self.to_date
+    def test_predict_aligned(self):
+        self._require_training()
+
+        to_date = math.floor(self.to_date / self.model.bucket_interval) * self.model.bucket_interval
         from_date = to_date - 24 * 3600
 
-        self._require_training()
         prediction = self.model.predict(self.source, from_date, to_date)
 
         expected = math.ceil(
@@ -121,6 +122,40 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(len(pred_avg), expected)
         self.assertEqual(len(obs_count), expected)
         self.assertEqual(len(pred_count), expected)
+
+        for i in range(expected):
+            self.assertAlmostEqual(
+                pred_avg[i], obs_avg[i], delta=2.0,
+            )
+            self.assertAlmostEqual(
+                pred_count[i], obs_count[i], delta=12,
+            )
+
+    def test_predict_unaligned(self):
+        self._require_training()
+
+        # Aligned
+        to_date = math.floor(self.to_date / self.model.bucket_interval) * self.model.bucket_interval
+        # Unaligned
+        to_date += self.model.bucket_interval / 4
+        from_date = to_date
+
+        prediction = self.model.predict(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / self.model.bucket_interval
+        )
+
+        obs_avg = prediction.observed['avg_foo']
+        obs_count = prediction.observed['count_foo']
+        pred_avg = prediction.predicted['avg_foo']
+        pred_count = prediction.predicted['count_foo']
+
+        self.assertEqual(len(prediction.timestamps), 1)
+        self.assertEqual(len(obs_avg), 1)
+        self.assertEqual(len(pred_avg), 1)
+        self.assertEqual(len(obs_count), 1)
+        self.assertEqual(len(pred_count), 1)
 
         for i in range(expected):
             self.assertAlmostEqual(
