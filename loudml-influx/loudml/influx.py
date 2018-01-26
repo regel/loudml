@@ -7,11 +7,19 @@ import logging
 import influxdb.exceptions
 import numpy as np
 
+from voluptuous import (
+    Required,
+    Schema,
+)
+
 from influxdb import (
     InfluxDBClient,
 )
 
-from . import errors
+from . import (
+    errors,
+    schemas,
+)
 from loudml.misc import (
     make_ts,
     parse_addr,
@@ -87,7 +95,13 @@ class InfluxDataSource(DataSource):
     Elasticsearch datasource
     """
 
+    SCHEMA = DataSource.SCHEMA.extend({
+        Required('addr'): str,
+        Required('database'): schemas.key,
+    })
+
     def __init__(self, cfg):
+        cfg['type'] = 'influxdb'
         super().__init__(cfg)
         self._influxdb = None
 
