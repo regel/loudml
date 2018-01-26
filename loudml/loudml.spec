@@ -47,7 +47,7 @@ if ! getent group loudml; then
   groupadd --system loudml
 fi
 if ! getent passwd loudml; then
-  useradd --comment "LoudML" --gid loudml --no-create-home --system loudml
+  useradd --comment "LoudML" --gid loudml --no-create-home --system --shell /sbin/nologin loudml
 fi
 
 
@@ -87,6 +87,7 @@ install -m 0755 -d %{buildroot}/%{_sharedstatedir}/loudml
 %{python3_sitelib}/loudml-*.egg-info/*
 
 # LoudML daemon configuration
+%attr(2777,root,loudml) %dir %{_sysconfdir}/loudml
 %{_sysconfdir}/loudml/config.yml
 %{_unitdir}/loudmld.service
 %attr(-,loudml,loudml) %{_sharedstatedir}/loudml
