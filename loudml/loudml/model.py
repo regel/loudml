@@ -104,10 +104,29 @@ class Model:
         return self._settings
 
     @property
+    def is_trained(self):
+        return self.state is not None
+
+    @property
     def data(self):
         return {
             'settings': self.settings,
             'state': self.state,
+        }
+
+    @property
+    def preview(self):
+        state = {
+            'trained': self.is_trained,
+        }
+
+        if self.is_trained:
+            state['loss'] = self.state.get('loss')
+            state['accuracy'] = self.state.get('accuracy')
+
+        return {
+            'settings': self.settings,
+            'state': state,
         }
 
 def load_model(settings, state=None):

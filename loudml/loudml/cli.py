@@ -152,6 +152,7 @@ class ListModelsCommand(Command):
             for model in storage.list_models():
                 print(model)
 
+
 class DeleteModelCommand(Command):
     """
     Delete a model
@@ -167,6 +168,24 @@ class DeleteModelCommand(Command):
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         storage.delete_model(args.model_name)
+
+
+class ShowModelCommand(Command):
+    """
+    Delete a model
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        storage = FileStorage(self.config.storage['path'])
+        model = storage.load_model(args.model_name)
+        print(json.dumps(model.preview, indent=4))
 
 
 class TrainCommand(Command):

@@ -61,6 +61,7 @@ setup(
             'create-model=loudml.cli:CreateModelCommand',
             'delete-model=loudml.cli:DeleteModelCommand',
             'list-models=loudml.cli:ListModelsCommand',
+            'show-model=loudml.cli:ShowModelCommand',
             'train=loudml.cli:TrainCommand',
             'predict=loudml.cli:PredictCommand',
         ],
