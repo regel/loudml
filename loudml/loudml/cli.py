@@ -213,7 +213,13 @@ class TrainCommand(Command):
                 raise LoudMLException(
                     "'to' argument is required for time-series",
                 )
-            model.train(source, args.from_date, args.to_date)
+            result = model.train(
+                source,
+                args.from_date,
+                args.to_date,
+            )
+            print("loss: %f" % result['loss'])
+            print("accuracy: %f" % result['accuracy'])
             storage.save_model(model)
 
 

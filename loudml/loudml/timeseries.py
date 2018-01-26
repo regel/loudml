@@ -450,7 +450,7 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", i + 1)
 
-        best_params, _, _, _ = self._train_on_dataset(
+        best_params, score, _, _ = self._train_on_dataset(
             dataset,
             train_size,
             batch_size,
@@ -468,6 +468,14 @@ class TimeSeriesModel(Model):
             'best_params': best_params,
             'mins': _mins.tolist(),
             'maxs': _maxs.tolist(),
+            'loss': score[0],
+            'accuracy': score[1],
+
+        }
+
+        return {
+            'loss': score[0],
+            'accuracy': score[1],
         }
 
     def load(self):
