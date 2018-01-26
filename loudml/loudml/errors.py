@@ -4,12 +4,14 @@ LoudML errors
 
 class LoudMLException(Exception):
     """LoudML exception"""
+    code = 500
 
     def __init__(self, msg=None):
         super().__init__(msg or self.__doc__)
 
 class DataSourceError(LoudMLException):
     """Error occured on data source query"""
+    code = 500
 
     def __init__(self, datasource, error=None):
         self.datasource = datasource
@@ -20,9 +22,11 @@ class DataSourceError(LoudMLException):
 
 class DataSourceNotFound(LoudMLException):
     """Data source not found"""
+    code = 404
 
 class Invalid(LoudMLException):
     """Data is invalid"""
+    code = 400
 
     def __init__(self, error, path=None, hint=None):
         self.error = error
@@ -40,24 +44,32 @@ class Invalid(LoudMLException):
 
 class ModelExists(LoudMLException):
     """Model exists"""
+    code = 409
 
 class ModelNotFound(LoudMLException):
     """Model not found"""
+    code = 404
 
 class ModelNotTrained(LoudMLException):
     """Model not trained"""
+    code = 412
 
 class UnsupportedDataSource(LoudMLException):
     """Unsupported data source"""
+    code = 501
 
 class UnsupportedMetric(LoudMLException):
     """Unsupported metric"""
+    code = 501
 
 class UnsupportedModel(LoudMLException):
     """Unsupported model"""
+    code = 501
 
 class NoData(LoudMLException):
     """No data"""
+    code = 404
 
 class TransportError(LoudMLException):
     """Transport error"""
+    code = 503

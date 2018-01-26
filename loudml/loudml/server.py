@@ -190,8 +190,25 @@ def read_messages():
         except queue.Empty:
             break
 
+@app.errorhandler(errors.Invalid)
+def handle_loudml_error(exn):
+    print("CAUGHT")
+    response = jsonify({
+        'error': str(exn),
+    })
+    response.status_code = exn.code
+    return response
+
+def catch_loudml_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except errors.LoudMLException as exn:
+            return str(exn), exn.code
+    return wrapper
 
 class ModelsResource(Resource):
+    @catch_loudml_error
     def get(self):
         global g_storage
 
@@ -205,40 +222,32 @@ class ModelsResource(Resource):
 
         return jsonify(models)
 
+    @catch_loudml_error
     def put(self):
         global g_storage
 
         model = loudml.model.load_model(settings=request.json)
-
-        try:
-            g_storage.create_model(model)
-        except errors.ModelExists as exn:
-            return str(exn), 409
+        g_storage.create_model(model)
 
         return "success", 201
 
 
 class ModelResource(Resource):
+    @catch_loudml_error
     def get(self, model_name):
         global g_storage
 
-        try:
-            model = g_storage.load_model(model_name)
-        except errors.ModelNotFound as exn:
-            return str(exn), 404
-
+        model = g_storage.load_model(model_name)
         return jsonify(model.settings)
 
+    @catch_loudml_error
     def delete(self, model_name):
         global g_storage
 
-        try:
-            g_storage.delete_model(model_name)
-        except errors.ModelNotFound as exn:
-            return str(exn), 404
-
+        g_storage.delete_model(model_name)
         return "success"
 
+    @catch_loudml_error
     def post(self, model_name):
         global g_storage
 
@@ -263,11 +272,7 @@ def model_train(model_name):
     global g_storage
     global g_training
 
-    try:
-        model = g_storage.load_model(model_name)
-    except errors.ModelNotFound as exn:
-        return str(exn), 404
-
+    model = g_storage.load_model(model_name)
     kwargs = {}
 
     if model.type == 'timeseries':
@@ -285,17 +290,15 @@ def model_train(model_name):
     return jsonify(job.id)
 
 class DataSourcesResource(Resource):
+    @catch_loudml_error
     def get(self):
         return jsonify(list(g_config.datasources.values()))
 
 
 class DataSourceResource(Resource):
+    @catch_loudml_error
     def get(self, datasource_name):
-        try:
-            datasource = g_config.get_datasource(datasource_name)
-        except errors.DataSourceNotFound as exn:
-            return str(exn), 404
-
+        datasource = g_config.get_datasource(datasource_name)
         return jsonify(datasource)
 
 
@@ -303,12 +306,14 @@ api.add_resource(DataSourcesResource, "/datasources")
 api.add_resource(DataSourceResource, "/datasources/<datasource_name>")
 
 class JobsResource(Resource):
+    @catch_loudml_error
     def get(self):
         global g_jobs
         return jsonify([job.desc for job in g_jobs.values()])
 
 
 class JobResource(Resource):
+    @catch_loudml_error
     def get(self, job_id):
         global g_jobs
 
@@ -344,6 +349,7 @@ class TrainingJob(Job):
 
 
 class TrainingJobsResource(Resource):
+    @catch_loudml_error
     def get(self, model_name):
         global g_training
 
@@ -351,6 +357,7 @@ class TrainingJobsResource(Resource):
         return jsonify([job.desc for job in jobs.values()])
 
 class TrainingJobResource(Resource):
+    @catch_loudml_error
     def get(self, model_name, job_id):
         global g_jobs
 
@@ -390,10 +397,7 @@ def model_start(model_name):
     global g_storage
     global g_running_models
 
-    try:
-        model = g_storage.load_model(model_name)
-    except errors.ModelNotFound as exn:
-        return str(exn), 404
+    model = g_storage.load_model(model_name)
 
     if model_name in g_running_models:
         return "real-time prediction is already active for this model", 409
