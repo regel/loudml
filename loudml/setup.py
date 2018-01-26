@@ -36,6 +36,7 @@ setup(
         "hyperopt==0.1",
         "psutil>=2.2.1",
         "PyYAML>=3.11",
+        "voluptuous>=0.10.5",
     ],
 
     extras_require={

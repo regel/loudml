@@ -178,8 +178,10 @@ class TimeSeriesModel(Model):
     """
     Time-series model
     """
+    TYPE = 'timeseries'
 
     def __init__(self, settings, state=None):
+        settings['type'] = self.TYPE
         super().__init__(settings, state)
 
         # TODO use voluptuous to check settings validity
@@ -192,7 +194,7 @@ class TimeSeriesModel(Model):
 
     @property
     def type(self):
-        return 'timeseries'
+        return self.TYPE
 
     def _compute_nb_buckets(self, from_ts, to_ts):
         """

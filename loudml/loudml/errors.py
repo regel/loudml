@@ -21,6 +21,23 @@ class DataSourceError(LoudMLException):
 class DataSourceNotFound(LoudMLException):
     """Data source not found"""
 
+class Invalid(LoudMLException):
+    """Data is invalid"""
+
+    def __init__(self, error, path=None, hint=None):
+        self.error = error
+        self.path = path
+        self.hint = hint
+
+    def __str__(self):
+        hint = "" if self.hint is None else " ({})".format(self.hint)
+
+        if self.path is None or len(self.path) == 0:
+            return "data is invalid: {}{}".format(self.error, hint)
+        else:
+            path = '.'.join([str(key) for key in self.path])
+            return "invalid field {}: {}{}".format(path, self.error, hint)
+
 class ModelExists(LoudMLException):
     """Model exists"""
 
