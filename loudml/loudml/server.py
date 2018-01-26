@@ -50,6 +50,8 @@ g_pool = None
 g_queue = None
 g_running_models = {}
 
+MAX_RUNNING_MODELS = 3
+
 # Do not change: pid file to ensure we're running single instance
 APP_NAME = "/usr/bin/loudmld"
 PID_FILE = "/var/run/loudmld.pid"
@@ -401,6 +403,9 @@ def model_start(model_name):
 
     if model_name in g_running_models:
         return "real-time prediction is already active for this model", 409
+
+    if len(g_running_models) >= MAX_RUNNING_MODELS:
+        return "maximum number of running models is reached", 429
 
     def create_job(from_date=None):
         kwargs = {}
