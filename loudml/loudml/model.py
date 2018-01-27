@@ -7,18 +7,8 @@ import pkg_resources
 
 import numpy as np
 
-from voluptuous import (
-    ALLOW_EXTRA,
-    All,
-    Any,
-    Length,
-    Required,
-    Schema,
-)
-
 from . import (
     errors,
-    schemas,
 )
 
 class Feature:
@@ -26,25 +16,16 @@ class Feature:
     Model feature
     """
 
-    SCHEMA = Schema({
-        Required('name'): schemas.key,
-        Required('metric'): schemas.key,
-        Required('field'): schemas.key,
-        'measurement': Any(None, schemas.key),
-        'default': Any(None, int, float),
-        'script': Any(None, str),
-    })
-
     def __init__(
         self,
-        name=None,
-        metric=None,
-        field=None,
+        name,
+        metric,
         measurement=None,
+        field=None,
         default=None,
         script=None,
     ):
-        self.validate(locals())
+        # TODO use voluptuous to check field validity
 
         self.name = name
         self.metric = metric
@@ -53,43 +34,29 @@ class Feature:
         self.default = np.nan if default is None else float(default)
         self.script = script
 
-    @classmethod
-    def validate(cls, args):
-        del args['self']
-        schemas.validate(cls.SCHEMA, args)
-
 
 class Model:
     """
     LoudML model
     """
 
-    SCHEMA = Schema({
-        Required('name'): schemas.key,
-        Required('type'): schemas.key,
-        Required('features'): All([Feature.SCHEMA], Length(min=1)),
-        'routing': Any(None, schemas.key),
-    }, extra=ALLOW_EXTRA)
-
     def __init__(self, settings, state=None):
         """
         name -- model settings
         """
 
-        self.validate(settings)
+        # TODO use voluptuous to check field validity
+
         settings = copy.deepcopy(settings)
+        settings['type'] = 'timeseries'
 
         self._settings = settings
         self.name = settings.get('name')
         self._settings = settings
+        self.measurement = settings.get('measurement')
         self.routing = settings.get('routing')
         self.state = state
         self.features = [Feature(**feature) for feature in settings['features']]
-
-    @classmethod
-    def validate(cls, settings):
-        """Validate the settings against the schema"""
-        schemas.validate(cls.SCHEMA, settings)
 
     @property
     def type(self):
