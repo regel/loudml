@@ -54,6 +54,7 @@ class TestElasticDataSource(unittest.TestCase):
         self.index = 'test-%d' % t0
         logging.info("creating index %s", self.index)
         self.source = ElasticsearchDataSource({
+            'name': 'test',
             'addr': os.environ['ELASTICSEARCH_ADDR'],
             'index': self.index,
         })

@@ -37,6 +37,7 @@ def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
     from .influx import InfluxDataSource
 
     source = InfluxDataSource({
+        'name': 'influx',
         'addr': addr,
         'database': db,
     })
