@@ -16,11 +16,6 @@ from elasticsearch import (
     TransportError,
 )
 
-from voluptuous import (
-    Required,
-    Schema,
-)
-
 from . import errors
 from loudml.datasource import DataSource
 from loudml.misc import (
@@ -51,14 +46,7 @@ class ElasticsearchDataSource(DataSource):
     Elasticsearch datasource
     """
 
-    SCHEMA = DataSource.SCHEMA.extend({
-        Required('addr'): str,
-        Required('index'): str,
-        'routing': str,
-    })
-
     def __init__(self, cfg):
-        cfg['type'] = 'elasticsearch'
         super().__init__(cfg)
         self._es = None
 

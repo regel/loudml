@@ -67,11 +67,8 @@ class MemDataSource(DataSource):
     In-memory data source
     """
 
-    def __init__(self, name='mem'):
-        super().__init__({
-            'name': name,
-            'type': 'mem',
-        })
+    def __init__(self):
+        super().__init__({})
         self.data = []
 
     def insert_data(self, data):

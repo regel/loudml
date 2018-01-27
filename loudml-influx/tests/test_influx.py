@@ -58,7 +58,6 @@ class TestInfluxQuick(unittest.TestCase):
         self.db = 'test-{}'.format(t0)
         logging.info("creating database %s", self.db)
         self.source = InfluxDataSource({
-            'name': 'test',
             'addr': ADDR,
             'database': self.db,
         })
@@ -103,16 +102,6 @@ class TestInfluxQuick(unittest.TestCase):
 
     def tearDown(self):
         self.source.delete_db()
-
-    def test_validation(self):
-        with self.assertRaises(errors.Invalid):
-            InfluxDataSource({
-                'addr': 'localhost',
-            })
-        with self.assertRaises(errors.Invalid):
-            InfluxDataSource({
-                'database': 'foo',
-            })
 
     def test_build_time_predicates(self):
         self.assertEqual(
@@ -171,7 +160,6 @@ class TestInfluxLong(unittest.TestCase):
 
         self.db = "test-{}".format(int(datetime.datetime.now().timestamp()))
         self.source = InfluxDataSource({
-            'name': 'test',
             'addr': ADDR,
             'database': self.db,
         })
