@@ -1,0 +1,28 @@
+[[feature-dsl]]
+= Feature DSL
+
+[partintro]
+--
+
+Loud ML provides a full Feature DSL (Domain Specific Language) based on JSON to define
+how data must be organized in memory in order to produce the right model and
+predictive output with your data set.
+
+Think of the Feature DSL as an abstract syntax consisting of two types of
+structures:
+
+Timeseries types::
+
+Timeseries types aggregate data based on a particular field, or script,
+to produce <<timeseries-dsl,`numeric`>> features. These features
+can be used by themselves to predict their trend in the near future.
+
+Organized types::
+
+Organized features wrap other compound features and are used to combine
+multiple categorical and numerical properties in a logical fashion. These
+features are used to discover patterns in the data.
+--
+
+include::feature-dsl/times-dsl.asciidoc[]
+

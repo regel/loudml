@@ -1,0 +1,54 @@
+[[setting-system-settings]]
+=== Configuring system settings
+
+Where to configure systems settings depends on which package you have used to
+install Loud ML, and which operating system you are using.
+
+When using the RPM or Debian packages, most system settings are set in the
+<<sysconfig,system configuration file>>. However, systems which use systemd
+require that system limits are specified in a
+<<systemd,systemd configuration file>>.
+
+
+[[sysconfig]]
+==== Sysconfig file
+
+When using the RPM or Debian packages, system settings and environment
+variables can be specified in the system configuration file, which is located
+in:
+
+[horizontal]
+RPM::     `/etc/sysconfig/loudml`
+Debian::  `/etc/default/loudml`
+
+However, for systems which uses `systemd`, system limits need to be specified
+via <<systemd,systemd>>.
+
+[[systemd]]
+==== Systemd configuration
+
+When using the RPM or Debian packages on systems that use
+https://en.wikipedia.org/wiki/Systemd[systemd], system limits must be
+specified via systemd.
+
+The systemd service file (`/usr/lib/systemd/system/loudmld.service`)
+contains the limits that are applied by default.
+
+To override them, add a file called
+`/etc/systemd/system/loudmld.service.d/override.conf` (alternatively,
+you may run `sudo systemctl edit loudmld` which opens the file 
+automatically inside your default editor). Set any changes in this file,
+such as:
+
+[source,sh]
+---------------------------------
+[Service]
+LimitFDs=infinity
+---------------------------------
+
+Once finished, run the following command to reload units:
+
+[source,sh]
+---------------------------------
+sudo systemctl daemon-reload
+---------------------------------

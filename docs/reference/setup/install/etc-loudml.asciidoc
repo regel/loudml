@@ -1,0 +1,16 @@
+Loud ML defaults to using `/etc/loudml` for runtime configuration.
+The ownership of this directory and all files in this directory are set to
+`root:loudml` on package installation and the directory has the `setgid`
+flag set so that any files and subdirectories created under `/etc/loudml`
+are created with this ownership as well. It is expected that this be maintained so
+that the `loudmld`  process can read the files under this directory via the
+group permissions.
+
+Loud ML loads its configuration from the
+`/etc/loudml/config.yml` file by default.  The format of this
+configuration file is explained in <<settings>>.
+
+Loud ML loads and saves its runtime data from the
+`/var/lib/loudml` directory. The content of this directory must not
+be edited.
+

@@ -1,0 +1,79 @@
+[[cli-create-model]]
+== Create Model Command
+
+The `create-model` command will create a new model according to the
+settings defined in the input file:
+
+[source,bash]
+--------------------------------------------------
+loudml create-model avg_temp2.json
+--------------------------------------------------
+
+The `avg_temp2.json` file (Or .yml file if YAML format is used)
+may contain the following settings:
+
+[source,js]
+--------------------------------------------------
+{
+  "bucket_interval": "1m",
+  "default_datasource": "my-datasource",
+  "features": [
+    {
+      "default": 0,
+      "field": "temp2",
+      "measurement": "temperature_series",
+      "metric": "avg",
+      "name": "avg_temp_feature"
+    }
+  ],
+  "interval": 60,
+  "max_evals": 10,
+  "name": "avg_temp2-model",
+  "offset": 30,
+  "span": 5,
+  "threshold": 30,
+  "type": "timeseries"
+}
+--------------------------------------------------
+
+The supported settings are:
+
+[horizontal]
+`bucket_interval`::       (duration) The bucket aggregation interval
+`default_datasource`::       (string) The implicit data source to query and insert data
+`features`::       (array) An array of features derived from the aggregated input data
+`interval`::       (duration) The periodic anomaly detection interval
+`max_evals`::      (integer) The integer number of iterations to produce a model with optimal accuracy
+`name`::  (string) Name of this model. This identifier must be unique
+`offset`::   (duration) The time offset used when querying the data source
+`span`::   (integer) The span interval, defined as the number of time buckets to use for predicting the next feature values
+`threshold`::   (integer) The anomaly threshold between 0 and 100
+`type`::   (string) `timeseries`
+
+This above example defines a unique feature, named `avg_temp_feature` that will
+be averaged over `bucket_interval` (1 minute) bucket intervals. The last 5 (`span`)
+buckets (5 * 1 minute) will be used for predicting future `avg_temp_feature` values.
+
+Defining features is straightforward using the unique Loud ML <<feature-dsl,feature description language>>
+
+[NOTE]
+==================================================
+
+The same instructions allow you to define both single variate (unique feature)
+and multivariate models.
+
+Defining multiple features in the model opens the possiblity to find correlations
+between features that will help to achieve a better accuracy in the predictions.
+Say, for example the temperature, and sun exposure measurements both captured
+in measurements available in the same database.
+
+==================================================
+
+[NOTE]
+==================================================
+
+All features defined in the model will query and aggregate data from the same
+data source.
+
+==================================================
+

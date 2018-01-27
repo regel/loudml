@@ -1,0 +1,51 @@
+[glossary]
+[[glossary]]
+= Glossary of terms
+
+[glossary]
+
+[[glossary-TSDB]] TSDB ::
+
+  A time series database (TSDB) is a software system that is optimized for
+  handling time series data, arrays of numbers indexed by time (a datetime
+  or a datetime range). 
+
+[[glossary-data-source]] data-source ::
+
+  Any component that implements our data source Python interfaces. This can be
+  a supported NoSQL database, or anything else that contains TSDB data.
+
+[[glossary-training]] training ::
+
+  Training is the process of converting history data into a
+  <<glossary-model,machine learning model>>. The setting, features, and operations
+  will vary based on the type of model used.
+  Training is CPU (Or even GPU) intensive and data hungry.
+  Training on time series data, with 10,000 aggregated data points will require
+  between a few seconds to minutes on a common CPU.
+  Also see <<glossary-model,model>> and <<glossary-inference,inference>>.
+
+[[glossary-model]] model ::
+
+  A machine learning model uses features to represent changes in the data.
+  With Loud ML, these features are assigned by the user when creating the model.
+  For example, a feature can be `avg(cpu_load)` to represent the average metric
+  calculed on the document field named `cpu_load`. The features are defined
+  at model creation time and used both in <<glossary-training,training>> and
+  <<glossary-inference,inference>>.
+ 
+[[glossary-inference]] inference ::
+
+  This is the process of repeating the operations that have been discovered
+  through <<glossary-training,training>>, this time using brand new data.
+  For example, with time series data, running inference means your model
+  will predict future data based on present and past data: if your features
+  are `avg(cpu_temperature),max(cpu_load)` and your `bucket_interval` is 60s
+  you will predict the temperature and load in the next minute.
+  You can run inference both using past history data, and present data.
+
+[[glossary-type]] type ::
+
+  A type used to represent the _type_ of machine learning model you want to manipulate,
+  e.g. a `timeseries` type if learning the trend of numeric data.
+

@@ -1,0 +1,53 @@
+==== Running Loud ML with `systemd`
+
+To configure Loud ML to start automatically when the system boots up,
+run the following commands:
+
+[source,sh]
+--------------------------------------------------
+sudo /bin/systemctl daemon-reload
+sudo /bin/systemctl enable loudmld.service
+--------------------------------------------------
+
+Loud ML can be started and stopped as follows:
+
+[source,sh]
+--------------------------------------------
+sudo systemctl start loudmld.service
+sudo systemctl stop loudmld.service
+--------------------------------------------
+
+These commands provide no feedback as to whether Loud ML was started
+successfully or not. Instead, this information will be written in the log
+files located in `/var/log/loudml/`.
+
+By default the Loud ML service doesn't log information in the `systemd`
+journal. To enable `journalctl` logging, the `--quiet` option must be removed
+ from the `ExecStart` command line in the `loudmld.service` file.
+
+When `systemd` logging is enabled, the logging information are available using
+the `journalctl` commands:
+
+To tail the journal:
+
+[source,sh]
+--------------------------------------------
+sudo journalctl -f
+--------------------------------------------
+
+To list journal entries for the loudmld service:
+
+[source,sh]
+--------------------------------------------
+sudo journalctl --unit loudmld
+--------------------------------------------
+
+To list journal entries for the loudmld service starting from a given time:
+
+[source,sh]
+--------------------------------------------
+sudo journalctl --unit loudmld --since  "2017-01-01 09:11:13"
+--------------------------------------------
+
+Check `man journalctl` or https://www.freedesktop.org/software/systemd/man/journalctl.html for
+more command line options.

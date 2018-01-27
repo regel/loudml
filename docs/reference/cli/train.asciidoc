@@ -1,0 +1,77 @@
+[[cli-train]]
+== Training Model Command
+
+The `train` command will run <<glossary-training,training>> using
+the data source and settings define both in the model and the command
+line. The `from` and `to` parameters support <<date-math>> format
+and operations.
+
+[source,bash]
+--------------------------------------------------
+loudml train --from "now-30d" --to "now" avg_temp2
+--------------------------------------------------
+
+Training will print logs to `stdout` and report its loss and accuracy.
+
+From the training logs:
+
+[source,sh]
+--------------------------------------------------
+INFO:root:train(avg_temp2) range=[2017-12-24T18:37:07.101Z, 2018-01-24T18:37:07.101Z] train_size=0.670000 batch_size=64 epochs=100)
+INFO:root:connecting to influxdb on localhost:8086, using database 'mydatabase'
+INFO:root:found 43200 time periods
+INFO:root:Preprocessing. mins: [0. 0.] maxs: [66257.01959021 171. ] ranges: [66257.01959021 171. ]
+INFO:hyperopt.tpe:tpe_transform took 0.004044 seconds
+INFO:hyperopt.tpe:TPE using 0 trials
+INFO:hyperopt.tpe:tpe_transform took 0.003784 seconds
+INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 0.032560
+INFO:hyperopt.tpe:tpe_transform took 0.003783 seconds
+INFO:hyperopt.tpe:TPE using 2/2 trials with best loss 0.032560
+INFO:hyperopt.tpe:tpe_transform took 0.003793 seconds
+INFO:hyperopt.tpe:TPE using 3/3 trials with best loss 0.032560
+INFO:hyperopt.tpe:tpe_transform took 0.003681 seconds
+INFO:hyperopt.tpe:TPE using 4/4 trials with best loss 0.032560
+INFO:hyperopt.tpe:tpe_transform took 0.003845 seconds
+INFO:hyperopt.tpe:TPE using 5/5 trials with best loss 0.025540
+INFO:hyperopt.tpe:tpe_transform took 0.003851 seconds
+INFO:hyperopt.tpe:TPE using 6/6 trials with best loss 0.025540
+INFO:hyperopt.tpe:tpe_transform took 0.003847 seconds
+INFO:hyperopt.tpe:TPE using 7/7 trials with best loss 0.025540
+INFO:hyperopt.tpe:tpe_transform took 0.003713 seconds
+INFO:hyperopt.tpe:TPE using 8/8 trials with best loss 0.025540
+INFO:hyperopt.tpe:tpe_transform took 0.003772 seconds
+INFO:hyperopt.tpe:TPE using 9/9 trials with best loss 0.025540
+...
+loss: 0.00042
+accuracy: 0.92445
+--------------------------------------------------
+
+[NOTE]
+==================================================
+
+The training operation requires a long history to achieve a
+good (>0.9) accuracy. The more data, the longer training will be.
+Once you get good accuracy, you do not have to repeat this operation
+since data will be saved to the local filesystem.
+
+==================================================
+
+[WARNING]
+==================================================
+
+Low accuracy in training will cause low accuracy in inference. The low
+accuracies may be observed when using insufficient data. You might want
+to try again with more data, or by changing the settings when defining
+the features.
+
+==================================================
+
+[WARNING]
+==================================================
+
+Past training data for this model will be overwritten. The API
+does not provide revision control, or backup, for past training
+operations.
+
+==================================================
+

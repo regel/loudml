@@ -1,0 +1,58 @@
+[[getting-started]]
+= Getting Started
+
+[partintro]
+--
+
+Loud ML is a highly scalable machine learning API. It allows you to analyze big volumes of data quickly and use machine learning models in your application without the algorithms complexity. It is generally used as the underlying engine/technology that powers applications that have predictive requirements.
+
+Here are a few sample use-cases that Loud ML could be used for:
+
+. dynamically scale and drive smart load-balancing decisions for VMWARE and/or KVM virtual resources according to predicted load, enabling cloud and hosting providers to reduce operating costs while delivering high-quality services and response times to their users;
+. embed smart intent-based decisions in network services and NGN equipment when network traffic patterns indicate that streaming congestion will impact customer experience, permitting service providers to scale and reduce operating costs;
+. spot anomalies in e-commerce purchasing patterns, and automatically send smart alerts which filter out noise, ensuring e-commerce companies receive the most relevant alerts when things go wrong in the customer’s journey; and,
+. predict changes in customer purchasing history, enabling retail companies to forecast demand with optimal accuracy.
+
+
+For the rest of this tutorial, you will be guided through the process of getting Loud ML up and running, taking a peek inside it, and performing basic operations like creating, training, and using your data to get accurate predictions. At the end of this tutorial, you should have a good idea of what Loud ML is, how it works, and hopefully be inspired to see how you can use it to build sophisticated applications mining intelligence from your data.
+--
+
+== Basic Concepts
+
+There are a few concepts that are core to Loud ML. Understanding these concepts from the outset will tremendously help ease the learning process.
+
+[float]
+=== Time Series Database (TSDB)
+
+A time series database (TSDB) is a software system that is optimized for handling time series data, arrays of numbers indexed by time (a datetime or a datetime range). 
+
+[float]
+=== Near Realtime (NRT)
+
+Loud ML is a near real time API that aggregates data from external databases. What this means is there is a slight latency (normally from one to 30 second) from the time you index documents in the TSDB until the time it becomes available for search and aggregation performed by Loud ML.
+
+[float]
+=== Data Source
+
+A data source is an external system that supports data query and aggregation. For example, it can be a TSDB or any other document source supported by the API. This object is expressed in YAML format and defined in the configuration.
+
+[float]
+=== Model
+
+A machine learning model uses features to represent changes in the data. With Loud ML, these features are assigned by the user when creating the model. For example, a feature can be `avg(cpu_load)` to represent the average metric calculed on the document field named `cpu_load`. The features are defined at model creation time and used both in <<training>> and <<inference>>.
+
+[float]
+[[training]]
+=== Training
+
+This is the magic part: your model will learn the features according to data history. This operation is called training. It can be CPU intensive and data hungry. The more data, the longer the training. Your training result is saved on the local filesystem so it does not have to be repeated if not necessary. Training will output the model accuracy level, a percentage. The higher the accuracy, the better in order to use the model in production.
+
+[float]
+[[inference]]
+=== Inference
+
+After training, you can perform inference. This means your model can repeat the operations that it knows (Or have been discovered through training) using brand new data. For example, with time series data, running inference means your model will predict future data based on present and past data: if your features are avg(cpu_temperature),max(cpu_load) and your `bucket_interval` is 60s you will predict the temperature and load in the next minute.
+
+You can run inference both using past history data (Usually to verify the model accuracy), and present data.
+
+

@@ -1,0 +1,8 @@
+
+Welcome to the Loud ML home page on Github !
+ 
+You can submit issues and suggest new exciting features at: https://github.com/regel/loudml/issues[Issues]
+
+The disruptive machine learning API
+http://www.loudml.com
+

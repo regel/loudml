@@ -1,0 +1,39 @@
+[[api-datasources]]
+== Datasource API
+
+The datasource API allows to get a typed JSON document from the data
+source configuration based on its name. The following example gets a
+JSON document from the current configuration, with name `influx`:
+
+[source,js]
+--------------------------------------------------
+GET /datasources/influx
+--------------------------------------------------
+
+The result of the above get operation is:
+
+[source,js]
+--------------------------------------------------
+{
+   "name": "influx",
+   "type": "influxdb",
+   "addr": "localhost:8086",
+   "database": "telegraf"
+}
+--------------------------------------------------
+
+The API also allows to check for the existence of a datasource using
+`HEAD`, for example:
+
+[source,js]
+--------------------------------------------------
+HEAD /datasources/influx
+--------------------------------------------------
+
+A top level GET operation will list all configured datasources.
+
+[source,js]
+--------------------------------------------------
+GET /datasources
+--------------------------------------------------
+

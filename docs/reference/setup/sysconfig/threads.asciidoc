@@ -1,0 +1,10 @@
+[[max-number-of-threads]]
+=== Number of threads
+
+Loud ML uses a number of thread pools for different types of operations. The
+actual number of threads will default to the minimum of either the local
+processor count, or the limit defined in your licence.
+
+The package distributions when run as services under `systemd` will configure
+the number of threads for the loudmld process automatically. No
+additional configuration is required.

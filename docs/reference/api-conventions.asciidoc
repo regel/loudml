@@ -1,0 +1,154 @@
+[[api-conventions]]
+= API Conventions
+
+[partintro]
+--
+The *Loud ML* REST APIs are exposed using <<api,JSON over HTTP>>.
+
+The conventions listed in this chapter can be applied throughout the REST
+API, unless otherwise specified.
+
+* <<common-options>>
+
+--
+
+[[common-options]]
+== Common options
+
+The following options can be applied to all of the REST APIs.
+
+[float]
+=== Pretty Results
+
+When appending `?pretty=true` to any request made, the JSON returned
+will be pretty formatted (use it for debugging only!). Another option is
+to set `?format=yaml` which will cause the result to be returned in the
+(sometimes) more readable yaml format.
+
+
+[[date-math]]
+[float]
+=== Date Math
+
+Most parameters which accept a formatted date value -- such as `from` and `to`
+in <<timeseries-dsl,queries>> `range` queries -- understand date maths.
+
+The expression starts with an anchor date, which can either be `now`, or a
+date string ending with `||`. This anchor date can optionally be followed by
+one or more maths expressions:
+
+* `+1h` - add one hour
+* `-1d` - subtract one day
+* `/d`  - round down to the nearest day
+
+The supported time units differ from those supported by <<time-units, time units>> for durations.
+The supported units are:
+
+[horizontal]
+`y`:: years
+`M`:: months
+`w`:: weeks
+`d`:: days
+`h`:: hours
+`H`:: hours
+`m`:: minutes
+`s`:: seconds
+
+Assuming `now` is `2001-01-01 12:00:00`, some examples are:
+
+`now+1h`:: `now` in milliseconds plus one hour. Resolves to: `2001-01-01 13:00:00`
+`now-1h`:: `now` in milliseconds minus one hour. Resolves to: `2001-01-01 11:00:00`
+`now-1h/d`:: `now` in milliseconds minus one hour, rounded down to UTC 00:00. Resolves to: `2001-01-01 00:00:00``
+ `2001-01-01\|\|+1M/d`:: `now` in milliseconds plus one month. Resolves to: `2001-02-01 00:00:00`
+
+[float]
+=== Parameters
+
+Rest parameters (when using HTTP, map to HTTP URL parameters) follow the
+convention of using underscore casing.
+
+[float]
+=== Boolean Values
+
+All REST APIs parameters (both request parameters and JSON body) support
+providing boolean "false" as the value `false` and boolean "true" as the
+value `true`. All other values will raise an error.
+
+[float]
+=== Number Values
+
+All REST APIs support providing numbered parameters as `string` on top
+of supporting the native JSON number types.
+
+[[time-units]]
+[float]
+=== Time units
+
+Whenever durations need to be specified, e.g. for a `timeout` parameter, the duration must specify
+the unit, like `2d` for 2 days.  The supported units are:
+
+[horizontal]
+`d`::       days
+`h`::       hours
+`m`::       minutes
+`s`::       seconds
+`ms`::      milliseconds
+`micros`::  microseconds
+`nanos`::   nanoseconds
+
+[[time-intervals]]
+[float]
+=== Time bucket intervals
+
+The time intervals returned by queries are always multiple of the `bucket_interval`
+
+For example, queries to handle the data between 6:15pm and 7:45pm and a 1 hour bucket_interval will group features and metrics into one hour intervals. A bucket will be returned for 6pm, and 7pm, and 8pm (the predicted measurement).
+
+[float]
+[[common-options-error-options]]
+=== Enabling stack traces
+
+By default when a request returns an error Loud ML doesn't include the
+stack trace of the error. You can enable that behavior by setting the
+`error_trace` url parameter to `true`. For example, by default when you send an
+invalid `from` parameter to the `_train` API:
+
+[source,js]
+----------------------------------------------------------------------
+POST /models/foo/_train?from=wrong_datetime
+----------------------------------------------------------------------
+
+The response looks like:
+
+[source,js]
+----------------------------------------------------------------------
+{
+  "status": 400
+}
+----------------------------------------------------------------------
+
+But if you set `error_trace=true`:
+
+[source,js]
+----------------------------------------------------------------------
+POST /models/foo/_train?from=wrong_datetime&error_trace=true
+----------------------------------------------------------------------
+
+The response looks like:
+
+[source,js]
+----------------------------------------------------------------------
+{
+  "status": 400
+}
+----------------------------------------------------------------------
+
+[float]
+=== Content-Type Requirements
+
+The type of the content sent in a request body must be specified using
+the `Content-Type` header. The value of this header must map to one of
+the supported formats that the API supports. Most APIs support JSON,
+YAML ; other types will result in an error response.
+
+

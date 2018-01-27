@@ -1,0 +1,18 @@
+[[breaking-changes]]
+= Breaking changes
+
+[partintro]
+--
+This section discusses the changes that you need to be aware of when migrating
+your application from one version of Loud ML to another.
+
+As a general rule:
+
+* Migration between minor versions -- e.g. `1.x` to `1.y` -- can be
+  performed by <<rolling-upgrades,upgrading the .rpm or .deb package>>.
+
+* Migration between consecutive major versions -- e.g. `1.x` to `2.x` --
+  requires a data model and configuration migration.
+
+See <<setup-upgrade>> for more info.
+--

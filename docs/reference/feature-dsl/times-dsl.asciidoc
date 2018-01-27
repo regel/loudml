@@ -1,0 +1,29 @@
+[[timeseries-dsl]]
+== Timeseries Features DSL
+
+Defines how time series data must be aggregated into features
+for learning and inference.
+
+The list below defines the aggregation operators can be used to
+define features. These values can be extracted by using numeric
+fields in the data source documents.
+
+[NOTE]
+==================================================
+
+This version does not support feature generation by a provided script,
+nor extracting features from non numeric fields.
+
+==================================================
+
+The operators that are returned consist of: `count`, `min`, `max`, `sum`,
+`avg`, `sum_of_squares`, `variance`, and `std_deviation`.
+
+[WARNING]
+==================================================
+
+This version supports the `count` and `avg` operators with InfluxDb.
+Additional operators will be added in a future version.
+
+==================================================
+

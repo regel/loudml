@@ -1,0 +1,38 @@
+[[setup-configuration-memory]]
+=== Disable swapping
+
+Most operating systems try to use as much memory as possible for file system
+caches and eagerly swap out unused application memory. This can result in parts
+of the heap or even its executable pages being swapped out to disk.
+
+Swapping is very bad for performance, for node stability, and should be avoided
+at all costs. It can cause garbage collections to last for **minutes** instead
+of milliseconds and can cause nodes to respond slowly or even to disconnect
+from the cluster. In a resilient distributed system, it's more effective to let
+the operating system kill the node.
+
+There are three approaches to disabling swapping. The preferred option is to
+completely disable swap. If this is not an option, whether or not to prefer
+minimizing swappiness versus memory locking is dependent on your environment.
+
+[[disable-swap-files]]
+==== Disable all swap files
+
+On Linux systems, you can disable swap temporarily by running:
+
+[source,sh]
+--------------
+sudo swapoff -a
+--------------
+
+To disable it permanently, you will need to edit the `/etc/fstab` file and
+comment out any lines that contain the word `swap`.
+
+[[swappiness]]
+==== Configure `swappiness`
+
+Another option available on Linux systems is to ensure that the sysctl value
+`vm.swappiness` is set to `1`. This reduces the kernel's tendency to swap and
+should not lead to swapping under normal circumstances, while still allowing the
+whole system to swap in emergency conditions.
+

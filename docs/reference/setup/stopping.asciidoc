@@ -1,0 +1,65 @@
+[[stopping-loudml]]
+== Stopping Loud ML
+
+An orderly shutdown of Loud ML ensures that Loud ML has a chance to cleanup and close
+outstanding resources. For example, a process that is shutdown in an orderly fashion will sync
+data to disk, and perform other related cleanup activities. You can help
+ensure an orderly shutdown by properly stopping Loud ML.
+
+If you're running Loud ML as a service, you can stop Loud ML via the service management
+functionality provided by your installation.
+
+If you're running Loud ML directly, you can stop Loud ML by sending control-C if you're
+running Loud ML in the console, or by sending `SIGTERM` to the loudmld process on a
+POSIX system. You can obtain the PID to send the signal to via various tools (e.g., `ps`):
+
+[source,sh]
+--------------------------------------------------
+$ ps | grep loudmld
+14542 loudmld
+--------------------------------------------------
+
+From the Loud ML startup logs:
+
+[source,sh]
+--------------------------------------------------
+-- Logs begin at Thu 2018-01-25 13:20:54 CET. --
+Jan 25 19:42:55 regel.localdomain systemd[1]: Started LoudML daemon.
+-- Subject: Unit loudmld.service has finished start-up
+-- Defined-By: systemd
+-- Support: http://lists.freedesktop.org/mailman/listinfo/systemd-devel
+-- 
+-- Unit loudmld.service has finished starting up.
+-- 
+-- The start-up result is done.
+Jan 25 19:42:55 regel.localdomain systemd[1]: Starting LoudML daemon...
+-- Subject: Unit loudmld.service has begun start-up
+-- Defined-By: systemd
+-- Support: http://lists.freedesktop.org/mailman/listinfo/systemd-devel
+-- 
+-- Unit loudmld.service has begun starting up.
+Jan 25 19:42:55 regel.localdomain loudmld[13803]: * Running on http://localhost:8077/ (Press CTRL+C to quit)
+--------------------------------------------------
+
+Or by specifying a location to write a PID file to on startup (`-p <path>`):
+
+[source,sh]
+--------------------------------------------------
+$ ./bin/loudmld -p /tmp/loudml-pid -d
+$ cat /tmp/loudml-pid && echo
+15516
+$ kill -SIGTERM 15516
+--------------------------------------------------
+
+[[fatal-errors]
+[float]
+=== Stopping on Fatal Errors
+
+During the life of the loudmld process, certain fatal errors could arise that put the
+application in a questionable state. Such fatal errors include out of memory errors, internal
+errors, and serious I/O errors.
+
+When Loud ML has encountered such a fatal error Loud ML will attempt to log the error and
+then will exit. When Loud ML initiates such a shutdown, it does not go through an orderly shutdown
+as described above.
+ 

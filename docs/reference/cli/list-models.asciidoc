@@ -1,0 +1,13 @@
+[[cli-list-models]]
+== List Models Command
+
+The list-models command will output all models currently defined
+in and saved in your configuration. The `-i` option will output
+additional information.
+
+[source,bash]
+--------------------------------------------------
+loudml list-models
+--------------------------------------------------
+
+

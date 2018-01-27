@@ -1,0 +1,10 @@
+[role="exclude"]
+==== Next steps
+
+You now have a test Loud ML environment set up.  Before you start
+serious engineering go into production with Loud ML, you will need to
+do some additional setup:
+
+* Learn how to <<settings,configure Loud ML>>.
+* Configure <<setting-system-settings,important system settings>>.
+

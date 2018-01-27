@@ -1,0 +1,11 @@
+[[lml-release-notes]]
+= Release Notes
+
+[partintro]
+--
+This section summarizes the changes in each release.
+
+* <<release-notes-1.0.0>>
+--
+
+include::release-notes/1.0.0.asciidoc[]

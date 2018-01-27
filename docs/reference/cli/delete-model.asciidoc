@@ -1,0 +1,13 @@
+[[cli-delete-model]]
+== Delete Model Command
+
+The `delete-model` command will delete model settings and all training
+data saved in the local persistent storage. The following example deletes
+the model with name `avg_temp2`:
+
+[source,bash]
+--------------------------------------------------
+loudml delete-model avg_temp2
+--------------------------------------------------
+
+

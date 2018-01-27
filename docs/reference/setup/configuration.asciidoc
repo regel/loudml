@@ -1,0 +1,64 @@
+[[settings]]
+== Configuring Loud ML
+
+Loud ML ships with good defaults and requires very little configuration.
+Most settings can be changed using the Loud ML 
+<<cli>> CLI.
+
+The configuration files should contain settings which are specific to 
+your NoSQL databases (such as database name and remote access parameters),
+or settings which Loud ML requires in order to be respond to API calls.
+
+[[config-files-location]]
+[float]
+=== Config files location
+
+Loud ML has one configuration file:
+
+* `config.yml` for configuring Loud ML
+
+These files are located in the config directory, whose default location depends
+on whether or not the installation is from an archive distribution (`whl` or
+`egg`) or a package distribution (Debian or RPM packages).
+
+For the archive distributions, the config directory location defaults to
+`$LM_HOME/config`. The location of the config directory can be changed via the
+`LM_PATH_CONF` environment variable as follows:
+
+[source,sh]
+-------------------------------
+LM_PATH_CONF=/path/to/my/config ./bin/loudmld
+-------------------------------
+
+Alternatively, you can `export` the `LM_PATH_CONF` environment variable via the
+command line or via your shell profile.
+
+For the package distributions, the config directory location defaults to
+`/etc/loudml`. The location of the config directory can also be changed
+via the `LM_PATH_CONF` environment variable, but note that setting this in your
+shell is not sufficient. Instead, this variabled is sourced from
+`/etc/default/loudml` (for the Debian package) and
+`/etc/sysconfig/loudml` (for the RPM package). You will need to edit the
+`LM_PATH_CONF=/etc/loudml` entry in one of these files accordingly to
+change the config directory location.
+
+
+[float]
+=== Config file format
+
+The configuration format is http://www.yaml.org/[YAML]. Here is an
+example of changing the path of persistent storage directory:
+
+[source,yaml]
+--------------------------------------------------
+storage:
+    path: /var/lib/loudml
+--------------------------------------------------
+
+Settings can also be flattened as follows:
+
+[source,yaml]
+--------------------------------------------------
+storage.path: /var/lib/loudml
+--------------------------------------------------
+

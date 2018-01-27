@@ -1,0 +1,46 @@
+[[cli]]
+= CLI
+
+[partintro]
+--
+This section contains a detailed description of the `loudml` command line interface(CLI):
+
+* <<cli-create-model>>
+* <<cli-delete-model>>
+* <<cli-list-models>>
+* <<cli-train>>
+* <<cli-predict>>
+
+Running the `loudml` client with -h option in a terminal will output the
+following help message:
+
+[source,sh]
+--------------------------------------------------
+loudml -h
+usage: loudml [-h] [-c CONFIG]
+              {delete-model,predict,train,list-models,create-model} ...
+
+LoudML command-line tool
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to configuration file (default:
+                        /etc/loudml/config.yml)
+
+Commands:
+  {delete-model,predict,train,list-models,create-model}
+--------------------------------------------------
+
+--
+
+include::cli/create-model.asciidoc[]
+
+include::cli/delete-model.asciidoc[]
+
+include::cli/list-models.asciidoc[]
+
+include::cli/train.asciidoc[]
+
+include::cli/predict.asciidoc[]
+
