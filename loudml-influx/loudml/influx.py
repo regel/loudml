@@ -27,6 +27,8 @@ from loudml.misc import (
 )
 from loudml.datasource import DataSource
 
+g_aggregators = {}
+
 def ts_to_ns(ts):
     """
     Convert second timestamp to integer nanosecond timestamp
@@ -40,23 +42,97 @@ def make_ts_ns(mixed):
     """
     return ts_to_ns(make_ts(mixed))
 
+def aggregator(*aliases):
+    """
+    Decorator to register aggregators and indexing them by their aliases
+    """
+    global g_aggregator
+
+    def decorated(func):
+        for alias in aliases:
+            g_aggregators[alias] = func
+
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return wrapper
+    return decorated
+
+@aggregator('avg', 'mean', 'average')
+def _build_avg_agg(feature):
+    return "MEAN({})".format(feature.field)
+
+@aggregator('count')
+def _build_count_agg(feature):
+    return "COUNT({})".format(feature.field)
+
+@aggregator('deriv', 'derivative')
+def _build_derivative_agg(feature):
+    return "DERIVATIVE({})".format(feature.field)
+
+@aggregator('integral')
+def _build_integral_agg(feature):
+    return "INTEGRAL({})".format(feature.field)
+
+@aggregator('max')
+def _build_mode_agg(feature):
+    return "MAX({})".format(feature.field)
+
+@aggregator('med', 'median')
+def _build_median_agg(feature):
+    return "MEDIAN({})".format(feature.field)
+
+@aggregator('min')
+def _build_min_agg(feature):
+    return "MIN({})".format(feature.field)
+
+@aggregator('mode')
+def _build_mode_agg(feature):
+    return "MODE({})".format(feature.field)
+
+@aggregator('5percentile')
+def _build_5percentile_agg(feature):
+    return "PERCENTILE({}, 5)".format(feature.field)
+
+@aggregator('10percentile')
+def _build_10percentile_agg(feature):
+    return "PERCENTILE({}, 10)".format(feature.field)
+
+@aggregator('90percentile')
+def _build_90percentile_agg(feature):
+    return "PERCENTILE({}, 90)".format(feature.field)
+
+@aggregator('95percentile')
+def _build_95percentile_agg(feature):
+    return "PERCENTILE({}, 95)".format(feature.field)
+
+@aggregator('spread')
+def _build_spread_agg(feature):
+    return "SPREAD({})".format(feature.field)
+
+@aggregator('stddev', 'std_dev')
+def _build_stddev_agg(feature):
+    return "STDDEV({})".format(feature.field)
+
+@aggregator('sum')
+def _build_sum_agg(feature):
+    return "SUM({})".format(feature.field)
+
 def _build_agg(feature):
     """
     Build requested aggregation
     """
 
-    metric = feature.metric
-    field = feature.field
+    global g_aggregators
 
-    if metric == 'avg':
-        agg = "MEAN({})".format(field)
-    elif metric == 'count':
-        agg = "COUNT({})".format(field)
-    else:
-        raise errors.NotImplemented(
-            "unsupported aggregation '{}'".format(metric),
+    aggregator = g_aggregators.get(feature.metric.lower())
+    if aggregator is None:
+        raise errors.UnsupportedMetric(
+            "unsupported aggregation '{}' in feature '{}'".format(
+                feature.metric, feature.name,
+            ),
         )
 
+    agg = aggregator(feature)
     return "{} as {}".format(agg, feature.name)
 
 def _build_time_predicates(from_date=None, to_date=None):
