@@ -27,9 +27,9 @@ class Feature:
     """
 
     SCHEMA = Schema({
-        Required('name'): schemas.key,
-        Required('metric'): schemas.key,
-        Required('field'): schemas.key,
+        Required('name'): All(schemas.key, Length(max=256)),
+        Required('metric'): All(schemas.key, Length(max=256)),
+        Required('field'): All(schemas.key, Length(max=256)),
         'measurement': Any(None, schemas.key),
         'default': Any(None, int, float),
         'script': Any(None, str),
@@ -65,8 +65,8 @@ class Model:
     """
 
     SCHEMA = Schema({
-        Required('name'): schemas.key,
-        Required('type'): schemas.key,
+        Required('name'): All(schemas.key, Length(max=256)),
+        Required('type'): All(schemas.key, Length(max=256)),
         Required('features'): All([Feature.SCHEMA], Length(min=1)),
         'routing': Any(None, schemas.key),
     }, extra=ALLOW_EXTRA)
@@ -76,10 +76,9 @@ class Model:
         name -- model settings
         """
 
-        self.validate(settings)
         settings = copy.deepcopy(settings)
 
-        self._settings = settings
+        self._settings = self.validate(settings)
         self.name = settings.get('name')
         self._settings = settings
         self.routing = settings.get('routing')

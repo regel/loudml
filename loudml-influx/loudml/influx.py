@@ -83,11 +83,11 @@ def _build_queries(model, from_date=None, to_date=None):
     where = " where {}".format(" and ".join(must)) if len(must) else ""
 
     for feature in model.features:
-        yield "select {} from {}{} group by time({}s);".format(
+        yield "select {} from {}{} group by time({}ms);".format(
             _build_agg(feature),
             feature.measurement,
             where,
-            model.bucket_interval,
+            int(model.bucket_interval * 1000),
         )
 
 class InfluxDataSource(DataSource):

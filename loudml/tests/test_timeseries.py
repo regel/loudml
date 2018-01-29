@@ -12,6 +12,10 @@ from loudml.timeseries import TimeSeriesModel
 from loudml.memdatasource import MemDataSource
 from loudml.memstorage import MemStorage
 
+from loudml import (
+    errors,
+)
+
 FEATURES = [
     {
         'name': 'count_foo',
@@ -43,6 +47,41 @@ class TestTimes(unittest.TestCase):
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
             })
+
+    def test_validation(self):
+        valid = {
+            'name': 'foo',
+            'bucket_interval': '20m',
+            'interval': '10m',
+            'offset': 10,
+            'span': 3,
+            'features': [
+                {
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': 'foo',
+                }
+            ]
+        }
+
+        model = TimeSeriesModel(valid)
+        self.assertEqual(model.bucket_interval, 20 * 60)
+        self.assertEqual(model.interval, 10 * 60)
+        self.assertEqual(model.offset, 10)
+        self.assertEqual(model.span, 3)
+        self.assertEqual(len(model.features), 1)
+
+        def invalid(key, value):
+            settings = valid.copy()
+            settings[key] = value
+
+            with self.assertRaises(errors.Invalid):
+                TimeSeriesModel(settings)
+
+        invalid('bucket_interval', 0)
+        invalid('interval', 0)
+        invalid('offset', -1)
+        invalid('span', 0)
 
     def _require_training(self):
         if self.model:
