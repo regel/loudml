@@ -339,7 +339,10 @@ def main(argv=None):
         type=str,
         default="/etc/loudml/config.yml",
     )
-    subparsers = parser.add_subparsers(title="Commands")
+    subparsers = parser.add_subparsers(
+        title="Commands",
+        dest="command",
+    )
 
     for name, command in get_commands():
         subparser = subparsers.add_parser(name)
@@ -351,6 +354,10 @@ def main(argv=None):
     logger.setLevel(logging.INFO)
 
     args = parser.parse_args(argv)
+
+    if args.command is None:
+        parser.print_help()
+        return 1
 
     try:
         args.set_config(args.config)
