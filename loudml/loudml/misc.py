@@ -5,30 +5,63 @@ Miscelaneous Loud ML helpers
 import datetime
 import dateutil.parser
 
-def parse_timedelta(delta):
+from . import (
+    errors,
+)
+
+def parse_timedelta(
+    delta,
+    min=None,
+    max=None,
+    min_included=True,
+    max_included=True,
+):
     """
     Parse time delta
     """
 
-    delta = str(delta)
+    if isinstance(delta, str):
+        unit = {
+            's': 'seconds',
+            'm': 'minutes',
+            'h': 'hours',
+            'd': 'days',
+            'w': 'weeks',
+        }.get(delta[-1])
 
-    if len(delta) > 1:
-        unit = delta[-1]
-        value = int(delta[:-1])
+        if unit is None:
+            value = delta
+            unit = 'seconds'
+        else:
+            value = delta[:-1]
+    else:
+        unit = 'seconds'
+        value = delta
 
-        if unit == 's':
-            return datetime.timedelta(seconds=value)
-        if unit == 'm':
-            return datetime.timedelta(minutes=value)
-        if unit == 'h':
-            return datetime.timedelta(hours=value)
-        if unit == 'd':
-            return datetime.timedelta(days=value)
-        if unit == 'w':
-            return datetime.timedelta(weeks=value)
+    try:
+        value = float(value)
+    except ValueError:
+        raise errors.Invalid("invalid time delta")
 
-    # Assume the value is in seconds
-    return datetime.timedelta(seconds=int(delta))
+    message = "time delta must be {} {} seconds"
+
+    if min is not None:
+        if min_included:
+            if value < min:
+                raise errors.Invalid(message.format(">=", min))
+        else:
+            if value <= min:
+                raise errors.Invalid(message.format(">", min))
+
+    if max is not None:
+        if max_included:
+            if value > max:
+                raise errors.Invalid(message.format("<=", max))
+        else:
+            if value >= max:
+                raise errors.Invalid(message.format("<", max))
+
+    return datetime.timedelta(**{unit: value})
 
 def ts_to_datetime(ts):
     """

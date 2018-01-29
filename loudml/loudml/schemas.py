@@ -15,11 +15,27 @@ from voluptuous import (
     Schema,
 )
 
+from .misc import (
+    parse_timedelta,
+)
+
 key = All(
    str,
    Length(min=1),
    Match("^[a-zA-Z0-9-_]+$"),
 )
+
+class TimeDelta:
+    """
+    Schema for time-delta
+    """
+
+    def __init__(self, **kwargs):
+        self._kwargs = kwargs
+
+    def __call__(self, v):
+        return parse_timedelta(v, **self._kwargs)
+
 
 def validate(schema, data):
     """

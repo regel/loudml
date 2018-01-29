@@ -1,6 +1,10 @@
 import datetime
 import unittest
 
+from loudml import (
+    errors,
+)
+
 from loudml.misc import (
     make_datetime,
     make_ts,
@@ -16,12 +20,25 @@ class TestMisc(unittest.TestCase):
             return parse_timedelta(string).total_seconds()
 
         self.assertEqual(to_sec("42"), 42)
+        self.assertEqual(to_sec("+42"), 42)
         self.assertEqual(to_sec("42s"), 42)
+        self.assertEqual(to_sec("42.0s"), 42.0)
         self.assertEqual(to_sec("42m"), 42 * 60)
         self.assertEqual(to_sec("42h"), 42 * 60 * 60)
         self.assertEqual(to_sec("42d"), 42 * 60 * 60 * 24)
         self.assertEqual(to_sec("42w"), 42 * 60 * 60 * 24 * 7)
         self.assertEqual(to_sec("-42s"), -42)
+
+        def invalid(value, **kwargs):
+            with self.assertRaises(errors.Invalid):
+                parse_timedelta(value, **kwargs)
+
+        invalid("foo")
+        invalid("42x")
+        invalid(-42, min=0)
+        invalid("0w", min=0, min_included=False)
+        invalid(43, max=42)
+        invalid(42, max=42, max_included=False)
 
     def test_datetime(self):
         expected = datetime.datetime(
