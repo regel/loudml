@@ -53,7 +53,10 @@ g_running_models = {}
 MAX_RUNNING_MODELS = 3
 
 # Do not change: pid file to ensure we're running single instance
-APP_NAME = "/usr/bin/loudmld"
+APP_INSTALL_PATHS = [
+    "/usr/bin/loudmld",
+    "/bin/loudmld", # With RPM, binaries are also installed here
+]
 LOCK_FILE = "/var/tmp/loudmld.lock"
 
 class RepeatingTimer(object):
@@ -469,8 +472,8 @@ def do_things():
 
 def check_instance():
     stack_data = inspect.stack()
-    app_name = stack_data[-1][0].f_code.co_filename
-    if app_name != APP_NAME:
+    app_path = stack_data[-1][0].f_code.co_filename
+    if app_path not in APP_INSTALL_PATHS:
         logging.error("Unauthorized instance")
         sys.exit(1)
 
@@ -480,7 +483,7 @@ def check_instance():
         running = 0
         for p in psutil.process_iter():
             cmd = p.cmdline()
-            if len(cmd) > 1 and cmd[1] == APP_NAME:
+            if len(cmd) > 1 and cmd[1] in APP_INSTALL_PATHS:
                 running = running + 1
 
         if running > 1:
