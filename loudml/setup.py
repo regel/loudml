@@ -9,7 +9,7 @@ from setuptools import setup
 setup(
     name='loudml',
 
-    version='0.1.0',
+    version='1.2',
 
     description="Machine Learning application",
 
@@ -28,11 +28,11 @@ setup(
 
     install_requires=[
         "dateutils>=0.6.6",
-        "Flask>=0.12.2",
+        "Flask>=0.10.1",
         "Flask-restful>=0.3.6",
-        "networkx==1.11",
+        "networkx>=1.9",
         "tensorflow >=1.3.0, <=1.3.1",
-        "h5py==2.7.1",
+        "h5py>=2.2.1",
         "hyperopt==0.1",
         "psutil>=2.2.1",
         "PyYAML>=3.11",

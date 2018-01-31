@@ -1,33 +1,27 @@
 #!/usr/bin/make -f
 
 #export DH_VERBOSE = 1
-export PYBUILD_NAME = loudml
+export PYBUILD_NAME = loudml-elastic
 # Testing tries to use dependencies that could be absent.
 export PYBUILD_DISABLE = test
 # Disable build for Python2
 export PYBUILD_DISABLE_python2 = 1
 
 %:
-	dh $@ --with python3,systemd --buildsystem=pybuild
-
-# Enable instances limitations
-override_dh_auto_configure:
-	sed -i 's/# *DISABLED check_instance()/check_instance()/' loudml/server.py
-	dh_auto_configure
+	dh $@ --with python3 --buildsystem=pybuild
 
 # Keep bytecode instead of source code
 # Because cleaning done by dh_python3 is not configurable, the function
 # /usr/share/dh-python/dhpython_fs.py:is_unwanted_file() has to be edited to
 # always return False.
-_pydir := debian/loudml/usr/lib/python3.4/dist-packages
+_pydir := debian/loudml-elastic/usr/lib/python3.4/dist-packages
 override_dh_install:
 	dh_install
+	find . -name "*.py"
+	find . -name "*.pyc"
 	rm -f ${_pydir}/loudml/*.py
 	for src in $$(find ${_pydir}/loudml/__pycache__/ -name "*.cpython-34.pyc"); \
 	do \
 		dst=$$(basename $$src .cpython-34.pyc).pyc; \
 		cp $$src ${_pydir}/loudml/$$dst; \
 	done
-
-override_dh_installinit:
-	dh_installinit --no-start --name=loudmld
