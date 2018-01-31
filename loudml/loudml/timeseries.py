@@ -251,9 +251,12 @@ class TimeSeriesModel(Model):
         train_size=0.67,
         batch_size=64,
         num_epochs=100,
-        max_evals=10,
+        max_evals=None,
     ):
         global _mins, _maxs
+
+        if max_evals is None:
+            max_evals = self.settings.get('max_evals', 10)
 
         # Min-max preprocessing to bring data in interval (0,1)
         # FIXME: support other normalization techniques
@@ -441,7 +444,7 @@ class TimeSeriesModel(Model):
         train_size=0.67,
         batch_size=64,
         num_epochs=100,
-        max_evals=10,
+        max_evals=None,
     ):
         """
         Train model

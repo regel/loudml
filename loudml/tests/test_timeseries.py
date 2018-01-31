@@ -49,7 +49,7 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=FEATURES,
             threshold=30,
-            max_evals=10,
+            max_evals=5,
         ))
 
 
@@ -125,7 +125,7 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=FEATURES,
             threshold=30,
-            max_evals=10,
+            max_evals=1,
         ))
 
         indexes, x, y = model._format_dataset(dataset)
