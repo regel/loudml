@@ -548,7 +548,7 @@ class TimeSeriesModel(Model):
         """
         Tells if model is trained
         """
-        return self.state and 'weights' in self.state
+        return self.state is not None and 'weights' in self.state
 
     def _format_dataset_predict(self, dataset):
         """

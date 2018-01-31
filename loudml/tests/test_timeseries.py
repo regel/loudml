@@ -37,7 +37,9 @@ FEATURES = [
 ]
 
 class TestTimes(unittest.TestCase):
-    def setUp(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self.source = MemDataSource()
         self.storage = MemStorage()
 
