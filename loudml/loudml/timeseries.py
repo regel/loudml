@@ -130,55 +130,80 @@ class TimeSeriesPrediction:
     Time-series prediction
     """
 
-    def __init__(self, timestamps, observed, predicted):
+    def __init__(self, model, timestamps, observed, predicted):
+        self.model = model
         self.timestamps = timestamps
         self.observed = observed
         self.predicted = predicted
+
+    def apply_default(self, feature_idx, value):
+        """
+        Apply default feature value
+        """
+        if value is None or value is np.nan or np.isnan(value):
+            return self.model.defaults[feature_idx]
+        return value
 
     def format_series(self):
         """
         Return prediction data as a time-series
         """
+
+        observed = {}
+        predicted = {}
+
+        for i, feature in enumerate(self.model.features):
+            default = self.model.defaults[i]
+
+            observed[feature.name] = [self.apply_default(i, x) for x in self.observed[:,i]]
+            predicted[feature.name] = [self.apply_default(i, x) for x in self.predicted[:,i]]
+
         return {
             'timestamps': self.timestamps,
-            'observed': self.observed,
-            'predicted': self.predicted,
+            'observed': observed,
+            'predicted': predicted,
         }
-
-    def _format_bucket(self, ts):
-        """
-        Format a bucket
-        """
 
     def format_buckets(self):
         """
         Return prediction data as buckets
         """
+
+        features = self.model.features
+
         return [
             {
                 'timestamp': ts,
                 'observed': {
-                    feature: self.observed[feature][i]
-                    for feature in self.predicted.keys()
+                    feature.name: self.apply_default(j, self.observed[i][j])
+                    for j, feature in enumerate(features)
                 },
                 'predicted': {
-                    feature: self.predicted[feature][i]
-                    for feature in self.predicted.keys()
+                    feature.name: self.apply_default(j, self.predicted[i][j])
+                    for j, feature in enumerate(features)
                 }
             }
             for i, ts in enumerate(self.timestamps)
         ]
 
-    def plot(self, feature):
+    def plot(self, feature_name):
         """
         Plot prediction
         """
 
         import matplotlib.pylab as plt
 
+        i = None
+        for i, feature in enumerate(self.model.features):
+            if feature.name == feature_name:
+                break
+
+        if i is None:
+            raise errors.NotFound("feature not found")
+
         plt.rcParams["figure.figsize"] = (17, 9)
-        plt.plot(self.observed[feature],"--")
-        plt.plot(self.predicted[feature],":")
+        plt.plot(self.observed[:,i],"--")
+        plt.plot(self.predicted[:,i],":")
         plt.show()
 
 
@@ -204,6 +229,11 @@ class TimeSeriesModel(Model):
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
         self.span = settings.get('span')
         self.sequential = None
+
+        self.defaults = [
+            None if feature.default is np.nan else feature.default
+            for feature in self.features
+        ]
 
     @property
     def type(self):
@@ -587,7 +617,7 @@ class TimeSeriesModel(Model):
         hist_to_str = ts_to_str(hist_to_ts)
 
         # Prepare dataset
-        nb_buckets = self._compute_nb_buckets(hist_from_ts, hist_to_ts)
+        nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
         X = []
@@ -635,31 +665,16 @@ class TimeSeriesModel(Model):
         last_ts = make_ts(X[-1])
         timestamps.append(ts_to_str(last_ts + self.bucket_interval))
 
-        observed = {}
-        predicted = {}
+        shape = (predict_len, nb_features)
+        observed = np.array([self.defaults] * predict_len)
+        predicted = np.array([self.defaults] * predict_len)
 
         for i, feature in enumerate(self.features):
-            default = None if feature.default is np.nan else feature.default
-            init = [default] * predict_len
-
-            feature_y = dataset[self.span:][:,i]
-
-            def apply_default(x):
-                if x is None or x is np.nan or np.isnan(x):
-                    return default
-                return x
-
-            observed[feature.name] = [
-                apply_default(x) for x in feature_y
-            ]
-
-            feature_y_ = np.array(init)
-            feature_y_[j_sel - self.span] = Z_[:][:,i]
-            predicted[feature.name] = [
-                apply_default(x) for x in feature_y_
-            ]
+            observed[:,i] = dataset[self.span:][:,i]
+            predicted[j_sel - self.span,i] = Z_[:][:,i]
 
         return TimeSeriesPrediction(
+            self,
             timestamps=timestamps,
             observed=observed,
             predicted=predicted,

@@ -66,9 +66,12 @@ class UnsupportedModel(LoudMLException):
     """Unsupported model"""
     code = 501
 
-class NoData(LoudMLException):
-    """No data"""
+class NotFound(LoudMLException):
+    """Not found"""
     code = 404
+
+class NoData(NotFound):
+    """No data"""
 
 class TransportError(LoudMLException):
     """Transport error"""

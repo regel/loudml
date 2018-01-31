@@ -5,10 +5,15 @@ import os
 import random
 import unittest
 
+import numpy as np
+
 logging.getLogger('tensorflow').disabled = True
 
 from loudml.randevents import SinEventGenerator
-from loudml.timeseries import TimeSeriesModel
+from loudml.timeseries import (
+    TimeSeriesModel,
+    TimeSeriesPrediction,
+)
 from loudml.memdatasource import MemDataSource
 from loudml.memstorage import MemStorage
 
@@ -35,9 +40,20 @@ class TestTimes(unittest.TestCase):
     def setUp(self):
         self.source = MemDataSource()
         self.storage = MemStorage()
-        self.model = None
 
-        generator = SinEventGenerator(avg=3, sigma=0.05)
+        self.model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=5,
+            bucket_interval=20 * 60,
+            interval=60,
+            features=FEATURES,
+            threshold=30,
+            max_evals=10,
+        ))
+
+
+        generator = SinEventGenerator(avg=3, sigma=0.01)
 
         self.to_date = datetime.datetime.now().timestamp()
         self.from_date = self.to_date - 3600 * 24 * 7 * 2
@@ -84,19 +100,8 @@ class TestTimes(unittest.TestCase):
         invalid('span', 0)
 
     def _require_training(self):
-        if self.model:
+        if self.model.is_trained:
             return
-
-        self.model = TimeSeriesModel(dict(
-            name='test',
-            offset=30,
-            span=5,
-            bucket_interval=20 * 60,
-            interval=60,
-            features=FEATURES,
-            threshold=30,
-            max_evals=10,
-        ))
 
         self.model.train(self.source, self.from_date, self.to_date)
 
@@ -153,23 +158,20 @@ class TestTimes(unittest.TestCase):
 
         # prediction.plot('count_foo')
 
-        obs_avg = prediction.observed['avg_foo']
-        obs_count = prediction.observed['count_foo']
-        pred_avg = prediction.predicted['avg_foo']
-        pred_count = prediction.predicted['count_foo']
-
         self.assertEqual(len(prediction.timestamps), expected)
-        self.assertEqual(len(obs_avg), expected)
-        self.assertEqual(len(pred_avg), expected)
-        self.assertEqual(len(obs_count), expected)
-        self.assertEqual(len(pred_count), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
 
         for i in range(expected):
             self.assertAlmostEqual(
-                pred_avg[i], obs_avg[i], delta=2.0,
+                prediction.observed[i][0],
+                prediction.predicted[i][0],
+                delta=2.5,
             )
             self.assertAlmostEqual(
-                pred_count[i], obs_count[i], delta=12,
+                prediction.observed[i][1],
+                prediction.predicted[i][1],
+                delta=12,
             )
 
     def test_predict_unaligned(self):
@@ -183,28 +185,20 @@ class TestTimes(unittest.TestCase):
 
         prediction = self.model.predict(self.source, from_date, to_date)
 
-        expected = math.ceil(
-            (to_date - from_date) / self.model.bucket_interval
-        )
-
-        obs_avg = prediction.observed['avg_foo']
-        obs_count = prediction.observed['count_foo']
-        pred_avg = prediction.predicted['avg_foo']
-        pred_count = prediction.predicted['count_foo']
-
         self.assertEqual(len(prediction.timestamps), 1)
-        self.assertEqual(len(obs_avg), 1)
-        self.assertEqual(len(pred_avg), 1)
-        self.assertEqual(len(obs_count), 1)
-        self.assertEqual(len(pred_count), 1)
+        self.assertEqual(prediction.observed.shape, (1, 2))
+        self.assertEqual(prediction.predicted.shape, (1, 2))
 
-        for i in range(expected):
-            self.assertAlmostEqual(
-                pred_avg[i], obs_avg[i], delta=2.0,
-            )
-            self.assertAlmostEqual(
-                pred_count[i], obs_count[i], delta=12,
-            )
+        self.assertAlmostEqual(
+            prediction.observed[0][0],
+            prediction.predicted[0][0],
+            delta=2.0,
+        )
+        self.assertAlmostEqual(
+            prediction.observed[0][1],
+            prediction.predicted[0][1],
+            delta=12,
+        )
 
     def test_predict_with_nan(self):
         source = MemDataSource()
@@ -276,12 +270,98 @@ class TestTimes(unittest.TestCase):
         from_date = to_date - 3600 * 24
         prediction = model.predict(source, from_date, to_date)
 
-        obs = prediction.observed['avg_foo']
-        pred = prediction.predicted['avg_foo']
-
         self.assertEqual(len(prediction.timestamps), 24)
-        self.assertEqual(len(obs), 24)
-        self.assertEqual(len(pred), 24)
+        self.assertEqual(prediction.observed.shape, (24, 2))
+        self.assertEqual(prediction.predicted.shape, (24, 2))
 
         # Holes expected in prediction
+        pred = prediction.predicted[:,1].tolist()
         self.assertEqual(pred[13:13+model.span], [None] * model.span)
+
+    def test_format_prediction(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=3,
+            bucket_interval=3600,
+            interval=60,
+            features=[
+                {
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                },
+                {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': None,
+                },
+            ],
+            threshold=30,
+            max_evals=1,
+        ))
+
+        timestamps = [self.to_date - i * model.bucket_interval for i in range(3)]
+
+        prediction = TimeSeriesPrediction(
+            model=model,
+            timestamps=timestamps,
+            observed=np.array([[1, 0.1], [np.nan, np.nan], [3, 0.3]]),
+            predicted=np.array([[4, 0.4], [5, 0.5], [np.nan, np.nan]]),
+        )
+
+        self.assertEqual(
+            prediction.format_series(),
+            {
+                'timestamps': timestamps,
+                'observed': {
+                    'count_foo': [1.0, 0.0, 3.0],
+                    'avg_foo': [0.1, None, 0.3],
+                },
+                'predicted': {
+                    'count_foo': [4.0, 5.0, 0.0],
+                    'avg_foo': [0.4, 0.5, None],
+                },
+            }
+        )
+
+        self.assertEqual(
+            prediction.format_buckets(),
+            [
+                {
+                    'timestamp': timestamps[0],
+                    'observed': {
+                        'count_foo': 1.0,
+                        'avg_foo': 0.1,
+                    },
+                    'predicted': {
+                        'count_foo': 4.0,
+                        'avg_foo': 0.4,
+                    },
+                },
+                {
+                    'timestamp': timestamps[1],
+                    'observed': {
+                        'count_foo': 0.0,
+                        'avg_foo': None,
+                    },
+                    'predicted': {
+                        'count_foo': 5.0,
+                        'avg_foo': 0.5,
+                    },
+                },
+                {
+                    'timestamp': timestamps[2],
+                    'observed': {
+                        'count_foo': 3.0,
+                        'avg_foo': 0.3,
+                    },
+                    'predicted': {
+                        'count_foo': 0.0,
+                        'avg_foo': None,
+                    },
+                },
+            ]
+        )
