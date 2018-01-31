@@ -2,6 +2,7 @@
 LoudML time-series module
 """
 
+import json
 import logging
 import math
 import os
@@ -135,6 +136,17 @@ class TimeSeriesPrediction:
         self.timestamps = timestamps
         self.observed = observed
         self.predicted = predicted
+        self.anomaly_indices = None
+        self.stats = None
+
+    def get_anomalies(self):
+        """
+        Return anomalies
+        """
+
+        if self.anomaly_indices is None:
+            raise errors.NotFound("anomaly detection has not been performed yet")
+        return [self._format_bucket(i) for i in self.anomaly_indices]
 
     def apply_default(self, feature_idx, value):
         """
@@ -158,33 +170,48 @@ class TimeSeriesPrediction:
             observed[feature.name] = [self.apply_default(i, x) for x in self.observed[:,i]]
             predicted[feature.name] = [self.apply_default(i, x) for x in self.predicted[:,i]]
 
-        return {
+        result = {
             'timestamps': self.timestamps,
             'observed': observed,
             'predicted': predicted,
         }
+        if self.stats is not None:
+            result['stats'] = self.stats,
+        return result
+
+    def _format_bucket(self, i):
+        """
+        Format one bucket
+        """
+
+        features = self.model.features
+        bucket = {
+            'timestamp': self.timestamps[i],
+            'observed': {
+                feature.name: self.apply_default(j, self.observed[i][j])
+                for j, feature in enumerate(features)
+            },
+            'predicted': {
+                feature.name: self.apply_default(j, self.predicted[i][j])
+                for j, feature in enumerate(features)
+            },
+        }
+        if self.stats:
+            bucket['stats'] = self.stats[i]
+        return bucket
 
     def format_buckets(self):
         """
         Return prediction data as buckets
         """
 
-        features = self.model.features
-
         return [
-            {
-                'timestamp': ts,
-                'observed': {
-                    feature.name: self.apply_default(j, self.observed[i][j])
-                    for j, feature in enumerate(features)
-                },
-                'predicted': {
-                    feature.name: self.apply_default(j, self.predicted[i][j])
-                    for j, feature in enumerate(features)
-                }
-            }
-            for i, ts in enumerate(self.timestamps)
+            self._format_bucket(i)
+            for i, _ in enumerate(self.timestamps)
         ]
+
+    def __str__(self):
+        return json.dumps(self.format_buckets(), indent=4)
 
     def plot(self, feature_name):
         """
@@ -682,3 +709,48 @@ class TimeSeriesModel(Model):
             observed=observed,
             predicted=predicted,
         )
+
+    def detect_anomalies(self, prediction):
+        """
+        Detect anomalies on observed data by comparing them to the values
+        predicted by the model
+        """
+
+        global _mins, _maxs
+
+        nb_features = len(self.features)
+        max_dist = np.linalg.norm(np.zeros(nb_features) - np.ones(nb_features))
+        rng = _maxs - _mins
+
+        stats = []
+        anomaly_indices = []
+
+        for i, ts in enumerate(prediction.timestamps):
+            X = prediction.observed[i]
+            Y = prediction.predicted[i]
+
+            X = 1.0 - (_maxs - X) / rng
+            Y = 1.0 - (_maxs - Y) / rng
+
+            mse = ((X - Y) ** 2).mean(axis=None)
+            dist = np.linalg.norm(X - Y)
+            score = min((dist / max_dist) * 100, 100)
+
+            if score >= self.threshold:
+                # TODO have a Model.logger to prefix all logs with model name
+                logging.warning("detected anomaly for %s (score = %.1f)",
+                                ts, score)
+                anomaly = True
+                anomaly_indices.append(i)
+            else:
+                anomaly = False
+
+            stats.append({
+                'mse': mse,
+                'dist': dist,
+                'score': score,
+                'anomaly': anomaly,
+            })
+
+        prediction.stats = stats
+        prediction.anomaly_indices = anomaly_indices

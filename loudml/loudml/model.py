@@ -12,6 +12,7 @@ from voluptuous import (
     All,
     Any,
     Length,
+    Range,
     Required,
     Schema,
 )
@@ -69,6 +70,7 @@ class Model:
         Required('type'): All(schemas.key, Length(max=256)),
         Required('features'): All([Feature.SCHEMA], Length(min=1)),
         'routing': Any(None, schemas.key),
+        'threshold': Any(int, float, Range(min=0, max=100)),
     }, extra=ALLOW_EXTRA)
 
     def __init__(self, settings, state=None):
@@ -84,6 +86,7 @@ class Model:
         self.routing = settings.get('routing')
         self.state = state
         self.features = [Feature(**feature) for feature in settings['features']]
+        self.threshold = self.settings.get('threshold', 75)
 
     @classmethod
     def validate(cls, settings):

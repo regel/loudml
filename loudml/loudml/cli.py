@@ -270,6 +270,12 @@ class PredictCommand(Command):
             type=str,
             dest='to_date',
         )
+        parser.add_argument(
+            '-a', '--anomalies',
+            help="Detect anomalies",
+            action='store_true',
+        )
+
         group = parser.add_mutually_exclusive_group()
         group.add_argument(
             '-b', '--buckets',
@@ -311,6 +317,10 @@ class PredictCommand(Command):
                 args.from_date,
                 args.to_date,
             )
+
+            if args.anomalies:
+                model.detect_anomalies(prediction)
+
             if args.save:
                 source.save_timeseries_prediction(prediction, model)
             else:

@@ -9,7 +9,10 @@ import numpy as np
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml.randevents import SinEventGenerator
+from loudml.randevents import (
+    FlatEventGenerator,
+    SinEventGenerator,
+)
 from loudml.timeseries import (
     TimeSeriesModel,
     TimeSeriesPrediction,
@@ -54,13 +57,15 @@ class TestTimes(unittest.TestCase):
             max_evals=5,
         ))
 
+        self.generator = SinEventGenerator(avg=3, sigma=0.01)
 
-        generator = SinEventGenerator(avg=3, sigma=0.01)
+        to_date = datetime.datetime.now().timestamp()
 
-        self.to_date = datetime.datetime.now().timestamp()
-        self.from_date = self.to_date - 3600 * 24 * 7 * 2
+        # Be sure that date range is aligned
+        self.to_date = math.floor(to_date / self.model.bucket_interval) * self.model.bucket_interval
+        self.from_date = self.to_date - 3600 * 24 * 7 * 3
 
-        for ts in generator.generate_ts(self.from_date, self.to_date, step=600):
+        for ts in self.generator.generate_ts(self.from_date, self.to_date, step=600):
             self.source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -149,7 +154,7 @@ class TestTimes(unittest.TestCase):
     def test_predict_aligned(self):
         self._require_training()
 
-        to_date = math.floor(self.to_date / self.model.bucket_interval) * self.model.bucket_interval
+        to_date = self.to_date
         from_date = to_date - 24 * 3600
 
         prediction = self.model.predict(self.source, from_date, to_date)
@@ -179,10 +184,8 @@ class TestTimes(unittest.TestCase):
     def test_predict_unaligned(self):
         self._require_training()
 
-        # Aligned
-        to_date = math.floor(self.to_date / self.model.bucket_interval) * self.model.bucket_interval
-        # Unaligned
-        to_date += self.model.bucket_interval / 4
+        # Unaligned date range
+        to_date = self.to_date + self.model.bucket_interval / 4
         from_date = to_date
 
         prediction = self.model.predict(self.source, from_date, to_date)
@@ -367,3 +370,55 @@ class TestTimes(unittest.TestCase):
                 },
             ]
         )
+
+    def test_detect_anomalies(self):
+        self._require_training()
+
+        # Insert 2 buckets of normal data
+        from_date = self.to_date
+        to_date = from_date + 2 * self.model.bucket_interval
+
+        for ts in self.generator.generate_ts(from_date, to_date, step=600):
+            self.source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
+
+        # Add abnormal data in the last bucket
+        ano_from = from_date + self.model.bucket_interval
+        ano_to = to_date
+        generator = FlatEventGenerator(avg=3, sigma=0.01)
+
+        for ts in generator.generate_ts(ano_from, ano_to, step=600):
+            self.source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
+
+        # Detect anomalies
+        pred_to = ano_to
+        pred_from = pred_to - 24 * 3 * self.model.bucket_interval
+        prediction = self.model.predict(self.source, pred_from, pred_to)
+
+        self.model.detect_anomalies(prediction)
+
+        buckets = prediction.format_buckets()
+        for bucket in buckets:
+            stats = bucket.get('stats')
+            self.assertIsNotNone(stats)
+            self.assertIsNotNone(stats.get('mse'))
+            self.assertIsNotNone(stats.get('dist'))
+            self.assertIsNotNone(stats.get('score'))
+            self.assertIsNotNone(stats.get('anomaly'))
+
+        #print(prediction)
+        #prediction.plot('count_foo')
+
+        # First bucket is normal
+        self.assertFalse(buckets[-2]['stats']['anomaly'])
+
+        # Anomaly detected in second bucket
+        self.assertTrue(buckets[-1]['stats']['anomaly'])
+
+        anomalies = prediction.get_anomalies()
+        self.assertEqual(anomalies, [buckets[-1]])
