@@ -37,7 +37,7 @@ def get_date_range(field, from_date=None, to_date=None):
     if from_date is not None:
         date_range['gte'] = from_date
     if to_date is not None:
-        date_range['lte'] = to_date
+        date_range['lt'] = to_date
 
     if len(date_range) == 0:
         return None

@@ -69,7 +69,7 @@ def _build_time_predicates(from_date=None, to_date=None):
     if from_date:
         must.append("time >= {}".format(make_ts_ns(from_date)))
     if to_date:
-        must.append("time <= {}".format(make_ts_ns(to_date)))
+        must.append("time < {}".format(make_ts_ns(to_date)))
 
     return must
 
