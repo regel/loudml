@@ -16,14 +16,15 @@ nor extracting features from non numeric fields.
 
 ==================================================
 
-The operators that are returned consist of: `count`, `min`, `max`, `sum`,
+The operators that are supported consist of: `count`, `min`, `max`, `sum`,
 `avg`, `sum_of_squares`, `variance`, and `std_deviation`.
 
-[WARNING]
+[NOTE]
 ==================================================
 
-This version supports the `count` and `avg` operators with InfluxDb.
-Additional operators will be added in a future version.
+This version supports the following additional operators with InfluxDb:
+`derivative`, `integral`, `spread`, `mode`, `5percentile`, `10percentile`,
+`90percentile`, `95percentile`, `stddev`
 
 ==================================================
 
