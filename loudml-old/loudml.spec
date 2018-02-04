@@ -2,7 +2,7 @@
 # in the minimal buildroot; %%python3_pkgversion is also available in Fedora, so it's possible to have a common
 # specfile for EPEL and Fedora
 
-%global srcname loudml
+%global srcname loudml_old
 %global sum A ML wizard REST API
 
 Name:           %{srcname}
@@ -63,13 +63,6 @@ python%{python3_pkgversion} build of %{srcname}.
 # Must do the python3_other install first, then python3 and then python2.
 # The scripts in /usr/bin are overwritten with every setup.py install.
 %py3_install
-# PYC binary distribution, mv files to pre-PEP-3147 location to be able to load modules
-for filename in $(find %{buildroot}/%{python3_sitelib}/%{srcname}/__pycache__/ -name "*.cpython-34.pyc") ;
-do
-	basename=$(basename $filename) ;
-	basename="${basename%.cpython-34.pyc}" ;
-	mv $filename %{buildroot}/%{python3_sitelib}/%{srcname}/${basename}.pyc ;
-done
 
 #%py2_install
 
@@ -85,8 +78,6 @@ done
 #%{_bindir}/sample-exec-%{python2_version}
 
 %post
-setsebool -P httpd_can_network_connect 1
-/usr/sbin/semanage port -a -t http_port_t -p tcp 8078
 %systemd_post %{srcname}.service
 systemctl daemon-reload
 
@@ -98,14 +89,10 @@ systemctl daemon-reload
 
 
 %files -n python%{python3_pkgversion}-%{srcname}
-# Exclude source .py files, and PEP3147 __pycache__
-%exclude %{python3_sitelib}/%{srcname}/*.py
-%exclude %{python3_sitelib}/%{srcname}/__pycache__
 %{python3_sitelib}/*
-%{_bindir}/loudmld
+%{_bindir}/loudmld_old
 %{_bindir}/loudml_times
 %{_bindir}/loudml_ivoip
-%{_sbindir}/*
 %{_unitdir}/%{srcname}.service
 %config %{_sysconfdir}/sysconfig/*
 %config %{_sysconfdir}/%{srcname}

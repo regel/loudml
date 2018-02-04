@@ -1,4 +1,4 @@
-NAME := loudml
+NAME := loudml_old
 VERSION ?= $(shell git describe --tags --match 'v*.*.*' | \
                        sed -e 's/^v//' -e 's/-/./g')
 FULLNAME := $(NAME)-$(VERSION)
