@@ -131,3 +131,27 @@ def parse_addr(addr, default_port=None):
         'host': 'localhost' if len(addr[0]) == 0 else addr[0],
         'port': default_port if len(addr) == 1 else int(addr[1]),
     }
+
+def make_bool(mixed):
+    """
+    Convert value to boolean
+    """
+
+    if mixed is None:
+        return False
+    if isinstance(mixed, bool):
+        return mixed
+
+    try:
+        return int(mixed) != 0
+    except ValueError:
+        pass
+
+    if isinstance(mixed, str):
+        mixed = mixed.lower()
+        if mixed in ['', 'false', 'no']:
+            return False
+        if mixed in ['true', 'yes']:
+            return True
+
+    raise ValueError
