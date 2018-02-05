@@ -67,7 +67,7 @@ class Worker:
         model.train(source, **kwargs)
         self.storage.save_model(model)
 
-    def predict(self, model_name, **kwargs):
+    def predict(self, model_name, save_prediction=False, **kwargs):
         """
         Ask model for a prediction
         """
@@ -80,7 +80,8 @@ class Worker:
         if model.type == 'timeseries':
             logging.info("job[%s] predicted values for %d time buckets",
                          self.job_id, len(prediction.timestamps))
-            source.save_timeseries_prediction(prediction, model)
+            if save_prediction:
+                source.save_timeseries_prediction(prediction, model)
         else:
             logging.info("job[%s] prediction done", self.job_id)
 

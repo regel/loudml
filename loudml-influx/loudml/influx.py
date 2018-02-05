@@ -315,6 +315,8 @@ class InfluxDataSource(DataSource):
             yield (ts - t0) / 1000, X, timeval
 
     def save_timeseries_prediction(self, prediction, model):
+        logging.info("saving '%s' prediction to '%s'", model.name, self.name)
+
         for bucket in prediction.format_buckets():
             self.insert_times_data(
                 measurement='prediction_{}'.format(model.name), # Add id? timestamp?

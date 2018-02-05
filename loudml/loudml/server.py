@@ -38,6 +38,9 @@ from . import (
 from .filestorage import (
     FileStorage,
 )
+from .misc import (
+    make_bool,
+)
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 api = Api(app)
@@ -211,6 +214,15 @@ def catch_loudml_error(func):
         except errors.LoudMLException as exn:
             return str(exn), exn.code
     return wrapper
+
+def get_bool_arg(param, default=False):
+    """
+    Read boolean URL parameter
+    """
+    try:
+        return make_bool(request.args.get(param, default))
+    except ValueError:
+        raise error.Invalid("invalid value for parameter '{}'".format(param))
 
 class ModelsResource(Resource):
     @catch_loudml_error
@@ -410,6 +422,8 @@ def model_start(model_name):
     if len(g_running_models) >= MAX_RUNNING_MODELS:
         return "maximum number of running models is reached", 429
 
+    save_prediction = get_bool_arg('save_prediction')
+
     def create_job(from_date=None):
         kwargs = {}
 
@@ -419,6 +433,7 @@ def model_start(model_name):
             if from_date is None:
                 from_date = to_date - model.bucket_interval
 
+            kwargs['save_prediction'] = save_prediction
             kwargs['from_date'] = from_date
             kwargs['to_date'] = to_date
 
