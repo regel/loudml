@@ -387,7 +387,7 @@ class TestTimes(unittest.TestCase):
         # Add abnormal data in the last bucket
         ano_from = from_date + self.model.bucket_interval
         ano_to = to_date
-        generator = FlatEventGenerator(avg=3, sigma=0.01)
+        generator = FlatEventGenerator(avg=4, sigma=0.01)
 
         for ts in generator.generate_ts(ano_from, ano_to, step=600):
             self.source.insert_times_data({
