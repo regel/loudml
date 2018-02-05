@@ -66,8 +66,9 @@ class TestCli(unittest.TestCase):
                 "create-model",
                 "delete-model",
                 "list-models",
-                "train",
                 "predict",
+                "train",
+                "show-model",
             ]),
         )
 
