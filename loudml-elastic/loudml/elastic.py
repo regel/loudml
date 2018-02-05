@@ -150,12 +150,51 @@ class ElasticsearchDataSource(DataSource):
         data['timestamp'] = int(ts * 1000)
         self.insert_data(data, doc_type, doc_id)
 
-    def _get_es_agg(
-            self,
-            model,
-            from_date_ms=None,
-            to_date_ms=None,
-        ):
+    @staticmethod
+    def _build_aggs(model):
+        """
+        Build Elasticsearch aggregations
+        """
+
+        aggs = {}
+
+        for feature in model.features:
+            if feature.metric in ['std_deviation', 'variance']:
+                sub_agg = 'extended_stats'
+            else:
+                sub_agg = 'stats'
+
+            if feature.script:
+                agg = {
+                    sub_agg: {
+                        "script": {
+                            "lang": "painless",
+                            "inline": feature.script,
+                        }
+                    }
+                }
+            elif feature.field:
+                agg = {
+                    sub_agg: {
+                        "field": feature.field,
+                    }
+                }
+
+            aggs[feature.name] = agg
+
+        return aggs
+
+    @classmethod
+    def _build_times_query(
+        cls,
+        model,
+        from_date_ms=None,
+        to_date_ms=None,
+    ):
+        """
+        Build Elasticsearch query for time-series
+        """
+
         body = {
           "size": 0,
           "query": {
@@ -196,30 +235,7 @@ class ElasticsearchDataSource(DataSource):
                 }
             }
 
-        aggs = {}
-        for feature in model.features:
-            if feature.metric in ['std_deviation', 'variance']:
-                sub_agg = 'extended_stats'
-            else:
-                sub_agg = 'stats'
-
-            if feature.script:
-                agg = {
-                    sub_agg: {
-                        "script": {
-                            "lang": "painless",
-                            "inline": feature.script,
-                        }
-                    }
-                }
-            elif feature.field:
-                agg = {
-                    sub_agg: {
-                        "field": feature.field,
-                    }
-                }
-
-            aggs[feature.name] = agg
+        aggs = cls._build_aggs(model)
 
         for x in sorted(aggs):
             body['aggs']['histogram']['aggs'][x] = aggs[x]
@@ -256,7 +272,7 @@ class ElasticsearchDataSource(DataSource):
         if model.routing is not None:
             es_params['routing'] = model.routing
 
-        body = self._get_es_agg(
+        body = self._build_times_query(
             model,
             from_date_ms=int(from_date * 1000),
             to_date_ms=int(to_date * 1000),
