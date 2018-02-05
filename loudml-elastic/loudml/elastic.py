@@ -166,11 +166,18 @@ class ElasticsearchDataSource(DataSource):
 
         self.enqueue(req)
 
-    def insert_times_data(self, ts, data, doc_type='generic', doc_id=None):
+    def insert_times_data(
+        self,
+        ts,
+        data,
+        doc_type='generic',
+        doc_id=None,
+        timestamp_field='timestamp',
+    ):
         """
         Insert time-indexed entry
         """
-        data['timestamp'] = int(ts * 1000)
+        data[timestamp_field] = int(ts * 1000)
         self.insert_data(data, doc_type, doc_id)
 
     @staticmethod
@@ -223,7 +230,7 @@ class ElasticsearchDataSource(DataSource):
           "aggs": {
             "histogram": {
               "date_histogram": {
-                "field": "timestamp",
+                "field": model.timestamp_field,
                 "extended_bounds": _build_extended_bounds(from_ms, to_ms),
                 "interval": "%ds" % model.bucket_interval,
                 "min_doc_count": 0,
@@ -239,7 +246,7 @@ class ElasticsearchDataSource(DataSource):
 
         must = []
 
-        date_range = _build_date_range('timestamp', from_ms, to_ms)
+        date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
         if date_range is not None:
             must.append(date_range)
 

@@ -241,16 +241,20 @@ class TimeSeriesModel(Model):
     TYPE = 'timeseries'
 
     SCHEMA = Model.SCHEMA.extend({
-        Required('bucket_interval'): schemas.TimeDelta(min=0, min_included=False),
+        Required('bucket_interval'): schemas.TimeDelta(
+            min=0, min_included=False,
+        ),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('offset'): schemas.TimeDelta(min=0),
         Required('span'): All(int, Range(min=1)),
+        'timestamp_field': schemas.key,
     })
 
     def __init__(self, settings, state=None):
         settings['type'] = self.TYPE
         super().__init__(settings, state)
 
+        self.timestamp_field = settings.get('timestamp_field', 'timestamp')
         self.bucket_interval = parse_timedelta(settings.get('bucket_interval')).total_seconds()
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
