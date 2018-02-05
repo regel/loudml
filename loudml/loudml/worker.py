@@ -67,8 +67,6 @@ class Worker:
         model.train(source, **kwargs)
         self.storage.save_model(model)
 
-        # TODO return loss and accuracy
-
     def predict(self, model_name, **kwargs):
         """
         Ask model for a prediction
