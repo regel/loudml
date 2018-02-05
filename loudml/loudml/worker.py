@@ -67,7 +67,13 @@ class Worker:
         model.train(source, **kwargs)
         self.storage.save_model(model)
 
-    def predict(self, model_name, save_prediction=False, **kwargs):
+    def predict(
+        self,
+        model_name,
+        save_prediction=False,
+        detect_anomalies=False,
+        **kwargs
+    ):
         """
         Ask model for a prediction
         """
@@ -82,6 +88,13 @@ class Worker:
                          self.job_id, len(prediction.timestamps))
             if save_prediction:
                 source.save_timeseries_prediction(prediction, model)
+            if detect_anomalies:
+                model.detect_anomalies(prediction)
+
+                # TODO .detect_anomalies() produces warning messages
+                # and store anomalies into 'prediction'.
+                # Now, we can get them using 'prediction.get_anomalies()'
+                # and store them anywhere
         else:
             logging.info("job[%s] prediction done", self.job_id)
 

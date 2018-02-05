@@ -423,6 +423,7 @@ def model_start(model_name):
         return "maximum number of running models is reached", 429
 
     save_prediction = get_bool_arg('save_prediction')
+    detect_anomalies = get_bool_arg('detect_anomalies')
 
     def create_job(from_date=None):
         kwargs = {}
@@ -434,6 +435,7 @@ def model_start(model_name):
                 from_date = to_date - model.bucket_interval
 
             kwargs['save_prediction'] = save_prediction
+            kwargs['detect_anomalies'] = detect_anomalies
             kwargs['from_date'] = from_date
             kwargs['to_date'] = to_date
 
