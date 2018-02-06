@@ -292,9 +292,8 @@ def model_train(model_name):
     model = g_storage.load_model(model_name)
     kwargs = {}
 
-    if model.type == 'timeseries':
-        kwargs['from_date'] = request.args.get('from', "now-1d")
-        kwargs['to_date'] = request.args.get('to', "now")
+    kwargs['from_date'] = request.args.get('from', "now-1d")
+    kwargs['to_date'] = request.args.get('to', "now")
 
     job = TrainingJob(model_name, **kwargs)
     job.start()
