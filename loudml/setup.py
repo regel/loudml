@@ -66,6 +66,7 @@ setup(
             'predict=loudml.cli:PredictCommand',
         ],
         'loudml.models': [
+            'fingerprints=loudml.fingerprints:FingerprintsModel',
             'timeseries=loudml.timeseries:TimeSeriesModel',
         ],
     },
