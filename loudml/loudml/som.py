@@ -261,11 +261,8 @@ class SOM(object):
         score = int(100 * dist / self._pdist) if self._pdist > 0 else 0
         if score > 100:
             score = 100
-        res = {
-                  'distance': dist.item(),
-                  'score': score,
-              }
-        return res
+
+        return dist.item(), score
 
     def save_model(self, model_path='/tmp'):
         if not self._trained:

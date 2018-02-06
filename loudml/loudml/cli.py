@@ -348,7 +348,8 @@ class PredictCommand(Command):
                 args.from_date,
                 args.to_date,
             )
-
+            if args.anomalies:
+                model.detect_anomalies(prediction)
             if args.save:
                 model.keep_prediction(prediction)
                 storage.save_model(model)

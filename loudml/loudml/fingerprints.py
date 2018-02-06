@@ -33,13 +33,20 @@ class FingerprintsPrediction:
         self.from_ts = from_ts
         self.to_ts = to_ts
         self.fingerprints = fingerprints
+        self.changed = None
+        self.anomalies = None
 
     def format(self):
-        return {
+        result = {
             'from_date': ts_to_str(self.from_ts),
             'to_date': ts_to_str(self.to_ts),
             'fingerprints': self.fingerprints,
         }
+        if self.changed is not None:
+            result['changed'] = self.changed
+        if self.anomalies is not None:
+            result['anomalies'] = self.anomalies
+        return result
 
     def __str__(self):
         return json.dumps(self.format(), indent=4)
@@ -62,6 +69,8 @@ class FingerprintsModel(Model):
         'offset': schemas.TimeDelta(min=0),
         'timestamp_field': schemas.key,
     })
+
+    QUADRANTS = ["00h-06h", "06h-12h", "12h-18h", "18h-24h"]
 
     def __init__(self, settings, state=None):
         super().__init__(settings, state)
@@ -336,3 +345,104 @@ class FingerprintsModel(Model):
             return errors.ModelNotTrained()
 
         self._state['last_prediction'] = prediction.format()
+
+    def _annotate_col(self, j):
+        quadrant = self.QUADRANTS[int(j / (4 * self.nb_features))]
+        feature = self.feature_names[int(j) % self.nb_features]
+        return quadrant, feature
+
+    def get_description(self, Yc, Yo, yc, yo):
+        Yc = np.array(Yc)
+        Yo = np.array(Yo)
+        yc = np.array(yc)
+        yo = np.array(yo)
+
+        try:
+            diff = (Yc - Yo) / np.abs(Yo)
+            diff[np.isinf(diff)] = np.nan
+            max_arg = np.nanargmax(np.abs(diff))
+            max_val = diff[max_arg]
+            quadrant, feature = self._annotate_col(max_arg)
+            mul = int(max_val)
+            if mul < 0:
+                kind = 'Low'
+                desc = "Low {} in range {}. {} times lower than usual. "\
+                       "Actual={} Typical={}".format(
+                    feature, quadrant, abs(mul), yc[max_arg], yo[max_arg]
+                )
+            else:
+                kind = 'High'
+                desc = "High {} in range {}. {} times higher than usual. "\
+                       "Actual={} Typical={}".format(
+                    feature, quadrant, abs(mul), yc[max_arg], yo[max_arg]
+                )
+        except ValueError:
+            # FIXME: catching this exception here may mask some bugs.
+            # Explanations needed.
+            kind, desc = 'None', 'None'
+
+        return kind, desc
+
+    def detect_anomalies(self, prediction):
+        """
+        Detect anomalies on observed data by comparing them to the values
+        predicted by the model
+        """
+
+        if not self.is_trained:
+            return errors.ModelNotTrained()
+
+        fps = {
+            fingerprint['key']: fingerprint
+            for fingerprint in self.state['fingerprints']
+        }
+
+        prediction.changed = []
+        prediction.anomalies = []
+
+        for fp_pred in prediction.fingerprints:
+            key = fp_pred['key']
+            fp = fps.get(key)
+
+            if fp is None:
+                # signature = initial. We haven't seen this key during training
+                prediction.changed.append(key)
+                continue
+
+            time_span = fp['time_range'][1] - fp['time_range'][0]
+
+            if time_span < self.span:
+                # signature is shorter than minimum span
+                prediction.changed.append(key)
+                continue
+
+            dist, score = self._som_model.distance(
+                fp['location'],
+                fp_pred['location'],
+            )
+
+            kind, desc = self.get_description(
+                fp_pred['_fingerprint'],
+                fp['_fingerprint'],
+                fp_pred['fingerprint'],
+                fp['fingerprint'],
+            )
+
+            stats = {
+                'score': score,
+                'max_score': score,
+                'uuid': '',
+                'kind': kind,
+                'description': desc,
+            }
+
+            if score >= self.threshold:
+                # TODO have a Model.logger to prefix all logs with model name
+                logging.warning("detected anomaly for %s (score = %.1f)",
+                                key, score)
+                prediction.anomalies.append(key)
+                stats['anomaly'] = True
+            else:
+                stats['anomaly'] = False
+
+            fp_pred['stats'] = stats

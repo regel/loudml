@@ -67,6 +67,7 @@ class TestIVoipFingerprints(unittest.TestCase):
             height=50,
             width=50,
             interval=60,
+            span="24h",
         ))
 
         self.callers = [
