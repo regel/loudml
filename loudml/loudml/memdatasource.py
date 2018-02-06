@@ -165,6 +165,15 @@ class MemDataSource(DataSource):
 
         return agg_val
 
+    def get_quadrant_data(
+        self,
+        model,
+        from_date=None,
+        to_date=None,
+        term_val=None,
+    ):
+        raise NotImplemented()
+
     def get_times_data(
         self,
         model,

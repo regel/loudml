@@ -244,6 +244,14 @@ class InfluxDataSource(DataSource):
         """
         self.influxdb.write_points(requests)
 
+    def get_quadrant_data(
+        self,
+        model,
+        from_date=None,
+        to_date=None,
+    ):
+        raise NotImplemented()
+
     def get_times_data(
         self,
         model,

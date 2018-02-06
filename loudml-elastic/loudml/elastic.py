@@ -214,6 +214,105 @@ class ElasticsearchDataSource(DataSource):
 
         return aggs
 
+    @staticmethod
+    def build_quadrant_aggs(model):
+        # TODO Generic aggregation not implemented yet
+        raise NotImplemented()
+
+    @staticmethod
+    def read_quadrant_aggs(key, time_buckets):
+        # TODO Generic response handling not implemented yet
+        raise NotImplemented()
+
+    @classmethod
+    def _build_quadrant_query(
+        cls,
+        model,
+        from_ms=None,
+        to_ms=None,
+        term_val=None,
+    ):
+        body = {
+            "size": 0,
+            "aggs": {
+                "term_val": {
+                    "terms": {
+                        "field": model.term,
+                        "size": model.max_terms,
+                        "collect_mode" : "breadth_first",
+                        "include": {
+                            "partition": 0,
+                            "num_partitions": 1,
+                        },
+                    },
+                    "aggs": {
+                        "values": {
+                            "date_histogram": {
+                                "field": model.timestamp_field,
+                                "interval": "6h",
+                                "min_doc_count": 0,
+                                "extended_bounds": _build_extended_bounds(from_ms, to_ms - 6 * 3600),
+                            },
+                            "aggs": cls.build_quadrant_aggs(model),
+                        }
+                    }
+                }
+            }
+        }
+
+        must = []
+
+        date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
+        if date_range is not None:
+            must.append(date_range)
+
+        if term_val is not None:
+            must.append({"match": {model.term: term_val}})
+
+        if len(must) > 0:
+            body['query'] = {
+                "bool": {
+                    "must": must
+                }
+            }
+
+        return body
+
+    def get_quadrant_data(
+        self,
+        model,
+        from_date=None,
+        to_date=None,
+        term_val=None,
+    ):
+        es_params={}
+        if model.routing is not None:
+            es_params['routing'] = model.routing
+
+        from_ms, to_ms = _date_range_to_ms(from_date, to_date)
+
+        body = self._build_quadrant_query(
+            model,
+            from_ms=from_ms,
+            to_ms=to_ms,
+            term_val=term_val,
+        )
+
+        try:
+            es_res = self.es.search(
+                index=self.index,
+                size=0,
+                body=body,
+                params=es_params,
+            )
+        except elasticsearch.exceptions.TransportError as exn:
+            raise errors.TransportError(str(exn))
+        except urllib3.exceptions.HTTPError as exn:
+            raise errors.DataSourceError(self.name, str(exn))
+
+            for term_bucket in es_res['aggregations']['term_val']['buckets']:
+                yield self.read_quadrant_aggs(term_bucket['key'], term_bucket['values']['buckets'])
+
     @classmethod
     def _build_times_query(
         cls,
