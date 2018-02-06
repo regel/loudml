@@ -17,6 +17,7 @@ from voluptuous import (
 )
 
 from . import (
+    errors,
     schemas,
     som,
 )
@@ -28,11 +29,15 @@ from .misc import (
 from .model import Model
 
 class FingerprintsPrediction:
-    def __init__(self, fingerprints):
+    def __init__(self, fingerprints, from_ts, to_ts):
+        self.from_ts = from_ts
+        self.to_ts = to_ts
         self.fingerprints = fingerprints
 
     def format(self):
         return {
+            'from_date': ts_to_str(self.from_ts),
+            'to_date': ts_to_str(self.to_ts),
             'fingerprints': self.fingerprints,
         }
 
@@ -229,6 +234,27 @@ class FingerprintsModel(Model):
             self.nb_features,
         )
 
+    @property
+    def preview(self):
+        trained = self.is_trained
+
+        state = {
+            'trained': self.is_trained
+        }
+
+        last_prediction = self._state.get('last_prediction')
+        if last_prediction is not None:
+            state['last_prediction'] = {
+                'from_date': last_prediction['from_date'],
+                'to_date': last_prediction['to_date'],
+                'fingerprints': len(last_prediction['fingerprints']),
+            }
+
+        return {
+            'settings': self.settings,
+            'state': state,
+        }
+
     def _map_dataset(self, dataset):
         zY = np.nan_to_num((dataset - self._means) / self._stds)
 
@@ -290,4 +316,14 @@ class FingerprintsModel(Model):
             to_ts,
         )
 
-        return FingerprintsPrediction(fingerprints)
+        return FingerprintsPrediction(
+            from_ts=from_ts,
+            to_ts=to_ts,
+            fingerprints=fingerprints,
+        )
+
+    def keep_prediction(self, prediction):
+        if not self.is_trained:
+            return errors.ModelNotTrained()
+
+        self._state['last_prediction'] = prediction.format()
