@@ -264,6 +264,12 @@ class SOM(object):
 
         return dist.item(), score
 
+    def location(self, x, y):
+        return x * self._n + y
+
+    def centroids(self):
+        return self._weightages
+
     def save_model(self, model_path='/tmp'):
         if not self._trained:
             raise ValueError("SOM not trained yet")

@@ -383,6 +383,32 @@ class FingerprintsModel(Model):
 
         return kind, desc
 
+    def show(self):
+        self.load()
+        som_model = self._som_model
+        fingerprints = self._state['fingerprints']
+        centroids = som_model.centroids()
+        result = {
+            'fingerprints': fingerprints
+        }
+        counts = [0] * (self.w * self.h)
+        for fingerprint in fingerprints:
+            x, y = fingerprint['location']
+            counts[som_model.location(x,y)] += 1
+
+        grid = []
+        for x in range(self.h):
+            for y in range(self.w):
+                cnt = counts[som_model.location(x,y)]
+                grid.append({
+                    'location': (x, y),
+                    'count': cnt,
+                    '_fingerprint': centroids[som_model.location(x,y)].tolist(),
+                })
+
+        result['grid'] = grid
+        return result
+
     def detect_anomalies(self, prediction):
         """
         Detect anomalies on observed data by comparing them to the values

@@ -17,6 +17,9 @@ from .errors import (
     LoudMLException,
     ModelNotTrained,
 )
+from .misc import (
+    make_bool,
+)
 from .filestorage import (
     FileStorage,
 )
@@ -176,11 +179,20 @@ class ShowModelCommand(Command):
             help="Model name",
             type=str,
         )
+        parser.add_argument(
+            '-a', '--all',
+            help="All internal information",
+            action='store_true',
+            dest='show_all',
+        )
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         model = storage.load_model(args.model_name)
-        print(json.dumps(model.preview, indent=4))
+        if args.show_all:
+            print(json.dumps(model.show(), indent=4))
+        else:
+            print(json.dumps(model.preview, indent=4))
 
 
 class TrainCommand(Command):
