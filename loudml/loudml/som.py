@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
+# TODO: clean-up and unit tests
+
 # From: https://codesachin.wordpress.com/2015/11/28/self-organizing-maps-with-googles-tensorflow/
+import os
+import logging
+import multiprocessing
+
 import tensorflow as tf
 import numpy as np
 from scipy.spatial.distance import pdist
@@ -10,7 +16,6 @@ from scipy.spatial.distance import pdist
 from random import shuffle
 from scipy import spatial
 from functools import partial
-import multiprocessing
 
 float_formatter = lambda x: "%.2f" % x
 np.set_printoptions(formatter={'float_kind':float_formatter})
@@ -285,3 +290,46 @@ class SOM(object):
         self._pdist = np.percentile(pdist(self._weightages), 99)
         self._trained = True
 
+def serialize_model(som_model):
+    import tempfile
+    import base64
+    from .som import SOM
+
+    # serialize model to base64
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            som_model.save_model(os.path.join(tmp, 'model'))
+
+            with open(os.path.join(tmp, 'model.data-00000-of-00001'), 'rb') as fp:
+                data = base64.b64encode(fp.read())
+            with open(os.path.join(tmp, 'model.index'), 'rb') as fp:
+                index = base64.b64encode(fp.read())
+            with open(os.path.join(tmp, 'model.meta'), 'rb') as fp:
+                meta = base64.b64encode(fp.read())
+    except OSError as exn:
+        logging.error("cannot serialize SOM model: %s", str(exn))
+        raise exn
+
+    return data.decode('utf-8'), index.decode('utf-8'), meta.decode('utf-8')
+
+def load_model(ckpt, index, meta, w, h, num_dimens):
+    import tempfile
+    import base64
+    from .som import SOM
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, 'model.data-00000-of-00001'), 'wb') as fp:
+                fp.write(base64.b64decode(ckpt.encode('utf-8')))
+            with open(os.path.join(tmp, 'model.index'), 'wb') as fp:
+                fp.write(base64.b64decode(index.encode('utf-8')))
+            with open(os.path.join(tmp, 'model.meta'), 'wb') as fp:
+                fp.write(base64.b64decode(meta.encode('utf-8')))
+
+            # load weights into new model
+            som_model = SOM(w, h, num_dimens, 0)
+            som_model.restore_model(os.path.join(tmp, 'model'))
+            return som_model
+    except OSError as exn:
+        logging.error("cannot load SOM model: %s", str(exn))
+        raise exn
