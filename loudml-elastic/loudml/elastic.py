@@ -4,6 +4,7 @@ Elasticsearch module for LoudML
 
 import datetime
 import logging
+import math
 
 import elasticsearch.exceptions
 import urllib3.exceptions
@@ -24,9 +25,13 @@ from voluptuous import (
 from . import errors
 from loudml.datasource import DataSource
 from loudml.misc import (
+    deepsizeof,
     make_ts,
     parse_addr,
 )
+
+# Limit ES aggregations output to 500 MB
+PARTITION_MAX_SIZE = 500 * 1024 * 1024
 
 def _date_range_to_ms(from_date=None, to_date=None):
     """
@@ -214,6 +219,84 @@ class ElasticsearchDataSource(DataSource):
 
         return aggs
 
+    def get_field_cardinality(
+        self,
+        model,
+        from_ms=None,
+        to_ms=None,
+    ):
+        body = {
+          "size": 0,
+          "aggs": {
+            "count": {
+              "cardinality": {
+                "field": model.term,
+              }
+            }
+          }
+        }
+
+        es_params={}
+        if model.routing is not None:
+            es_params['routing'] = model.routing
+
+        must = []
+        date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
+        if date_range is not None:
+            must.append(date_range)
+
+        if len(must) > 0:
+            body['query'] = {
+                'bool': {
+                    'must': must,
+                }
+            }
+
+        try:
+            es_res = self.es.search(
+                index=self.index,
+                size=0,
+                body=body,
+                params=es_params,
+            )
+        except elasticsearch.exceptions.TransportError as exn:
+            raise errors.TransportError(str(exn))
+        except urllib3.exceptions.HTTPError as exn:
+            raise errors.DataSourceError(self.name, str(exn))
+
+        return int(es_res['aggregations']['count']['value'])
+
+    def _compute_quad_partition_size(
+        self,
+        model,
+        from_ms,
+        to_ms,
+    ):
+        cardinality = self.get_field_cardinality(model, from_ms, to_ms)
+        nb_time_buckets = math.ceil((to_ms - from_ms) / (6 * 3600 * 100))
+
+        quad = {
+            "key_as_string": "2016-12-31T18:00:00.000Z",
+            "key": 1483207200000,
+            "doc_count": 0,
+            "extended_stats": {
+                "count": 0,
+                "min": 0,
+                "max": 0,
+                "avg": 0.0,
+                "sum": 0.0,
+                "sum_of_squares": 0.0,
+                "variance": 0.0,
+                "std_deviation": 0.0,
+                "std_deviation_bounds": {
+                    "upper": 0.0,
+                    "lower": 0.0,
+                }
+            }
+        }
+
+        return cardinality * deepsizeof(quad) * nb_time_buckets * len(model.features)
+
     @staticmethod
     def build_quadrant_aggs(model):
         # TODO Generic aggregation not implemented yet
@@ -231,6 +314,8 @@ class ElasticsearchDataSource(DataSource):
         from_ms=None,
         to_ms=None,
         term_val=None,
+        partition=0,
+        num_partition=1,
     ):
         body = {
             "size": 0,
@@ -241,8 +326,8 @@ class ElasticsearchDataSource(DataSource):
                         "size": model.max_terms,
                         "collect_mode" : "breadth_first",
                         "include": {
-                            "partition": 0,
-                            "num_partitions": 1,
+                            "partition": partition,
+                            "num_partitions": num_partition,
                         },
                     },
                     "aggs": {
@@ -291,24 +376,36 @@ class ElasticsearchDataSource(DataSource):
 
         from_ms, to_ms = _date_range_to_ms(from_date, to_date)
 
-        body = self._build_quadrant_query(
-            model,
-            from_ms=from_ms,
-            to_ms=to_ms,
-            term_val=term_val,
-        )
+        if term_val is None:
+            size = self._compute_quad_partition_size(model, from_ms, to_ms)
+            num_partition = max(math.ceil(size / PARTITION_MAX_SIZE), 1)
+        else:
+            num_partition = 1
 
-        try:
-            es_res = self.es.search(
-                index=self.index,
-                size=0,
-                body=body,
-                params=es_params,
+        for partition in range(0, num_partition):
+            logging.info("running aggregations for model '%s', partition %d/%d",
+                         model.name, partition, num_partition)
+
+            body = self._build_quadrant_query(
+                model,
+                from_ms=from_ms,
+                to_ms=to_ms,
+                term_val=term_val,
+                partition=partition,
+                num_partition=num_partition,
             )
-        except elasticsearch.exceptions.TransportError as exn:
-            raise errors.TransportError(str(exn))
-        except urllib3.exceptions.HTTPError as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+
+            try:
+                es_res = self.es.search(
+                    index=self.index,
+                    size=0,
+                    body=body,
+                    params=es_params,
+                )
+            except elasticsearch.exceptions.TransportError as exn:
+                raise errors.TransportError(str(exn))
+            except urllib3.exceptions.HTTPError as exn:
+                raise errors.DataSourceError(self.name, str(exn))
 
             for term_bucket in es_res['aggregations']['term_val']['buckets']:
                 yield self.read_quadrant_aggs(term_bucket['key'], term_bucket['values']['buckets'])
