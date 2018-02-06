@@ -253,9 +253,9 @@ class SOM(object):
                  x,
                  y,
         ):
-        xl = x[0] * self._m + x[1] 
+        xl = x[0] * self._n + x[1] 
         x = self._weightages[xl]
-        yl = y[0] * self._m + y[1] 
+        yl = y[0] * self._n + y[1] 
         y = self._weightages[yl]
         dist = np.linalg.norm(x - y)
         score = int(100 * dist / self._pdist) if self._pdist > 0 else 0
