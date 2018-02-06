@@ -24,20 +24,30 @@ from voluptuous import (
 from . import errors
 from loudml.datasource import DataSource
 from loudml.misc import (
+    make_ts,
     parse_addr,
 )
 
-def get_date_range(field, from_date=None, to_date=None):
+def _date_range_to_ms(from_date=None, to_date=None):
+    """
+    Convert date range to millisecond
+    """
+    return (
+        None if from_date is None else int(make_ts(from_date) * 1000),
+        None if to_date is None else int(make_ts(to_date) * 1000),
+    )
+
+def _build_date_range(field, from_ms=None, to_ms=None):
     """
     Build date range for search query
     """
 
     date_range = {}
 
-    if from_date is not None:
-        date_range['gte'] = from_date
-    if to_date is not None:
-        date_range['lt'] = to_date
+    if from_ms is not None:
+        date_range['gte'] = from_ms
+    if to_ms is not None:
+        date_range['lt'] = to_ms
 
     if len(date_range) == 0:
         return None
@@ -45,6 +55,19 @@ def get_date_range(field, from_date=None, to_date=None):
     return {'range': {
         field: date_range,
     }}
+
+def _build_extended_bounds(from_ms=None, to_ms=None):
+    """
+    Build extended_bounds
+    """
+    bounds = {}
+
+    if from_ms is not None:
+        bounds['min'] = from_ms
+    if to_ms is not None:
+        bounds['max'] = to_ms
+
+    return bounds
 
 class ElasticsearchDataSource(DataSource):
     """
@@ -188,8 +211,8 @@ class ElasticsearchDataSource(DataSource):
     def _build_times_query(
         cls,
         model,
-        from_date_ms=None,
-        to_date_ms=None,
+        from_ms,
+        to_ms,
     ):
         """
         Build Elasticsearch query for time-series
@@ -197,23 +220,11 @@ class ElasticsearchDataSource(DataSource):
 
         body = {
           "size": 0,
-          "query": {
-            "bool": {
-              "must": [
-              ],
-              "should": [
-              ],
-              "minimum_should_match": 0,
-            }
-          },
           "aggs": {
             "histogram": {
               "date_histogram": {
                 "field": "timestamp",
-                "extended_bounds": {
-                    "min": from_date_ms,
-                    "max": to_date_ms,
-                },
+                "extended_bounds": _build_extended_bounds(from_ms, to_ms),
                 "interval": "%ds" % model.bucket_interval,
                 "min_doc_count": 0,
                 "order": {
@@ -227,7 +238,11 @@ class ElasticsearchDataSource(DataSource):
         }
 
         must = []
-        must.append(get_date_range('timestamp', from_date_ms, to_date_ms))
+
+        date_range = _build_date_range('timestamp', from_ms, to_ms)
+        if date_range is not None:
+            must.append(date_range)
+
         if len(must) > 0:
             body['query'] = {
                 'bool': {
@@ -272,10 +287,12 @@ class ElasticsearchDataSource(DataSource):
         if model.routing is not None:
             es_params['routing'] = model.routing
 
+        from_ms, to_ms = _date_range_to_ms(from_date, to_date)
+
         body = self._build_times_query(
             model,
-            from_date_ms=int(from_date * 1000),
-            to_date_ms=int(to_date * 1000),
+            from_ms=from_ms,
+            to_ms=to_ms,
         )
 
         try:
