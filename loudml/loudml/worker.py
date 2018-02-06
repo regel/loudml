@@ -95,10 +95,16 @@ class Worker:
                 # and store anomalies into 'prediction'.
                 # Now, we can get them using 'prediction.get_anomalies()'
                 # and store them anywhere
+            return prediction.format_series()
+        elif model.type.endswith('fingerprints'):
+            logging.info("job[%s]: computing fingerprints for model '%s'",
+                         self.job_id, self.model.name)
+            if save_prediction:
+                model.keep_prediction(prediction)
+                self.storage.save_model(model)
         else:
             logging.info("job[%s] prediction done", self.job_id)
 
-        return prediction.format_series()
 
 
     """

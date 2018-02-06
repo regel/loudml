@@ -6,5 +6,7 @@
     "max_keys": 1024,
     "height": 50,
     "width": 50,
-    "interval": 60
+    "interval": 60,
+    "span": "24h",
+    "offset": 0
 }

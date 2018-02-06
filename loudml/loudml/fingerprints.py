@@ -58,6 +58,8 @@ class FingerprintsModel(Model):
         Required('width'): All(int, Range(min=1)),
         Required('height'): All(int, Range(min=1)),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
+        Required('span'): schemas.TimeDelta(min=0, min_included=False),
+        'offset': schemas.TimeDelta(min=0),
         'timestamp_field': schemas.key,
     })
 
@@ -69,6 +71,8 @@ class FingerprintsModel(Model):
         self.w = settings['width']
         self.h = settings['height']
         self.interval = parse_timedelta(settings['interval']).total_seconds()
+        self.span = parse_timedelta(settings['span']).total_seconds()
+        self.offset = parse_timedelta(settings.get('offset', 0)).total_seconds()
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
 
         if state is not None:

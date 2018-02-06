@@ -438,6 +438,16 @@ def model_start(model_name):
             kwargs['detect_anomalies'] = detect_anomalies
             kwargs['from_date'] = from_date
             kwargs['to_date'] = to_date
+        elif model.type.endswith('fingerprints'):
+            to_date = datetime.datetime.now().timestamp() - model.offset
+
+            if from_date is None:
+                from_date = to_date - model.span
+
+            kwargs['save_prediction'] = save_prediction
+            kwargs['detect_anomalies'] = detect_anomalies
+            kwargs['from_date'] = from_date
+            kwargs['to_date'] = to_date
 
         job = PredictionJob(model_name, **kwargs)
         job.start()
