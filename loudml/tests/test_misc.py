@@ -6,6 +6,7 @@ from loudml import (
 )
 
 from loudml.misc import (
+    deepsizeof,
     make_datetime,
     make_ts,
     str_to_ts,
@@ -92,3 +93,13 @@ class TestMisc(unittest.TestCase):
                 'port': 8080,
             }
         )
+
+    def test_deepsizeof(self):
+        size = deepsizeof({
+            'i': 0,
+            'f': 1.0,
+            'a': [1.0, 2.0, 3.0],
+        })
+
+        # XXX It seems that loading some python modules may change the result
+        self.assertTrue(size == 622 or size == 630)
