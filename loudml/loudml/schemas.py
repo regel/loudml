@@ -22,7 +22,7 @@ from .misc import (
 key = All(
    str,
    Length(min=1),
-   Match("^[a-zA-Z0-9-_]+$"),
+   Match("^[a-zA-Z0-9-_@]+$"),
 )
 
 class TimeDelta:
