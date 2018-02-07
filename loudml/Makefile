@@ -19,6 +19,11 @@ $(NAME).rpm: $(NAME).spec
 	$(call rpmsrc,$(FULLNAME))
 	$(call rpmbuild,$(FULLNAME),$(NAME))
 
-.PHONY: rpm
+deb: $(NAME).deb
+
+$(NAME).deb:
+	$(call debbuild,$(FULLNAME))
+
+.PHONY: rpm deb
 
 include ../build.mk

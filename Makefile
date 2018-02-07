@@ -29,6 +29,13 @@ rpm:
 	@echo -e "\nRPM packages:"
 	@find $(BUILD_DIR) -name '*.rpm'
 
+deb:
+	$(MAKE) -C loudml deb
+	$(MAKE) -C loudml-elastic deb
+	$(MAKE) -C loudml-influx deb
+	@echo -e "\nDEB packages:"
+	@find -name '*.deb'
+
 $(RPMREPO_DIR)/repodata/repomd.xml: rpm
 	createrepo $(RPMREPO_DIR)
 

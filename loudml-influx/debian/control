@@ -8,6 +8,7 @@ Build-Depends:
   python-all,
   python-setuptools,
   python3-all,
+  python3-jinja2,
   python3-setuptools
 Standards-Version: 3.9.5
 Homepage: http://www.loudml.io/
@@ -22,4 +23,4 @@ Depends:
 Description: InfluxDB module for LoudML
  The following dependencies have to be installed by hand:
  .
- pip3 install influxdb>=5.0.0
+ pip3 install 'influxdb>=5.0.0'

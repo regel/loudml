@@ -22,4 +22,4 @@ Depends:
 Description: Elasticsearch module for LoudML
  The following dependencies have to be installed by hand:
  .
- pip3 install elasticsearch>=5.4.0
+ pip3 install 'elasticsearch>=5.4.0'

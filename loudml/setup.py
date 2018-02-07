@@ -28,11 +28,11 @@ setup(
 
     install_requires=[
         "dateutils>=0.6.6",
-        "Flask>=0.10.1",
-        "Flask-restful>=0.3.6",
-        "networkx>=1.9",
+        "Flask>=0.12.1",
+        "Flask-restful>=0.3.5",
+        "networkx>=1.11",
         "tensorflow >=1.3.0, <=1.3.1",
-        "h5py>=2.2.1",
+        "h5py>=2.7.0",
         "hyperopt==0.1",
         "psutil>=2.2.1",
         "PyYAML>=3.11",

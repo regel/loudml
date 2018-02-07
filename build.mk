@@ -35,3 +35,9 @@ rpmbuild --define "name $(2)" \
          -bb "$<"
 endef
 
+# Build DEB package
+define debbuild
+@echo -e "  DEBBUILD\t$(1)"
+debuild -us -uc -b
+endef
+
