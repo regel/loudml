@@ -295,7 +295,7 @@ class ElasticsearchDataSource(DataSource):
             }
         }
 
-        return cardinality * deepsizeof(quad) * nb_time_buckets * len(model.features)
+        return cardinality * deepsizeof(quad) * nb_time_buckets * model.nb_features
 
     @staticmethod
     def build_quadrant_aggs(model):
@@ -484,7 +484,6 @@ class ElasticsearchDataSource(DataSource):
         to_date=None,
     ):
         features = model.features
-        nb_features = len(features)
 
         es_params={}
         if model.routing is not None:
@@ -525,7 +524,7 @@ class ElasticsearchDataSource(DataSource):
         t0 = None
 
         for bucket in es_res['aggregations']['histogram']['buckets']:
-            X = np.zeros(nb_features, dtype=float)
+            X = np.zeros(model.nb_features, dtype=float)
             timestamp = int(bucket['key'])
             timeval = bucket['key_as_string']
 

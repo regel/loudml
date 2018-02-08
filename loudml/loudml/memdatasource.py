@@ -181,7 +181,6 @@ class MemDataSource(DataSource):
         to_date=None,
     ):
         features = model.features
-        nb_features = len(features)
 
         buckets = self.get_times_buckets(
             from_date,
@@ -192,7 +191,7 @@ class MemDataSource(DataSource):
         t0 = None
 
         for bucket in buckets:
-            X = np.zeros(nb_features, dtype=float)
+            X = np.zeros(model.nb_features, dtype=float)
             timestamp = bucket.key
             timeval = ts_to_str(timestamp)
 

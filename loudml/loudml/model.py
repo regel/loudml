@@ -87,7 +87,13 @@ class Model:
         self._settings = settings
         self.routing = settings.get('routing')
         self.state = state
-        self.features = [Feature(**feature) for feature in settings['features']]
+
+        features = settings.get('features')
+        if features is None:
+            self.features = None
+        else:
+            self.features = [Feature(**feature) for feature in features]
+
         self.threshold = self.settings.get('threshold', 75)
 
     @classmethod
@@ -106,6 +112,10 @@ class Model:
     @property
     def settings(self):
         return self._settings
+
+    @property
+    def nb_features(self):
+        return len(self.features)
 
     @property
     def is_trained(self):
