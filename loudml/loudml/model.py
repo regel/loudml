@@ -86,7 +86,7 @@ class Model:
         self.name = settings.get('name')
         self._settings = settings
         self.routing = settings.get('routing')
-        self.state = state
+        self._state = state
 
         features = settings.get('features')
         if features is None:
@@ -119,7 +119,7 @@ class Model:
 
     @property
     def is_trained(self):
-        return self.state is not None
+        return self._state is not None
 
     @property
     def data(self):
@@ -127,6 +127,10 @@ class Model:
             'settings': self.settings,
             'state': self.state,
         }
+
+    @property
+    def state(self):
+        return self._state
 
     @property
     def preview(self):

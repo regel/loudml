@@ -536,7 +536,7 @@ class TimeSeriesModel(Model):
 
         model_b64, weights_b64 = _serialize_keras_model(_keras_model)
 
-        self.state = {
+        self._state = {
             'graph': model_b64,
             'weights': weights_b64, # H5PY data encoded in base64
             'loss_fct': best_params['loss_fct'],
@@ -564,21 +564,21 @@ class TimeSeriesModel(Model):
             raise errors.ModelNotTrained()
 
         _keras_model, _graph = _load_keras_model(
-            self.state['graph'],
-            self.state['weights'],
-            self.state['loss_fct'],
-            self.state['optimizer'],
+            self._state['graph'],
+            self._state['weights'],
+            self._state['loss_fct'],
+            self._state['optimizer'],
         )
 
-        _mins = np.array(self.state['mins'])
-        _maxs = np.array(self.state['maxs'])
+        _mins = np.array(self._state['mins'])
+        _maxs = np.array(self._state['maxs'])
 
     @property
     def is_trained(self):
         """
         Tells if model is trained
         """
-        return self.state is not None and 'weights' in self.state
+        return self._state is not None and 'weights' in self._state
 
     def _format_dataset_predict(self, dataset):
         """
