@@ -126,15 +126,3 @@ class TestModel(unittest.TestCase):
                 ],
             }
         )
-        self.invalid_model(
-            settings={
-                'name': 'foo',
-                'features': [
-                    {
-                        'name': 'bar',
-                        'field': 'baz',
-                        'metric': 'avg',
-                    },
-                ],
-            }
-        )

@@ -30,7 +30,6 @@ class FingerprintsModel(Model):
     })
 
     def __init__(self, settings, state=None):
-        settings['type'] = self.TYPE
         super().__init__(settings, state)
 
         self.term = settings['term']

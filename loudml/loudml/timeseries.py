@@ -251,7 +251,6 @@ class TimeSeriesModel(Model):
     })
 
     def __init__(self, settings, state=None):
-        settings['type'] = self.TYPE
         super().__init__(settings, state)
 
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')

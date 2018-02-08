@@ -65,6 +65,7 @@ class Model:
     LoudML model
     """
 
+    TYPE = 'generic'
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
@@ -78,6 +79,7 @@ class Model:
         name -- model settings
         """
 
+        settings['type'] = self.TYPE
         settings = copy.deepcopy(settings)
 
         self._settings = self.validate(settings)
