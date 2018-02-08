@@ -17,6 +17,11 @@ uninstall:
 	$(MAKE) -C loudml-elastic uninstall
 	$(MAKE) -C loudml uninstall
 
+dev:
+	$(MAKE) -C loudml-influx dev
+	$(MAKE) -C loudml-elastic dev
+	$(MAKE) -C loudml dev
+
 test:
 	$(MAKE) -C loudml test
 	$(MAKE) -C loudml-elastic test

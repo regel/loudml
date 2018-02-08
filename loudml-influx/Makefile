@@ -10,6 +10,9 @@ clean:
 	./setup.py clean
 	rm -rf build
 
+dev:
+	./setup.py develop --no-deps
+
 test:
 	nosetests-3.4 -v tests/
 
