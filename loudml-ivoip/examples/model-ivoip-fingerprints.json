@@ -1,0 +1,10 @@
+{
+    "name": "model-ivoip-fingerprints",
+    "type": "ivoip_fingerprints",
+    "default_datasource": "ivoip",
+    "key": "caller",
+    "max_keys": 1024,
+    "height": 50,
+    "width": 50,
+    "interval": 60
+}

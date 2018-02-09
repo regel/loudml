@@ -35,7 +35,10 @@ setup(
 
     entry_points={
         'loudml.datasources': [
-            'ivoip=loudml.elastic:IVoipDataSource',
+            'ivoip=loudml.ivoip:IVoipDataSource',
         ],
+        'loudml.models': [
+            'ivoip_fingerprints=loudml.ivoip:IVoipFingerprintsModel',
+        ]
     },
 )

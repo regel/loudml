@@ -103,11 +103,6 @@ class CreateModelCommand(Command):
         else:
             settings = self._load_model_json(path)
 
-        if not settings.get('name'):
-            raise LoudMLException('model has no name')
-        if not settings.get('features'):
-            raise LoudMLException('model has no features')
-
         return settings
 
     def exec(self, args):
@@ -239,7 +234,24 @@ class TrainCommand(Command):
             )
             print("loss: %f" % result['loss'])
             print("accuracy: %f" % result['accuracy'])
-            storage.save_model(model)
+        elif model.type == 'ivoip_fingerprints':
+            if not args.from_date:
+                raise LoudMLException(
+                    "'from' argument is required for fingerprints",
+                )
+            if not args.to_date:
+                raise LoudMLException(
+                    "'to' argument is required for fingerprints",
+                )
+            model.train(
+                source,
+                args.from_date,
+                args.to_date,
+            )
+        else:
+            raise errors.UnsupportedModel("model type not supported for training")
+
+        storage.save_model(model)
 
 
 class PredictCommand(Command):
@@ -288,14 +300,10 @@ class PredictCommand(Command):
             help="Save prediction into the data source",
         )
 
-    def _dump(self, prediction, buckets=True):
+    def _dump(self, data):
         """
-        Dump prediction to stdout
+        Dump data to stdout
         """
-        if buckets:
-            data = prediction.format_buckets()
-        else:
-            data = prediction.format_series()
         print(json.dumps(data, indent=4))
 
     def exec(self, args):
@@ -324,7 +332,24 @@ class PredictCommand(Command):
             if args.save:
                 source.save_timeseries_prediction(prediction, model)
             else:
-                self._dump(prediction, args.buckets)
+                if buckets:
+                    data = prediction.format_buckets()
+                else:
+                    data = prediction.format_series()
+                self._dump(data)
+        elif model.type == 'ivoip_fingerprints':
+            if not args.from_date:
+                raise LoudMLException("'from' argument is required for fingerprints")
+            if not args.to_date:
+                raise LoudMLException("'to' argument is required for fingerprints")
+
+            prediction = model.predict(
+                source,
+                args.from_date,
+                args.to_date,
+            )
+            print(prediction)
+
 
 def get_commands():
     """
