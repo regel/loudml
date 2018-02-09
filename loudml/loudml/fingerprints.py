@@ -3,7 +3,9 @@ LoudML fingerprints module
 """
 
 import copy
+import json
 import logging
+import math
 
 import numpy as np
 
@@ -20,9 +22,23 @@ from . import (
 )
 from .misc import (
     make_ts,
+    parse_timedelta,
     ts_to_str,
 )
 from .model import Model
+
+class FingerprintsPrediction:
+    def __init__(self, fingerprints):
+        self.fingerprints = fingerprints
+
+    def format(self):
+        return {
+            'fingerprints': self.fingerprints,
+        }
+
+    def __str__(self):
+        return json.dumps(self.format(), indent=4)
+
 
 class FingerprintsModel(Model):
     """
@@ -36,6 +52,7 @@ class FingerprintsModel(Model):
         Required('max_terms'): All(int, Range(min=1)),
         Required('width'): All(int, Range(min=1)),
         Required('height'): All(int, Range(min=1)),
+        Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         'timestamp_field': schemas.key,
     })
 
@@ -46,6 +63,7 @@ class FingerprintsModel(Model):
         self.max_terms = settings['max_terms']
         self.w = settings['width']
         self.h = settings['height']
+        self.interval = parse_timedelta(settings['interval']).total_seconds()
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
 
         if state is not None:
@@ -96,6 +114,29 @@ class FingerprintsModel(Model):
 
         # Map vectors to their closest neurons
         return self._som_model.map_vects(zY)
+
+    def _build_fingerprints(
+        self,
+        dataset,
+        mapped,
+        terms,
+        from_ts,
+        to_ts,
+    ):
+        fingerprints = []
+
+        for i, x in enumerate(mapped):
+            key = terms[i]
+            _fingerprint = np.nan_to_num((dataset[i] - self._means) / self._stds)
+            fingerprints.append({
+                'key': key,
+                'time_range': (int(from_ts), int(to_ts)),
+                'fingerprint': dataset[i].tolist(),
+                '_fingerprint': _fingerprint.tolist(),
+                'location': (mapped[i][0].item(), mapped[i][1].item()),
+            })
+
+        return fingerprints
 
     def train(
         self,
@@ -160,18 +201,13 @@ class FingerprintsModel(Model):
         )
 
         model_ckpt, model_index, model_meta = som.serialize_model(self._som_model)
-        fingerprints = []
-        i = None
-        for i, x in enumerate(mapped):
-            key = terms[i]
-            _fingerprint = np.nan_to_num((dataset[i] - self._means) / self._stds)
-            fingerprints.append({
-                'key': key,
-                 'time_range': (int(from_ts), int(to_ts)),
-                 'fingerprint': dataset[i].tolist(),
-                 '_fingerprint': _fingerprint.tolist(),
-                 'location': (mapped[i][0].item(), mapped[i][1].item()),
-               })
+        fingerprints = self._build_fingerprints(
+            dataset,
+            mapped,
+            terms,
+            from_ts,
+            to_ts,
+        )
 
         self._state = {
             'ckpt': model_ckpt, # TF CKPT data encoded in base64
@@ -192,3 +228,66 @@ class FingerprintsModel(Model):
             self.h,
             self.nb_features,
         )
+
+    def _map_dataset(self, dataset):
+        zY = np.nan_to_num((dataset - self._means) / self._stds)
+
+        # Hyperparameters
+        mapped = self._som_model.map_vects(zY)
+        return mapped
+
+    def predict(
+        self,
+        datasource,
+        from_date,
+        to_date,
+    ):
+        from_ts = make_ts(from_date)
+        to_ts = make_ts(to_date)
+
+        # Fixup range to be sure that it is a multiple of interval
+        from_ts = math.floor(from_ts / self.interval) * self.interval
+        to_ts = math.ceil(to_ts / self.interval) * self.interval
+
+        from_str = ts_to_str(from_ts)
+        to_str = ts_to_str(to_ts)
+
+        logging.info("predict(%s) range=[%s, %s]",
+                     self.name, from_str, to_str)
+
+        self.load()
+
+        # Prepare dataset
+        nb_terms = self.max_terms
+        dataset = np.zeros((nb_terms, self.nb_features), dtype=float)
+
+        # Fill dataset
+        data = datasource.get_quadrant_data(self, from_ts, to_ts)
+
+        i = None
+        terms = []
+        for i, (term_val, val) in enumerate(data):
+            terms.append(term_val)
+            dataset[i] = self.format_quadrants(val)
+
+        if i is None:
+            raise errors.NoData("no data found for time range {}-{}".format(
+                from_str,
+                to_str,
+            ))
+
+        logging.info("found %d terms", i + 1)
+
+        mapped = self._map_dataset(
+            np.resize(dataset, (i + 1, self.nb_features)),
+        )
+
+        fingerprints = self._build_fingerprints(
+            dataset,
+            mapped,
+            terms,
+            from_ts,
+            to_ts,
+        )
+
+        return FingerprintsPrediction(fingerprints)

@@ -66,7 +66,14 @@ class TestIVoipFingerprints(unittest.TestCase):
             max_terms=1024,
             height=50,
             width=50,
+            interval=60,
         ))
+
+        self.callers = [
+            "33612345678",
+            "33601020304",
+            "33688774455",
+        ]
 
         def add(i, v):
             d, i, p = v
@@ -82,7 +89,7 @@ class TestIVoipFingerprints(unittest.TestCase):
             )
 
         # Profile 0: very busy, short calls, low variation
-        caller = "33612345678"
+        caller = self.callers[0]
         data = [
             (30, False, False),
             (60, False, False),
@@ -100,7 +107,7 @@ class TestIVoipFingerprints(unittest.TestCase):
             add(i, v)
 
         # Profile 1: less busy, high variation
-        caller = "33601020304"
+        caller = self.callers[1]
         data = [
             (5, False, False),
             (1200, False, False),
@@ -115,7 +122,7 @@ class TestIVoipFingerprints(unittest.TestCase):
             add(i, v)
 
         # Profile 2: lazy, low variation, international
-        caller = "33688774455"
+        caller = self.callers[2]
         data = [
             (5, True, False),
             (1200, True, False),
@@ -149,6 +156,35 @@ class TestIVoipFingerprints(unittest.TestCase):
         self.assertEqual(len(res), 3)
         # TODO more checks needed
 
-    def test_train(self):
+    def _require_training(self):
+        if self.model.is_trained:
+            return
         self.model.train(self.source, self.from_ts, self.to_ts)
+
+    def test_train(self):
+        self._require_training()
         self.assertTrue(self.model.is_trained)
+
+    def test_predict(self):
+        self._require_training()
+        prediction = self.model.predict(
+            self.source,
+            self.from_ts,
+            self.to_ts,
+        )
+        self.assertEqual(len(prediction.fingerprints), 3)
+
+        # For now, only the data format is checked
+        for fp in prediction.fingerprints:
+            self.assertTrue(fp['key'] in self.callers)
+
+            x, y = fp['location']
+            self.assertGreaterEqual(x, 0)
+            self.assertGreaterEqual(y, 0)
+            self.assertLess(x, self.model.w)
+            self.assertLess(y, self.model.h)
+
+            self.assertEqual(len(fp['time_range']), 2)
+
+            self.assertEqual(len(fp['_fingerprint']), 36)
+            self.assertEqual(len(fp['fingerprint']), 36)
