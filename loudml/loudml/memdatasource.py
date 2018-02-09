@@ -170,7 +170,7 @@ class MemDataSource(DataSource):
         model,
         from_date=None,
         to_date=None,
-        term_val=None,
+        key=None,
     ):
         raise NotImplemented()
 

@@ -62,8 +62,8 @@ class TestIVoipFingerprints(unittest.TestCase):
 
         self.model = IVoipFingerprintsModel(dict(
             name='test',
-            term='caller',
-            max_terms=1024,
+            key='caller',
+            max_keys=1024,
             height=50,
             width=50,
             interval=60,

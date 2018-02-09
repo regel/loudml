@@ -92,7 +92,7 @@ class DataSource(metaclass=ABCMeta):
         model,
         from_date=None,
         to_date=None,
-        term_val=None,
+        key=None,
     ):
         """Get quadrant aggregation data"""
 

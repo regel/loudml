@@ -230,7 +230,7 @@ class ElasticsearchDataSource(DataSource):
           "aggs": {
             "count": {
               "cardinality": {
-                "field": model.term,
+                "field": model.key,
               }
             }
           }
@@ -313,17 +313,17 @@ class ElasticsearchDataSource(DataSource):
         model,
         from_ms=None,
         to_ms=None,
-        term_val=None,
+        key=None,
         partition=0,
         num_partition=1,
     ):
         body = {
             "size": 0,
             "aggs": {
-                "term_val": {
+                "key": {
                     "terms": {
-                        "field": model.term,
-                        "size": model.max_terms,
+                        "field": model.key,
+                        "size": model.max_keys,
                         "collect_mode" : "breadth_first",
                         "include": {
                             "partition": partition,
@@ -351,8 +351,8 @@ class ElasticsearchDataSource(DataSource):
         if date_range is not None:
             must.append(date_range)
 
-        if term_val is not None:
-            must.append({"match": {model.term: term_val}})
+        if key is not None:
+            must.append({"match": {model.key: key}})
 
         if len(must) > 0:
             body['query'] = {
@@ -368,7 +368,7 @@ class ElasticsearchDataSource(DataSource):
         model,
         from_date=None,
         to_date=None,
-        term_val=None,
+        key=None,
     ):
         es_params={}
         if model.routing is not None:
@@ -376,7 +376,7 @@ class ElasticsearchDataSource(DataSource):
 
         from_ms, to_ms = _date_range_to_ms(from_date, to_date)
 
-        if term_val is None:
+        if key is None:
             size = self._compute_quad_partition_size(model, from_ms, to_ms)
             num_partition = max(math.ceil(size / PARTITION_MAX_SIZE), 1)
         else:
@@ -390,7 +390,7 @@ class ElasticsearchDataSource(DataSource):
                 model,
                 from_ms=from_ms,
                 to_ms=to_ms,
-                term_val=term_val,
+                key=key,
                 partition=partition,
                 num_partition=num_partition,
             )
@@ -407,8 +407,8 @@ class ElasticsearchDataSource(DataSource):
             except urllib3.exceptions.HTTPError as exn:
                 raise errors.DataSourceError(self.name, str(exn))
 
-            for term_bucket in es_res['aggregations']['term_val']['buckets']:
-                yield self.read_quadrant_aggs(term_bucket['key'], term_bucket['values']['buckets'])
+            for bucket in es_res['aggregations']['key']['buckets']:
+                yield self.read_quadrant_aggs(bucket['key'], bucket['values']['buckets'])
 
     @classmethod
     def _build_times_query(

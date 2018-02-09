@@ -48,8 +48,8 @@ class FingerprintsModel(Model):
     TYPE = 'fingerprints'
 
     SCHEMA = Model.SCHEMA.extend({
-        Required('term'): All(schemas.key, Length(max=256)),
-        Required('max_terms'): All(int, Range(min=1)),
+        Required('key'): All(schemas.key, Length(max=256)),
+        Required('max_keys'): All(int, Range(min=1)),
         Required('width'): All(int, Range(min=1)),
         Required('height'): All(int, Range(min=1)),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
@@ -59,8 +59,8 @@ class FingerprintsModel(Model):
     def __init__(self, settings, state=None):
         super().__init__(settings, state)
 
-        self.term = settings['term']
-        self.max_terms = settings['max_terms']
+        self.key = settings['key']
+        self.max_keys = settings['max_keys']
         self.w = settings['width']
         self.h = settings['height']
         self.interval = parse_timedelta(settings['interval']).total_seconds()
@@ -119,14 +119,14 @@ class FingerprintsModel(Model):
         self,
         dataset,
         mapped,
-        terms,
+        keys,
         from_ts,
         to_ts,
     ):
         fingerprints = []
 
         for i, x in enumerate(mapped):
-            key = terms[i]
+            key = keys[i]
             _fingerprint = np.nan_to_num((dataset[i] - self._means) / self._stds)
             fingerprints.append({
                 'key': key,
@@ -173,17 +173,17 @@ class FingerprintsModel(Model):
         )
 
         # Prepare dataset
-        nb_terms = self.max_terms
+        nb_keys = self.max_keys
         nb_features = self.nb_features
-        dataset = np.zeros((nb_terms, nb_features), dtype=float)
+        dataset = np.zeros((nb_keys, nb_features), dtype=float)
 
         # Fill dataset
         data = datasource.get_quadrant_data(self, from_ts, to_ts)
 
         i = None
-        terms = []
-        for i, (term_val, val) in enumerate(data):
-            terms.append(term_val)
+        keys = []
+        for i, (key, val) in enumerate(data):
+            keys.append(key)
             dataset[i] = self.format_quadrants(val)
 
         if i is None:
@@ -192,7 +192,7 @@ class FingerprintsModel(Model):
                 to_str,
             ))
 
-        logging.info("found %d terms", i + 1)
+        logging.info("found %d keys", i + 1)
 
         mapped = self._train_on_dataset(
             np.resize(dataset, (i + 1, nb_features)),
@@ -204,7 +204,7 @@ class FingerprintsModel(Model):
         fingerprints = self._build_fingerprints(
             dataset,
             mapped,
-            terms,
+            keys,
             from_ts,
             to_ts,
         )
@@ -258,16 +258,16 @@ class FingerprintsModel(Model):
         self.load()
 
         # Prepare dataset
-        nb_terms = self.max_terms
-        dataset = np.zeros((nb_terms, self.nb_features), dtype=float)
+        nb_keys = self.max_keys
+        dataset = np.zeros((nb_keys, self.nb_features), dtype=float)
 
         # Fill dataset
         data = datasource.get_quadrant_data(self, from_ts, to_ts)
 
         i = None
-        terms = []
-        for i, (term_val, val) in enumerate(data):
-            terms.append(term_val)
+        keys = []
+        for i, (key, val) in enumerate(data):
+            keys.append(key)
             dataset[i] = self.format_quadrants(val)
 
         if i is None:
@@ -276,7 +276,7 @@ class FingerprintsModel(Model):
                 to_str,
             ))
 
-        logging.info("found %d terms", i + 1)
+        logging.info("found %d keys", i + 1)
 
         mapped = self._map_dataset(
             np.resize(dataset, (i + 1, self.nb_features)),
@@ -285,7 +285,7 @@ class FingerprintsModel(Model):
         fingerprints = self._build_fingerprints(
             dataset,
             mapped,
-            terms,
+            keys,
             from_ts,
             to_ts,
         )
