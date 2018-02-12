@@ -93,16 +93,28 @@ class IVoipFingerprintsModel(FingerprintsModel):
         'features': None, # iVOIP features handling is hard-coded
     })
 
+    _FEATURE_NAMES = [
+        "count(total)", "avg(duration)", "std(duration)",
+        "count(international)", "avg(international.duration)", "std(international.duration)",
+        "count(premium)", "avg(premium.duration)", "std(premium.duration)",
+    ]
+
+    _SUNSHINE_NUM_FEATURES = len(_FEATURE_NAMES)
+
     def __init__(self, settings, state=None):
         super().__init__(settings, state)
         self.timestamp_field = self.settings.get('timestamp_field', '@timestamp')
 
     @property
     def nb_features(self):
-        return _SUNSHINE_NUM_FEATURES
+        return self._SUNSHINE_NUM_FEATURES
+
+    @property
+    def feature_names(self):
+        return self._FEATURE_NAMES
 
     def format_quadrants(self, agg):
-        res = np.zeros(self.nb_features)
+        res = np.zeros(4 * self.nb_features)
 
         for l in agg:
             timestamp = l['key']

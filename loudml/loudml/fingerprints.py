@@ -98,6 +98,10 @@ class FingerprintsModel(Model):
     def is_trained(self):
         return self._state is not None and 'ckpt' in self._state
 
+    @property
+    def feature_names(self):
+        return [feature.name for feature in self.features]
+
     def _format_quadrants(self, time_buckets):
         # TODO generic implementation not yet available
         raise NotImplemented()
@@ -115,7 +119,7 @@ class FingerprintsModel(Model):
         zY = np.nan_to_num((dataset - self._means) / self._stds)
 
         # Hyperparameters
-        data_dimens = self.nb_features
+        data_dimens = 4 * self.nb_features
         self._som_model = som.SOM(self.w, self.h, data_dimens, num_epochs)
 
         # Start Training
@@ -183,8 +187,8 @@ class FingerprintsModel(Model):
 
         # Prepare dataset
         nb_keys = self.max_keys
-        nb_features = self.nb_features
-        dataset = np.zeros((nb_keys, nb_features), dtype=float)
+        dimens = 4 * self.nb_features
+        dataset = np.zeros((nb_keys, dimens), dtype=float)
 
         # Fill dataset
         data = datasource.get_quadrant_data(self, from_ts, to_ts)
@@ -204,7 +208,7 @@ class FingerprintsModel(Model):
         logging.info("found %d keys", i + 1)
 
         mapped = self._train_on_dataset(
-            np.resize(dataset, (i + 1, nb_features)),
+            np.resize(dataset, (i + 1, dimens)),
             num_epochs,
             limit,
         )
@@ -235,7 +239,7 @@ class FingerprintsModel(Model):
             self._state['meta'],
             self.w,
             self.h,
-            self.nb_features,
+            4 * self.nb_features,
         )
 
     @property
@@ -289,7 +293,8 @@ class FingerprintsModel(Model):
 
         # Prepare dataset
         nb_keys = self.max_keys
-        dataset = np.zeros((nb_keys, self.nb_features), dtype=float)
+        dimens = 4 * self.nb_features
+        dataset = np.zeros((nb_keys, dimens), dtype=float)
 
         # Fill dataset
         data = datasource.get_quadrant_data(self, from_ts, to_ts)
@@ -309,7 +314,7 @@ class FingerprintsModel(Model):
         logging.info("found %d keys", i + 1)
 
         mapped = self._map_dataset(
-            np.resize(dataset, (i + 1, self.nb_features)),
+            np.resize(dataset, (i + 1, dimens)),
         )
 
         fingerprints = self._build_fingerprints(
