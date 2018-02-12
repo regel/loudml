@@ -1,0 +1,9 @@
+#!/bin/sh
+
+for deb in *.deb; do
+    echo "Checking package $deb"
+    if dpkg-deb -c "$deb" | grep "\.py$"; then
+        echo "Source code found when expecting byte-code only."
+        exit 1
+    fi
+done

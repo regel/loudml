@@ -36,6 +36,10 @@ deb:
 	@echo -e "\nDEB packages:"
 	@find -name '*.deb'
 
+.PHONY: check_deb
+check_deb:
+	scripts/check_deb
+
 $(RPMREPO_DIR)/repodata/repomd.xml: rpm
 	createrepo $(RPMREPO_DIR)
 
