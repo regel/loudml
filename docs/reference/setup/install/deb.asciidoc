@@ -6,8 +6,7 @@ The Debian package for Loud ML can be downloaded from our
 Loud ML on any Debian-based system such as Debian and Ubuntu.
 
 The latest stable version of Loud ML can be found on the
-link:/downloads/loudml[Download Loud ML] page. Other versions can
-be found on the link:/downloads/past-releases[Past Releases page].
+link:/download[Download Loud ML] page.
 
 [[deb-key]]
 ==== Import the Loud ML PGP Key
@@ -19,7 +18,7 @@ include::key.asciidoc[]
 wget -qO - http://loudml.s3-website-eu-west-1.amazonaws.com/repo/gpg/GPG-KEY-LOUDML | sudo apt-key add -
 -------------------------
 
-==== Install Python3
+==== Install Dependencies
 
 Debian 8, and other versions of Debian Linux ship with both Python 3 and Python 2 pre-installed. 
 
@@ -28,6 +27,16 @@ You can check the version of Python 3 that is installed in the system by typing:
 [source,sh]
 --------------------------------------------------
 python3 -V
+--------------------------------------------------
+
+The following dependencies will have to be installed manually:
+[source,sh]
+--------------------------------------------------
+pip3 install 'elasticsearch>=5.4.0'
+pip3 install 'influxdb>=5.0.0'
+pip3 install 'tensorflow<=1.3.1,>=1.3.0'
+pip3 install 'hyperopt==0.1'
+pip3 install 'dateutils>=0.6.6'
 --------------------------------------------------
 
 [[deb-repo]]
@@ -126,13 +135,13 @@ The Debian package for Loud ML v{version} can be downloaded from the website and
 
 ["source","sh",subs="attributes"]
 --------------------------------------------
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/packages/loudml-{version}.el7.centos.x86_64.deb
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/packages/loudml-{version}.el7.centos.x86_64.deb.sha512
-shasum -a 512 -c loudml-{version}.deb.sha512 <1>
-sudo dpkg -i loudml-{version}.deb
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml/loudml_{version}_all.deb
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml/loudml_{version}_all.deb.sha512
+shasum -a 512 -c loudml_{version}_all.deb.sha512 <1>
+sudo dpkg -i loudml_{version}_all.deb
 --------------------------------------------
 <1> Compares the SHA of the downloaded Debian package and the published checksum, which should output
-    `loudml-{version}.deb: OK`.
+    `loudml_{version}_all.deb: OK`.
 
 endif::[]
 

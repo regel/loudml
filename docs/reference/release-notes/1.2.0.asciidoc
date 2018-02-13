@@ -1,0 +1,21 @@
+[[release-notes-1.2.0]]
+== 1.2.0 Release Notes
+
+The changes listed below have been released for the first time in Loud ML 1.2.0:
+
+* Add Debian 9 support
+* The loudmld service is now running as non priviledge user `loudml` 
+* Add anomaly detection to the time series model API
+* Add more aggregation methods (derivative, spread, etc) using InfluxDb capabilities
+* Add an optional `timestamp_field` parameter to model definition
+
+[NOTE]
+==================================================
+Please raise issues on https://github.com/regel/loudml/issues[Github] if you experience compatibility issues on your system.
+==================================================
+
+[[breaking-1.2.0]]
+[float]
+=== Breaking changes
+
+No breaking changes have been made (yet)
