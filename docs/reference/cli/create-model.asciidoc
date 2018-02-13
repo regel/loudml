@@ -49,6 +49,7 @@ The supported settings are:
 `span`::   (integer) The span interval, defined as the number of time buckets to use for predicting the next feature values
 `threshold`::   (integer) The anomaly threshold between 0 and 100
 `type`::   (string) `timeseries`
+`timestamp_field`::   (string) Optional. The main timestamp field in your TSDB data source. The default value for this field is `timestamp`. You can set the value to `@timestamp` or the value that fits your TSDB mapping.
 
 This above example defines a unique feature, named `avg_temp_feature` that will
 be averaged over `bucket_interval` (1 minute) bucket intervals. The last 5 (`span`)
