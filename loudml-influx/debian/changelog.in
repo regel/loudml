@@ -1,4 +1,4 @@
-loudml (1.2-1) unstable; urgency=low
+loudml-influx (@VERSION@) unstable; urgency=low
 
   * Initial release
 

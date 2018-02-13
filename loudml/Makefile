@@ -21,7 +21,7 @@ $(NAME).rpm: $(NAME).spec
 
 deb: $(NAME).deb
 
-$(NAME).deb:
+$(NAME).deb: debian/changelog
 	$(call debbuild,$(FULLNAME))
 
 .PHONY: rpm deb

@@ -11,12 +11,15 @@ __pycache__/
 debhelper-build-stamp
 loudml*/build
 loudml*/dist
+loudml-elastic/debian/changelog
 loudml-elastic/debian/files
 loudml-elastic/debian/loudml-elastic.substvars
 loudml-elastic/debian/loudml-elastic/
+loudml-influx/debian/changelog
 loudml-influx/debian/files
 loudml-influx/debian/loudml-influx.substvars
 loudml-influx/debian/loudml-influx/
+loudml/debian/changelog
 loudml/debian/files
 loudml/debian/loudml.postinst.debhelper
 loudml/debian/loudml.postrm.debhelper

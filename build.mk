@@ -35,6 +35,9 @@ rpmbuild --define "name $(2)" \
          -bb "$<"
 endef
 
+debian/changelog: debian/changelog.in
+	sed 's/@VERSION@/$(VERSION)/' $< > $@
+
 # Build DEB package
 define debbuild
 @echo -e "  DEBBUILD\t$(1)"

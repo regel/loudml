@@ -1,4 +1,4 @@
-loudml-elastic (1.2-1) unstable; urgency=low
+loudml-elastic (@VERSION@) unstable; urgency=low
 
   * Initial release
 
