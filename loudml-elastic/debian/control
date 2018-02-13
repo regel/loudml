@@ -19,6 +19,7 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${python3:Depends},
+  loudml,
 Description: Elasticsearch module for LoudML
  The following dependencies have to be installed by hand:
  .
