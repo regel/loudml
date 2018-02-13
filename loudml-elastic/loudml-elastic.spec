@@ -11,7 +11,7 @@ Source0: %{name}-%{version}.tar.gz
 BuildRequires: python34 python34-pip
 Requires: python34
 Requires: python34-pip
-Requires: loudml
+Requires: loudml == %{version}
 
 # Disable debug package
 %define debug_package %{nil}
