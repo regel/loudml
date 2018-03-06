@@ -95,8 +95,8 @@ The RPM for Loud ML v{version} can be downloaded from the website and installed 
 
 ["source","sh",subs="attributes"]
 --------------------------------------------
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}.el7.centos.x86_64.rpm
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}.el7.centos.x86_64.rpm.sha512
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}-{release}.el7.centos.x86_64.rpm
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}-{release}.el7.centos.x86_64.rpm.sha512
 shasum -a 512 -c loudml-{version}.rpm.sha512 <1>
 sudo rpm --install loudml-{version}.rpm
 --------------------------------------------
