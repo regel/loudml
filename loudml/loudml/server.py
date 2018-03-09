@@ -270,8 +270,12 @@ class ModelResource(Resource):
         global g_storage
 
         settings = request.json
+
+        if settings is None:
+            return "model description is missing", 400
+
         settings['name'] = model_name
-        model = loudml.model.load_model(settings=request.json)
+        model = loudml.model.load_model(settings=settings)
 
         try:
             g_storage.delete_model(model_name)
