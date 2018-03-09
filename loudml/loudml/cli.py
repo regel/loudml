@@ -280,7 +280,7 @@ class PredictCommand(Command):
             type=str,
         )
         parser.add_argument(
-            'datasource',
+            '-d', '--datasource',
             help="Data source",
             type=str,
         )
@@ -322,8 +322,11 @@ class PredictCommand(Command):
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
-        source = get_datasource(self.config, args.datasource)
         model = storage.load_model(args.model_name)
+        source = get_datasource(
+            self.config,
+            args.datasource or model.default_datasource,
+        )
 
         if not model.is_trained:
             raise ModelNotTrained()
