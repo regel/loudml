@@ -349,7 +349,7 @@ class PredictCommand(Command):
             if args.save:
                 source.save_timeseries_prediction(prediction, model)
             else:
-                if buckets:
+                if args.buckets:
                     data = prediction.format_buckets()
                 else:
                     data = prediction.format_series()
