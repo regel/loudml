@@ -262,6 +262,7 @@ class ModelResource(Resource):
         global g_storage
 
         g_storage.delete_model(model_name)
+        logging.info("model '%s' deleted", model_name)
         return "success"
 
     @catch_loudml_error
@@ -278,6 +279,7 @@ class ModelResource(Resource):
             pass
 
         g_storage.create_model(model)
+        logging.info("model '%s' updated", model_name)
         return "success"
 
 

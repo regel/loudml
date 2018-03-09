@@ -118,6 +118,7 @@ class CreateModelCommand(Command):
             storage.delete_model(model.name)
 
         storage.create_model(model)
+        logging.info("model '%s' created", model.name)
 
 
 class ListModelsCommand(Command):
@@ -166,6 +167,7 @@ class DeleteModelCommand(Command):
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         storage.delete_model(args.model_name)
+        logging.info("model '%s' deleted", args.model_name)
 
 
 class ShowModelCommand(Command):

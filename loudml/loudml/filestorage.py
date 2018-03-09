@@ -59,7 +59,7 @@ class FileStorage(Storage):
         try:
             os.unlink(self.model_path(name))
         except FileNotFoundError:
-            return
+            raise errors.ModelNotFound()
 
     def model_exists(self, name):
         return os.path.exists(self.model_path(name))
