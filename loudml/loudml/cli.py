@@ -263,7 +263,7 @@ class TrainCommand(Command):
                 args.to_date,
             )
         else:
-            raise errors.UnsupportedModel("model type not supported for training")
+            raise errors.UnsupportedModel(model.type)
 
         storage.save_model(model)
 

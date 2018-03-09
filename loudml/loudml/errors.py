@@ -58,13 +58,37 @@ class UnsupportedDataSource(LoudMLException):
     """Unsupported data source"""
     code = 501
 
+    def __init__(self, datasource_type, error=None):
+        self.datasource_type = datasource_type
+        self.error = error or self.__doc__
+
+    def __str__(self):
+        return "%s (type = '%s')".format(self.error, self.datasource_type)
+
+
 class UnsupportedMetric(LoudMLException):
     """Unsupported metric"""
     code = 501
 
+    def __init__(self, metric, error=None):
+        self.metric = metric
+        self.error = error or self.__doc__
+
+    def __str__(self):
+        return "%s (type = '%s')".format(self.error, self.metric)
+
+
 class UnsupportedModel(LoudMLException):
     """Unsupported model"""
     code = 501
+
+    def __init__(self, model_type, error=None):
+        self.model_type = model_type
+        self.error = error or self.__doc__
+
+    def __str__(self):
+        return "%s (type = '%s')".format(self.model_type, self.error)
+
 
 class NotFound(LoudMLException):
     """Not found"""

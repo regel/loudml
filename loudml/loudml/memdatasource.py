@@ -153,7 +153,7 @@ class MemDataSource(DataSource):
             agg_val = cls._compute_bucket_count(bucket, field)
         else:
             logging.error("unknown metric: %s", metric)
-            raise errors.UnsupportedMetric()
+            raise errors.UnsupportedMetric(metric)
 
         if agg_val is None:
             if feature.default is np.nan:
