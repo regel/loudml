@@ -30,7 +30,7 @@ setup(
         "dateutils>=0.6.6",
         "Flask>=0.12.1",
         "Flask-restful>=0.3.5",
-        "networkx>=1.11",
+        "networkx==1.11",
         "tensorflow >=1.3.0, <=1.3.1",
         "h5py>=2.7.0",
         "hyperopt==0.1",
