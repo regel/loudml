@@ -3,7 +3,7 @@
 
 The Debian package for Loud ML can be downloaded from our
 <<deb-repo,APT repository>>. It can be used to install
-Loud ML on any Debian-based system such as Debian and Ubuntu.
+Loud ML on Debian Stretch.
 
 The latest stable version of Loud ML can be found on the
 link:/download[Download Loud ML] page.
@@ -20,7 +20,7 @@ wget -qO - http://loudml.s3-website-eu-west-1.amazonaws.com/repo/gpg/GPG-KEY-LOU
 
 ==== Install Dependencies
 
-Debian 8, and other versions of Debian Linux ship with both Python 3 and Python 2 pre-installed. 
+Debian 9 ships with both Python 3 and Python 2 pre-installed.
 
 You can check the version of Python 3 that is installed in the system by typing:
 
