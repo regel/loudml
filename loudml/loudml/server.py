@@ -302,6 +302,10 @@ def model_train(model_name):
     kwargs['from_date'] = request.args.get('from', "now-1d")
     kwargs['to_date'] = request.args.get('to', "now")
 
+    datasource = request.args.get('datasource')
+    if datasource is not None:
+        kwargs['datasource'] = datasource
+
     job = TrainingJob(model_name, **kwargs)
     job.start()
 

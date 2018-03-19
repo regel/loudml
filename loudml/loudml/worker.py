@@ -56,14 +56,17 @@ class Worker:
 
         return res
 
-    def train(self, model_name, **kwargs):
+    def train(self, model_name, datasource=None, **kwargs):
         """
         Train model
         """
 
         model = self.storage.load_model(model_name)
-        src_settings = self.config.get_datasource(model.default_datasource)
+
+        src_name = datasource or model.default_datasource
+        src_settings = self.config.get_datasource(src_name)
         source = loudml.datasource.load_datasource(src_settings)
+
         model.train(source, **kwargs)
         self.storage.save_model(model)
 
