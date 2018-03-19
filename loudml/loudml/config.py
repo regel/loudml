@@ -55,7 +55,7 @@ class Config:
         try:
             return self.datasources[name]
         except KeyError:
-            raise errors.DataSourceNotFound()
+            raise errors.DataSourceNotFound(name)
 
 
 def load_config(path):

@@ -20,9 +20,12 @@ class DataSourceError(LoudMLException):
     def __str__(self):
         return "datasource[{}]: {}".format(self.datasource, self.error)
 
-class DataSourceNotFound(LoudMLException):
+class DataSourceNotFound(DataSourceError):
     """Data source not found"""
     code = 404
+
+    def __str__(self):
+        return "{} (name = '{}')".format(self.error, self.datasource)
 
 class Invalid(LoudMLException):
     """Data is invalid"""
