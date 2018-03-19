@@ -7,6 +7,7 @@ import datetime
 import logging
 import multiprocessing
 import multiprocessing.pool
+import pkg_resources
 import queue
 import sys
 import uuid
@@ -500,6 +501,14 @@ def model_stop(model_name):
 #    job = DummyJob(int(request.args.get('value', 0)))
 #    job.start()
 #    return str(job.id)
+
+@app.route("/")
+def slash():
+    version = pkg_resources.get_distribution("loudml").version
+    return jsonify({
+        'version': version,
+        'tagline': "The Disruptive Machine Learning API",
+    })
 
 @app.errorhandler(403)
 def not_found(e):
