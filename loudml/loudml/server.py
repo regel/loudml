@@ -479,28 +479,27 @@ def model_stop(model_name):
     logging.info("model '%s' deactivated", model_name)
     return "model deactivated"
 
-"""
+#
 # Example of job
 #
-class DummyJob(Job):
-    func = 'do_things'
-    job_type = 'dummy'
-
-    def __init__(self, value):
-        super().__init__()
-        self.value = value
-
-    @property
-    def args(self):
-        return [self.value]
-
+#class DummyJob(Job):
+#    func = 'do_things'
+#    job_type = 'dummy'
+#
+#    def __init__(self, value):
+#        super().__init__()
+#        self.value = value
+#
+#    @property
+#    def args(self):
+#        return [self.value]
+#
 # Example of endpoint that submits jobs
-@app.route("/do-things")
-def do_things():
-    job = DummyJob(int(request.args.get('value', 0)))
-    job.start()
-    return str(job.id)
-"""
+#@app.route("/do-things")
+#def do_things():
+#    job = DummyJob(int(request.args.get('value', 0)))
+#    job.start()
+#    return str(job.id)
 
 def check_instance():
     stack_data = inspect.stack()
