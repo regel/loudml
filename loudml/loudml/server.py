@@ -501,6 +501,26 @@ def model_stop(model_name):
 #    job.start()
 #    return str(job.id)
 
+@app.errorhandler(403)
+def not_found(e):
+    return "forbidden", 403
+
+@app.errorhandler(404)
+def not_found(e):
+    return "unknown endpoint", 404
+
+@app.errorhandler(405)
+def not_found(e):
+    return "method not allowed", 405
+
+@app.errorhandler(410)
+def not_found(e):
+    return "gone", 410
+
+@app.errorhandler(500)
+def not_found(e):
+    return "internal server error", 500
+
 def check_instance():
     stack_data = inspect.stack()
     app_path = stack_data[-1][0].f_code.co_filename
