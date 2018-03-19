@@ -63,7 +63,7 @@ class UnsupportedDataSource(LoudMLException):
         self.error = error or self.__doc__
 
     def __str__(self):
-        return "%s (type = '%s')".format(self.error, self.datasource_type)
+        return "{} (type = '{}')".format(self.error, self.datasource_type)
 
 
 class UnsupportedMetric(LoudMLException):
@@ -75,7 +75,7 @@ class UnsupportedMetric(LoudMLException):
         self.error = error or self.__doc__
 
     def __str__(self):
-        return "%s (type = '%s')".format(self.error, self.metric)
+        return "{} (type = '{}')".format(self.error, self.metric)
 
 
 class UnsupportedModel(LoudMLException):
@@ -87,7 +87,7 @@ class UnsupportedModel(LoudMLException):
         self.error = error or self.__doc__
 
     def __str__(self):
-        return "%s (type = '%s')".format(self.model_type, self.error)
+        return "{} (type = '{}')".format(self.error, self.model_type)
 
 
 class NotFound(LoudMLException):
