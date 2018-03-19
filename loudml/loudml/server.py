@@ -225,6 +225,17 @@ def get_bool_arg(param, default=False):
     except ValueError:
         raise error.Invalid("invalid value for parameter '{}'".format(param))
 
+def get_int_arg(param, default=None):
+    """
+    Read integer URL parameter
+    """
+    try:
+        return int(request.args[param])
+    except KeyError:
+        return default
+    except ValueError:
+        raise error.Invalid("invalid value for parameter '{}'".format(param))
+
 class ModelsResource(Resource):
     @catch_loudml_error
     def get(self):
@@ -305,6 +316,10 @@ def model_train(model_name):
     datasource = request.args.get('datasource')
     if datasource is not None:
         kwargs['datasource'] = datasource
+
+    max_evals = get_int_arg('max_evals')
+    if max_evals is not None:
+        kwargs['max_evals'] = max_evals
 
     job = TrainingJob(model_name, **kwargs)
     job.start()

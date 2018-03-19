@@ -226,6 +226,11 @@ class TrainCommand(Command):
             default="now",
             dest='to_date',
         )
+        parser.add_argument(
+            '-m', '--max-evals',
+            help="Maximum number of training iterations",
+            type=int,
+        )
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
@@ -245,6 +250,7 @@ class TrainCommand(Command):
                 source,
                 args.from_date,
                 args.to_date,
+                max_evals=args.max_evals,
             )
             print("loss: %f" % result['loss'])
             print("accuracy: %f" % result['accuracy'])
