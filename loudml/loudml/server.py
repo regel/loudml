@@ -201,7 +201,6 @@ def read_messages():
 
 @app.errorhandler(errors.Invalid)
 def handle_loudml_error(exn):
-    print("CAUGHT")
     response = jsonify({
         'error': str(exn),
     })
