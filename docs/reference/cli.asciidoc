@@ -11,7 +11,7 @@ This section contains a detailed description of the `loudml` command line interf
 * <<cli-train>>
 * <<cli-predict>>
 
-Running the `loudml` client with -h option in a terminal will output the
+Running the `loudml` command with -h option in a terminal will output the
 following help message:
 
 [source,sh]
@@ -30,6 +30,16 @@ optional arguments:
 
 Commands:
   {delete-model,predict,train,list-models,create-model}
+--------------------------------------------------
+
+If you want to use the default path for LoudML storage (`/var/lib/loudml`),
+the user who executes the `loudml` command must be in the `loudml` group and
+the directory must be writeable for the users of this group:
+
+[source,sh]
+--------------------------------------------------
+chmod -R g+w /var/lib/loudml
+usermod -a -G loudml <user>
 --------------------------------------------------
 
 --
