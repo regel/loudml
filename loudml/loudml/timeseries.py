@@ -269,6 +269,15 @@ class TimeSeriesModel(Model):
     def type(self):
         return self.TYPE
 
+    def set_run_params(self, params=None):
+        """
+        Set running parameters to make them persistent
+        """
+        if params is None:
+            self._settings.pop('run', None)
+        else:
+            self._settings['run'] = params
+
     def _compute_nb_buckets(self, from_ts, to_ts):
         """
         Compute the number of bucket between `from_ts` and `to_ts`

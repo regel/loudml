@@ -71,6 +71,8 @@ class FileStorage(Storage):
                 data = json.load(model_file)
                 data['settings']['name'] = name
                 return data
+        except ValueError as exn:
+            raise errors.Invalid("invalid model file: %s", str(exn))
         except FileNotFoundError:
             raise errors.ModelNotFound()
 

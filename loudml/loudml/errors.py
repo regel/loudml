@@ -9,6 +9,11 @@ class LoudMLException(Exception):
     def __init__(self, msg=None):
         super().__init__(msg or self.__doc__)
 
+
+class Conflict(LoudMLException):
+    """Conflict"""
+    code = 409
+
 class DataSourceError(LoudMLException):
     """Error occured on data source query"""
     code = 500
@@ -44,6 +49,10 @@ class Invalid(LoudMLException):
         else:
             path = '.'.join([str(key) for key in self.path])
             return "invalid field {}: {}{}".format(path, self.error, hint)
+
+class LimitReached(LoudMLException):
+    """Limit reached"""
+    code = 429
 
 class ModelExists(LoudMLException):
     """Model exists"""

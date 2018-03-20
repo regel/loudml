@@ -213,6 +213,8 @@ def catch_loudml_error(func):
             return func(*args, **kwargs)
         except errors.LoudMLException as exn:
             return str(exn), exn.code
+
+    wrapper.__name__ = '{}_wrapper'.format(func.__name__)
     return wrapper
 
 def get_bool_arg(param, default=False):
@@ -433,24 +435,23 @@ class PredictionJob(Job):
     def kwargs(self):
         return self._kwargs
 
-@app.route("/models/<model_name>/_start", methods=['POST'])
-def model_start(model_name):
-    global g_storage
-    global g_running_models
+def _model_start(model, params):
+    """
+    Start periodic prediction
+    """
 
-    model = g_storage.load_model(model_name)
-
-    if model_name in g_running_models:
-        return "real-time prediction is already active for this model", 409
+    if model.name in g_running_models:
+        raise errors.Conflict(
+            "real-time prediction is already active for this model",
+        )
 
     if len(g_running_models) >= MAX_RUNNING_MODELS:
-        return "maximum number of running models is reached", 429
-
-    save_prediction = get_bool_arg('save_prediction')
-    detect_anomalies = get_bool_arg('detect_anomalies')
+        raise errors.LimitReached(
+            "maximum number of running models is reached",
+        )
 
     def create_job(from_date=None):
-        kwargs = {}
+        kwargs = params.copy()
 
         if model.type == 'timeseries':
             to_date = datetime.datetime.now().timestamp() - model.offset
@@ -458,8 +459,6 @@ def model_start(model_name):
             if from_date is None:
                 from_date = to_date - model.bucket_interval
 
-            kwargs['save_prediction'] = save_prediction
-            kwargs['detect_anomalies'] = detect_anomalies
             kwargs['from_date'] = from_date
             kwargs['to_date'] = to_date
         elif model.type.endswith('fingerprints'):
@@ -468,26 +467,43 @@ def model_start(model_name):
             if from_date is None:
                 from_date = to_date - model.span
 
-            kwargs['save_prediction'] = save_prediction
-            kwargs['detect_anomalies'] = detect_anomalies
             kwargs['from_date'] = from_date
             kwargs['to_date'] = to_date
 
-        job = PredictionJob(model_name, **kwargs)
+        job = PredictionJob(model.name, **kwargs)
         job.start()
 
-    from_date = request.args.get('from')
+    from_date = params.pop('from', None)
     create_job(from_date)
 
     timer = RepeatingTimer(model.interval, create_job)
-    g_running_models[model_name] = timer
+    g_running_models[model.name] = timer
     timer.start()
+
+@app.route("/models/<model_name>/_start", methods=['POST'])
+@catch_loudml_error
+def model_start(model_name):
+    global g_storage
+
+    params = {
+        'save_prediction': get_bool_arg('save_prediction'),
+        'detect_anomalies': get_bool_arg('detect_anomalies'),
+    }
+
+    model = g_storage.load_model(model_name)
+    model.set_run_params(params)
+    g_storage.save_model(model)
+
+    params['from'] = request.args.get('from', None)
+    _model_start(model, params)
 
     return "real-time prediction started", 200
 
 @app.route("/models/<model_name>/_stop", methods=['POST'])
+@catch_loudml_error
 def model_stop(model_name):
     global g_running_models
+    global g_storage
 
     timer = g_running_models.get(model_name)
     if timer is None:
@@ -496,6 +512,11 @@ def model_stop(model_name):
     timer.cancel()
     del g_running_models[model_name]
     logging.info("model '%s' deactivated", model_name)
+
+    model = g_storage.load_model(model_name)
+    model.set_run_params(None)
+    g_storage.save_model(model)
+
     return "model deactivated"
 
 #
@@ -572,6 +593,25 @@ def check_instance():
         logging.error("Another instance running")
         sys.exit(1)
 
+def restart_predict_jobs():
+    """
+    Restart prediction jobs
+    """
+
+    global g_storage
+
+    for name in g_storage.list_models():
+        model = g_storage.load_model(name)
+
+        params = model.settings.get('run')
+        if params is None:
+            continue
+
+        try:
+            logging.info("restarting job for model '%s'", model.name)
+            _model_start(model, params)
+        except errors.LoudMLException as exn:
+            logging.error("cannot restart job for model '%s'", model.name)
 
 def main():
     """
@@ -622,6 +662,8 @@ def main():
     timer.start()
 
     host, port = g_config.server['listen'].split(':')
+
+    restart_predict_jobs()
 
     try:
         app.run(host=host, port=int(port))
