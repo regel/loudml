@@ -63,7 +63,7 @@ ifeval::["{release-state}"=="released"]
 
 ["source","sh",subs="attributes,callouts"]
 --------------------------------------------------
-echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/packages/{major-version}/apt stable main" | sudo tee -a /etc/apt/sources.list.d/loudml-{major-version}.list
+echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/ stretch main" | sudo tee -a /etc/apt/sources.list.d/loudml-{major-version}.list
 --------------------------------------------------
 
 endif::[]
@@ -72,7 +72,7 @@ ifeval::["{release-state}"=="prerelease"]
 
 ["source","sh",subs="attributes,callouts"]
 --------------------------------------------------
-echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/packages/{major-version}-prerelease/apt stable main" | sudo tee -a /etc/apt/sources.list.d/loudml-{major-version}.list
+echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/ stable main" | sudo tee -a /etc/apt/sources.list.d/loudml-{major-version}.list
 --------------------------------------------------
 
 endif::[]
@@ -136,12 +136,10 @@ The Debian package for Loud ML v{version} can be downloaded from the website and
 ["source","sh",subs="attributes"]
 --------------------------------------------
 wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml/loudml_{version}_all.deb
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml/loudml_{version}_all.deb.sha512
-shasum -a 512 -c loudml_{version}_all.deb.sha512 <1>
-sudo dpkg -i loudml_{version}_all.deb
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml-influx/loudml-influx_{version}_all.deb
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml-elastic/loudml-elastic_{version}_all.deb
+sudo dpkg -i loudml_{version}_all.deb loudml-influx_{version}_all.deb loudml-elastic_{version}_all.deb
 --------------------------------------------
-<1> Compares the SHA of the downloaded Debian package and the published checksum, which should output
-    `loudml_{version}_all.deb: OK`.
 
 endif::[]
 
