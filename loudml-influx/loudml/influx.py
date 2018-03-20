@@ -6,6 +6,7 @@ import logging
 
 import influxdb.exceptions
 import numpy as np
+import requests.exceptions
 
 from voluptuous import (
     Required,
@@ -166,6 +167,17 @@ def _build_queries(model, from_date=None, to_date=None):
             int(model.bucket_interval * 1000),
         )
 
+def catch_query_error(func):
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except (
+            influxdb.exceptions.InfluxDBClientError,
+            requests.exceptions.RequestException,
+        ) as exn:
+            raise errors.DataSourceError(self.name, str(exn))
+    return wrapper
+
 class InfluxDataSource(DataSource):
     """
     Elasticsearch datasource
@@ -207,12 +219,14 @@ class InfluxDataSource(DataSource):
 
         return self._influxdb
 
+    @catch_query_error
     def create_db(self, db=None):
         """
         Create database
         """
         self.influxdb.create_database(db or self.db)
 
+    @catch_query_error
     def delete_db(self, db=None):
         """
         Delete database
@@ -238,6 +252,7 @@ class InfluxDataSource(DataSource):
             entry['tags'] = tags
         self.enqueue(entry)
 
+    @catch_query_error
     def send_bulk(self, requests):
         """
         Send data to InfluxDB
@@ -252,6 +267,7 @@ class InfluxDataSource(DataSource):
     ):
         raise NotImplemented()
 
+    @catch_query_error
     def get_times_data(
         self,
         model,
@@ -264,10 +280,7 @@ class InfluxDataSource(DataSource):
         queries = _build_queries(model, from_date, to_date)
         queries = ''.join(queries)
 
-        try:
-            results = self.influxdb.query(queries)
-        except influxdb.exceptions.InfluxDBClientError as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+        results = self.influxdb.query(queries)
 
         if not isinstance(results, list):
             results = [results]
@@ -299,6 +312,8 @@ class InfluxDataSource(DataSource):
 
         # Build final result
         t0 = None
+        result = []
+
         for bucket in buckets:
             X = np.zeros(nb_features, dtype=float)
             timeval = bucket['time']
@@ -320,7 +335,9 @@ class InfluxDataSource(DataSource):
             if t0 is None:
                 t0 = ts
 
-            yield (ts - t0) / 1000, X, timeval
+            result.append(((ts - t0) / 1000, X, timeval))
+
+        return result
 
     def save_timeseries_prediction(self, prediction, model):
         logging.info("saving '%s' prediction to '%s'", model.name, self.name)
