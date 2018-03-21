@@ -13,12 +13,7 @@ which should give you a response something like this:
 ["source","js",subs="attributes,callouts"]
 --------------------------------------------
 {
-  "name" : "node4326",
-  "version" : {
-    "number" : "{version}",
-    "build_date" : "2018-01-30T09:51:41.449Z",
-    "tensorflow_version" : "{tf_version}",
-  },
+  "version" : "{version}",
   "tagline" : "The Disruptive Machine Learning API"
 }
 --------------------------------------------
