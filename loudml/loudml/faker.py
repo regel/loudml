@@ -35,6 +35,14 @@ def dump_to_json(generator):
 
     print(json.dumps(data,indent=4))
 
+def build_tag_dict(tags=None):
+    tag_dict = {}
+    if tags:
+        for tag in tags.split(','):
+            k, v = tag.split(':')
+            tag_dict[k] = v
+    return tag_dict
+
 def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
     from .influx import InfluxDataSource
 
@@ -48,18 +56,58 @@ def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
         source.drop()
     source.init()
 
-    tag_dict = {}
-    if tags:
-        for tag in tags.split(','):
-            k, v = tag.split(':')
-            tag_dict[k] = v
-
     for ts, data in generator:
         source.insert_times_data(
             measurement=measurement,
             ts=ts,
             data=data,
-            tags=tag_dict,
+            tags=tags,
+        )
+
+def dump_to_elastic(generator, addr, index, doc_type, tags=None, clear=False):
+    from .elastic import ElasticsearchDataSource
+
+    source = ElasticsearchDataSource({
+        'name': 'elastic',
+        'addr': addr,
+        'index': index,
+    })
+
+    if clear:
+        source.delete_index()
+
+    properties = {
+        "timestamp": {
+            "type": "date"
+        },
+        "foo": {
+            "type": "float",
+        },
+    }
+
+    if tags:
+        for k in tags.keys():
+            properties[k] = {
+                "type": "keyword",
+            }
+
+    source.create_index({
+        "template": index,
+        "mappings": {
+            doc_type: {
+                "include_in_all": true,
+                "properties": properties,
+            },
+        }
+    })
+
+    for ts, data in generator:
+        data.update(tags)
+        source.insert_times_data(
+            measurement=measurement,
+            ts=ts,
+            data=data,
+            doc_type=doc_type,
         )
 
 def main():
@@ -159,6 +207,8 @@ def main():
 
     generator = generate_data(ts_generator, from_date.timestamp(), to_date.timestamp())
 
+    tag_dict = build_tag_dict(arg.tags)
+
     try:
         if arg.output == 'json':
             dump_to_json(data)
@@ -169,7 +219,7 @@ def main():
                 db=arg.database,
                 clear=arg.clear,
                 measurement=arg.measurement,
-                tags=arg.tags,
+                tags=tag_dict,
             )
         elif arg.output == 'elastic':
             pass
