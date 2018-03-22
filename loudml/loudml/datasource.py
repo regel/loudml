@@ -2,7 +2,6 @@
 Base interface for LoudML data source
 """
 import datetime
-import pkg_resources
 
 from abc import (
     ABCMeta,
@@ -20,6 +19,7 @@ from voluptuous import (
 
 from . import (
     errors,
+    misc,
     schemas,
 )
 
@@ -135,7 +135,7 @@ def load_datasource(settings):
     Load datasource
     """
     src_type = settings['type']
-    for ep in pkg_resources.iter_entry_points('loudml.datasources', src_type):
-        if ep.name == src_type:
-            return ep.load()(settings)
-    raise errors.UnsupportedDataSource(src_type)
+    datasource_cls = misc.load_entry_point('loudml.datasources', src_type)
+    if datasource_cls is None:
+        raise errors.UnsupportedDataSource(src_type)
+    return datasource_cls(settings)

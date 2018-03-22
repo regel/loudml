@@ -4,6 +4,7 @@ Miscelaneous Loud ML helpers
 
 import datetime
 import dateutil.parser
+import pkg_resources
 import sys
 
 from collections import (
@@ -222,3 +223,13 @@ def deepsizeof(obj_0):
             size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
         return size
     return inner(obj_0)
+
+def load_entry_point(namespace, name):
+    """
+    Load pkg_resource entry point
+    """
+
+    for ep in pkg_resources.iter_entry_points(namespace, name):
+        if ep.name == name:
+            return ep.load()
+    return None

@@ -3,8 +3,6 @@ LoudML model
 """
 
 import copy
-import pkg_resources
-
 import numpy as np
 
 from voluptuous import (
@@ -21,6 +19,7 @@ from voluptuous import (
 
 from . import (
     errors,
+    misc,
     schemas,
 )
 
@@ -182,7 +181,8 @@ def load_model(settings, state=None):
     """
 
     model_type = settings['type']
-    for ep in pkg_resources.iter_entry_points('loudml.models', model_type):
-        if ep.name == model_type:
-            return ep.load()(settings, state)
-    raise errors.UnsupportedModel(model_type)
+    model_cls = misc.load_entry_point('loudml.models', model_type)
+
+    if model_cls is None:
+        raise errors.UnsupportedModel(model_type)
+    return model_cls(settings, state)
