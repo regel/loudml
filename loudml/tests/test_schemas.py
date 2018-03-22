@@ -22,7 +22,6 @@ class TestSchemas(unittest.TestCase):
         self.valid("00_foo_00_bar_001")
         self.valid("_foo")
 
-        self.invalid("foo@bar")
         self.invalid("")
         self.invalid("foo/bar")
         self.invalid(".foo")
