@@ -4,6 +4,7 @@ import argparse
 import datetime
 import logging
 import random
+import time
 
 from . import (
     errors,
@@ -57,6 +58,10 @@ def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
     source.init()
 
     for ts, data in generator:
+        now = time.time()
+        if ts > now:
+            time.sleep(ts - now)
+
         source.insert_times_data(
             measurement=measurement,
             ts=ts,
@@ -102,6 +107,10 @@ def dump_to_elastic(generator, addr, index, doc_type, tags=None, clear=False):
     })
 
     for ts, data in generator:
+        now = time.time()
+        if ts > now:
+            time.sleep(ts - now)
+
         data.update(tags)
         source.insert_times_data(
             measurement=measurement,
