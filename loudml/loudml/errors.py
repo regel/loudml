@@ -36,8 +36,9 @@ class Invalid(LoudMLException):
     """Data is invalid"""
     code = 400
 
-    def __init__(self, error, path=None, hint=None):
+    def __init__(self, error, name=None, path=None, hint=None):
         self.error = error
+        self.name = name
         self.path = path
         self.hint = hint
 
@@ -45,7 +46,11 @@ class Invalid(LoudMLException):
         hint = "" if self.hint is None else " ({})".format(self.hint)
 
         if self.path is None or len(self.path) == 0:
-            return "data is invalid: {}{}".format(self.error, hint)
+            return "{} is invalid: {}{}".format(
+                self.name or "data",
+                self.error,
+                hint,
+            )
         else:
             path = '.'.join([str(key) for key in self.path])
             return "invalid field {}: {}{}".format(path, self.error, hint)

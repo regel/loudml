@@ -45,7 +45,7 @@ class TimeDelta:
         return v
 
 
-def validate(schema, data):
+def validate(schema, data, name=None):
     """
     Validate data against a schema
     """
@@ -53,4 +53,8 @@ def validate(schema, data):
     try:
         return schema(data)
     except Invalid as exn:
-        raise loudml.errors.Invalid(exn.error_message, path=exn.path)
+        raise loudml.errors.Invalid(
+            exn.error_message,
+            name=name,
+            path=exn.path,
+        )

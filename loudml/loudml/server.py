@@ -43,6 +43,7 @@ from .filestorage import (
 )
 from .misc import (
     make_bool,
+    load_entry_point,
 )
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
@@ -333,6 +334,81 @@ def model_train(model_name):
     g_training[model_name][job.id] = job
 
     return jsonify(job.id)
+
+class HooksResource(Resource):
+    @catch_loudml_error
+    def get(self, model_name):
+        global g_storage
+
+        return jsonify(g_storage.list_model_hooks(model_name))
+
+    @catch_loudml_error
+    def put(self, model_name):
+        global g_storage
+
+        data = request.json
+        if data is None:
+            return "hook data is missing", 400
+
+        hook_type = data.get('type')
+        if hook_type is None:
+            return "type is missing", 400
+
+        hook_name = data.get('name')
+        if hook_name is None:
+            return "name is missing", 400
+
+        hook = load_entry_point('loudml.hooks', hook_type)
+        if hook is None:
+            return "unknown hook type", 404
+
+        config = data.get('config')
+        hook.validate(config)
+        g_storage.set_model_hook(model_name, hook_name, hook_type, config)
+
+        return "success", 201
+
+
+class HookResource(Resource):
+    @catch_loudml_error
+    def get(self, model_name, hook_name):
+        global g_storage
+
+        hook = g_storage.get_model_hook(model_name, hook_name)
+        return jsonify(hook)
+
+    @catch_loudml_error
+    def delete(self, model_name, hook_name):
+        global g_storage
+
+        g_storage.delete_model_hook(model_name, hook_name)
+        logging.info("hook '%s/%s' deleted", model_name, hook_name)
+        return "success"
+
+    @catch_loudml_error
+    def post(self, model_name):
+        global g_storage
+
+        config = request.json
+
+        if settings is None:
+            return "model description is missing", 400
+
+        data = request.json
+        hook_type = request.args.get('type')
+        if hook_type is None:
+            return "type is missing", 400
+
+        hook = load_entry_point('loudml.hook', hook_type)
+        hook.validate(data.get('config'))
+        g_storage.set_model_hook(hook_name, hook_type, config)
+
+        logging.info("hook '%s/%s' updated", model_name, hook_name)
+        return "success"
+
+
+api.add_resource(HooksResource, "/models/<model_name>/hooks")
+api.add_resource(HookResource, "/models/<model_name>/hooks/<hook_name>")
 
 class DataSourcesResource(Resource):
     @catch_loudml_error
