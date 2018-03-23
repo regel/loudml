@@ -60,63 +60,63 @@ def aggregator(*aliases):
 
 @aggregator('avg', 'mean', 'average')
 def _build_avg_agg(feature):
-    return "MEAN({})".format(feature.field)
+    return "MEAN(\"{}\")".format(feature.field)
 
 @aggregator('count')
 def _build_count_agg(feature):
-    return "COUNT({})".format(feature.field)
+    return "COUNT(\"{}\")".format(feature.field)
 
 @aggregator('deriv', 'derivative')
 def _build_derivative_agg(feature):
-    return "DERIVATIVE({})".format(feature.field)
+    return "DERIVATIVE(\"{}\")".format(feature.field)
 
 @aggregator('integral')
 def _build_integral_agg(feature):
-    return "INTEGRAL({})".format(feature.field)
+    return "INTEGRAL(\"{}\")".format(feature.field)
 
 @aggregator('max')
 def _build_mode_agg(feature):
-    return "MAX({})".format(feature.field)
+    return "MAX(\"{}\")".format(feature.field)
 
 @aggregator('med', 'median')
 def _build_median_agg(feature):
-    return "MEDIAN({})".format(feature.field)
+    return "MEDIAN(\"{}\")".format(feature.field)
 
 @aggregator('min')
 def _build_min_agg(feature):
-    return "MIN({})".format(feature.field)
+    return "MIN(\"{}\")".format(feature.field)
 
 @aggregator('mode')
 def _build_mode_agg(feature):
-    return "MODE({})".format(feature.field)
+    return "MODE(\"{}\")".format(feature.field)
 
 @aggregator('5percentile')
 def _build_5percentile_agg(feature):
-    return "PERCENTILE({}, 5)".format(feature.field)
+    return "PERCENTILE(\"{}\", 5)".format(feature.field)
 
 @aggregator('10percentile')
 def _build_10percentile_agg(feature):
-    return "PERCENTILE({}, 10)".format(feature.field)
+    return "PERCENTILE(\"{}\", 10)".format(feature.field)
 
 @aggregator('90percentile')
 def _build_90percentile_agg(feature):
-    return "PERCENTILE({}, 90)".format(feature.field)
+    return "PERCENTILE(\"{}\", 90)".format(feature.field)
 
 @aggregator('95percentile')
 def _build_95percentile_agg(feature):
-    return "PERCENTILE({}, 95)".format(feature.field)
+    return "PERCENTILE(\"{}\", 95)".format(feature.field)
 
 @aggregator('spread')
 def _build_spread_agg(feature):
-    return "SPREAD({})".format(feature.field)
+    return "SPREAD(\"{}\")".format(feature.field)
 
 @aggregator('stddev', 'std_dev')
 def _build_stddev_agg(feature):
-    return "STDDEV({})".format(feature.field)
+    return "STDDEV(\"{}\")".format(feature.field)
 
 @aggregator('sum')
 def _build_sum_agg(feature):
-    return "SUM({})".format(feature.field)
+    return "SUM(\"{}\")".format(feature.field)
 
 def _build_agg(feature):
     """
@@ -160,7 +160,7 @@ def _build_queries(model, from_date=None, to_date=None):
     where = " where {}".format(" and ".join(must)) if len(must) else ""
 
     for feature in model.features:
-        yield "select {} from {}{} group by time({}ms);".format(
+        yield "select {} from \"{}\"{} group by time({}ms);".format(
             _build_agg(feature),
             feature.measurement,
             where,
