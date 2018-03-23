@@ -11,6 +11,7 @@ import shutil
 
 from . import (
     errors,
+    schemas,
 )
 
 from .storage import (
@@ -54,11 +55,13 @@ class FileStorage(Storage):
             )
             os.unlink(path)
 
-    def model_path(self, name):
+    def model_path(self, model_name, validate=True):
         """
         Build model path
         """
-        return os.path.join(self.model_dir, name)
+        if validate:
+            schemas.validate(schemas.key, model_name, name='model_name')
+        return os.path.join(self.model_dir, model_name)
 
     def _write_json(self, path, data):
         with open(path, 'w') as fd:
@@ -155,5 +158,5 @@ class FileStorage(Storage):
     def list_models(self):
         return [
              os.path.splitext(os.path.basename(path))[0]
-             for path in glob.glob(self.model_path('*'))
+             for path in glob.glob(self.model_path('*', validate=False))
         ]
