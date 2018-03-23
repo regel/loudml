@@ -48,3 +48,11 @@ class Storage(metaclass=ABCMeta):
         """Load model"""
         model_data = self.get_model_data(name)
         return load_model(**model_data)
+
+    @abstractmethod
+    def set_model_hook(self, model_name, hook_name, notifier_type, config=None):
+        """Set model hook"""
+
+    @abstractmethod
+    def delete_model_hook(self, model_name, hook_name):
+        """Delete model hook"""

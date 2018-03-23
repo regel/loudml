@@ -160,3 +160,66 @@ class FileStorage(Storage):
              os.path.splitext(os.path.basename(path))[0]
              for path in glob.glob(self.model_path('*', validate=False))
         ]
+
+    def _write_model_hook(self, model_name, settings):
+        settings = copy.deepcopy(settings)
+        settings.pop('name', None)
+        self._write_json(os.path.join(model_path, "settings.json"), settings)
+
+    def _hook_path(self, hooks_dir, hook_name, validate=True):
+        if validate:
+            schemas.validate(schemas.key, hook_name)
+        return os.path.join(hooks_dir, "{}.json".format(hook_name))
+
+    def model_hooks_dir(self, model_name):
+        """
+        Build path to model hooks directory
+        """
+        return os.path.join(self.model_path(model_name), "hooks")
+
+    def list_model_hooks(self, model_name):
+        """List model hooks"""
+
+        hooks_dir = self.model_hooks_dir(model_name)
+
+        return [
+             os.path.splitext(os.path.basename(path))[0]
+             for path in glob.glob(self._hook_path(hooks_dir, '*', validate=False))
+        ]
+
+    def get_model_hook(self, model_name, hook_name):
+        """Get model hook"""
+
+        hooks_dir = self.model_hooks_dir(model_name)
+        hook_path = self._hook_path(hooks_dir, hook_name)
+
+        try:
+            return self._load_json(hook_path)
+        except ValueError as exn:
+            raise errors.Invalid("invalid model hook file: %s", str(exn))
+        except FileNotFoundError:
+            raise errors.NotFound("hook not found")
+
+    def set_model_hook(self, model_name, hook_name, hook_type, config):
+        """Set model hook"""
+
+        hooks_dir = self.model_hooks_dir(model_name)
+        try:
+            os.makedirs(hooks_dir, exist_ok=True)
+        except OSError as exn:
+            raise errors.LoudMLException(str(exn))
+
+        self._write_json(self._hook_path(hooks_dir, hook_name), {
+            'type': hook_type,
+            'config': config,
+        })
+
+    def delete_model_hook(self, model_name, hook_name):
+        """Delete model hook"""
+        hooks_dir = self.model_hooks_dir(model_name)
+        hook_path = self._hook_path(hooks_dir, hook_name)
+
+        try:
+            os.unlink(hook_path)
+        except FileNotFoundError:
+            raise errors.NotFound("hook not found")
