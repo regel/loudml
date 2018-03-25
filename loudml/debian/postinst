@@ -27,6 +27,7 @@ case "$1" in
         chmod 2777 /etc/loudml
         mkdir -p /var/lib/loudml
         chown loudml.loudml /var/lib/loudml
+        chmod 2775 /var/lib/loudml
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

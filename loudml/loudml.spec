@@ -75,7 +75,7 @@ done
 install -m 0755 -d %{buildroot}/%{_sysconfdir}/loudml
 install -m 0644 examples/config.yml %{buildroot}/%{_sysconfdir}/loudml/config.yml
 %{__install} -m 0644 -D systemd/loudmld.service %{buildroot}/%{_unitdir}/loudmld.service
-install -m 0755 -d %{buildroot}/%{_sharedstatedir}/loudml
+install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 
 %files
 %defattr(-,root,root,-)
@@ -90,7 +90,7 @@ install -m 0755 -d %{buildroot}/%{_sharedstatedir}/loudml
 %attr(2777,root,loudml) %dir %{_sysconfdir}/loudml
 %config(noreplace) %{_sysconfdir}/loudml/config.yml
 %{_unitdir}/loudmld.service
-%attr(-,loudml,loudml) %{_sharedstatedir}/loudml
+%attr(2775,loudml,loudml) %{_sharedstatedir}/loudml
 
 %doc
 
