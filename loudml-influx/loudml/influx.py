@@ -10,6 +10,10 @@ import requests.exceptions
 
 from voluptuous import (
     Required,
+    Optional,
+    All,
+    Length,
+    Boolean,
     Schema,
 )
 
@@ -186,6 +190,10 @@ class InfluxDataSource(DataSource):
     SCHEMA = DataSource.SCHEMA.extend({
         Required('addr'): str,
         Required('database'): schemas.key,
+        Optional('dbuser'): All(schemas.key, Length(max=256)),
+        Optional('dbuser_password'): All(schemas.key, Length(max=256)),
+        Optional('use_ssl', default=False): Boolean(),
+        Optional('verify_ssl', default=False): Boolean(),
     })
 
     def __init__(self, cfg):
@@ -202,6 +210,22 @@ class InfluxDataSource(DataSource):
         return self.cfg['database']
 
     @property
+    def dbuser(self):
+        return self.cfg.get('dbuser')
+
+    @property
+    def dbuser_password(self):
+        return self.cfg.get('dbuser_password')
+
+    @property
+    def use_ssl(self):
+        return self.cfg.get('use_ssl') or False
+
+    @property
+    def verify_ssl(self):
+        return self.cfg.get('verify_ssl') or False
+
+    @property
     def influxdb(self):
         if self._influxdb is None:
             addr = parse_addr(self.addr, default_port=8086)
@@ -215,6 +239,10 @@ class InfluxDataSource(DataSource):
                 host=addr['host'],
                 port=addr['port'],
                 database=self.db,
+                username=self.dbuser,
+                password=self.dbuser_password,
+                ssl=self.use_ssl,
+                verify_ssl=self.verify_ssl,
             )
 
         return self._influxdb
