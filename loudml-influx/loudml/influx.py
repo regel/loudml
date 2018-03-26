@@ -191,7 +191,7 @@ class InfluxDataSource(DataSource):
         Required('addr'): str,
         Required('database'): schemas.key,
         Optional('dbuser'): All(schemas.key, Length(max=256)),
-        Optional('dbuser_password'): All(schemas.key, Length(max=256)),
+        Optional('dbuser_password'): str,
         Optional('use_ssl', default=False): Boolean(),
         Optional('verify_ssl', default=False): Boolean(),
     })
