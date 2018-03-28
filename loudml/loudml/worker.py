@@ -92,7 +92,8 @@ class Worker:
             if save_prediction:
                 source.save_timeseries_prediction(prediction, model)
             if detect_anomalies:
-                model.detect_anomalies(prediction)
+                hooks = self.storage.load_model_hooks(model_name)
+                model.detect_anomalies(prediction, hooks)
 
                 # TODO .detect_anomalies() produces warning messages
                 # and store anomalies into 'prediction'.

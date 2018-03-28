@@ -199,14 +199,12 @@ class TimeSeriesPrediction:
             result['stats'] = self.stats,
         return result
 
-    def _format_bucket(self, i):
+    def format_bucket_data(self, i):
         """
-        Format one bucket
+        Format observation and prediction for one bucket
         """
-
         features = self.model.features
-        bucket = {
-            'timestamp': self.timestamps[i],
+        return {
             'observed': {
                 feature.name: self.apply_default(j, self.observed[i][j])
                 for j, feature in enumerate(features)
@@ -216,6 +214,14 @@ class TimeSeriesPrediction:
                 for j, feature in enumerate(features)
             },
         }
+
+    def _format_bucket(self, i):
+        """
+        Format one bucket
+        """
+
+        bucket = self.format_bucket_data(i)
+        bucket['timestamp'] = self.timestamps[i]
         if self.stats:
             bucket['stats'] = self.stats[i]
         return bucket
@@ -858,7 +864,7 @@ class TimeSeriesModel(Model):
             predicted=predicted,
         )
 
-    def detect_anomalies(self, prediction):
+    def detect_anomalies(self, prediction, hooks=[]):
         """
         Detect anomalies on observed data by comparing them to the values
         predicted by the model
@@ -890,6 +896,19 @@ class TimeSeriesModel(Model):
                                 ts, score)
                 anomaly = True
                 anomaly_indices.append(i)
+
+                for hook in hooks:
+                    logging.info("notifying '%s' hook", hook.name)
+                    data = prediction.format_bucket_data(i)
+                    hook.on_anomaly(
+                        self.name,
+                        ts,
+                        score,
+                        data['predicted'],
+                        data['observed'],
+                        mse,
+                        dist,
+                    )
             else:
                 anomaly = False
 
