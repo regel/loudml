@@ -72,6 +72,7 @@ class Model:
         Required('features'): All([Feature.SCHEMA], Length(min=1)),
         'routing': Any(None, schemas.key),
         'threshold': Any(int, float, Range(min=0, max=100)),
+        'max_evals': All(int, Range(min=1)),
     }, extra=ALLOW_EXTRA)
 
     def __init__(self, settings, state=None):
