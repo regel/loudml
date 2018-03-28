@@ -696,6 +696,9 @@ class TimeSeriesModel(Model):
 
         j_sel, X_test = self._format_dataset_predict(norm_dataset[:X_until])
 
+        if len(X_test) == 0:
+            raise errors.LoudMLException("not enough data for prediction")
+
         logging.info("generating prediction")
         Y_ = _keras_model.predict(X_test)
 
