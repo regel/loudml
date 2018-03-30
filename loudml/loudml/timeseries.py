@@ -28,7 +28,9 @@ from hyperopt import (
 
 from voluptuous import (
     All,
+    Any,
     Required,
+    Optional,
     Range,
     Schema,
 )
@@ -51,6 +53,9 @@ from .model import (
 _keras_model, _graph = None, None
 _mins, _maxs = None, None
 _verbose = 0
+
+_hp_span_min = 5
+_hp_span_max = 20
 
 class HyperParameters:
     """Hyperparameters"""
@@ -246,11 +251,14 @@ class TimeSeriesModel(Model):
         ),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('offset'): schemas.TimeDelta(min=0),
-        Required('span'): All(int, Range(min=1)),
+        Required('span'): All(int, Any(-1, Range(min=1))),
+        Optional('min_span'): All(int, Range(min=1)),
+        Optional('max_span'): All(int, Range(min=1)),
         'timestamp_field': schemas.key,
     })
 
     def __init__(self, settings, state=None):
+        global _hp_span_min, _hp_span_max
         super().__init__(settings, state)
 
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
@@ -258,6 +266,13 @@ class TimeSeriesModel(Model):
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
         self.span = settings.get('span')
+        if self.span < 0:
+            self.min_span = settings.get('min_span') or _hp_span_min
+            self.max_span = settings.get('max_span') or _hp_span_max
+        else:        
+            self.min_span = self.span
+            self.max_span = self.span
+
         self.sequential = None
 
         self.defaults = [
@@ -268,6 +283,13 @@ class TimeSeriesModel(Model):
     @property
     def type(self):
         return self.TYPE
+
+    def get_hp_span(self, label):
+        if (self.max_span - self.min_span) <= 0:
+            space = self.span
+        else:
+            space = self.min_span + hp.randint(label, (self.max_span - self.min_span))
+        return space
 
     def set_run_params(self, params=None):
         """
@@ -309,18 +331,18 @@ class TimeSeriesModel(Model):
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
                      _mins, _maxs, rng)
 
-        (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
-            dataset,
-            train_size=train_size,
-        )
-
         def cross_val_model(params):
             global _keras_model, _graph
             _keras_model, _graph = None, None
-
             # Destroys the current TF graph and creates a new one.
             # Useful to avoid clutter from old models / layers.
             K.clear_session()
+            
+            self.span = params.span
+            (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
+                dataset,
+                train_size=train_size,
+            )
 
             # expected input data shape: (batch_size, timesteps, nb_features)
             _keras_model = Sequential()
@@ -388,6 +410,7 @@ class TimeSeriesModel(Model):
         space = hp.choice('case', [
             {
               'depth': 1,
+              'span': self.get_hp_span('d1_span'),
               'l1': 1+hp.randint('d1_l1', 100),
               'activation': hp.choice('d1_activation', ['tanh']),
               'loss_fct': hp.choice('d1_loss_fct', ['mean_squared_error']),
@@ -395,6 +418,7 @@ class TimeSeriesModel(Model):
             },
             {
               'depth': 2,
+              'span': self.get_hp_span('d2_span'),
               'l1': 1+hp.randint('d2_l1', 100),
               'l2': 1+hp.randint('d2_l2', 100),
               'activation': hp.choice('d2_activation', ['tanh']),
@@ -418,6 +442,12 @@ class TimeSeriesModel(Model):
         # Get the values of the optimal parameters
         best_params = space_eval(space, best)
         score = cross_val_model(HyperParameters(best_params))
+        self.span = best_params['span']
+        (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
+            dataset,
+            train_size=train_size,
+        )
+
         predicted = _keras_model.predict(X_test)
         return (best_params, score, y_test[:], predicted[:])
 
@@ -589,13 +619,20 @@ class TimeSeriesModel(Model):
         """
         return self._state is not None and 'weights' in self._state
 
+    @property
+    def _span(self):
+        if 'span' in self._state['best_params']:
+            return self._state['best_params']['span']
+        else:
+            return self.span
+
     def _format_dataset_predict(self, dataset):
         """
         Format dataset for time-series prediction
 
         It is assumed that a value for a given bucket can be predicted
         according the preceding ones. The number of preceding buckets used
-        for prediction is given by `self.span`.
+        for prediction is given by `self._span`.
 
         input:
         [v0, v1, v2, v3, v4 ..., vn]
@@ -603,7 +640,7 @@ class TimeSeriesModel(Model):
         output:
         indexes = [3, 4, ..., n]
         X = [
-            [v0, v1, v2], # span = 3
+            [v0, v1, v2], # _span = 3
             [v1, v2, v3],
             [v2, v3, v4],
             ...
@@ -615,8 +652,8 @@ class TimeSeriesModel(Model):
         data_x = []
         indexes = []
 
-        for i in range(len(dataset) - self.span + 1):
-            j = i + self.span
+        for i in range(len(dataset) - self._span + 1):
+            j = i + self._span
             partX = dataset[i:j, :]
 
             if not np.isnan(partX).any():
@@ -653,7 +690,7 @@ class TimeSeriesModel(Model):
 
         # Build history time range
         # Extra data are required to predict first buckets
-        hist_from_ts = from_ts - self.span * self.bucket_interval
+        hist_from_ts = from_ts - self._span * self.bucket_interval
         hist_to_ts = to_ts
         hist_from_str = ts_to_str(hist_from_ts)
         hist_to_str = ts_to_str(hist_to_ts)
@@ -706,7 +743,7 @@ class TimeSeriesModel(Model):
         Z_ = _maxs - rng * (1.0 - Y_)
 
         # Build final result
-        timestamps = X[self.span:]
+        timestamps = X[self._span:]
         last_ts = make_ts(X[-1])
         timestamps.append(ts_to_str(last_ts + self.bucket_interval))
 
@@ -715,8 +752,8 @@ class TimeSeriesModel(Model):
         predicted = np.array([self.defaults] * predict_len)
 
         for i, feature in enumerate(self.features):
-            observed[:,i] = dataset[self.span:][:,i]
-            predicted[j_sel - self.span,i] = Z_[:][:,i]
+            observed[:,i] = dataset[self._span:][:,i]
+            predicted[j_sel - self._span,i] = Z_[:][:,i]
 
         return TimeSeriesPrediction(
             self,
