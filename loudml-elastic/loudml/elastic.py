@@ -427,7 +427,7 @@ class ElasticsearchDataSource(DataSource):
             "histogram": {
               "date_histogram": {
                 "field": model.timestamp_field,
-                "extended_bounds": _build_extended_bounds(from_ms, to_ms),
+                "extended_bounds": _build_extended_bounds(from_ms, to_ms - 1000*model.bucket_interval),
                 "interval": "%ds" % model.bucket_interval,
                 "min_doc_count": 0,
                 "order": {
