@@ -33,6 +33,18 @@ from loudml.misc import (
 # Limit ES aggregations output to 500 MB
 PARTITION_MAX_SIZE = 500 * 1024 * 1024
 
+def ts_to_ms(ts):
+    """
+    Convert second timestamp to integer millisecond timestamp
+    """
+    return int(ts * 1e3)
+
+def make_ts_ms(mixed):
+    """
+    Build a millisecond timestamp from a mixed input (second timestamp or string)
+    """
+    return ts_to_ms(make_ts(mixed))
+
 def _date_range_to_ms(from_date=None, to_date=None):
     """
     Convert date range to millisecond
@@ -182,7 +194,9 @@ class ElasticsearchDataSource(DataSource):
         """
         Insert time-indexed entry
         """
-        data[timestamp_field] = int(ts * 1000)
+        ts = make_ts(ts)
+
+        data[timestamp_field] = ts_to_ms(ts)
         self.insert_data(data, doc_type, doc_id)
 
     @staticmethod
@@ -553,8 +567,9 @@ class ElasticsearchDataSource(DataSource):
     def save_timeseries_prediction(self, prediction, model):
         for bucket in prediction.format_buckets():
             self.insert_times_data(
-                doc_type='prediction_{}'.format(model_name),
+                doc_type='prediction_{}'.format(model.name),
                 ts=bucket['timestamp'],
                 data=bucket['predicted'],
+                timestamp_field=model.timestamp_field,
             )
         self.commit()
