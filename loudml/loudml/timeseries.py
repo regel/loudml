@@ -29,6 +29,7 @@ from hyperopt import (
 from voluptuous import (
     All,
     Any,
+    Boolean,
     Required,
     Optional,
     Range,
@@ -47,6 +48,12 @@ from .misc import (
 from .model import (
     Model,
 )
+
+float_formatter = lambda x: "%.2f" % x
+np.set_printoptions(formatter={'float_kind':float_formatter})
+
+def get_daytime(ts):
+    return (make_ts(ts) / 3600) % 24
 
 # global vars for easy reusability
 # This UNIX process is handling a unique model
@@ -249,6 +256,7 @@ class TimeSeriesModel(Model):
         Required('bucket_interval'): schemas.TimeDelta(
             min=0, min_included=False,
         ),
+        Optional('daytime_model', default=False): Boolean(),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('offset'): schemas.TimeDelta(min=0),
         Required('span'): Any(None, "auto", All(int, Range(min=1))),
@@ -281,6 +289,10 @@ class TimeSeriesModel(Model):
             None if feature.default is np.nan else feature.default
             for feature in self.features
         ]
+
+    @property
+    def daytime_model(self):
+        return self.settings.get('daytime_model') or False
 
     @property
     def type(self):
@@ -329,6 +341,9 @@ class TimeSeriesModel(Model):
         rng = _maxs - _mins
         dataset = 1.0 - (_maxs - dataset) / rng
         nb_features = len(self.features)
+        input_features = nb_features
+        if self.daytime_model:
+            input_features = input_features + 1
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
                      _mins, _maxs, rng)
@@ -351,14 +366,14 @@ class TimeSeriesModel(Model):
             if params.depth == 1:
                 _keras_model.add(LSTM(
                     params.l1,
-                    input_shape=(None, nb_features),
+                    input_shape=(None, input_features),
                     return_sequences=False,
                 ))
                 _keras_model.add(Dense(nb_features, input_dim=params.l1))
             elif params.depth == 2:
                 _keras_model.add(LSTM(
                     params.l1,
-                    input_shape=(None, nb_features),
+                    input_shape=(None, input_features),
                     return_sequences=True,
                 ))
                 _keras_model.add(LSTM(params.l2, return_sequences=False))
@@ -488,7 +503,7 @@ class TimeSeriesModel(Model):
         for i in range(len(dataset) - self.span):
             j = i + self.span
             partX = dataset[i:j, :]
-            partY = dataset[j, :]
+            partY = dataset[j, :len(self.features)]
 
             if not np.isnan(partX).any() and not np.isnan(partY).any():
                 data_x.append(partX)
@@ -551,13 +566,15 @@ class TimeSeriesModel(Model):
         nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
+        daytime = np.zeros((nb_buckets, 1), dtype=float)
 
         # Fill dataset
         data = datasource.get_times_data(self, from_ts, to_ts)
 
         i = None
-        for i, (_, val, _) in enumerate(data):
+        for i, (_, val, ts) in enumerate(data):
             dataset[i] = val
+            daytime[i] = np.array(get_daytime(ts))
 
         if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
@@ -566,6 +583,9 @@ class TimeSeriesModel(Model):
             ))
 
         logging.info("found %d time periods", i + 1)
+
+        if self.daytime_model:
+            dataset = np.append(dataset, daytime, axis=1)
 
         best_params, score, _, _ = self._train_on_dataset(
             dataset,
@@ -701,6 +721,8 @@ class TimeSeriesModel(Model):
         nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
+        daytime = np.zeros((nb_buckets, 1), dtype=float)
+
         X = []
 
         # Fill dataset
@@ -713,6 +735,7 @@ class TimeSeriesModel(Model):
         i = None
         for i, (_, val, ts) in enumerate(data):
             dataset[i] = val
+            daytime[i] = np.array(get_daytime(ts))
 
             if make_ts(ts) < to_ts - self.bucket_interval:
                 X.append(ts)
@@ -727,8 +750,12 @@ class TimeSeriesModel(Model):
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
             dataset = np.resize(dataset, (nb_buckets_found, nb_features))
+            daytime = np.resize(daytime, (nb_buckets_found, 1))
 
         logging.info("found %d time periods", nb_buckets_found)
+
+        if self.daytime_model:
+            dataset = np.append(dataset, daytime, axis=1)
 
         rng = _maxs - _mins
         norm_dataset = 1.0 - (_maxs - dataset) / rng
@@ -742,7 +769,7 @@ class TimeSeriesModel(Model):
         Y_ = _keras_model.predict(X_test)
 
         # min/max inverse operation
-        Z_ = _maxs - rng * (1.0 - Y_)
+        Z_ = _maxs[:nb_features] - rng[:nb_features] * (1.0 - Y_)
 
         # Build final result
         timestamps = X[self._span:]
@@ -783,8 +810,8 @@ class TimeSeriesModel(Model):
             X = prediction.observed[i]
             Y = prediction.predicted[i]
 
-            X = 1.0 - (_maxs - X) / rng
-            Y = 1.0 - (_maxs - Y) / rng
+            X = 1.0 - (_maxs[:nb_features] - X) / rng[:nb_features]
+            Y = 1.0 - (_maxs[:nb_features] - Y) / rng[:nb_features]
 
             mse = ((X - Y) ** 2).mean(axis=None)
             dist = np.linalg.norm(X - Y)
