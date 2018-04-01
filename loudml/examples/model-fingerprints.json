@@ -1,0 +1,80 @@
+{
+  "timestamp_field": "@timestamp",
+  "interval": "1m",
+  "type": "fingerprints",
+  "span": "7d",
+  "key": "account_ref",
+  "max_keys": 20000,
+  "width": 50,
+  "height": 50,
+  "use_daytime": true,
+  "daytime_interval": "6h",
+  "offset": "30s",
+  "aggregations": [
+    {
+      "measurement": "all",
+      "features": [
+        {
+          "field": "duration",
+          "name": "count-all",
+          "metric": "count"
+        },
+        {
+          "field": "duration",
+          "name": "mean-all-duration",
+          "metric": "avg"
+        },
+        {
+          "field": "duration",
+          "name": "std-all-duration",
+          "metric": "std"
+        }
+      ]
+    },
+    {
+      "measurement": "international",
+      "requires": [{"international": "true"}],
+      "features": [
+        {
+          "field": "duration",
+          "name": "count-international",
+          "metric": "count"
+        },
+        {
+          "field": "duration",
+          "name": "mean-international-duration",
+          "metric": "avg"
+        },
+        {
+          "field": "duration",
+          "name": "std-international-duration",
+          "metric": "std"
+        }
+      ]
+    },
+    {
+      "measurement": "premium",
+      "requires": [{"toll_call": "true"}],
+      "features": [
+        {
+          "field": "duration",
+          "name": "count-premium",
+          "metric": "count"
+        },
+        {
+          "field": "duration",
+          "name": "mean-premium-duration",
+          "metric": "avg"
+        },
+        {
+          "field": "duration",
+          "name": "std-premium-duration",
+          "metric": "std"
+        }
+      ]
+    }
+  ],
+  "default_datasource": "elastic",
+  "name": "fraud-model"
+}
+
