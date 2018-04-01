@@ -235,6 +235,18 @@ class TrainCommand(Command):
             help="Maximum number of training iterations",
             type=int,
         )
+        parser.add_argument(
+            '-e', '--epochs',
+            help="Limit the number of epochs used for training",
+            default=100,
+            type=int,
+        )
+        parser.add_argument(
+            '-l', '--limit',
+            help="Limit the number of keys used for training",
+            default=-1,
+            type=int,
+        )
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
@@ -271,6 +283,8 @@ class TrainCommand(Command):
                 source,
                 args.from_date,
                 args.to_date,
+                num_epochs=args.epochs,
+                limit=args.limit,
             )
         else:
             raise errors.UnsupportedModel(model.type)
