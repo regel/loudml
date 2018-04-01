@@ -63,6 +63,29 @@ def _date_range_to_ms(from_date=None, to_date=None):
         None if to_date is None else int(make_ts(to_date) * 1000),
     )
 
+def _build_requires(aggregation):
+    """
+    Build filters for search query
+    """
+
+    requires = aggregation.requires
+    if requires is None:
+        return
+    for require in requires:
+        for key, val in require.items():
+            if int(val.lower() == 'true') > 0:
+                val = 1
+            elif int(val.lower() == 'false') > 0:
+                val = 0
+            yield {
+              "script": {
+                "script": {
+                  "lang": "expression",
+                  "inline": "doc['%s'].value==%s" % (key, val)
+                }
+              }
+            }
+
 def _build_date_range(field, from_ms=None, to_ms=None):
     """
     Build date range for search query
@@ -94,6 +117,9 @@ def _build_extended_bounds(from_ms=None, to_ms=None):
         bounds['max'] = to_ms
 
     return bounds
+
+def _build_agg_name(measurement, field):
+    return "agg_%s-%s" % (measurement, field)
 
 class ElasticsearchDataSource(DataSource):
     """
@@ -364,19 +390,26 @@ class ElasticsearchDataSource(DataSource):
         return cardinality * deepsizeof(quad) * nb_time_buckets * model.nb_features
 
     @staticmethod
-    def build_quadrant_aggs(model):
-        # TODO Generic aggregation not implemented yet
-        raise NotImplemented()
+    def build_quadrant_aggs(model, agg):
+        res = {}
+        fields = [feature.field for feature in agg.features]
+        for field in set(fields):
+            res.update({
+              _build_agg_name(agg.measurement, field): {
+                "extended_stats": {"field": field}
+              }
+            })
+        return res
 
     @staticmethod
     def read_quadrant_aggs(key, time_buckets):
-        # TODO Generic response handling not implemented yet
-        raise NotImplemented()
+        return key, time_buckets
 
     @classmethod
     def _build_quadrant_query(
         cls,
         model,
+        aggregation,
         from_ms=None,
         to_ms=None,
         key=None,
@@ -397,14 +430,14 @@ class ElasticsearchDataSource(DataSource):
                         },
                     },
                     "aggs": {
-                        "values": {
+                        "quadrant_data": {
                             "date_histogram": {
                                 "field": model.timestamp_field,
-                                "interval": "6h",
+                                "interval": "%ds" % (model.daytime_interval),
                                 "min_doc_count": 0,
-                                "extended_bounds": _build_extended_bounds(from_ms, to_ms - 6 * 3600),
+                                "extended_bounds": _build_extended_bounds(from_ms, to_ms-1),
                             },
-                            "aggs": cls.build_quadrant_aggs(model),
+                            "aggs": cls.build_quadrant_aggs(model, aggregation),
                         }
                     }
                 }
@@ -420,6 +453,10 @@ class ElasticsearchDataSource(DataSource):
         if key is not None:
             must.append({"match": {model.key: key}})
 
+        requires = _build_requires(aggregation)
+        for require in requires:
+            must.append(require)
+
         if len(must) > 0:
             body['query'] = {
                 "bool": {
@@ -432,6 +469,7 @@ class ElasticsearchDataSource(DataSource):
     def get_quadrant_data(
         self,
         model,
+        aggregation,
         from_date=None,
         to_date=None,
         key=None,
@@ -454,6 +492,7 @@ class ElasticsearchDataSource(DataSource):
 
             body = self._build_quadrant_query(
                 model,
+                aggregation,
                 from_ms=from_ms,
                 to_ms=to_ms,
                 key=key,
@@ -474,7 +513,7 @@ class ElasticsearchDataSource(DataSource):
                 raise errors.DataSourceError(self.name, str(exn))
 
             for bucket in es_res['aggregations']['key']['buckets']:
-                yield self.read_quadrant_aggs(bucket['key'], bucket['values']['buckets'])
+                yield self.read_quadrant_aggs(bucket['key'], bucket['quadrant_data']['buckets'])
 
     @classmethod
     def _build_times_query(
