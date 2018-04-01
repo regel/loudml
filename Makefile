@@ -5,32 +5,27 @@ clean:
 	$(MAKE) -C loudml clean
 	$(MAKE) -C loudml-elastic clean
 	$(MAKE) -C loudml-influx clean
-	$(MAKE) -C loudml-ivoip clean
 	rm -rf build
 
 install:
 	$(MAKE) -C loudml install
 	$(MAKE) -C loudml-elastic install
 	$(MAKE) -C loudml-influx install
-	$(MAKE) -C loudml-ivoip install
 
 uninstall:
 	$(MAKE) -C loudml-influx uninstall
 	$(MAKE) -C loudml-elastic uninstall
 	$(MAKE) -C loudml uninstall
-	$(MAKE) -C loudml-ivoip uninstall
 
 dev:
 	$(MAKE) -C loudml-influx dev
 	$(MAKE) -C loudml-elastic dev
 	$(MAKE) -C loudml dev
-	$(MAKE) -C loudml-ivoip dev
 
 test:
 	$(MAKE) -C loudml test
 	$(MAKE) -C loudml-elastic test
 	$(MAKE) -C loudml-influx test
-	$(MAKE) -C loudml-ivoip test
 
 rpm:
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
