@@ -90,6 +90,7 @@ class DataSource(metaclass=ABCMeta):
     def get_quadrant_data(
         self,
         model,
+        aggregation,
         from_date=None,
         to_date=None,
         key=None,

@@ -270,7 +270,7 @@ class TrainCommand(Command):
             )
             print("loss: %f" % result['loss'])
             print("accuracy: %f" % result['accuracy'])
-        elif model.type == 'ivoip_fingerprints':
+        elif model.type == 'fingerprints':
             if not args.from_date:
                 raise LoudMLException(
                     "'from' argument is required for fingerprints",
@@ -378,7 +378,7 @@ class PredictCommand(Command):
                 else:
                     data = prediction.format_series()
                 self._dump(data)
-        elif model.type == 'ivoip_fingerprints':
+        elif model.type == 'fingerprints':
             if not args.from_date:
                 raise LoudMLException("'from' argument is required for fingerprints")
             if not args.to_date:
@@ -392,7 +392,6 @@ class PredictCommand(Command):
             if args.anomalies:
                 model.detect_anomalies(prediction)
             if args.save:
-                model.keep_prediction(prediction)
                 storage.save_model(model)
             else:
                 print(prediction)

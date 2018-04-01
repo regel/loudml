@@ -14,6 +14,7 @@ from voluptuous import (
     Length,
     Range,
     Required,
+    Optional,
     Schema,
 )
 
@@ -74,7 +75,7 @@ class Model:
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
-        Required('features'): All([Feature.SCHEMA], Length(min=1)),
+        Optional('features'): All([Feature.SCHEMA], Length(min=1)),
         'routing': Any(None, schemas.key),
         'threshold': Any(int, float, Range(min=0, max=100)),
         'max_evals': All(int, Range(min=1)),

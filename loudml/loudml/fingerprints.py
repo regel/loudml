@@ -6,14 +6,24 @@ import copy
 import json
 import logging
 import math
+import sys
+
+assert sys.version.startswith('3')
+
+_MAX_INT = sys.maxsize
 
 import numpy as np
 
 from voluptuous import (
+    ALLOW_EXTRA,
     All,
+    Any,
     Length,
     Range,
     Required,
+    Optional,
+    Boolean,
+    Schema,
 )
 
 from . import (
@@ -26,7 +36,43 @@ from .misc import (
     parse_timedelta,
     ts_to_str,
 )
-from .model import Model
+from .model import (
+    Model,
+    Feature,
+)
+
+#FIXME: duplicate function
+def _build_agg_name(measurement, field):
+    return "agg_%s-%s" % (measurement, field)
+
+class Aggregation:
+    """
+    Document aggregation that outputs features
+    """
+
+    SCHEMA = Schema({
+        Required('measurement'): schemas.key,
+        Required('features'): All([Feature.SCHEMA], Length(min=1)),
+        Optional('requires'): Any(None, All([Schema({str: Any(str,int)}, extra=ALLOW_EXTRA)], Length(min=1))),
+    })
+
+    def __init__(
+        self,
+        measurement=None,
+        features=None,
+        requires=None,
+    ):
+        self.validate(locals())
+
+        self.measurement = measurement
+        self.features = [Feature(**feature) for feature in features]
+        self.requires = requires
+
+    @classmethod
+    def validate(cls, args):
+        del args['self']
+        schemas.validate(cls.SCHEMA, args)
+
 
 class FingerprintsPrediction:
     def __init__(self, fingerprints, from_ts, to_ts):
@@ -66,11 +112,12 @@ class FingerprintsModel(Model):
         Required('height'): All(int, Range(min=1)),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('span'): schemas.TimeDelta(min=0, min_included=False),
+        Optional('use_daytime', default=False): Boolean(),
+        Optional('daytime_interval'): schemas.TimeDelta(min=0, min_included=False),
+        Required('aggregations'): All([Aggregation.SCHEMA], Length(min=1)),
         'offset': schemas.TimeDelta(min=0),
         'timestamp_field': schemas.key,
     })
-
-    QUADRANTS = ["00h-06h", "06h-12h", "12h-18h", "18h-24h"]
 
     def __init__(self, settings, state=None):
         super().__init__(settings, state)
@@ -80,9 +127,19 @@ class FingerprintsModel(Model):
         self.w = settings['width']
         self.h = settings['height']
         self.interval = parse_timedelta(settings['interval']).total_seconds()
+        interval = self.settings.get('daytime_interval')
+        if interval is None:
+            self.daytime_interval = 0
+        else:
+            self.daytime_interval = parse_timedelta(interval).total_seconds()
         self.span = parse_timedelta(settings['span']).total_seconds()
         self.offset = parse_timedelta(settings.get('offset', 0)).total_seconds()
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
+
+        self.aggs = [Aggregation(**agg) for agg in settings['aggregations']]
+        self.features=[]
+        for agg in self.aggs:
+            self.features.extend(agg.features)
 
         if state is not None:
             self._state = state
@@ -90,6 +147,25 @@ class FingerprintsModel(Model):
             self._stds = np.array(state['stds'])
 
         self._som_model = None
+
+    @property
+    def use_daytime(self):
+        return self.settings.get('use_daytime') or False
+
+    @property
+    def type(self):
+        return self.TYPE
+
+    @property
+    def nb_quadrants(self):
+        if self.daytime_interval == 0:
+            return 1
+        else:
+            return int(24*3600 / self.daytime_interval)
+
+    @property
+    def nb_dimensions(self):
+        return self.nb_quadrants * self.nb_features
 
     @property
     def state(self):
@@ -111,9 +187,77 @@ class FingerprintsModel(Model):
     def feature_names(self):
         return [feature.name for feature in self.features]
 
-    def _format_quadrants(self, time_buckets):
-        # TODO generic implementation not yet available
-        raise NotImplemented()
+    def format_quadrants(self, time_buckets, agg):
+        # init: all zeros except the mins
+        res = np.zeros(self.nb_quadrants * len(agg.features))
+        counts = np.zeros(self.nb_quadrants * len(agg.features))
+        sums = np.zeros(self.nb_quadrants * len(agg.features))
+        sum_of_squares = np.zeros(self.nb_quadrants * len(agg.features))
+
+        for quad_num in range(self.nb_quadrants):
+            for feat_num, feature in enumerate(agg.features):
+                quad_pos = quad_num * len(agg.features)
+                _pos = quad_pos + feat_num
+                if feature.metric == 'min':
+                    res[_pos] = _MAX_INT
+
+        for l in time_buckets:
+            ts = make_ts(l['key_as_string'])
+            quad_num = int((int(ts) / self.daytime_interval)) % self.nb_quadrants
+            quad_pos = quad_num * len(agg.features)
+
+            for feat_num, feature in enumerate(agg.features):
+                _pos = quad_pos + feat_num
+                s = l[_build_agg_name(agg.measurement, feature.field)]
+                _count = float(s['count'])
+                if _count != 0:
+                    _min = float(s['min'])
+                    _max = float(s['max'])
+                    _avg = float(s['avg'])
+                    _sum = float(s['sum'])
+                    _sum_of_squares = float(s['sum_of_squares'])
+                    _variance = float(s['variance'])
+                    _std_deviation = float(s['std_deviation'])
+
+                    counts[_pos] = counts[_pos] + _count
+                    sums[_pos] = sums[_pos] + _sum
+                    sum_of_squares[_pos] = sum_of_squares[_pos] + _sum_of_squares
+                    if feature.metric == 'count':
+                        res[_pos] = res[_pos] + _count
+                    elif feature.metric == 'min':
+                        res[_pos] = min(res[_pos], _min)
+                    elif feature.metric == 'max':
+                        res[_pos] = max(res[_pos], _max)
+                    elif feature.metric == 'avg':
+                        # avg computed in the end
+                        res[_pos] = res[_pos] + _sum
+                    elif feature.metric == 'sum':
+                        res[_pos] = res[_pos] + _sum
+                    elif feature.metric == 'std':
+                        # std computed in the end
+                        res[_pos] = res[_pos] + _sum_of_squares
+
+        for quad_num in range(self.nb_quadrants):
+            for feat_num, feature in enumerate(agg.features):
+                quad_pos = quad_num * len(agg.features)
+                _pos = quad_pos + feat_num
+                if feature.metric == 'min' and res[_pos] == _MAX_INT:
+                    res[_pos] = 0
+
+            for feat_num, feature in enumerate(agg.features):
+                _pos = quad_pos + feat_num
+                _count = counts[_pos]
+                _sum = sums[_pos]
+                _sum_of_squares = sum_of_squares[_pos]
+
+                if _count > 0:
+                    _variance = math.sqrt(_sum_of_squares / _count - (_sum/_count) ** 2)
+                    if feature.metric == 'avg':
+                        res[_pos] = _sum / _count
+                    elif feature.metric == 'std':
+                        res[_pos] = _variance
+
+        return res
 
     def _train_on_dataset(
         self,
@@ -128,7 +272,7 @@ class FingerprintsModel(Model):
         zY = np.nan_to_num((dataset - self._means) / self._stds)
 
         # Hyperparameters
-        data_dimens = 4 * self.nb_features
+        data_dimens = self.nb_dimensions
         self._som_model = som.SOM(self.w, self.h, data_dimens, num_epochs)
 
         # Start Training
@@ -159,6 +303,31 @@ class FingerprintsModel(Model):
             })
 
         return fingerprints
+
+    def _make_dataset(self, dicts):
+        keys = set()
+        for d in dicts:
+            keys = keys.union(d.keys())
+
+        nb_keys = len(keys)
+        dimens = self.nb_dimensions
+        dataset = np.zeros((nb_keys, dimens), dtype=float)
+
+        for i, key in enumerate(keys):
+            col = 0
+            row = np.zeros((1, dimens), dtype=float)
+            for agg_num, agg in enumerate(self.aggs):
+                features_len = len(agg.features)
+                if key in dicts[agg_num]:
+                    features = dicts[agg_num][key]
+                    for quad_num in range(self.nb_quadrants):
+                        quad_pos = quad_num * features_len
+                        row_pos = quad_num * self.nb_features + col
+                        row[0][row_pos:row_pos+features_len] = features[quad_pos:quad_pos+features_len]
+                col = col + features_len
+            dataset[i] = row
+
+        return list(keys), dataset
 
     def train(
         self,
@@ -194,30 +363,27 @@ class FingerprintsModel(Model):
             limit,
         )
 
-        # Prepare dataset
-        nb_keys = self.max_keys
-        dimens = 4 * self.nb_features
-        dataset = np.zeros((nb_keys, dimens), dtype=float)
-
         # Fill dataset
-        data = datasource.get_quadrant_data(self, from_ts, to_ts)
+        features_dicts=[]
+        for agg_num, agg in enumerate(self.aggs):
+            data = datasource.get_quadrant_data(self, agg, from_ts, to_ts)
+            features = dict()
+            for key, val in data:
+                features[key] = self.format_quadrants(val, agg)
+            features_dicts.append(features)
 
-        i = None
-        keys = []
-        for i, (key, val) in enumerate(data):
-            keys.append(key)
-            dataset[i] = self.format_quadrants(val)
+        keys, dataset = self._make_dataset(features_dicts)
 
-        if i is None:
+        if len(keys) == 0:
             raise errors.NoData("no data found for time range {}-{}".format(
                 from_str,
                 to_str,
             ))
 
-        logging.info("found %d keys", i + 1)
+        logging.info("found %d keys", len(keys))
 
         mapped = self._train_on_dataset(
-            np.resize(dataset, (i + 1, dimens)),
+            dataset,
             num_epochs,
             limit,
         )
@@ -248,7 +414,7 @@ class FingerprintsModel(Model):
             self._state['meta'],
             self.w,
             self.h,
-            4 * self.nb_features,
+            self.nb_dimensions,
         )
 
     @property
@@ -258,14 +424,6 @@ class FingerprintsModel(Model):
         state = {
             'trained': self.is_trained
         }
-
-        last_prediction = self._state.get('last_prediction')
-        if last_prediction is not None:
-            state['last_prediction'] = {
-                'from_date': last_prediction['from_date'],
-                'to_date': last_prediction['to_date'],
-                'fingerprints': len(last_prediction['fingerprints']),
-            }
 
         return {
             'settings': self.settings,
@@ -300,30 +458,27 @@ class FingerprintsModel(Model):
 
         self.load()
 
-        # Prepare dataset
-        nb_keys = self.max_keys
-        dimens = 4 * self.nb_features
-        dataset = np.zeros((nb_keys, dimens), dtype=float)
-
         # Fill dataset
-        data = datasource.get_quadrant_data(self, from_ts, to_ts)
+        features_dicts=[]
+        for agg_num, agg in enumerate(self.aggs):
+            data = datasource.get_quadrant_data(self, agg, from_ts, to_ts)
+            features = dict()
+            for key, val in data:
+                features[key] = self.format_quadrants(val, agg)
+            features_dicts.append(features)
 
-        i = None
-        keys = []
-        for i, (key, val) in enumerate(data):
-            keys.append(key)
-            dataset[i] = self.format_quadrants(val)
+        keys, dataset = self._make_dataset(features_dicts)
 
-        if i is None:
+        if len(keys) == 0:
             raise errors.NoData("no data found for time range {}-{}".format(
                 from_str,
                 to_str,
             ))
 
-        logging.info("found %d keys", i + 1)
+        logging.info("found %d keys", len(keys))
 
         mapped = self._map_dataset(
-            np.resize(dataset, (i + 1, dimens)),
+            dataset,
         )
 
         fingerprints = self._build_fingerprints(
@@ -340,14 +495,9 @@ class FingerprintsModel(Model):
             fingerprints=fingerprints,
         )
 
-    def keep_prediction(self, prediction):
-        if not self.is_trained:
-            return errors.ModelNotTrained()
-
-        self._state['last_prediction'] = prediction.format()
-
     def _annotate_col(self, j):
-        quadrant = self.QUADRANTS[int(j / (4 * self.nb_features))]
+        quad_num = int(j / self.nb_features)
+        quadrant = "%s-%s" % (int(quad_num*24*3600/self.nb_quadrants), int((quad_num+1)*24*3600/self.nb_quadrants))
         feature = self.feature_names[int(j) % self.nb_features]
         return quadrant, feature
 
@@ -366,15 +516,15 @@ class FingerprintsModel(Model):
             mul = int(max_val)
             if mul < 0:
                 kind = 'Low'
-                desc = "Low {} in range {}. {} times lower than usual. "\
+                desc = "Low {} in range {}. "\
                        "Actual={} Typical={}".format(
-                    feature, quadrant, abs(mul), yc[max_arg], yo[max_arg]
+                    feature, quadrant, yc[max_arg], yo[max_arg]
                 )
             else:
                 kind = 'High'
-                desc = "High {} in range {}. {} times higher than usual. "\
+                desc = "High {} in range {}. "\
                        "Actual={} Typical={}".format(
-                    feature, quadrant, abs(mul), yc[max_arg], yo[max_arg]
+                    feature, quadrant, yc[max_arg], yo[max_arg]
                 )
         except ValueError:
             # FIXME: catching this exception here may mask some bugs.
