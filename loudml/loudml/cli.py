@@ -13,6 +13,10 @@ import loudml.config
 import loudml.datasource
 import loudml.model
 
+from . import (
+    errors,
+)
+
 from .errors import (
     LoudMLException,
     ModelNotTrained,
