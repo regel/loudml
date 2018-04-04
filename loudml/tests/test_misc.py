@@ -20,6 +20,7 @@ class TestMisc(unittest.TestCase):
         def to_sec(string):
             return parse_timedelta(string).total_seconds()
 
+        self.assertEqual(to_sec("4"), 4)
         self.assertEqual(to_sec("42"), 42)
         self.assertEqual(to_sec("+42"), 42)
         self.assertEqual(to_sec("42s"), 42)
@@ -34,6 +35,7 @@ class TestMisc(unittest.TestCase):
             with self.assertRaises(errors.Invalid):
                 parse_timedelta(value, **kwargs)
 
+        invalid("")
         invalid("foo")
         invalid("42x")
         invalid(-42, min=0)

@@ -28,7 +28,7 @@ def parse_timedelta(
     Parse time delta
     """
 
-    if isinstance(delta, str):
+    if isinstance(delta, str) and len(delta) > 0:
         unit = {
             's': 'seconds',
             'm': 'minutes',
