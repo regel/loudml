@@ -1,24 +1,24 @@
 {
   "bucket_interval": "20m",
-  "default_datasource": "my-datasource",
+  "default_datasource": "influx",
   "features": [
     {
       "field": "foo",
-      "measurement": "dummy_data",
+      "measurement": "mydata",
       "metric": "avg",
       "name": "avg_foo"
     },
     {
       "default": 0,
       "field": "foo",
-      "measurement": "dummy_data",
+      "measurement": "mydata",
       "metric": "count",
       "name": "count_foo"
     }
   ],
   "interval": 60,
-  "max_evals": 1,
-  "name": "my-timeseries-model",
+  "max_evals": 100,
+  "name": "timeseries-influx",
   "offset": 30,
   "span": 5,
   "threshold": 30,

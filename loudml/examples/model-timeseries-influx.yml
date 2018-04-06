@@ -1,22 +1,22 @@
-name: my-timeseries-model
+name: timeseries-influx
 type: timeseries
 
-default_datasource: my-datasource
+default_datasource: influx
 
 offset: 30
 span: 5
 bucket_interval: 20m
 interval: 60
 threshold: 30
-max_evals: 1
+max_evals: 100
 
 features:
   - name: avg_foo
-    measurement: dummy_data
+    measurement: mydata
     metric: avg
     field: foo
   - name: count_foo
-    measurement: dummy_data
+    measurement: mydata
     metric: count
     field: foo
     default: 0
