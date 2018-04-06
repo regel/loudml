@@ -54,7 +54,7 @@ class TestCli(unittest.TestCase):
             script_dir,
             "..",
             "examples",
-            "model-timeseries.yml",
+            "model-timeseries-influx.yml",
         )
 
     def test_commands(self):
@@ -80,9 +80,9 @@ class TestCli(unittest.TestCase):
 
         # List
         out = execute(base + ['list-models'])
-        self.assertEqual(out, "my-timeseries-model")
+        self.assertEqual(out, "timeseries-influx")
 
         # Delete
-        execute(base + ['delete-model', 'my-timeseries-model'])
+        execute(base + ['delete-model', 'timeseries-influx'])
         out = execute(base + ['list-models'])
         self.assertEqual(out, "")
