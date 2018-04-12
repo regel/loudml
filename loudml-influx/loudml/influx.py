@@ -154,7 +154,7 @@ def _build_agg(feature):
         )
 
     agg = aggregator(feature)
-    return "{} as {}".format(agg, feature.name)
+    return "{} as \"{}\"".format(agg, escape_doublequotes(feature.name))
 
 def _build_time_predicates(from_date=None, to_date=None):
     """

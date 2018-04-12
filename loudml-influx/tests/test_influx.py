@@ -171,11 +171,11 @@ class TestInfluxQuick(unittest.TestCase):
         self.assertEqual(
             queries,
             [
-                "select MEAN(\"foo\") as avg_foo from \"measure1\" "\
+                "select MEAN(\"foo\") as \"avg_foo\" from \"measure1\" "\
                 "where {} group by time(3000ms);".format(where),
-                "select COUNT(\"bar\") as count_bar from \"measure2\" "\
+                "select COUNT(\"bar\") as \"count_bar\" from \"measure2\" "\
                 "where {} group by time(3000ms);".format(where),
-                "select MEAN(\"baz\") as avg_baz from \"measure1\" "\
+                "select MEAN(\"baz\") as \"avg_baz\" from \"measure1\" "\
                 "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(where),
             ],
         )
