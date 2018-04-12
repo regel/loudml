@@ -124,12 +124,12 @@ class TestInfluxQuick(unittest.TestCase):
             ),
             [
                 "time >= 1515404366123400000",
-                "time <= 1515423565456000000",
+                "time < 1515423565456000000",
             ],
         )
 
     def test_build_queries(self):
-        where = "time >= 1515404366123400000 and time <= 1515423565456000000"
+        where = "time >= 1515404366123400000 and time < 1515423565456000000"
         queries = list(_build_queries(
             self.model,
             from_date=1515404366.1234,
@@ -138,10 +138,10 @@ class TestInfluxQuick(unittest.TestCase):
         self.assertEqual(
             queries,
             [
-                "select MEAN(foo) as avg_foo from measure1 "\
-                "where {} group by time(3s);".format(where),
-                "select COUNT(bar) as count_bar from measure2 "\
-                "where {} group by time(3s);".format(where),
+                "select MEAN(\"foo\") as avg_foo from \"measure1\" "\
+                "where {} group by time(3000ms);".format(where),
+                "select COUNT(\"bar\") as count_bar from \"measure2\" "\
+                "where {} group by time(3000ms);".format(where),
             ],
         )
 
