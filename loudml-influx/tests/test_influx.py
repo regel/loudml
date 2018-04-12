@@ -11,6 +11,8 @@ import loudml.errors as errors
 from loudml.influx import (
     _build_queries,
     _build_time_predicates,
+    escape_quotes,
+    escape_doublequotes,
     InfluxDataSource,
 )
 
@@ -113,6 +115,12 @@ class TestInfluxQuick(unittest.TestCase):
             InfluxDataSource({
                 'database': 'foo',
             })
+
+    def test_escape_quotes(self):
+        self.assertEqual(escape_quotes("foo ' '"), "foo \\' \\'")
+
+    def test_escape_doublequotes(self):
+        self.assertEqual(escape_doublequotes('foo " "'), 'foo \\" \\"')
 
     def test_build_time_predicates(self):
         self.assertEqual(

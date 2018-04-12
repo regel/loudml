@@ -47,6 +47,26 @@ def make_ts_ns(mixed):
     """
     return ts_to_ns(make_ts(mixed))
 
+QUOTE_ESCAPE_TRANS = str.maketrans({
+    "'": "\\'",
+})
+
+DOUBLEQUOTE_ESCAPE_TRANS = str.maketrans({
+    '"': '\\"',
+})
+
+def escape_quotes(string):
+    """
+    Escape simple quotes
+    """
+    return string.translate(QUOTE_ESCAPE_TRANS)
+
+def escape_doublequotes(string):
+    """
+    Escaping double quotes
+    """
+    return string.translate(DOUBLEQUOTE_ESCAPE_TRANS)
+
 def aggregator(*aliases):
     """
     Decorator to register aggregators and indexing them by their aliases
@@ -166,7 +186,7 @@ def _build_queries(model, from_date=None, to_date=None):
     for feature in model.features:
         yield "select {} from \"{}\"{} group by time({}ms);".format(
             _build_agg(feature),
-            feature.measurement,
+            escape_doublequotes(feature.measurement),
             where,
             int(model.bucket_interval * 1000),
         )
