@@ -170,16 +170,34 @@ def _build_time_predicates(from_date=None, to_date=None):
 
     return must
 
+def _build_tags_predicates(match_all=None):
+    """
+    Build tags predicates for 'where' clause
+    """
+    must = []
+
+    if match_all:
+        for item in match_all:
+            must.append("\"{}\"='{}'".format(
+              escape_doublequotes(item['tag']),
+              escape_quotes(item['value']),
+            ))
+
+    return must
+
 def _build_queries(model, from_date=None, to_date=None):
     """
     Build queries according to requested features
     """
     # TODO sanitize inputs to avoid injection!
 
-    must = _build_time_predicates(from_date, to_date)
-    where = " where {}".format(" and ".join(must)) if len(must) else ""
+    time_pred = _build_time_predicates(from_date, to_date)
 
     for feature in model.features:
+        must = time_pred + _build_tags_predicates(feature.match_all)
+
+        where = " where {}".format(" and ".join(must)) if len(must) else ""
+
         yield "select {} from \"{}\"{} group by time({}ms);".format(
             _build_agg(feature),
             escape_doublequotes(feature.measurement),
