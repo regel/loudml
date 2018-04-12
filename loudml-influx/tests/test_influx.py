@@ -11,6 +11,7 @@ import loudml.errors as errors
 from loudml.influx import (
     _build_queries,
     _build_time_predicates,
+    _build_tags_predicates,
     escape_quotes,
     escape_doublequotes,
     InfluxDataSource,
@@ -36,6 +37,16 @@ FEATURES = [
         'metric': 'count',
         'measurement': 'measure2',
         'field': 'bar',
+        'default': 0,
+    },
+    {
+        'name': 'avg_baz',
+        'metric': 'avg',
+        'measurement': 'measure1',
+        'field': 'baz',
+        'match_all': [
+            {'tag': 'mytag', 'value': 'myvalue'},
+        ],
         'default': 0,
     },
 ]
@@ -136,6 +147,20 @@ class TestInfluxQuick(unittest.TestCase):
             ],
         )
 
+    def test_build_tags_predicates(self):
+        self.assertEqual(
+            _build_tags_predicates(), [],
+        )
+        self.assertEqual(
+            _build_tags_predicates([
+                {'tag': 'foo', 'value': 'bar'},
+                {'tag': 'a "', 'value': 'b \''},
+            ]), [
+                "\"foo\"='bar'",
+                "\"a \\\"\"='b \\''",
+            ]
+        )
+
     def test_build_queries(self):
         where = "time >= 1515404366123400000 and time < 1515423565456000000"
         queries = list(_build_queries(
@@ -150,6 +175,8 @@ class TestInfluxQuick(unittest.TestCase):
                 "where {} group by time(3000ms);".format(where),
                 "select COUNT(\"bar\") as count_bar from \"measure2\" "\
                 "where {} group by time(3000ms);".format(where),
+                "select MEAN(\"baz\") as avg_baz from \"measure1\" "\
+                "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(where),
             ],
         )
 

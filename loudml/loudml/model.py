@@ -32,6 +32,9 @@ class Feature:
         Required('metric'): All(schemas.key, Length(max=256)),
         Required('field'): All(schemas.key, Length(max=256)),
         'measurement': Any(None, schemas.key),
+        'match_all': Any(None, Schema([
+            {Required(schemas.key): All(str, Length(max=256))},
+        ])),
         'default': Any(None, int, float),
         'script': Any(None, str),
     })
@@ -42,6 +45,7 @@ class Feature:
         metric=None,
         field=None,
         measurement=None,
+        match_all=None,
         default=None,
         script=None,
     ):
@@ -53,6 +57,7 @@ class Feature:
         self.field = field
         self.default = np.nan if default is None else float(default)
         self.script = script
+        self.match_all = match_all
 
     @classmethod
     def validate(cls, args):
