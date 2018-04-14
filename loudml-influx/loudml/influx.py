@@ -63,6 +63,14 @@ def escape_doublequotes(string):
     """
     return string.translate(DOUBLEQUOTE_ESCAPE_TRANS)
 
+def format_bool(string):
+    if string.lower() == 'true':
+        return 'True'
+    elif string.lower() == 'false':
+        return 'False'
+    else:
+        return string
+
 def aggregator(*aliases):
     """
     Decorator to register aggregators and indexing them by their aliases
@@ -180,7 +188,7 @@ def _build_tags_predicates(match_all=None):
         for item in match_all:
             must.append("\"{}\"='{}'".format(
               escape_doublequotes(item['tag']),
-              escape_quotes(item['value']),
+              escape_quotes(format_bool(item['value'])),
             ))
 
     return must
@@ -317,14 +325,12 @@ class InfluxDataSource(DataSource):
 
         queries = _build_queries(model, from_date, to_date)
         queries = ''.join(queries)
-
         results = self.influxdb.query(queries)
 
         if not isinstance(results, list):
             results = [results]
 
         buckets = []
-
         # Merge results
         for i, result in enumerate(results):
             feature = features[i]
