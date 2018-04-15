@@ -17,6 +17,9 @@ from . import (
     errors,
 )
 
+def build_agg_name(measurement, field):
+    return "agg_%s-%s" % (measurement, field)
+
 def parse_timedelta(
     delta,
     min=None,

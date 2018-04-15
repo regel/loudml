@@ -37,6 +37,7 @@ from loudml.misc import (
     deepsizeof,
     make_ts,
     parse_addr,
+    build_agg_name,
 )
 
 # Limit ES aggregations output to 500 MB
@@ -63,28 +64,29 @@ def _date_range_to_ms(from_date=None, to_date=None):
         None if to_date is None else int(make_ts(to_date) * 1000),
     )
 
-def _build_requires(aggregation):
+def _build_match_all(aggregation):
     """
     Build filters for search query
     """
 
-    requires = aggregation.requires
-    if requires is None:
+    match_all = aggregation.match_all
+    if match_all is None:
         return
-    for require in requires:
-        for key, val in require.items():
-            if int(val.lower() == 'true') > 0:
-                val = 1
-            elif int(val.lower() == 'false') > 0:
-                val = 0
-            yield {
-              "script": {
-                "script": {
-                  "lang": "expression",
-                  "inline": "doc['%s'].value==%s" % (key, val)
-                }
-              }
+    for condition in match_all:
+        key = condition['tag']
+        val = condition['value']
+        if int(val.lower() == 'true') > 0:
+            val = 1
+        elif int(val.lower() == 'false') > 0:
+            val = 0
+        yield {
+          "script": {
+            "script": {
+              "lang": "expression",
+              "inline": "doc['%s'].value==%s" % (key, val)
             }
+          }
+        }
 
 def _build_date_range(field, from_ms=None, to_ms=None):
     """
@@ -117,9 +119,6 @@ def _build_extended_bounds(from_ms=None, to_ms=None):
         bounds['max'] = to_ms
 
     return bounds
-
-def _build_agg_name(measurement, field):
-    return "agg_%s-%s" % (measurement, field)
 
 class ElasticsearchDataSource(DataSource):
     """
@@ -395,7 +394,7 @@ class ElasticsearchDataSource(DataSource):
         fields = [feature.field for feature in agg.features]
         for field in set(fields):
             res.update({
-              _build_agg_name(agg.measurement, field): {
+              build_agg_name(agg.measurement, field): {
                 "extended_stats": {"field": field}
               }
             })
@@ -453,9 +452,9 @@ class ElasticsearchDataSource(DataSource):
         if key is not None:
             must.append({"match": {model.key: key}})
 
-        requires = _build_requires(aggregation)
-        for require in requires:
-            must.append(require)
+        match_all = _build_match_all(aggregation)
+        for condition in match_all:
+            must.append(condition)
 
         if len(must) > 0:
             body['query'] = {

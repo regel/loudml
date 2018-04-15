@@ -12,7 +12,7 @@
   "offset": "30s",
   "aggregations": [
     {
-      "measurement": "all",
+      "measurement": "xdr",
       "features": [
         {
           "field": "duration",
@@ -27,13 +27,13 @@
         {
           "field": "duration",
           "name": "std-all-duration",
-          "metric": "std"
+          "metric": "stddev"
         }
       ]
     },
     {
-      "measurement": "international",
-      "requires": [{"international": "true"}],
+      "measurement": "xdr",
+      "match_all": [{"tag": "international", "value": "true"}],
       "features": [
         {
           "field": "duration",
@@ -48,13 +48,13 @@
         {
           "field": "duration",
           "name": "std-international-duration",
-          "metric": "std"
+          "metric": "stddev"
         }
       ]
     },
     {
-      "measurement": "premium",
-      "requires": [{"toll_call": "true"}],
+      "measurement": "xdr",
+      "match_all": [{"tag": "toll_call", "value": "true"}],
       "features": [
         {
           "field": "duration",
@@ -69,7 +69,7 @@
         {
           "field": "duration",
           "name": "std-premium-duration",
-          "metric": "std"
+          "metric": "stddev"
         }
       ]
     }

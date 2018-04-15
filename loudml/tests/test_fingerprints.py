@@ -79,7 +79,7 @@ class TestFingerprints(unittest.TestCase):
             offset="30s",
             aggregations=
               [dict(
-                measurement="all",
+                measurement="xdr",
                 features=[
                   dict(
                     field="duration",
@@ -99,8 +99,8 @@ class TestFingerprints(unittest.TestCase):
                 ]
               ),
               dict(
-                measurement="international",
-                requires=[dict(international="true")],
+                measurement="xdr",
+                match_all=[dict(tag="international", value="true")],
                 features=[
                   dict(
                     field="duration",
@@ -120,8 +120,8 @@ class TestFingerprints(unittest.TestCase):
                 ]
               ),
               dict(
-                measurement="premium",
-                requires=[dict(toll_call="true")],
+                measurement="xdr",
+                match_all=[dict(tag="toll_call", value="true")],
                 features=[
                   dict(
                     field="duration",

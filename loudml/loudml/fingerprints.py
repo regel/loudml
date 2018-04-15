@@ -35,15 +35,12 @@ from .misc import (
     make_ts,
     parse_timedelta,
     ts_to_str,
+    build_agg_name,
 )
 from .model import (
     Model,
     Feature,
 )
-
-#FIXME: duplicate function
-def _build_agg_name(measurement, field):
-    return "agg_%s-%s" % (measurement, field)
 
 class Aggregation:
     """
@@ -53,20 +50,22 @@ class Aggregation:
     SCHEMA = Schema({
         Required('measurement'): schemas.key,
         Required('features'): All([Feature.SCHEMA], Length(min=1)),
-        Optional('requires'): Any(None, All([Schema({str: Any(str,int)}, extra=ALLOW_EXTRA)], Length(min=1))),
+        'match_all': Any(None, Schema([
+            {Required(schemas.key): All(str, Length(max=256))},
+        ])),
     })
 
     def __init__(
         self,
         measurement=None,
         features=None,
-        requires=None,
+        match_all=None,
     ):
         self.validate(locals())
 
         self.measurement = measurement
         self.features = [Feature(**feature) for feature in features]
-        self.requires = requires
+        self.match_all = match_all
 
     @classmethod
     def validate(cls, args):
@@ -208,7 +207,7 @@ class FingerprintsModel(Model):
 
             for feat_num, feature in enumerate(agg.features):
                 _pos = quad_pos + feat_num
-                s = l[_build_agg_name(agg.measurement, feature.field)]
+                s = l[build_agg_name(agg.measurement, feature.field)]
                 _count = float(s['count'])
                 if _count != 0:
                     _min = float(s['min'])
@@ -233,7 +232,7 @@ class FingerprintsModel(Model):
                         res[_pos] = res[_pos] + _sum
                     elif feature.metric == 'sum':
                         res[_pos] = res[_pos] + _sum
-                    elif feature.metric == 'std':
+                    elif feature.metric == 'stddev':
                         # std computed in the end
                         res[_pos] = res[_pos] + _sum_of_squares
 
@@ -254,7 +253,7 @@ class FingerprintsModel(Model):
                     _variance = math.sqrt(_sum_of_squares / _count - (_sum/_count) ** 2)
                     if feature.metric == 'avg':
                         res[_pos] = _sum / _count
-                    elif feature.metric == 'std':
+                    elif feature.metric == 'stddev':
                         res[_pos] = _variance
 
         return res
