@@ -15,6 +15,7 @@ from loudml.fingerprints import (
 logging.getLogger('tensorflow').disabled = True
 
 from loudml.elastic import ElasticsearchDataSource
+from loudml.influx import InfluxDataSource
 
 TEMPLATE = {
     "template": "test-voip-*",
@@ -54,17 +55,29 @@ class TestFingerprints(unittest.TestCase):
         self.from_ts = from_ts
         self.to_ts = from_ts + 3600 * 24
 
-        self.index = 'test-voip-%d' % from_ts
-        logging.info("creating index %s", self.index)
-        self.source = ElasticsearchDataSource({
-            'name': 'test',
-            'type': 'elasticsearch',
-            'addr': os.environ['ELASTICSEARCH_ADDR'],
-            'index': self.index,
-        })
-        self.source.delete_index()
-        self.source.create_index(TEMPLATE)
-
+        if os.environ.get('ELASTICSEARCH_ADDR') is not None:
+            self.index = 'test-voip-%d' % from_ts
+            logging.info("creating index %s", self.index)
+            self.source = ElasticsearchDataSource({
+                'name': 'test',
+                'type': 'elasticsearch',
+                'addr': os.environ['ELASTICSEARCH_ADDR'],
+                'index': self.index,
+            })
+            self.source.delete_index()
+            self.source.create_index(TEMPLATE)
+        elif os.environ.get('INFLUXDB_ADDR') is not None:
+            self.database = 'test-voip-%d' % from_ts
+            logging.info("creating database %s", self.database)
+            self.source = InfluxDataSource({
+                'name': 'test',
+                'type': 'influx',
+                'addr': os.environ['INFLUXDB_ADDR'],
+                'database': self.database,
+            })
+            self.source.delete_db()
+            self.source.create_db()
+           
         self.model = FingerprintsModel(dict(
             name='test',
             key='caller',
