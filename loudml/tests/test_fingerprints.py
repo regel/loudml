@@ -94,7 +94,7 @@ class TestFingerprints(unittest.TestCase):
                   dict(
                     field="duration",
                     name="std-all-duration",
-                    metric="std"
+                    metric="stddev"
                   )
                 ]
               ),
@@ -115,7 +115,7 @@ class TestFingerprints(unittest.TestCase):
                   dict(
                     field="duration",
                     name="std-international-duration",
-                    metric="std"
+                    metric="stddev"
                   )
                 ]
               ),
@@ -136,7 +136,7 @@ class TestFingerprints(unittest.TestCase):
                   dict(
                     field="duration",
                     name="std-premium-duration",
-                    metric="std"
+                    metric="stddev"
                   )
                 ]
               )],
@@ -149,128 +149,26 @@ class TestFingerprints(unittest.TestCase):
         ]
 
         self.expected_fp={}
-        self.expected_fp['33601020304']= [
-                  7.0,
-                  477.85714285714283,
-                  433.12697860077566,
-                  1.0,
-                  760.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0]
-        self.expected_fp['33612345678']= [
-                  10.0,
-                  72.0,
-                  37.094473981982816,
-                  1.0,
-                  60.0,
-                  0.0,
-                  1.0,
-                  150.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0]
-        self.expected_fp['33688774455']= [
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  4.0,
-                  506.25,
-                  513.6313731656196,
-                  4.0,
-                  506.25,
-                  513.6313731656196,
-                  1.0,
-                  20.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0]
 
-        def add(i, v):
+        self.expected_fp['33601020304'] = [2.0, 602.5, 597.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 410.0, 390.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 630.0, 130.0, 1.0, 760.0, 0.0, 0.0, 0.0, 0.0, 1.0, 60.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.expected_fp['33612345678'] = [3.0, 60.0, 24.49489742783178, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 80.0, 40.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 80.0, 50.99019513592785, 1.0, 60.0, 0.0, 1.0, 150.0, 0.0, 2.0, 70.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.expected_fp['33688774455'] = [1.0, 5.0, 0.0, 1.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1200.0, 0.0, 1.0, 1200.0, 0.0, 0.0, 0.0, 0.0, 1.0, 800.0, 0.0, 1.0, 800.0, 0.0, 0.0, 0.0, 0.0, 1.0, 20.0, 0.0, 1.0, 20.0, 0.0, 1.0, 20.0, 0.0]
+
+
+        def add(j, v):
             d, i, p = v
+            tags=dict()
+            tags['caller']=caller
+            tags['international']=i
+            tags['toll_call']=p
+
             self.source.insert_times_data(
-                ts=self.from_ts + i * step,
+                ts=self.from_ts + j * step,
                 data={
-                    'caller': caller,
                     'duration': d,
-                    'international': i,
-                    'toll_call': p,
                 },
+                measurement='xdr',
+                tags=tags,
                 timestamp_field=self.model.timestamp_field,
             )
 
