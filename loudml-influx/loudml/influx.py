@@ -3,6 +3,7 @@ InfluxDB module for LoudML
 """
 
 import logging
+import itertools
 
 import influxdb.exceptions
 import numpy as np
@@ -29,10 +30,36 @@ from loudml.misc import (
     make_ts,
     parse_addr,
     str_to_ts,
+    build_agg_name,
 )
 from loudml.datasource import DataSource
 
+
+g_max_series_in_partition = 2000
 g_aggregators = {}
+
+# Fingerprints code assumes that we return something equivalent to Elasticsearch
+def get_metric(name):
+    if name.lower() == 'avg':
+        return 'avg'
+    elif name.lower() == 'mean':
+        return 'avg'
+    elif name.lower() == 'average':
+        return 'avg'
+    elif name.lower() == 'stddev':
+        return 'std_deviation'
+    elif name.lower() == 'std_dev':
+        return 'std_deviation'
+    elif name.lower() == 'count':
+        return 'count'
+    elif name.lower() == 'min':
+        return 'min'
+    elif name.lower() == 'max':
+        return 'max'
+    elif name.lower() == 'sum':
+        return 'sum'
+    else:
+        return name
 
 def ts_to_ns(ts):
     """
@@ -168,6 +195,31 @@ def _build_agg(feature):
     agg = aggregator(feature)
     return "{} as \"{}\"".format(agg, escape_doublequotes(feature.name))
 
+def _build_count_agg2(feature):
+    """
+    Build requested aggregation
+    """
+    agg = _build_count_agg(feature)
+    return "{} as \"count_{}\"".format(agg, feature.field)
+
+def _build_sum_agg2(feature):
+    """
+    Build requested aggregation
+    """
+    agg = _build_sum_agg(feature)
+    return "{} as \"sum_{}\"".format(agg, feature.field)
+
+
+def _sum_of_squares(feature):
+    """
+    Build requested aggregation
+    """
+
+    return "SUM(\"squares_{}\") as \"sum_squares_{}\"".format(
+               feature.field,
+               feature.field,
+           )
+
 def _build_time_predicates(from_date=None, to_date=None):
     """
     Build time range predicates for 'where' clause
@@ -197,6 +249,20 @@ def _build_tags_predicates(match_all=None):
 
     return must
 
+def _build_key_predicate(tag, val=None):
+    """
+    Build key predicate for 'where' clause
+    """
+    must = []
+
+    if val:
+        must.append("\"{}\"='{}'".format(
+          escape_doublequotes(tag),
+          escape_quotes(format_bool(val)),
+        ))
+
+    return must
+
 def _build_queries(model, from_date=None, to_date=None):
     """
     Build queries according to requested features
@@ -215,6 +281,50 @@ def _build_queries(model, from_date=None, to_date=None):
             escape_doublequotes(feature.measurement),
             where,
             int(model.bucket_interval * 1000),
+        )
+
+def _build_quad(model, agg, from_date=None, to_date=None, key_val=None, limit=0, offset=0):
+    """
+    Build aggregation query according to requested features
+    """
+    # TODO sanitize inputs to avoid injection!
+
+    time_pred = _build_time_predicates(from_date, to_date)
+
+    must = time_pred + _build_tags_predicates(agg.match_all) \
+           + _build_key_predicate(model.key, key_val)
+
+    where = " where {}".format(" and ".join(must)) if len(must) else ""
+
+    yield "select {} from \"{}\"{} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
+        ','.join(list(set([_build_agg(feature) for feature in agg.features] + \
+                          [_build_count_agg2(feature) for feature in agg.features] + \
+                          [_build_sum_agg2(feature) for feature in agg.features]))),
+        escape_doublequotes(agg.measurement),
+        where,
+        model.key,
+        int(model.daytime_interval * 1000),
+        limit,
+        offset,
+    )
+    sum_of_squares = []
+    for feature in agg.features:
+        if feature.metric == 'stddev':
+            sum_of_squares.append(feature)
+
+    if len(sum_of_squares) > 0:
+        yield "select {} from ( select \"{}\"*\"{}\" as \"squares_{}\" from \"{}\"{} ) where {} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
+            ','.join(list(set([_sum_of_squares(feature) for feature in sum_of_squares]))),
+            escape_doublequotes(feature.field),
+            escape_doublequotes(feature.field),
+            escape_doublequotes(feature.field),
+            escape_doublequotes(agg.measurement),
+            where,
+            " and ".join(time_pred),
+            model.key,
+            int(model.daytime_interval * 1000),
+            limit,
+            offset,
         )
 
 def catch_query_error(func):
@@ -310,7 +420,7 @@ class InfluxDataSource(DataSource):
     def insert_data(self):
         raise errors.NotImplemented("InfluxDB is a pure time-series database")
 
-    def insert_times_data(self, ts, data, measurement, tags=None):
+    def insert_times_data(self, ts, data, measurement='generic', tags=None, timestamp_field=None):
         """
         Insert data
         """
@@ -333,13 +443,108 @@ class InfluxDataSource(DataSource):
         """
         self.influxdb.write_points(requests)
 
+    @catch_query_error
+    def _get_quadrant_data(
+        self,
+        model,
+        agg,
+        from_date=None,
+        to_date=None,
+        key=None,
+        limit=0,
+        offset=0,
+    ):
+        queries = _build_quad(model, agg, from_date, to_date, key, limit, offset)
+        queries = ''.join(queries)
+        results = self.influxdb.query(queries)
+
+        if not isinstance(results, list):
+            results = [results]
+
+        buckets_dict = dict()
+        for i, result in enumerate(results):
+            for (measurement, tags), points in result.items():
+                key = tags[model.key]
+                if key in buckets_dict:
+                    buckets = buckets_dict[key]
+                else:
+                    buckets = []
+
+                for j, point in enumerate(points):
+                    timeval = point['time']
+                    if j < len(buckets):
+                        bucket = buckets[j]
+                    else:
+                        bucket = {
+                            'key_as_string': timeval,
+                        }
+                        for feature in agg.features:
+                            agg_name = build_agg_name(agg.measurement, feature.field)
+                            bucket[agg_name] = {
+                                'count': 0.0,
+                                'min': 0.0,
+                                'max': 0.0,
+                                'avg': 0.0,
+                                'sum': 0.0,
+                                'sum_of_squares': 0.0,
+                                'variance': 0.0,
+                                'std_deviation': 0.0,
+                            }
+                        buckets.append(bucket)
+
+                    for feature in agg.features:
+                        agg_name = build_agg_name(agg.measurement, feature.field)
+                        agg_val = point.get(feature.name)
+                        if agg_val is not None:
+                            bucket[agg_name][get_metric(feature.metric)] = float(agg_val)
+
+                        agg_val = point.get("count_{}".format(feature.field))
+                        if agg_val is not None:
+                            bucket[agg_name]['count'] = float(agg_val)
+
+                        agg_val = point.get("sum_{}".format(feature.field))
+                        if agg_val is not None:
+                            bucket[agg_name]['sum'] = float(agg_val)
+
+                        agg_val = point.get("sum_squares_{}".format(feature.field))
+                        if agg_val is not None:
+                            bucket[agg_name]['sum_of_squares'] = float(agg_val)
+    
+                if len(results) == (i+1):
+                    yield(key, buckets)
+                else:
+                    buckets_dict[key] = buckets
+
+
     def get_quadrant_data(
         self,
         model,
+        agg,
         from_date=None,
         to_date=None,
+        key=None,
     ):
-        raise NotImplemented()
+        global g_max_series_in_partition
+#        result = self.influxdb.query("SHOW SERIES CARDINALITY")
+        result = self.influxdb.query("SHOW TAG VALUES CARDINALITY WITH KEY = \"{}\"".format(model.key))
+        for (_, tags), points in result.items():
+            point = next(points)
+            total_series = int(point['count'])
+
+        output = itertools.chain()
+        gens = []
+        for offset in range(int(total_series / g_max_series_in_partition) + 1):
+            gens.append(self._get_quadrant_data(model=model,
+                                    agg=agg,
+                                    from_date=from_date,
+                                    to_date=to_date,
+                                    key=key,
+                                    limit=g_max_series_in_partition,
+                                    offset=offset*g_max_series_in_partition))
+        for gen in gens:
+            output = itertools.chain(output, gen)
+        return output
+
 
     @catch_query_error
     def get_times_data(
