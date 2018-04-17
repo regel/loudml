@@ -422,3 +422,26 @@ class TestTimes(unittest.TestCase):
 
         anomalies = prediction.get_anomalies()
         self.assertEqual(anomalies, [buckets[-1]])
+
+    def test_span_auto(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span="auto",
+            bucket_interval=3600,
+            interval=60,
+            features=[
+                {
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                },
+            ],
+            threshold=30,
+            max_evals=1,
+        ))
+
+        self.assertEqual(model.span, "auto")
+        model.train(self.source, self.from_date, self.to_date)
+        self.assertTrue(7 <= model.span <= 24)

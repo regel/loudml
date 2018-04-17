@@ -251,7 +251,7 @@ class TimeSeriesModel(Model):
         ),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('offset'): schemas.TimeDelta(min=0),
-        Required('span'): All(int, Any(-1, Range(min=1))),
+        Required('span'): Any(None, "auto", All(int, Range(min=1))),
         Optional('min_span'): All(int, Range(min=1)),
         Optional('max_span'): All(int, Range(min=1)),
         'timestamp_field': schemas.key,
@@ -265,11 +265,13 @@ class TimeSeriesModel(Model):
         self.bucket_interval = parse_timedelta(settings.get('bucket_interval')).total_seconds()
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
+
         self.span = settings.get('span')
-        if self.span < 0:
+
+        if self.span is None or self.span == "auto":
             self.min_span = settings.get('min_span') or _hp_span_min
             self.max_span = settings.get('max_span') or _hp_span_max
-        else:        
+        else:
             self.min_span = self.span
             self.max_span = self.span
 
@@ -337,7 +339,7 @@ class TimeSeriesModel(Model):
             # Destroys the current TF graph and creates a new one.
             # Useful to avoid clutter from old models / layers.
             K.clear_session()
-            
+
             self.span = params.span
             (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
                 dataset,
