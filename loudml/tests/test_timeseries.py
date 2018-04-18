@@ -484,7 +484,7 @@ class TestTimes(unittest.TestCase):
 
         model = TimeSeriesModel(dict(
             name='test',
-            daytime_model=True,
+            use_daytime=True,
             offset=30,
             span=3,
             bucket_interval=3600,
@@ -560,7 +560,7 @@ class TestTimes(unittest.TestCase):
 
         model = TimeSeriesModel(dict(
             name='test',
-            daytime_model=False,
+            use_daytime=False,
             offset=30,
             span=3,
             bucket_interval=3600,

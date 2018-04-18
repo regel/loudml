@@ -256,7 +256,7 @@ class TimeSeriesModel(Model):
         Required('bucket_interval'): schemas.TimeDelta(
             min=0, min_included=False,
         ),
-        Optional('daytime_model', default=False): Boolean(),
+        Optional('use_daytime', default=False): Boolean(),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('offset'): schemas.TimeDelta(min=0),
         Required('span'): Any(None, "auto", All(int, Range(min=1))),
@@ -291,8 +291,8 @@ class TimeSeriesModel(Model):
         ]
 
     @property
-    def daytime_model(self):
-        return self.settings.get('daytime_model') or False
+    def use_daytime(self):
+        return self.settings.get('use_daytime') or False
 
     @property
     def type(self):
@@ -342,7 +342,7 @@ class TimeSeriesModel(Model):
         dataset = 1.0 - (_maxs - dataset) / rng
         nb_features = len(self.features)
         input_features = nb_features
-        if self.daytime_model:
+        if self.use_daytime:
             input_features = input_features + 1
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
@@ -584,7 +584,7 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", i + 1)
 
-        if self.daytime_model:
+        if self.use_daytime:
             dataset = np.append(dataset, daytime, axis=1)
 
         best_params, score, _, _ = self._train_on_dataset(
@@ -754,7 +754,7 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
-        if self.daytime_model:
+        if self.use_daytime:
             dataset = np.append(dataset, daytime, axis=1)
 
         rng = _maxs - _mins
