@@ -150,6 +150,18 @@ def datetime_to_str(dt):
     """
     return  "%s.%03dZ" % (dt.strftime("%Y-%m-%dT%H:%M:%S"), dt.microsecond / 1000)
 
+def dt_get_daytime(dt):
+    """
+    Return daytime of a datetime
+    """
+    return (dt.timestamp() / 3600) % 24
+
+def dt_get_weekday(dt):
+    """
+    Return weekday of a datetime
+    """
+    return dt.isoweekday()
+
 def ts_to_str(ts):
     """
     Convert timestamp to string

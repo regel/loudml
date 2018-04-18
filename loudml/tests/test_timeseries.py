@@ -19,6 +19,10 @@ from loudml.timeseries import (
 )
 from loudml.memdatasource import MemDataSource
 from loudml.memstorage import MemStorage
+from loudml.misc import (
+    make_datetime,
+    dt_get_weekday,
+)
 
 from loudml import (
     errors,
@@ -448,7 +452,6 @@ class TestTimes(unittest.TestCase):
 
     def test_daytime_model(self):
         source = MemDataSource()
-        storage = MemStorage()
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
@@ -524,7 +527,6 @@ class TestTimes(unittest.TestCase):
 
     def test_not_daytime_model(self):
         source = MemDataSource()
-        storage = MemStorage()
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
@@ -598,3 +600,130 @@ class TestTimes(unittest.TestCase):
         # Anomaly MUST be detected in bucket[-6]
         self.assertTrue(buckets[-6]['stats']['anomaly'])
         self.assertAlmostEqual(100, buckets[-6]['stats']['score'], delta=10)
+
+    def test_weekday_model(self):
+        source = MemDataSource()
+        to_date = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=datetime.timezone.utc,
+        ).timestamp()
+
+        nb_days = 50
+        hist_to = to_date
+        hist_from = to_date - 3600 * 24 * nb_days
+        ts = hist_from
+        for i in range(nb_days):
+            dt = make_datetime(ts)
+
+            if dt_get_weekday(dt) <= 5:
+                # Workday
+                value = 1
+            else:
+                # Week-end
+                value = 0
+
+            for i in range(24):
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': value,
+                })
+                ts += 3600
+
+        model = TimeSeriesModel(dict(
+            name='test',
+            use_weekday=True,
+            offset=30,
+            span=6,
+            bucket_interval=4 * 3600,
+            interval=60,
+            features=[
+                {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                },
+            ],
+            threshold=30,
+            max_evals=1,
+        ))
+
+        model.train(source, hist_from, hist_to)
+        self.assertTrue(model.is_trained)
+
+        for i in range(7):
+            to_date = hist_to - i * 3600 * 24
+            from_date = to_date - 3600 * 24 * 7
+            prediction = model.predict(source, from_date, to_date)
+            model.detect_anomalies(prediction)
+            self.assertEqual(len(prediction.get_anomalies()), 0)
+
+    def test_weekday_daytime_model(self):
+        source = MemDataSource()
+        to_date = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=datetime.timezone.utc,
+        ).timestamp()
+
+        # Generate N days of data
+        nb_days = 500
+        hist_to = to_date
+        hist_from = to_date - 3600 * 24 * nb_days
+        ts = hist_from
+        for i in range(nb_days):
+            dt = make_datetime(ts)
+
+            if dt_get_weekday(dt) <= 5:
+                # Workday
+                value = 1
+            else:
+                # Week-end
+                value = 0
+
+            # [8h-18h[
+            ts += 3600 * 8
+            for j in range(8, 18):
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': value,
+                })
+                ts += 3600
+
+            ts += 3600 * 6
+
+        model = TimeSeriesModel(dict(
+            name='test',
+            use_weekday=True,
+            use_daytime=True,
+            offset=30,
+            span=6,
+            bucket_interval=3600,
+            interval=60,
+            features=[
+                {
+                   'name': 'count_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                },
+            ],
+            threshold=30,
+            max_evals=1,
+        ))
+
+        model.train(source, hist_from, hist_to)
+        self.assertTrue(model.is_trained)
+
+        for i in range(7):
+            to_date = hist_to - i * 3600 * 24
+            from_date = to_date - 3600 * 24 * 7
+            prediction = model.predict(source, from_date, to_date)
+            self.assertEqual(len(prediction.timestamps), 24 * 7)
+            model.detect_anomalies(prediction)
+            self.assertEqual(len(prediction.get_anomalies()), 0)

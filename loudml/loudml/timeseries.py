@@ -42,6 +42,9 @@ from . import (
 )
 from .misc import (
     make_ts,
+    make_datetime,
+    dt_get_weekday,
+    dt_get_daytime,
     ts_to_str,
     parse_timedelta,
 )
@@ -51,9 +54,6 @@ from .model import (
 
 float_formatter = lambda x: "%.2f" % x
 np.set_printoptions(formatter={'float_kind':float_formatter})
-
-def get_daytime(ts):
-    return (make_ts(ts) / 3600) % 24
 
 # global vars for easy reusability
 # This UNIX process is handling a unique model
@@ -257,6 +257,7 @@ class TimeSeriesModel(Model):
             min=0, min_included=False,
         ),
         Optional('use_daytime', default=False): Boolean(),
+        Optional('use_weekday', default=False): Boolean(),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('offset'): schemas.TimeDelta(min=0),
         Required('span'): Any(None, "auto", All(int, Range(min=1))),
@@ -293,6 +294,10 @@ class TimeSeriesModel(Model):
     @property
     def use_daytime(self):
         return self.settings.get('use_daytime') or False
+
+    @property
+    def use_weekday(self):
+        return self.settings.get('use_weekday') or False
 
     @property
     def type(self):
@@ -342,8 +347,11 @@ class TimeSeriesModel(Model):
         dataset = 1.0 - (_maxs - dataset) / rng
         nb_features = len(self.features)
         input_features = nb_features
+
         if self.use_daytime:
-            input_features = input_features + 1
+            input_features += 1
+        if self.use_weekday:
+            input_features += 1
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
                      _mins, _maxs, rng)
@@ -567,14 +575,18 @@ class TimeSeriesModel(Model):
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
         daytime = np.zeros((nb_buckets, 1), dtype=float)
+        weekday = np.zeros((nb_buckets, 1), dtype=float)
 
         # Fill dataset
         data = datasource.get_times_data(self, from_ts, to_ts)
 
         i = None
-        for i, (_, val, ts) in enumerate(data):
+        for i, (_, val, timeval) in enumerate(data):
             dataset[i] = val
-            daytime[i] = np.array(get_daytime(ts))
+
+            dt = make_datetime(timeval)
+            daytime[i] = np.array(dt_get_daytime(dt))
+            weekday[i] = np.array(dt_get_weekday(dt))
 
         if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
@@ -586,6 +598,8 @@ class TimeSeriesModel(Model):
 
         if self.use_daytime:
             dataset = np.append(dataset, daytime, axis=1)
+        if self.use_weekday:
+            dataset = np.append(dataset, weekday, axis=1)
 
         best_params, score, _, _ = self._train_on_dataset(
             dataset,
@@ -722,6 +736,7 @@ class TimeSeriesModel(Model):
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
         daytime = np.zeros((nb_buckets, 1), dtype=float)
+        weekday = np.zeros((nb_buckets, 1), dtype=float)
 
         X = []
 
@@ -733,11 +748,15 @@ class TimeSeriesModel(Model):
         # Only a subset of history will be used for computing the prediction
         X_until = None # right bound for prediction
         i = None
-        for i, (_, val, ts) in enumerate(data):
+        for i, (_, val, timeval) in enumerate(data):
             dataset[i] = val
-            daytime[i] = np.array(get_daytime(ts))
 
-            if make_ts(ts) < to_ts - self.bucket_interval:
+            dt = make_datetime(timeval)
+            daytime[i] = np.array(dt_get_daytime(dt))
+            weekday[i] = np.array(dt_get_weekday(dt))
+
+            ts = dt.timestamp()
+            if ts < to_ts - self.bucket_interval:
                 X.append(ts)
                 X_until = i + 1
 
@@ -751,11 +770,14 @@ class TimeSeriesModel(Model):
         if nb_buckets_found < nb_buckets:
             dataset = np.resize(dataset, (nb_buckets_found, nb_features))
             daytime = np.resize(daytime, (nb_buckets_found, 1))
+            weekday = np.resize(weekday, (nb_buckets_found, 1))
 
         logging.info("found %d time periods", nb_buckets_found)
 
         if self.use_daytime:
             dataset = np.append(dataset, daytime, axis=1)
+        if self.use_weekday:
+            dataset = np.append(dataset, weekday, axis=1)
 
         rng = _maxs - _mins
         norm_dataset = 1.0 - (_maxs - dataset) / rng
