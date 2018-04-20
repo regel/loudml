@@ -189,15 +189,16 @@ class ElasticsearchDataSource(DataSource):
             addr = parse_addr(self.addr, default_port=9200)
             logging.info('connecting to elasticsearch on %s:%d',
                          addr['host'], addr['port'])
-            self._es = Elasticsearch([addr],
-                                     timeout=self.timeout,
-                                     http_auth=(self.dbuser, self.dbuser_password),
-                                     use_ssl=self.use_ssl,
-                                     verify_certs=self.verify_ssl,
-                                     ca_certs=self.ca_certs,
-                                     client_cert=self.client_cert,
-                                     client_key=self.client_key,
-                                     )
+            self._es = Elasticsearch(
+                [addr],
+                timeout=self.timeout,
+                http_auth=(self.dbuser, self.dbuser_password) if self.dbuser else None,
+                use_ssl=self.use_ssl,
+                verify_certs=self.verify_ssl,
+                ca_certs=self.ca_certs,
+                client_cert=self.client_cert,
+                client_key=self.client_key,
+            )
 
         # urllib3 & elasticsearch modules log exceptions, even if they are
         # caught! Disable this.
