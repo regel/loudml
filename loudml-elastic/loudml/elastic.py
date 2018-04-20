@@ -276,8 +276,11 @@ class ElasticsearchDataSource(DataSource):
         ts = make_ts(ts)
 
         data[timestamp_field] = ts_to_ms(ts)
-        for tag, tag_val in tags.items():
-            data[tag] = tag_val
+
+        if tags is not None:
+            for tag, tag_val in tags.items():
+                data[tag] = tag_val
+
         self.insert_data(data, doc_type=measurement, doc_id=doc_id)
 
     @staticmethod
