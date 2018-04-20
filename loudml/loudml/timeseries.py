@@ -170,7 +170,12 @@ class TimeSeriesPrediction:
         Apply default feature value
         """
         if value is None or value is np.nan or np.isnan(value):
-            return self.model.defaults[feature_idx]
+            value = self.model.defaults[feature_idx]
+            if value is None or value is np.nan or np.isnan(value):
+                return None
+            else:
+                return value
+
         return value
 
     def format_series(self):
@@ -182,8 +187,6 @@ class TimeSeriesPrediction:
         predicted = {}
 
         for i, feature in enumerate(self.model.features):
-            default = self.model.defaults[i]
-
             observed[feature.name] = [self.apply_default(i, x) for x in self.observed[:,i]]
             predicted[feature.name] = [self.apply_default(i, x) for x in self.predicted[:,i]]
 
@@ -291,7 +294,7 @@ class TimeSeriesModel(Model):
         self.sequential = None
 
         self.defaults = [
-            None if feature.default is np.nan else feature.default
+            np.nan if feature.default is np.nan else feature.default
             for feature in self.features
         ]
 
@@ -325,6 +328,13 @@ class TimeSeriesModel(Model):
         nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
         for j in range(nb_buckets):
             yield None, None, None
+
+    def apply_defaults(self, x):
+        """
+        Apply default feature value to np array
+        """
+        for i, feature in enumerate(self.features):
+            x[np.isnan(x[:,i])] = self.defaults[i]
 
     def _train_on_dataset(
         self,
@@ -577,7 +587,8 @@ class TimeSeriesModel(Model):
         nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
         nb_features = len(self.features)
         nb_influences = len(self.influences)
-        dataset = np.zeros((nb_buckets, nb_features+nb_influences), dtype=float)
+        dataset = np.empty((nb_buckets, nb_features+nb_influences), dtype=float)
+        dataset[:] = np.nan
         daytime = np.zeros((nb_buckets, 1), dtype=float)
         weekday = np.zeros((nb_buckets, 1), dtype=float)
 
@@ -601,6 +612,8 @@ class TimeSeriesModel(Model):
             dt = make_datetime(timeval)
             daytime[i] = np.array(dt_get_daytime(dt))
             weekday[i] = np.array(dt_get_weekday(dt))
+
+        self.apply_defaults(dataset)
 
         if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
@@ -749,7 +762,8 @@ class TimeSeriesModel(Model):
         nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
         nb_features = len(self.features)
         nb_influences = len(self.influences)
-        dataset = np.zeros((nb_buckets, nb_features+nb_influences), dtype=float)
+        dataset = np.empty((nb_buckets, nb_features+nb_influences), dtype=float)
+        dataset[:] = np.nan
         daytime = np.zeros((nb_buckets, 1), dtype=float)
         weekday = np.zeros((nb_buckets, 1), dtype=float)
 
@@ -785,6 +799,8 @@ class TimeSeriesModel(Model):
             if ts < to_ts - self.bucket_interval:
                 X.append(ts)
                 X_until = i + 1
+
+        self.apply_defaults(dataset)
 
         if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
