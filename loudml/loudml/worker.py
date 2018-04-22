@@ -109,6 +109,30 @@ class Worker:
         else:
             logging.info("job[%s] prediction done", self.job_id)
 
+    def forecast(
+        self,
+        model_name,
+        save_prediction=False,
+        **kwargs
+    ):
+        """
+        Ask model for a forecast
+        """
+
+        model = self.storage.load_model(model_name)
+        src_settings = self.config.get_datasource(model.default_datasource)
+        source = loudml.datasource.load_datasource(src_settings)
+        forecast = model.forecast(source, **kwargs)
+
+        if model.type == 'timeseries':
+            logging.info("job[%s] forecasted values for %d time buckets",
+                         self.job_id, len(forecast.timestamps))
+            if save_prediction:
+                source.save_timeseries_prediction(forecast, model)
+
+            return forecast.format_series()
+        else:
+            logging.info("job[%s] forecast done", self.job_id)
 
 
     """

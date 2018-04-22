@@ -528,6 +528,26 @@ class PredictionJob(Job):
     def kwargs(self):
         return self._kwargs
 
+class ForecastJob(Job):
+    """
+    Forecast job
+    """
+    func = 'forecast'
+    job_type = 'forecast'
+
+    def __init__(self, model_name, **kwargs):
+        super().__init__()
+        self.model_name = model_name
+        self._kwargs = kwargs
+
+    @property
+    def args(self):
+        return [self.model_name]
+
+    @property
+    def kwargs(self):
+        return self._kwargs
+
 def _model_start(model, params):
     """
     Start periodic prediction
@@ -573,6 +593,14 @@ def _model_start(model, params):
     g_running_models[model.name] = timer
     timer.start()
 
+def _model_forecast(model, params):
+    """
+    Run forecast (one-shot)
+    """
+    job = ForecastJob(model.name, **params)
+    job.start()
+    return str(job.id)
+
 @app.route("/models/<model_name>/_start", methods=['POST'])
 @catch_loudml_error
 def model_start(model_name):
@@ -611,6 +639,22 @@ def model_stop(model_name):
     g_storage.save_model(model)
 
     return "model deactivated"
+
+@app.route("/models/<model_name>/_forecast", methods=['GET'])
+@catch_loudml_error
+def model_forecast(model_name):
+    global g_storage
+
+    params = {
+    }
+
+    model = g_storage.load_model(model_name)
+
+    params['from_date'] = request.args.get('from', 'now')
+    params['to_date'] = request.args.get('to', None)
+    job_id = _model_forecast(model, params)
+
+    return job_id, 200
 
 #
 # Example of job
