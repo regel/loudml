@@ -293,6 +293,85 @@ class TrainCommand(Command):
 
         storage.save_model(model)
 
+class ForecastCommand(Command):
+    """
+    Forecast the next measurements
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+        parser.add_argument(
+            '-d', '--datasource',
+            help="Data source",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--from',
+            help="From date",
+            type=str,
+            dest='from_date',
+        )
+        parser.add_argument(
+            '-t', '--to',
+            help="To date",
+            type=str,
+            dest='to_date',
+        )
+
+        group = parser.add_mutually_exclusive_group()
+        group.add_argument(
+            '-b', '--buckets',
+            action='store_true',
+            help="Format as buckets instead of time-series",
+        )
+        group.add_argument(
+            '-s', '--save',
+            action='store_true',
+            help="Save prediction into the data source",
+        )
+
+    def _dump(self, data):
+        """
+        Dump data to stdout
+        """
+        print(json.dumps(data, indent=4))
+
+    def exec(self, args):
+        storage = FileStorage(self.config.storage['path'])
+        model = storage.load_model(args.model_name)
+        source = get_datasource(
+            self.config,
+            args.datasource or model.default_datasource,
+        )
+
+        if not model.is_trained:
+            raise ModelNotTrained()
+
+        if model.type == 'timeseries':
+            if not args.from_date:
+                raise LoudMLException("'from' argument is required for time-series")
+            if not args.to_date:
+                raise LoudMLException("'to' argument is required for time-series")
+
+            prediction = model.forecast(
+                source,
+                args.from_date,
+                args.to_date,
+            )
+
+            if args.save:
+                source.save_timeseries_prediction(prediction, model)
+            else:
+                if args.buckets:
+                    data = prediction.format_buckets()
+                else:
+                    data = prediction.format_series()
+                self._dump(data)
+
 
 class PredictCommand(Command):
     """

@@ -70,6 +70,7 @@ _keras_model, _graph = None, None
 _mins, _maxs = None, None
 _verbose = 0
 
+_forecast = 1
 _hp_span_min = 5
 _hp_span_max = 20
 
@@ -280,11 +281,13 @@ class TimeSeriesModel(Model):
         Optional('min_span'): All(int, Range(min=1)),
         Optional('max_span'): All(int, Range(min=1)),
         Optional('seasonality', default=DEFAULT_SEASONALITY): schemas.seasonality,
+        Optional('forecast'): All(int, Range(min=1)),
         'timestamp_field': schemas.key,
     })
 
     def __init__(self, settings, state=None):
         global _hp_span_min, _hp_span_max
+        global _forecast
         super().__init__(settings, state)
 
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
@@ -292,6 +295,7 @@ class TimeSeriesModel(Model):
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
 
+        self._forecast = settings.get('forecast') or _forecast
         self.span = settings.get('span')
 
         if self.span is None or self.span == "auto":
@@ -400,7 +404,7 @@ class TimeSeriesModel(Model):
                     input_shape=(None, input_features),
                     return_sequences=False,
                 ))
-                _keras_model.add(Dense(nb_features, input_dim=params.l1))
+                _keras_model.add(Dense(y_train.shape[1], input_dim=params.l1))
             elif params.depth == 2:
                 _keras_model.add(LSTM(
                     params.l1,
@@ -408,7 +412,7 @@ class TimeSeriesModel(Model):
                     return_sequences=True,
                 ))
                 _keras_model.add(LSTM(params.l2, return_sequences=False))
-                _keras_model.add(Dense(nb_features, input_dim=params.l2))
+                _keras_model.add(Dense(y_train.shape[1], input_dim=params.l2))
 
             _keras_model.add(Activation(params.activation))
             _keras_model.compile(
@@ -531,10 +535,12 @@ class TimeSeriesModel(Model):
         data_x, data_y = [], []
         indexes = []
 
-        for i in range(len(dataset) - self.span):
+        for i in range(len(dataset) - self.span - self._forecast + 1):
             j = i + self.span
+            k = i + self.span + self._forecast
             partX = dataset[i:j, :]
-            partY = dataset[j, :len(self.features)]
+            partY = dataset[j, :]
+            partY = np.ravel(dataset[j:k, :len(self.features)])
 
             if not np.isnan(partX).any() and not np.isnan(partY).any():
                 data_x.append(partX)
@@ -840,7 +846,7 @@ class TimeSeriesModel(Model):
             raise errors.LoudMLException("not enough data for prediction")
 
         logging.info("generating prediction")
-        Y_ = _keras_model.predict(X_test)
+        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, nb_features))[:,0,:]
 
         # XXX: Sometime keras predict negative values, this is unexpected
         Y_[Y_ < 0] = 0
@@ -880,9 +886,103 @@ class TimeSeriesModel(Model):
 
         return TimeSeriesPrediction(
             self,
-            timestamps=timestamps,
             observed=np.array([normal, anomaly, normal]),
             predicted=np.array([normal, normal, normal]),
+        )
+
+    def forecast(
+        self,
+        datasource,
+        from_date,
+        to_date,
+    ):
+        global _keras_model
+
+        from_ts = make_ts(from_date)
+        to_ts = make_ts(to_date)
+
+        # Fixup range to be sure that it is a multiple of bucket_interval
+        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
+        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
+
+        from_str = ts_to_str(from_ts)
+        to_str = ts_to_str(to_ts)
+
+        # This is the number of buckets that the function MUST return
+        forecast_len = int((to_ts - from_ts) / self.bucket_interval)
+
+        logging.info("forecast(%s) range=[%s, %s]",
+                     self.name, from_str, to_str)
+
+        self.load()
+
+        # Build history time range
+        # Extra data are required to forecast first buckets
+        hist_from_ts = from_ts - self._span * self.bucket_interval
+        hist_to_ts = from_ts
+        hist_from_str = ts_to_str(hist_from_ts)
+        hist_to_str = ts_to_str(hist_to_ts)
+
+        # Prepare dataset
+        nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
+        nb_features = len(self.features)
+        dataset = np.empty((nb_buckets, nb_features), dtype=float)
+        dataset[:] = np.nan
+
+        # Fill dataset
+        logging.info("extracting data for range=[%s, %s]",
+                     hist_from_str, hist_to_str)
+        data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
+
+        i = None
+        for i, (_, val, ts) in enumerate(data):
+            dataset[i] = val
+
+        if i is None:
+            raise errors.NoData("no data found for time range {}-{}".format(
+                hist_from_str,
+                hist_to_str,
+            ))
+
+        nb_buckets_found = i + 1
+        if nb_buckets_found < nb_buckets:
+            dataset = np.resize(dataset, (nb_buckets_found, nb_features))
+
+        logging.info("found %d time periods", nb_buckets_found)
+
+        rng = _maxs - _mins
+        norm_dataset = 1.0 - (_maxs - dataset) / rng
+        _, X = self._format_dataset_predict(norm_dataset)
+
+        if len(X) == 0:
+            raise errors.LoudMLException("not enough data for forecast")
+
+        shape = (forecast_len, nb_features)
+        predicted = np.array([self.defaults] * forecast_len)
+        observed = np.empty(shape)
+        observed[:] = np.nan
+
+        logging.info("generating forecast")
+        timestamps=[]
+        bucket_start = from_ts
+        j = 0
+        while bucket_start < to_ts:
+            Y_ = _keras_model.predict(X).reshape((self._forecast, nb_features))
+            X[:, 0:self._forecast, 0:nb_features] = Y_
+            X = np.roll(X,-self._forecast,axis=1)
+            Z_ = _maxs - rng * (1.0 - Y_)
+            for z in range(self._forecast):
+                if bucket_start < to_ts:
+                    timestamps.append(ts_to_str(bucket_start))
+                    predicted[j] = Z_[z][:]
+                bucket_start += self.bucket_interval
+                j += 1
+
+        return TimeSeriesPrediction(
+            self,
+            timestamps=timestamps,
+            observed=observed,
+            predicted=predicted,
         )
 
     def get_scores(self, predicted, observed):
