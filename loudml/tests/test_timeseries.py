@@ -459,6 +459,7 @@ class TestTimes(unittest.TestCase):
             name='test',
             offset=30,
             span="auto",
+            forecast=5,
             bucket_interval=3600,
             interval=60,
             features=[
@@ -471,12 +472,13 @@ class TestTimes(unittest.TestCase):
             ],
             max_threshold=30,
             min_threshold=25,
-            max_evals=1,
+            threshold=30,
+            max_evals=10,
         ))
 
         self.assertEqual(model.span, "auto")
         model.train(self.source, self.from_date, self.to_date)
-        self.assertTrue(7 <= model.span <= 24)
+        self.assertTrue(17 <= model._span <= 19)
 
     def test_daytime_model(self):
         source = MemDataSource()
