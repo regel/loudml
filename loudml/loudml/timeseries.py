@@ -70,7 +70,9 @@ _keras_model, _graph = None, None
 _mins, _maxs = None, None
 _verbose = 0
 
-_forecast = 1
+# _hp_forecast_min=1 Backward compat with 1.2
+_hp_forecast_min = 1
+_hp_forecast_max = 5
 _hp_span_min = 5
 _hp_span_max = 20
 
@@ -281,13 +283,15 @@ class TimeSeriesModel(Model):
         Optional('min_span'): All(int, Range(min=1)),
         Optional('max_span'): All(int, Range(min=1)),
         Optional('seasonality', default=DEFAULT_SEASONALITY): schemas.seasonality,
-        Optional('forecast'): All(int, Range(min=1)),
+        Optional('forecast'): Any(None, "auto", All(int, Range(min=1))),
+        Optional('min_forecast'): All(int, Range(min=1)),
+        Optional('max_forecast'): All(int, Range(min=1)),
         'timestamp_field': schemas.key,
     })
 
     def __init__(self, settings, state=None):
         global _hp_span_min, _hp_span_max
-        global _forecast
+        global _hp_forecast_min, _hp_forecast_max
         super().__init__(settings, state)
 
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
@@ -295,7 +299,6 @@ class TimeSeriesModel(Model):
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
 
-        self._forecast = settings.get('forecast') or _forecast
         self.span = settings.get('span')
 
         if self.span is None or self.span == "auto":
@@ -304,6 +307,14 @@ class TimeSeriesModel(Model):
         else:
             self.min_span = self.span
             self.max_span = self.span
+
+        self.forecast_val = settings.get('forecast') or _hp_forecast_min
+        if self.forecast_val == "auto":
+            self.min_forecast = settings.get('min_forecast') or _hp_forecast_min
+            self.max_forecast = settings.get('max_forecast') or _hp_forecast_max
+        else:
+            self.min_forecast = self.forecast_val
+            self.max_forecast = self.forecast_val
 
         self.sequential = None
 
@@ -321,6 +332,13 @@ class TimeSeriesModel(Model):
             space = self.span
         else:
             space = self.min_span + hp.randint(label, (self.max_span - self.min_span))
+        return space
+
+    def get_hp_forecast(self, label):
+        if (self.max_forecast - self.min_forecast) <= 0:
+            space = self.forecast_val
+        else:
+            space = self.min_forecast + hp.randint(label, (self.max_forecast - self.min_forecast))
         return space
 
     def set_run_params(self, params=None):
@@ -391,6 +409,7 @@ class TimeSeriesModel(Model):
             K.clear_session()
 
             self.span = params.span
+            self.forecast_val = params.forecast
             (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
                 dataset,
                 train_size=train_size,
@@ -463,6 +482,7 @@ class TimeSeriesModel(Model):
             {
               'depth': 1,
               'span': self.get_hp_span('d1_span'),
+              'forecast': self.get_hp_forecast('d1_forecast'),
               'l1': 1+hp.randint('d1_l1', 100),
               'activation': hp.choice('d1_activation', ['tanh']),
               'loss_fct': hp.choice('d1_loss_fct', ['mean_squared_error']),
@@ -471,6 +491,7 @@ class TimeSeriesModel(Model):
             {
               'depth': 2,
               'span': self.get_hp_span('d2_span'),
+              'forecast': self.get_hp_forecast('d2_forecast'),
               'l1': 1+hp.randint('d2_l1', 100),
               'l2': 1+hp.randint('d2_l2', 100),
               'activation': hp.choice('d2_activation', ['tanh']),
@@ -495,6 +516,7 @@ class TimeSeriesModel(Model):
         best_params = space_eval(space, best)
         score = cross_val_model(HyperParameters(best_params))
         self.span = best_params['span']
+        self.forecast_val = best_params['forecast']
         (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
             dataset,
             train_size=train_size,
@@ -535,9 +557,9 @@ class TimeSeriesModel(Model):
         data_x, data_y = [], []
         indexes = []
 
-        for i in range(len(dataset) - self.span - self._forecast + 1):
+        for i in range(len(dataset) - self.span - self.forecast_val + 1):
             j = i + self.span
-            k = i + self.span + self._forecast
+            k = i + self.span + self.forecast_val
             partX = dataset[i:j, :]
             partY = dataset[j, :]
             partY = np.ravel(dataset[j:k, :len(self.features)])
@@ -704,6 +726,13 @@ class TimeSeriesModel(Model):
             return self._state['best_params']['span']
         else:
             return self.span
+
+    @property
+    def _forecast(self):
+        if 'forecast' in self._state['best_params']:
+            return self._state['best_params']['forecast']
+        else:
+            return self.forecast_val
 
     def _format_dataset_predict(self, dataset):
         """
