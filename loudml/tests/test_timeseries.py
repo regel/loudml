@@ -97,6 +97,8 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(model.offset, 10)
         self.assertEqual(model.span, 3)
         self.assertEqual(len(model.features), 1)
+        self.assertEqual(model.seasonality['weekday'], False)
+        self.assertEqual(model.seasonality['daytime'], False)
 
         def invalid(key, value):
             settings = valid.copy()
@@ -487,11 +489,13 @@ class TestTimes(unittest.TestCase):
 
         model = TimeSeriesModel(dict(
             name='test',
-            use_daytime=True,
             offset=30,
             span=3,
             bucket_interval=3600,
             interval=60,
+            seasonality={
+                'daytime': True,
+            },
             features=[
                 {
                    'name': 'count_foo',
@@ -503,6 +507,7 @@ class TestTimes(unittest.TestCase):
             threshold=30,
             max_evals=1,
         ))
+        self.assertTrue(model.seasonality.get('daytime'), True)
 
         # train on N-1 days
         model.train(source, hist_from, hist_to - 3600 * 24)
@@ -562,11 +567,13 @@ class TestTimes(unittest.TestCase):
 
         model = TimeSeriesModel(dict(
             name='test',
-            use_daytime=False,
             offset=30,
             span=3,
             bucket_interval=3600,
             interval=60,
+            seasonality={
+                'daytime': False,
+            },
             features=[
                 {
                    'name': 'count_foo',
@@ -611,7 +618,7 @@ class TestTimes(unittest.TestCase):
             tzinfo=datetime.timezone.utc,
         ).timestamp()
 
-        nb_days = 50
+        nb_days = 100
         hist_to = to_date
         hist_from = to_date - 3600 * 24 * nb_days
         ts = hist_from
@@ -634,11 +641,13 @@ class TestTimes(unittest.TestCase):
 
         model = TimeSeriesModel(dict(
             name='test',
-            use_weekday=True,
             offset=30,
-            span=6,
+            span=12,
             bucket_interval=4 * 3600,
             interval=60,
+            seasonality={
+                'weekday': True,
+            },
             features=[
                 {
                    'name': 'avg_foo',
@@ -699,12 +708,14 @@ class TestTimes(unittest.TestCase):
 
         model = TimeSeriesModel(dict(
             name='test',
-            use_weekday=True,
-            use_daytime=True,
             offset=30,
             span=6,
             bucket_interval=3600,
             interval=60,
+            seasonality={
+                'daytime': True,
+                'weekday': True,
+            },
             features=[
                 {
                    'name': 'count_foo',

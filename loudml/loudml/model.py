@@ -89,7 +89,8 @@ class Model:
         settings['type'] = self.TYPE
         settings = copy.deepcopy(settings)
 
-        self._settings = self.validate(settings)
+        settings = self.validate(settings)
+        self._settings = settings
         self.name = settings.get('name')
         self._settings = settings
         self.routing = settings.get('routing')
@@ -106,7 +107,7 @@ class Model:
     @classmethod
     def validate(cls, settings):
         """Validate the settings against the schema"""
-        schemas.validate(cls.SCHEMA, settings)
+        return schemas.validate(cls.SCHEMA, settings)
 
     @property
     def type(self):
@@ -134,6 +135,10 @@ class Model:
             'settings': self.settings,
             'state': self.state,
         }
+
+    @property
+    def seasonality(self):
+        return self._settings['seasonality']
 
     @property
     def state(self):

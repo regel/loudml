@@ -52,6 +52,11 @@ from .model import (
     Model,
 )
 
+DEFAULT_SEASONALITY = {
+    'daytime': False,
+    'weekday': False,
+}
+
 float_formatter = lambda x: "%.2f" % x
 np.set_printoptions(formatter={'float_kind':float_formatter})
 
@@ -256,13 +261,12 @@ class TimeSeriesModel(Model):
         Required('bucket_interval'): schemas.TimeDelta(
             min=0, min_included=False,
         ),
-        Optional('use_daytime', default=False): Boolean(),
-        Optional('use_weekday', default=False): Boolean(),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('offset'): schemas.TimeDelta(min=0),
         Required('span'): Any(None, "auto", All(int, Range(min=1))),
         Optional('min_span'): All(int, Range(min=1)),
         Optional('max_span'): All(int, Range(min=1)),
+        Optional('seasonality', default=DEFAULT_SEASONALITY): schemas.seasonality,
         'timestamp_field': schemas.key,
     })
 
@@ -290,14 +294,6 @@ class TimeSeriesModel(Model):
             None if feature.default is np.nan else feature.default
             for feature in self.features
         ]
-
-    @property
-    def use_daytime(self):
-        return self.settings.get('use_daytime') or False
-
-    @property
-    def use_weekday(self):
-        return self.settings.get('use_weekday') or False
 
     @property
     def type(self):
@@ -348,9 +344,9 @@ class TimeSeriesModel(Model):
         nb_features = len(self.features)
         input_features = nb_features
 
-        if self.use_daytime:
+        if self.seasonality.get('daytime'):
             input_features += 1
-        if self.use_weekday:
+        if self.seasonality.get('weekday'):
             input_features += 1
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
@@ -596,9 +592,9 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", i + 1)
 
-        if self.use_daytime:
+        if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)
-        if self.use_weekday:
+        if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
         best_params, score, _, _ = self._train_on_dataset(
@@ -774,9 +770,9 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
-        if self.use_daytime:
+        if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)
-        if self.use_weekday:
+        if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
         rng = _maxs - _mins
