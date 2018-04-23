@@ -786,6 +786,9 @@ class TimeSeriesModel(Model):
         logging.info("generating prediction")
         Y_ = _keras_model.predict(X_test)
 
+        # XXX: Sometime keras predict negative values, this is unexpected
+        Y_[Y_ < 0] = 0
+
         # min/max inverse operation
         Z_ = _maxs[:nb_features] - rng[:nb_features] * (1.0 - Y_)
 
