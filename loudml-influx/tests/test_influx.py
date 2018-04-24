@@ -6,7 +6,10 @@ import random
 import time
 import unittest
 
+logging.getLogger('tensorflow').disabled = True
+
 import loudml.errors as errors
+import loudml.test
 
 from loudml.influx import (
     _build_queries,
@@ -16,8 +19,6 @@ from loudml.influx import (
     escape_doublequotes,
     InfluxDataSource,
 )
-
-logging.getLogger('tensorflow').disabled = True
 
 from loudml.timeseries import TimeSeriesModel
 from loudml.randevents import SinEventGenerator
@@ -246,3 +247,20 @@ class TestInfluxLong(unittest.TestCase):
 
         # Check
         self.assertTrue(model.is_trained)
+
+
+class TestInfluxFingerprints(loudml.test.TestFingerprints):
+    def init_source(self):
+        self.database = 'test-voip-%d' % self.from_ts
+        logging.info("creating database %s", self.database)
+        self.source = InfluxDataSource({
+            'name': 'test',
+            'type': 'influx',
+            'addr': ADDR,
+            'database': self.database,
+        })
+        self.source.delete_db()
+        self.source.create_db()
+
+    def __del__(self):
+        self.source.delete_db()

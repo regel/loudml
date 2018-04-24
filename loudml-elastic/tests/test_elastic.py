@@ -5,10 +5,12 @@ import os
 import time
 import unittest
 
-import loudml.errors as errors
-from loudml.elastic import ElasticsearchDataSource
-
 logging.getLogger('tensorflow').disabled = True
+
+import loudml.errors as errors
+import loudml.test
+
+from loudml.elastic import ElasticsearchDataSource
 
 from loudml.timeseries import TimeSeriesModel
 
@@ -105,3 +107,51 @@ class TestElasticDataSource(unittest.TestCase):
             [line[1] for line in res],
             [[2.5], [0.0], [4.0]],
         )
+
+VOIP_TEMPLATE = {
+    "template": "test-voip-*",
+    "mappings": {
+        "session": {
+            "properties": {
+                "@timestamp": {
+                    "type": "date"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "caller": {
+                    "type": "keyword"
+                },
+                "international": {
+                    "type": "boolean"
+                },
+                "toll_call": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}
+
+class TestElasticFingerprints(loudml.test.TestFingerprints):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Let elasticsearch indexes the data before querying it
+        time.sleep(10)
+
+    def init_source(self):
+        addr = os.environ.get('ELASTICSEARCH_ADDR', 'localhost:9200')
+        self.index = 'test-voip-{}'.format(self.from_ts)
+        logging.info("creating index %s", self.index)
+        self.source = ElasticsearchDataSource({
+            'name': 'test',
+            'type': 'elasticsearch',
+            'addr': addr,
+            'index': self.index,
+        })
+        self.source.delete_index()
+        self.source.create_index(VOIP_TEMPLATE)
+
+    def __del__(self):
+        self.source.delete_index()

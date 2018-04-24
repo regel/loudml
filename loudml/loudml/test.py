@@ -1,46 +1,10 @@
 import datetime
-import logging
-import os
-import random
 import time
 import unittest
 
-import numpy as np
-
-from loudml.fingerprints import (
+from . fingerprints import (
     FingerprintsModel,
-    FingerprintsPrediction,
 )
-
-logging.getLogger('tensorflow').disabled = True
-
-from loudml.elastic import ElasticsearchDataSource
-from loudml.influx import InfluxDataSource
-
-TEMPLATE = {
-    "template": "test-voip-*",
-    "mappings": {
-        "session": {
-            "properties": {
-                "@timestamp": {
-                    "type": "date"
-                },
-                "duration": {
-                    "type": "integer"
-                },
-                "caller": {
-                    "type": "keyword"
-                },
-                "international": {
-                    "type": "boolean"
-                },
-                "toll_call": {
-                    "type": "boolean"
-                }
-            }
-        }
-    }
-}
 
 class TestFingerprints(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -55,29 +19,8 @@ class TestFingerprints(unittest.TestCase):
         self.from_ts = from_ts
         self.to_ts = from_ts + 3600 * 24
 
-        if os.environ.get('ELASTICSEARCH_ADDR') is not None:
-            self.index = 'test-voip-%d' % from_ts
-            logging.info("creating index %s", self.index)
-            self.source = ElasticsearchDataSource({
-                'name': 'test',
-                'type': 'elasticsearch',
-                'addr': os.environ['ELASTICSEARCH_ADDR'],
-                'index': self.index,
-            })
-            self.source.delete_index()
-            self.source.create_index(TEMPLATE)
-        elif os.environ.get('INFLUXDB_ADDR') is not None:
-            self.database = 'test-voip-%d' % from_ts
-            logging.info("creating database %s", self.database)
-            self.source = InfluxDataSource({
-                'name': 'test',
-                'type': 'influx',
-                'addr': os.environ['INFLUXDB_ADDR'],
-                'database': self.database,
-            })
-            self.source.delete_db()
-            self.source.create_db()
-           
+        self.init_source()
+
         self.model = FingerprintsModel(dict(
             name='test',
             key='caller',
@@ -236,8 +179,8 @@ class TestFingerprints(unittest.TestCase):
         # Let elasticsearch indexes the data before querying it
         time.sleep(10)
 
-    def __del__(self):
-        self.source.delete_index()
+    def init_source(self):
+        raise NotImplemented()
 
     def test_model(self):
         self.assertEqual(self.model.type, 'fingerprints')
@@ -287,4 +230,3 @@ class TestFingerprints(unittest.TestCase):
             self.assertEqual(len(fp['fingerprint']), 36)
 
             self.assertEqual(fp['fingerprint'], self.expected_fp[fp['key']])
-
