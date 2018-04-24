@@ -7,6 +7,8 @@ from loudml import (
 
 from loudml.misc import (
     deepsizeof,
+    escape_quotes,
+    escape_doublequotes,
     make_datetime,
     make_ts,
     str_to_ts,
@@ -105,3 +107,9 @@ class TestMisc(unittest.TestCase):
 
         # XXX It seems that loading some python modules may change the result
         self.assertTrue(size == 622 or size == 630)
+
+    def test_escape_quotes(self):
+        self.assertEqual(escape_quotes("foo ' '"), "foo \\' \\'")
+
+    def test_escape_doublequotes(self):
+        self.assertEqual(escape_doublequotes('foo " "'), 'foo \\" \\"')

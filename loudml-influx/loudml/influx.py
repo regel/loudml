@@ -27,6 +27,8 @@ from . import (
     schemas,
 )
 from loudml.misc import (
+    escape_quotes,
+    escape_doublequotes,
     make_ts,
     parse_addr,
     str_to_ts,
@@ -73,26 +75,6 @@ def make_ts_ns(mixed):
     Build a nanosecond timestamp from a mixed input (second timestamp or string)
     """
     return ts_to_ns(make_ts(mixed))
-
-QUOTE_ESCAPE_TRANS = str.maketrans({
-    "'": "\\'",
-})
-
-DOUBLEQUOTE_ESCAPE_TRANS = str.maketrans({
-    '"': '\\"',
-})
-
-def escape_quotes(string):
-    """
-    Escape simple quotes
-    """
-    return string.translate(QUOTE_ESCAPE_TRANS)
-
-def escape_doublequotes(string):
-    """
-    Escaping double quotes
-    """
-    return string.translate(DOUBLEQUOTE_ESCAPE_TRANS)
 
 def format_bool(string):
     if string.lower() == 'true':

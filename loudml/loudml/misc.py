@@ -17,6 +17,26 @@ from . import (
     errors,
 )
 
+QUOTE_ESCAPE_TRANS = str.maketrans({
+    "'": "\\'",
+})
+
+DOUBLEQUOTE_ESCAPE_TRANS = str.maketrans({
+    '"': '\\"',
+})
+
+def escape_quotes(string):
+    """
+    Escape simple quotes
+    """
+    return string.translate(QUOTE_ESCAPE_TRANS)
+
+def escape_doublequotes(string):
+    """
+    Escaping double quotes
+    """
+    return string.translate(DOUBLEQUOTE_ESCAPE_TRANS)
+
 def build_agg_name(measurement, field):
     return "agg_%s-%s" % (measurement, field)
 
