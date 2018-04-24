@@ -51,7 +51,12 @@ class Aggregation:
         Required('measurement'): schemas.key,
         Required('features'): All([Feature.SCHEMA], Length(min=1)),
         'match_all': Any(None, Schema([
-            {Required(schemas.key): All(str, Length(max=256))},
+            {Required(schemas.key): Any(
+                Boolean(),
+                int,
+                float,
+                All(str, Length(max=256)),
+            )},
         ])),
     })
 

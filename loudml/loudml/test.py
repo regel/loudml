@@ -56,7 +56,7 @@ class TestFingerprints(unittest.TestCase):
               ),
               dict(
                 measurement="xdr",
-                match_all=[dict(tag="international", value="true")],
+                match_all=[dict(tag="international", value=True)],
                 features=[
                   dict(
                     field="duration",
@@ -77,7 +77,7 @@ class TestFingerprints(unittest.TestCase):
               ),
               dict(
                 measurement="xdr",
-                match_all=[dict(tag="toll_call", value="true")],
+                match_all=[dict(tag="toll_call", value=True)],
                 features=[
                   dict(
                     field="duration",

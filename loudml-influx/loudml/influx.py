@@ -76,14 +76,6 @@ def make_ts_ns(mixed):
     """
     return ts_to_ns(make_ts(mixed))
 
-def format_bool(string):
-    if string.lower() == 'true':
-        return 'True'
-    elif string.lower() == 'false':
-        return 'False'
-    else:
-        return string
-
 def aggregator(*aliases):
     """
     Decorator to register aggregators and indexing them by their aliases
@@ -226,7 +218,7 @@ def _build_tags_predicates(match_all=None):
         for item in match_all:
             must.append("\"{}\"='{}'".format(
               escape_doublequotes(item['tag']),
-              escape_quotes(format_bool(item['value'])),
+              escape_quotes(str(item['value'])),
             ))
 
     return must

@@ -33,7 +33,7 @@
     },
     {
       "measurement": "xdr",
-      "match_all": [{"tag": "international", "value": "true"}],
+      "match_all": [{"tag": "international", "value": true}],
       "features": [
         {
           "field": "duration",
@@ -54,7 +54,7 @@
     },
     {
       "measurement": "xdr",
-      "match_all": [{"tag": "toll_call", "value": "true"}],
+      "match_all": [{"tag": "toll_call", "value": true}],
       "features": [
         {
           "field": "duration",

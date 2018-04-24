@@ -75,15 +75,17 @@ def _build_match_all(aggregation):
     for condition in match_all:
         key = condition['tag']
         val = condition['value']
-        if int(val.lower() == 'true') > 0:
-            val = 1
-        elif int(val.lower() == 'false') > 0:
-            val = 0
+
+        if isinstance(val, bool):
+            val = str(val).lower()
+        elif isinstance(val, str):
+            val = "'{}'".format(escape_quotes(val))
+
         yield {
           "script": {
             "script": {
-              "lang": "expression",
-              "inline": "doc['%s'].value==%s" % (key, val)
+              "lang": "painless",
+              "inline": "doc['{}'].value=={}".format(key, val)
             }
           }
         }
