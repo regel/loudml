@@ -46,6 +46,7 @@ class Feature:
         'script': Any(None, str),
         Optional('anomaly_type', default='low_high'): Any('low', 'high', 'low_high'),
         'transform': Any(None, "diff"),
+        'scores': Any(None, "min_max", "normalize", "standardize"),
     })
 
     def __init__(
@@ -59,6 +60,7 @@ class Feature:
         script=None,
         anomaly_type='low_high',
         transform=None,
+        scores=None,
     ):
         self.validate(locals())
 
@@ -73,6 +75,7 @@ class Feature:
         self.is_input = True
         self.is_output = True
         self.transform = transform
+        self.scores = "min_max" if scores is None else scores
 
     @classmethod
     def validate(cls, args):

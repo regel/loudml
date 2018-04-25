@@ -229,14 +229,14 @@ class TestTimes(unittest.TestCase):
             (to_date - from_date) / model.bucket_interval
         )
 
-#        forecast.plot('count_foo')
-#        import matplotlib.pylab as plt
-#        plt.rcParams["figure.figsize"] = (17, 9)
-#        y_values = prediction.observed[:,0]
-#        plt.plot(range(1,1+len(y_values)), y_values, "--")
-#        z_values = forecast.predicted[:,0]
-#        plt.plot(range(len(y_values), len(y_values)+len(z_values)), z_values, ":")
-#        plt.show()
+        forecast.plot('count_foo')
+        import matplotlib.pylab as plt
+        plt.rcParams["figure.figsize"] = (17, 9)
+        y_values = prediction.observed[:,0]
+        plt.plot(range(1,1+len(y_values)), y_values, "--")
+        z_values = forecast.predicted[:,0]
+        plt.plot(range(len(y_values), len(y_values)+len(z_values)), z_values, ":")
+        plt.show()
 
         self.assertEqual(len(forecast.timestamps), expected)
         self.assertEqual(forecast.observed.shape, (expected, 1))

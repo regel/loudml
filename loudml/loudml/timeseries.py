@@ -81,6 +81,29 @@ def _transform(feature, y):
     if feature.transform == "diff":
         return np.concatenate(([np.nan], np.diff(y, axis=0)))
 
+def _get_scores(feature, y, _min, _max, _mean, _std):
+    if feature.scores == "min_max":
+        _range = _max - _min
+        y = 1.0 - (_max - y) / _range
+    elif feature.scores == "normalize":
+        y0 = y[~np.isnan(y)][0]
+        y = (y / y0) - 1.0
+    elif feature.scores == "standardize":
+        y = (y - _mean) / _std
+    return y
+
+def _revert_scores(feature, y, _data, _min, _max, _mean, _std):
+    if feature.scores == "min_max":
+        _range = _max - _min
+        y = _max - _range * (1.0 - y)
+    elif feature.scores == "normalize":
+        p0 = _data[~np.isnan(_data)][0]
+        y = p0 * (y + 1.0)
+    elif feature.scores == "standardize":
+        y = (y * _std) + _mean
+    return y
+
+
 class HyperParameters:
     """Hyperparameters"""
 
@@ -388,17 +411,25 @@ class TimeSeriesModel(Model):
 
         self.current_eval = 0
 
-        # Min-max preprocessing to bring data in interval (0,1)
-        # FIXME: support other normalization techniques
         # Preprocess each column (axis=0)
         _mins = np.min(np.nan_to_num(dataset), axis=0)
         _maxs = np.max(np.nan_to_num(dataset), axis=0)
-        rng = _maxs - _mins
-        dataset = 1.0 - (_maxs - dataset) / rng
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
+        for j, feature in enumerate(self.features):
+            dataset[:,j] = _get_scores(
+                feature,
+                dataset[:,j],
+                _min=_mins[j],
+                _max=_maxs[j],
+                _mean=_means[j],
+                _std=_stds[j],
+            )
+
         input_features = len(self._x_indexes())
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
-                     _mins, _maxs, rng)
+                     _mins, _maxs, _maxs - _mins)
 
         def cross_val_model(params):
             global _keras_model, _graph
@@ -896,10 +927,21 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        rng = _maxs - _mins
-        norm_dataset = 1.0 - (_maxs - dataset) / rng
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
 
-        j_sel, X_test = self._format_dataset_predict(norm_dataset[:X_until])
+        norm_dataset = np.empty_like(dataset)
+        for j, feature in enumerate(self.features):
+            norm_dataset[:,j] = _get_scores(
+                feature,
+                dataset[:,j],
+                _min=_mins[j],
+                _max=_maxs[j],
+                _mean=_means[j],
+                _std=_stds[j],
+            )
+
+        data_indexes, X_test = self._format_dataset_predict(norm_dataset[:X_until])
 
         if len(X_test) == 0:
             raise errors.LoudMLException("not enough data for prediction")
@@ -910,8 +952,20 @@ class TimeSeriesModel(Model):
         # XXX: Sometime keras predict negative values, this is unexpected
         Y_[Y_ < 0] = 0
 
-        # min/max inverse operation
-        Z_ = _maxs[:nb_outputs] - rng[:nb_outputs] * (1.0 - Y_)
+        Z_ = np.empty_like(Y_)
+        for j, feature in enumerate(self.features):
+            if not feature.is_output:
+                continue
+
+            Z_[:,j] = _revert_scores(
+                feature,
+                Y_[:,j],
+                _data=dataset[data_indexes - self._span,j],
+                _min=_mins[j],
+                _max=_maxs[j],
+                _mean=_means[j],
+                _std=_stds[j],
+            )
 
         # Build final result
         timestamps = X[self._span:]
@@ -926,7 +980,7 @@ class TimeSeriesModel(Model):
             if feature.is_input == True:
                 observed[:,i] = dataset[self._span:][:,i]
             if feature.is_output == True:
-                predicted[j_sel - self._span,i] = Z_[:][:,i]
+                predicted[data_indexes - self._span,i] = Z_[:][:,i]
 
         return TimeSeriesPrediction(
             self,
@@ -1030,9 +1084,19 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        rng = _maxs - _mins
-        norm_dataset = 1.0 - (_maxs - dataset) / rng
-        _, X = self._format_dataset_predict(norm_dataset)
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
+        for j, feature in enumerate(self.features):
+            dataset[:,j] = _get_scores(
+                feature,
+                dataset[:,j],
+                _min=_mins[j],
+                _max=_maxs[j],
+                _mean=_means[j],
+                _std=_stds[j],
+            )
+
+        data_indexes, X = self._format_dataset_predict(dataset)
 
         if len(X) == 0:
             raise errors.LoudMLException("not enough data for forecast")
@@ -1080,8 +1144,23 @@ class TimeSeriesModel(Model):
                 norm_dt = 1.0 - (_maxs[dt_pos] - dt_next) / (_maxs[dt_pos] - _mins[dt_pos])
                 X[:, 0:self._forecast, dt_pos] = norm_dt
 
-            X = np.roll(X,-self._forecast,axis=1)
-            Z_ = _maxs[y_indexes] - rng[y_indexes] * (1.0 - Y_)
+            X = np.roll(X, -self._forecast, axis=1)
+
+            Z_ = np.empty_like(Y_)
+            for j, feature in enumerate(self.features):
+                if not feature.is_output:
+                    continue
+
+                Z_[:,j] = _revert_scores(
+                    feature,
+                    Y_[:,j],
+                    _data=dataset[data_indexes - self._span,j],
+                    _min=_mins[j],
+                    _max=_maxs[j],
+                    _mean=_means[j],
+                    _std=_stds[j],
+                )
+
             for z in range(self._forecast):
                 if bucket_start < to_ts:
                     timestamps.append(bucket_start)
