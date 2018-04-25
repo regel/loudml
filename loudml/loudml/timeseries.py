@@ -77,6 +77,10 @@ _hp_forecast_max = 5
 _hp_span_min = 5
 _hp_span_max = 20
 
+def _transform(feature, y):
+    if feature.transform == "diff":
+        return np.concatenate(([np.nan], np.diff(y, axis=0)))
+
 class HyperParameters:
     """Hyperparameters"""
 
@@ -644,6 +648,10 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", i + 1)
 
+        for j, feature in enumerate(self.features):
+            if feature.transform is not None:
+                dataset[:,j] = _transform(feature, dataset[:,j])
+
         if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)
         if self.seasonality.get('weekday'):
@@ -879,6 +887,10 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
+        for j, feature in enumerate(self.features):
+            if feature.transform is not None:
+                dataset[:,j] = _transform(feature, dataset[:,j])
+
         if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)
         if self.seasonality.get('weekday'):
@@ -1008,6 +1020,10 @@ class TimeSeriesModel(Model):
             weekday = np.resize(weekday, (nb_buckets_found, 1))
 
         logging.info("found %d time periods", nb_buckets_found)
+
+        for j, feature in enumerate(self.features):
+            if feature.transform is not None:
+                dataset[:,j] = _transform(feature, dataset[:,j])
 
         if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)

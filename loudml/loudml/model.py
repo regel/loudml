@@ -45,6 +45,7 @@ class Feature:
         'default': Any(None, int, float),
         'script': Any(None, str),
         Optional('anomaly_type', default='low_high'): Any('low', 'high', 'low_high'),
+        'transform': Any(None, "diff"),
     })
 
     def __init__(
@@ -57,6 +58,7 @@ class Feature:
         default=None,
         script=None,
         anomaly_type='low_high',
+        transform=None,
     ):
         self.validate(locals())
 
@@ -70,6 +72,7 @@ class Feature:
         self.anomaly_type = anomaly_type
         self.is_input = True
         self.is_output = True
+        self.transform = transform
 
     @classmethod
     def validate(cls, args):
