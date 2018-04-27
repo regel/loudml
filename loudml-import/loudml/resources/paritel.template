@@ -1,0 +1,43 @@
+{{
+  "template": "{}*",
+    "mappings": {{
+      "{}": {{
+        "_all": {{
+            "enabled": false
+        }},
+        "_source": {{
+            "enabled": true
+        }},
+        "properties": {{
+          "timestamp": {{ "type": "date" }},
+          "account": {{
+            "type": "keyword"
+          }},
+          "duration": {{
+            "type": "integer", "index": false
+          }},
+          "mobile": {{
+            "type": "boolean"
+          }},
+          "international": {{
+            "type": "boolean"
+          }},
+          "toll_call": {{
+            "type": "boolean"
+          }},
+          "called_number": {{
+            "type": "keyword", "index": false
+          }},
+          "calling_number": {{
+            "type": "keyword", "index": false
+          }}
+        }}
+      }}
+    }},
+    "settings": {{
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "codec": "best_compression"
+    }}
+}}
+
