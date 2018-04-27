@@ -76,6 +76,7 @@ class Model:
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
         Optional('features'): All([Feature.SCHEMA], Length(min=1)),
+        Optional('influences'): Any(None, All([Feature.SCHEMA], Length(min=1))),
         'routing': Any(None, schemas.key),
         'threshold': Any(int, float, Range(min=0, max=100)),
         'max_evals': All(int, Range(min=1)),
@@ -102,6 +103,12 @@ class Model:
         else:
             self.features = [Feature(**feature) for feature in features]
 
+        influences = settings.get('influences')
+        if influences is None:
+            self.influences = []
+        else:
+            self.influences = [Feature(**feature) for feature in influences]
+
         self.threshold = self.settings.get('threshold', 75)
 
     @classmethod
@@ -120,6 +127,10 @@ class Model:
     @property
     def settings(self):
         return self._settings
+
+    @property
+    def nb_influences(self):
+        return len(self.influences)
 
     @property
     def nb_features(self):

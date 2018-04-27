@@ -321,6 +321,11 @@ class TimeSeriesModel(Model):
         """
         return int((to_ts - from_ts) / self.bucket_interval) + 2
 
+    def _empty_times_data(self, from_ts, to_ts):
+        nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
+        for j in range(nb_buckets):
+            yield None, None, None
+
     def _train_on_dataset(
         self,
         dataset,
@@ -344,6 +349,8 @@ class TimeSeriesModel(Model):
         nb_features = len(self.features)
         input_features = nb_features
 
+        if self.influences is not None:
+            input_features += len(self.influences)
         if self.seasonality.get('daytime'):
             input_features += 1
         if self.seasonality.get('weekday'):
@@ -569,16 +576,27 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
         nb_features = len(self.features)
-        dataset = np.zeros((nb_buckets, nb_features), dtype=float)
+        nb_influences = len(self.influences)
+        dataset = np.zeros((nb_buckets, nb_features+nb_influences), dtype=float)
         daytime = np.zeros((nb_buckets, 1), dtype=float)
         weekday = np.zeros((nb_buckets, 1), dtype=float)
 
         # Fill dataset
         data = datasource.get_times_data(self, from_ts, to_ts)
+        if nb_influences > 0:
+            _saved = self.features
+            self.features = self.influences
+            influences = datasource.get_times_data(self, from_ts, to_ts)
+            self.features = _saved
+        else:
+            influences = self._empty_times_data(from_ts, to_ts)
 
         i = None
-        for i, (_, val, timeval) in enumerate(data):
-            dataset[i] = val
+        for i, ((_, val, timeval),(_, influence_val, _)) in enumerate(zip(data, influences)):
+            if influence_val is not None:
+                dataset[i] = np.concatenate((val, influence_val), axis=1)
+            else:
+                dataset[i] = val
 
             dt = make_datetime(timeval)
             daytime[i] = np.array(dt_get_daytime(dt))
@@ -730,7 +748,8 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
         nb_features = len(self.features)
-        dataset = np.zeros((nb_buckets, nb_features), dtype=float)
+        nb_influences = len(self.influences)
+        dataset = np.zeros((nb_buckets, nb_features+nb_influences), dtype=float)
         daytime = np.zeros((nb_buckets, 1), dtype=float)
         weekday = np.zeros((nb_buckets, 1), dtype=float)
 
@@ -740,12 +759,23 @@ class TimeSeriesModel(Model):
         logging.info("extracting data for range=[%s, %s]",
                      hist_from_str, hist_to_str)
         data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
+        if nb_influences > 0:
+            _saved = self.features
+            self.features = self.influences
+            influences = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
+            self.features = _saved
+        else:
+            influences = self._empty_times_data(hist_from_ts, hist_to_ts)
 
         # Only a subset of history will be used for computing the prediction
         X_until = None # right bound for prediction
         i = None
-        for i, (_, val, timeval) in enumerate(data):
-            dataset[i] = val
+
+        for i, ((_, val, timeval),(_, influence_val, _)) in enumerate(zip(data, influences)):
+            if influence_val is not None:
+                dataset[i] = np.concatenate((val, influence_val), axis=1)
+            else:
+                dataset[i] = val
 
             dt = make_datetime(timeval)
             daytime[i] = np.array(dt_get_daytime(dt))
@@ -764,7 +794,7 @@ class TimeSeriesModel(Model):
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
-            dataset = np.resize(dataset, (nb_buckets_found, nb_features))
+            dataset = np.resize(dataset, (nb_buckets_found, nb_features+nb_influences))
             daytime = np.resize(daytime, (nb_buckets_found, 1))
             weekday = np.resize(weekday, (nb_buckets_found, 1))
 
