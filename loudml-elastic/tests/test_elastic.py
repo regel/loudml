@@ -61,7 +61,8 @@ class TestElasticDataSource(unittest.TestCase):
             'index': self.index,
         })
         self.source.delete_index()
-        self.source.create_index(TEMPLATE)
+        self.source.create_index(template_name="test",
+                                 template=TEMPLATE)
 
         self.model = TimeSeriesModel(dict(
             name='test',

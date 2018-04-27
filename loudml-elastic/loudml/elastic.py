@@ -211,14 +211,13 @@ class ElasticsearchDataSource(DataSource):
 
         return self._es
 
-    def create_index(self, template):
+    def create_index(self, template_name, template):
         """
         Create index and put template
         """
 
-        self.es.indices.create(index=self.index)
         self.es.indices.put_template(
-            name='{}-template'.format(self.index),
+            name='{}-template'.format(template_name),
             body=template,
         )
 
@@ -247,13 +246,21 @@ class ElasticsearchDataSource(DataSource):
         ) as exn:
             raise errors.TransportError(str(exn))
 
-    def insert_data(self, data, doc_type='generic', doc_id=None):
+    def insert_data(self,
+                    data,
+                    doc_type='generic',
+                    doc_id=None,
+                    timestamp=0,
+                    ):
         """
         Insert entry into the index
         """
 
         req = {
-            '_index': self.index,
+            '_index': "{}-{}".format(
+                self.index,
+                datetime.datetime.fromtimestamp(timestamp).strftime("%Y.%m.%d"),
+            ),
             '_type': doc_type,
             '_source': data,
         }
@@ -283,7 +290,7 @@ class ElasticsearchDataSource(DataSource):
             for tag, tag_val in tags.items():
                 data[tag] = tag_val
 
-        self.insert_data(data, doc_type=measurement, doc_id=doc_id)
+        self.insert_data(data, doc_type=measurement, doc_id=doc_id, timestamp=int(ts))
 
     @staticmethod
     def _build_aggs(model):
