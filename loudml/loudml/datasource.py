@@ -107,13 +107,13 @@ class DataSource(metaclass=ABCMeta):
         """Get numeric data"""
 
     @abstractmethod
-    def insert_data(self, index, data):
+    def insert_data(self, data):
         """
         Insert entry into the index
         """
 
     @abstractmethod
-    def insert_times_data(self, index, data):
+    def insert_times_data(self, ts, data, measurement, tags=None):
         """
         Insert time-indexed entry
         """

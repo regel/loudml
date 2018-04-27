@@ -396,7 +396,7 @@ class InfluxDataSource(DataSource):
         """
         self.influxdb.drop_database(db or self.db)
 
-    def insert_data(self):
+    def insert_data(self, data):
         raise errors.NotImplemented("InfluxDB is a pure time-series database")
 
     def insert_times_data(self, ts, data, measurement='generic', tags=None, timestamp_field=None):
