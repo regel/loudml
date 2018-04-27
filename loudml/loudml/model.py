@@ -13,6 +13,7 @@ from voluptuous import (
     Range,
     Required,
     Optional,
+    Boolean,
     Schema,
 )
 
@@ -33,7 +34,12 @@ class Feature:
         Required('field'): All(schemas.key, Length(max=256)),
         'measurement': Any(None, schemas.key),
         'match_all': Any(None, Schema([
-            {Required(schemas.key): All(str, Length(max=256))},
+            {Required(schemas.key): Any(
+                Boolean(),
+                int,
+                float,
+                All(str, Length(max=256)),
+            )},
         ])),
         'default': Any(None, int, float),
         'script': Any(None, str),
