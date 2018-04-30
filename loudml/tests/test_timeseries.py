@@ -446,12 +446,12 @@ class TestTimes(unittest.TestCase):
                 },
             ],
             threshold=30,
-            max_evals=1,
+            max_evals=50,
         ))
 
         self.assertEqual(model.span, "auto")
         model.train(self.source, self.from_date, self.to_date)
-        self.assertTrue(7 <= model.span <= 24)
+        self.assertTrue(4 < model.span < 20)
 
     def test_daytime_model(self):
         source = MemDataSource()
