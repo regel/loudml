@@ -1,0 +1,7 @@
+{
+    "type": "http",
+    "name": "my-hook",
+    "config": {
+        "url": "http://localhost:8085"
+    }
+}
