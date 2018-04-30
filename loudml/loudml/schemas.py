@@ -41,7 +41,8 @@ class TimeDelta:
         self._kwargs = kwargs
 
     def __call__(self, v):
-        return parse_timedelta(v, **self._kwargs)
+        parse_timedelta(v, **self._kwargs)
+        return v
 
 
 def validate(schema, data):
