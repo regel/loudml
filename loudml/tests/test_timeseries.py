@@ -619,7 +619,7 @@ class TestTimes(unittest.TestCase):
             tzinfo=datetime.timezone.utc,
         ).timestamp()
 
-        nb_days = 100
+        nb_days = 200
         hist_to = to_date
         hist_from = to_date - 3600 * 24 * nb_days
         ts = hist_from
@@ -658,7 +658,7 @@ class TestTimes(unittest.TestCase):
                 },
             ],
             threshold=30,
-            max_evals=1,
+            max_evals=5,
         ))
 
         model.train(source, hist_from, hist_to)
