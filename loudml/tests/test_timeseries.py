@@ -7,6 +7,13 @@ import unittest
 
 import numpy as np
 
+def nan_equal(a,b):
+    try:
+        np.testing.assert_equal(a,b)
+    except AssertionError:
+        return False
+    return True
+
 logging.getLogger('tensorflow').disabled = True
 
 from loudml.randevents import (
@@ -178,6 +185,154 @@ class TestTimes(unittest.TestCase):
     def test_train(self):
         self._require_training()
         self.assertTrue(self.model.is_trained)
+
+
+    def test_forecast(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=17,
+            forecast=5,
+            bucket_interval=20 * 60,
+            interval=60,
+            features=FEATURES[:1],
+            threshold=30,
+            max_evals=10,
+        ))
+
+        model.train(self.source, self.from_date, self.to_date)
+        prediction = model.predict(self.source, self.from_date, self.to_date)
+
+        from_date = self.to_date - model.bucket_interval 
+        to_date = from_date + 48 * 3600
+        forecast = model.forecast(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+#        forecast.plot('count_foo')
+#        import matplotlib.pylab as plt
+#        plt.rcParams["figure.figsize"] = (17, 9)
+#        y_values = prediction.observed[:,0]
+#        plt.plot(range(1,1+len(y_values)), y_values, "--")
+#        z_values = forecast.predicted[:,0]
+#        plt.plot(range(len(y_values), len(y_values)+len(z_values)), z_values, ":")
+#        plt.show()
+
+        self.assertEqual(len(forecast.timestamps), expected)
+        self.assertEqual(forecast.observed.shape, (expected, 1))
+        self.assertEqual(forecast.predicted.shape, (expected, 1))
+
+        all_nans = np.empty((expected, 1), dtype=float)
+        all_nans[:] = np.nan
+        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+
+        forecast_head = np.array([[5.89], [6.38], [7.11], [7.69], [8.33]])
+        forecast_tail = np.array([[3.66], [3.82], [4.23], [4.72], [5.32]])
+
+        # print(forecast.predicted)
+        delta = 2.8
+        forecast_good = np.abs(forecast.predicted[:len(forecast_head)] - forecast_head) <= delta
+        # print(forecast_head)
+        # print(forecast.predicted[:len(forecast_head)])
+        # print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
+        forecast_good = np.abs(forecast.predicted[-len(forecast_tail):] - forecast_tail) <= delta
+        # print(forecast_tail)
+        # print(forecast.predicted[-len(forecast_tail):])
+        # print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
+
+    def test_forecast2(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=17,
+            forecast=5,
+            bucket_interval=20 * 60,
+            interval=60,
+            features=FEATURES,
+            threshold=30,
+            max_evals=10,
+        ))
+
+        model.train(self.source, self.from_date, self.to_date)
+
+        to_date = self.to_date
+        from_date = to_date - 48 * 3600
+        # Verify that predict() is still functional when forecast>1
+        prediction = model.predict(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        for i in range(expected):
+            self.assertAlmostEqual(
+                prediction.observed[i][0],
+                prediction.predicted[i][0],
+                delta=2.8,
+            )
+            self.assertAlmostEqual(
+                prediction.observed[i][1],
+                prediction.predicted[i][1],
+                delta=5,
+            )
+
+        from_date = self.to_date - model.bucket_interval 
+        to_date = from_date + 48 * 3600
+        forecast = model.forecast(self.source, from_date, to_date)
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+#        forecast.plot('count_foo')
+#        import matplotlib.pylab as plt
+#        plt.rcParams["figure.figsize"] = (17, 9)
+#        y_values = prediction.observed[:,0]
+#        plt.plot(range(1,1+len(y_values)), y_values, "--")
+#        z_values = forecast.predicted[:,0]
+#        plt.plot(range(len(y_values), len(y_values)+len(z_values)), z_values, ":")
+#        plt.show()
+
+        self.assertEqual(len(forecast.timestamps), expected)
+        self.assertEqual(forecast.observed.shape, (expected, 2))
+        self.assertEqual(forecast.predicted.shape, (expected, 2))
+
+        all_nans = np.empty((expected, 2), dtype=float)
+        all_nans[:] = np.nan
+        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+
+        forecast_head = np.array([6.33,6.88,7.77,7.95,8.26,9.04,9.55,10.17,10.26,10.23,10.99,11.28,11.43])
+
+        # print(forecast.predicted[:,0])
+        # Verify forecast(count_foo) feature, must have sin shape
+        delta = 2.8
+        forecast_good = np.abs(forecast.predicted[:len(forecast_head),0] - forecast_head) <= delta
+        # print(forecast.predicted[:len(forecast_head),0])
+        # print(forecast_head)
+        # print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
+
+        # Verify forecast(avg_foo) feature, must be const noise centered around value=10
+        forecast_head = np.array([ 10, 10, 10, 10, 10])
+        forecast_tail = np.array([ 10, 10, 10, 10, 10])
+        delta = 0.5
+        forecast_good = np.abs(forecast.predicted[:5,1] - forecast_head) <= delta
+        # print(forecast.predicted[:5,1])
+        # print(forecast_head)
+        # print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
+        forecast_good = np.abs(forecast.predicted[-5:,1] - forecast_tail) <= delta
+        # print(forecast.predicted[-5:,1])
+        # print(forecast_tail)
+        # print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
+
 
     def test_predict_aligned(self):
         self._require_training()
