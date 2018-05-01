@@ -957,6 +957,8 @@ class TimeSeriesModel(Model):
         nb_features = len(self.features)
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
+        daytime = np.zeros((nb_buckets, 1), dtype=float)
+        weekday = np.zeros((nb_buckets, 1), dtype=float)
 
         # Fill dataset
         logging.info("extracting data for range=[%s, %s]",
@@ -964,8 +966,11 @@ class TimeSeriesModel(Model):
         data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
 
         i = None
-        for i, (_, val, ts) in enumerate(data):
+        for i, (_, val, timeval) in enumerate(data):
             dataset[i] = val
+            dt = make_datetime(timeval)
+            daytime[i] = np.array(dt_get_daytime(dt))
+            weekday[i] = np.array(dt_get_weekday(dt))
 
         if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
@@ -976,8 +981,15 @@ class TimeSeriesModel(Model):
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
             dataset = np.resize(dataset, (nb_buckets_found, nb_features))
+            daytime = np.resize(daytime, (nb_buckets_found, 1))
+            weekday = np.resize(weekday, (nb_buckets_found, 1))
 
         logging.info("found %d time periods", nb_buckets_found)
+
+        if self.seasonality.get('daytime'):
+            dataset = np.append(dataset, daytime, axis=1)
+        if self.seasonality.get('weekday'):
+            dataset = np.append(dataset, weekday, axis=1)
 
         rng = _maxs - _mins
         norm_dataset = 1.0 - (_maxs - dataset) / rng
@@ -998,8 +1010,36 @@ class TimeSeriesModel(Model):
         while bucket_start < to_ts:
             Y_ = _keras_model.predict(X).reshape((self._forecast, nb_features))
             X[:, 0:self._forecast, 0:nb_features] = Y_
+            if self.seasonality.get('daytime'):
+                if self.seasonality.get('weekday'):
+                    dt_pos = -2
+                else:
+                    dt_pos = -1
+
+                dt_next = np.empty(shape=(self._forecast), dtype=float)
+                dt_next[:] = np.nan
+                for forecast_pos in range(self._forecast):
+                    timeval = bucket_start + forecast_pos * self.bucket_interval
+                    dt = make_datetime(timeval)
+                    dt_next[forecast_pos] = dt_get_daytime(dt)
+
+                norm_dt = 1.0 - (_maxs[dt_pos] - dt_next) / (_maxs[dt_pos] - _mins[dt_pos])
+                X[:, 0:self._forecast, dt_pos] = norm_dt
+
+            if self.seasonality.get('weekday'):
+                dt_pos = -1
+                dt_next = np.empty(shape=(self._forecast), dtype=float)
+                dt_next[:] = np.nan
+                for forecast_pos in range(self._forecast):
+                    timeval = bucket_start + forecast_pos * self.bucket_interval
+                    dt = make_datetime(timeval)
+                    dt_next[forecast_pos] = dt_get_weekday(dt)
+
+                norm_dt = 1.0 - (_maxs[dt_pos] - dt_next) / (_maxs[dt_pos] - _mins[dt_pos])
+                X[:, 0:self._forecast, dt_pos] = norm_dt
+
             X = np.roll(X,-self._forecast,axis=1)
-            Z_ = _maxs - rng * (1.0 - Y_)
+            Z_ = _maxs[:nb_features] - rng[:nb_features] * (1.0 - Y_)
             for z in range(self._forecast):
                 if bucket_start < to_ts:
                     timestamps.append(ts_to_str(bucket_start))
