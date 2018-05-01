@@ -28,6 +28,7 @@ from loudml.memdatasource import MemDataSource
 from loudml.filestorage import TempStorage
 from loudml.misc import (
     make_datetime,
+    dt_get_daytime,
     dt_get_weekday,
 )
 
@@ -333,6 +334,95 @@ class TestTimes(unittest.TestCase):
         # print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
 
+    def test_forecast_daytime(self):
+        source = MemDataSource()
+        generator = SinEventGenerator(avg=3, sigma=0.01)
+
+        for i, ts in enumerate(generator.generate_ts(self.from_date, self.to_date, step=600)):
+            dt = make_datetime(ts)
+            val = random.normalvariate(10, 1)
+            if dt_get_daytime(dt) < 6 or dt_get_daytime(dt) > 22:
+                val = val / 2
+                if (i % 2) == 0:
+                    source.insert_times_data({
+                        'timestamp': ts,
+                        'foo': val,
+                    })
+            else:
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': val,
+                })
+
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=7,
+            forecast=5,
+            seasonality={
+                'daytime': True,
+            },
+            bucket_interval=20 * 60,
+            interval=60,
+            features=FEATURES[:1],
+            threshold=30,
+            max_evals=10,
+        ))
+
+        model.train(source, self.from_date, self.to_date)
+
+        prediction = model.predict(source, self.from_date, self.to_date)
+        # prediction.plot('count_foo')
+
+        expected = math.ceil(
+            (self.to_date - self.from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 1))
+        self.assertEqual(prediction.predicted.shape, (expected, 1))
+
+        from_date = self.to_date - model.bucket_interval 
+        to_date = from_date + 48 * 3600
+        forecast = model.forecast(source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        # forecast.plot('count_foo')
+
+        self.assertEqual(len(forecast.timestamps), expected)
+        self.assertEqual(forecast.observed.shape, (expected, 1))
+        self.assertEqual(forecast.predicted.shape, (expected, 1))
+
+        all_nans = np.empty((expected, 1), dtype=float)
+        all_nans[:] = np.nan
+        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+
+        #import matplotlib.pylab as plt
+        #plt.rcParams["figure.figsize"] = (17, 9)
+        #y_values = prediction.observed[:,0]
+        #plt.plot(range(1,1+len(y_values)), y_values, "--")
+        #z_values = forecast.predicted[:,0]
+        #plt.plot(range(len(y_values), len(y_values)+len(z_values)), z_values, ":")
+        #plt.show()
+
+        forecast_head = np.array([4.06, 4.04, 4.65, 4.51, 4.23])
+        forecast_tail = np.array([1.11, 1.50, 1.82, 2.67, 3.23])
+
+        # Verify forecast(count_foo) feature, must have sin shape
+        delta = 2.8
+        forecast_good = np.abs(forecast.predicted[:5,0] - forecast_head) <= delta
+        # print(forecast.predicted[:5,0])
+        # print(forecast_head)
+        # print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
+        forecast_good = np.abs(forecast.predicted[-5:,0] - forecast_tail) <= delta
+        # print(forecast.predicted[-5:,0])
+        # print(forecast_tail)
+        # print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
 
     def test_predict_aligned(self):
         self._require_training()
