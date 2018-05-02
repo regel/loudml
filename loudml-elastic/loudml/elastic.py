@@ -219,6 +219,7 @@ class ElasticsearchDataSource(DataSource):
         self.es.indices.put_template(
             name='{}-template'.format(template_name),
             body=template,
+            ignore=400,
         )
 
     def delete_index(self):
