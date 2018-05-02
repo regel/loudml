@@ -1,0 +1,34 @@
+{{
+  "template": "{}*",
+    "mappings": {{
+      "{}": {{
+        "_all": {{
+            "enabled": false
+        }},
+        "_source": {{
+            "enabled": true
+        }},
+        "properties": {{
+          "timestamp": {{ "type": "date" }},
+          "Temperature": {{ "type": "float" , "index": false }},
+          "CO2": {{ "type": "integer" , "index": false }},
+          "Noise": {{ "type": "float" , "index": false }},
+          "Lys": {{ "type": "float" , "index": false }},
+          "Relative humidity": {{ "type": "float" , "index": false }},
+          "Bevegelse": {{ "type": "integer" , "index": false }},
+          "Weekday": {{ "type": "integer" , "index": false }},
+          "Volume": {{ "type": "float" , "index": false }},
+          "Capacity": {{ "type": "integer" , "index": false }},
+          "Booked": {{ "type": "integer" , "index": false }},
+          "Door": {{ "type": "integer" , "index": false }},
+          "NrP": {{ "type": "integer" , "index": false }}
+        }}
+      }}
+    }},
+    "settings": {{
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "codec": "best_compression"
+    }}
+}}
+

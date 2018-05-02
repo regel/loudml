@@ -32,6 +32,7 @@ setup(
     package_data = { '': [
         'paritel.template',
         'cirpack.template',
+        'greenflow.template',
     ]},
 
     install_requires=[
@@ -44,6 +45,7 @@ setup(
         'loudml.import_parsers': [
             'cirpack=loudml.cirpack:CdrParser',
             'paritel=loudml.paritel:CdrParser',
+            'greenflow=loudml.greenflow:GreenflowParser',
         ],
 
     },
