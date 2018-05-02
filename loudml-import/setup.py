@@ -33,6 +33,7 @@ setup(
         'paritel.template',
         'cirpack.template',
         'greenflow.template',
+        'beat.template',
     ]},
 
     install_requires=[
@@ -46,6 +47,7 @@ setup(
             'cirpack=loudml.cirpack:CdrParser',
             'paritel=loudml.paritel:CdrParser',
             'greenflow=loudml.greenflow:GreenflowParser',
+            'beat_dump=loudml.beat_dump:BeatParser',
         ],
 
     },
