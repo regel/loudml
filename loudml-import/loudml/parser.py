@@ -73,9 +73,10 @@ class Parser(metaclass=ABCMeta):
         self.current_file_path = path
         tar = tarfile.open(path)
         for member in tar.getmembers():
-            with tar.extractfile(member) as fp:
-                for data in self.read_csv(fp, None):
-                    yield data
+            if member.isfile():
+                with tar.extractfile(member) as fp:
+                    for data in self.read_csv(fp, None):
+                        yield data
         tar.close()
 
     def process_gzip(self, path):
@@ -109,7 +110,7 @@ class Parser(metaclass=ABCMeta):
             return self.process_csv(path)
         elif path.endswith('.csv.gz'):
             return self.process_gzip(path)
-        elif path.endswith('.tgz'):
+        elif path.endswith('.tgz') or path.endswith('.tar.gz'):
             return self.process_tgz(path)
         elif os.path.isdir(path):
             return self.process_dir(path)
