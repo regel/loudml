@@ -642,7 +642,7 @@ class TimeSeriesModel(Model):
         i = None
         for i, ((_, val, timeval),(_, influence_val, _)) in enumerate(zip(data, influences)):
             if influence_val is not None:
-                dataset[i] = np.concatenate((val, influence_val), axis=1)
+                dataset[i] = np.concatenate((val, influence_val), axis=0)
             else:
                 dataset[i] = val
 
@@ -831,7 +831,7 @@ class TimeSeriesModel(Model):
 
         for i, ((_, val, timeval),(_, influence_val, _)) in enumerate(zip(data, influences)):
             if influence_val is not None:
-                dataset[i] = np.concatenate((val, influence_val), axis=1)
+                dataset[i] = np.concatenate((val, influence_val), axis=0)
             else:
                 dataset[i] = val
 
