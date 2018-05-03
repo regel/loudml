@@ -18,6 +18,7 @@ setup(
 
     packages=[
         'loudml',
+        'rmn_common',
     ],
 
     setup_requires=[

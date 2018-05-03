@@ -38,12 +38,14 @@ setup(
 
     install_requires=[
         'loudml',
+        'pandas',
+        'phonenumbers',
     ],
     entry_points={
         'console_scripts': [
-            'loudml-import=loudml.parser:main',
+            'loudml-import=loudml.import_tool:main',
         ],
-        'loudml.import_parsers': [
+        'rmn_import.parsers': [
             'cirpack=loudml.cirpack:CdrParser',
             'paritel=loudml.paritel:CdrParser',
             'greenflow=loudml.greenflow:GreenflowParser',

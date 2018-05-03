@@ -4,7 +4,7 @@ import dateutil.parser
 import logging
 import json
 
-from .parser import Parser
+from rmn_common.data_import import Parser
 
 class BeatParser(Parser):
     def get_template(self, db_name, measurement):

@@ -8,7 +8,7 @@ import phonenumbers
 from phonenumbers import geocoder
 from phonenumbers import PhoneNumberType, PhoneNumberFormat, NumberParseException
 
-from .parser import Parser
+from rmn_common.data_import import Parser
 
 phonenumbers.PhoneMetadata.load_all()
 

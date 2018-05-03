@@ -4,7 +4,7 @@ import dateutil.parser
 import logging
 import pandas as pd
 
-from .parser import Parser
+from rmn_common.data_import import Parser
 
 class GreenflowParser(Parser):
     def get_template(self, db_name, measurement):
