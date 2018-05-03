@@ -561,7 +561,6 @@ class TimeSeriesModel(Model):
             j = i + self.span
             k = i + self.span + self.forecast_val
             partX = dataset[i:j, :]
-            partY = dataset[j, :]
             partY = np.ravel(dataset[j:k, :len(self.features)])
 
             if not np.isnan(partX).any() and not np.isnan(partY).any():
