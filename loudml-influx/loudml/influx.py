@@ -413,6 +413,8 @@ class InfluxDataSource(DataSource):
         """
 
         ts = make_ts(ts)
+        # suppress None (nothing to save)
+        data = {k: v for k, v in data.items() if v is not None}
 
         entry = {
             'measurement': measurement,
@@ -421,7 +423,8 @@ class InfluxDataSource(DataSource):
         }
         if tags:
             entry['tags'] = tags
-        self.enqueue(entry)
+        if len(data) > 0:
+            self.enqueue(entry)
 
     @catch_query_error
     def send_bulk(self, requests):
