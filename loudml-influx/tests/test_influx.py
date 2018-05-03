@@ -74,8 +74,8 @@ class TestInfluxQuick(unittest.TestCase):
             'addr': ADDR,
             'database': self.db,
         })
-        self.source.delete_db()
-        self.source.create_db()
+        self.source.drop()
+        self.source.init()
 
         self.model = TimeSeriesModel(dict(
             name="test-model",
@@ -114,7 +114,7 @@ class TestInfluxQuick(unittest.TestCase):
         self.source.commit()
 
     def tearDown(self):
-        self.source.delete_db()
+        self.source.drop()
 
     def test_validation(self):
         with self.assertRaises(errors.Invalid):
@@ -203,8 +203,8 @@ class TestInfluxLong(unittest.TestCase):
             'addr': ADDR,
             'database': self.db,
         })
-        self.source.delete_db()
-        self.source.create_db()
+        self.source.drop()
+        self.source.init()
         self.storage = MemStorage()
 
         generator = SinEventGenerator(avg=3, sigma=0.05)
@@ -251,8 +251,8 @@ class TestInfluxFingerprints(loudml.test.TestFingerprints):
             'addr': ADDR,
             'database': self.database,
         })
-        self.source.delete_db()
-        self.source.create_db()
+        self.source.drop()
+        self.source.init()
 
     def __del__(self):
-        self.source.delete_db()
+        self.source.drop()

@@ -211,18 +211,19 @@ class ElasticsearchDataSource(DataSource):
 
         return self._es
 
-    def create_index(self, template_name, template):
+    def init(self, template_name=None, template=None, *args, **kwargs):
         """
         Create index and put template
         """
 
-        self.es.indices.put_template(
-            name='{}-template'.format(template_name),
-            body=template,
-            ignore=400,
-        )
+        if template is not None:
+            self.es.indices.put_template(
+                name='{}-template'.format(template_name),
+                body=template,
+                ignore=400,
+            )
 
-    def delete_index(self):
+    def drop(self):
         """
         Delete index
         """

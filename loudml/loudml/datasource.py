@@ -56,6 +56,12 @@ class DataSource(metaclass=ABCMeta):
     def name(self):
         return self._cfg.get('name')
 
+    def init(self, *args, **kwargs):
+        pass
+
+    def drop(self):
+        pass
+
     def commit(self):
         """
         Send data

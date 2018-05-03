@@ -383,14 +383,14 @@ class InfluxDataSource(DataSource):
         return self._influxdb
 
     @catch_query_error
-    def create_db(self, db=None):
+    def init(self, db=None, *args, **kwargs):
         """
         Create database
         """
         self.influxdb.create_database(db or self.db)
 
     @catch_query_error
-    def delete_db(self, db=None):
+    def drop(self, db=None):
         """
         Delete database
         """

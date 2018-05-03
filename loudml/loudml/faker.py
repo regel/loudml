@@ -43,8 +43,8 @@ def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
     })
 
     if clear:
-        source.delete_db()
-    source.create_db()
+        source.drop()
+    source.init()
 
     tag_dict = {}
     if tags:

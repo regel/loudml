@@ -73,23 +73,18 @@ def main():
             'database': arg.database,
             'index': arg.database,
         })
+
         if arg.flush:
-            delete_db = getattr(source, "delete_db", None)
-            if callable(delete_db):
-                delete_db()
-            delete_index = getattr(source, "delete_index", None)
-            if callable(delete_index):
-                delete_index()
+            source.drop()
 
-        create_db = getattr(source, "create_db", None)
-        if callable(create_db):
-            create_db()
+        kwargs = {}
 
-        create_index = getattr(source, "create_index", None)
-        if callable(create_index):
-            create_index(template_name=arg.database,
-                     template=parser.get_template(db_name=arg.database,
-                                                  measurement=arg.measurement))
+        template = parser.get_template(arg.database, arg.measurement)
+        if template:
+            kwargs['template_name'] = arg.database
+            kwargs['template'] = template
+
+        source.init(**kwargs)
 
         i = None
         for i, (ts, tag_dict, data) in enumerate(parser.run(arg.path)):
