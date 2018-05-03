@@ -192,21 +192,32 @@ class TestTimes(unittest.TestCase):
         model = TimeSeriesModel(dict(
             name='test',
             offset=30,
-            span=17,
-            forecast=5,
+            span=21,
+            forecast=7,
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES[:1],
             threshold=30,
             max_evals=10,
         ))
+        source = MemDataSource()
+        generator = SinEventGenerator(avg=3, sigma=0.01)
+        # Align date range to day interval
+        to_date = datetime.datetime.now().timestamp()
+        to_date = math.floor(to_date / (3600*24)) * (3600*24)
+        from_date = to_date - 3600 * 24 * 7 * 3
+        for ts in generator.generate_ts(from_date, to_date, step=600):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
 
-        model.train(self.source, self.from_date, self.to_date)
-        prediction = model.predict(self.source, self.from_date, self.to_date)
+        model.train(source, from_date, to_date)
+        prediction = model.predict(source, from_date, to_date)
 
-        from_date = self.to_date - model.bucket_interval 
+        from_date = to_date - model.bucket_interval 
         to_date = from_date + 48 * 3600
-        forecast = model.forecast(self.source, from_date, to_date)
+        forecast = model.forecast(source, from_date, to_date)
 
         expected = math.ceil(
             (to_date - from_date) / model.bucket_interval
@@ -229,10 +240,10 @@ class TestTimes(unittest.TestCase):
         all_nans[:] = np.nan
         self.assertEqual(nan_equal(forecast.observed, all_nans), True)
 
-        forecast_head = np.array([[5.89], [6.38], [7.11], [7.69], [8.33]])
-        forecast_tail = np.array([[3.66], [3.82], [4.23], [4.72], [5.32]])
+        forecast_head = np.array([[9.15], [9.64], [10.06], [10.44], [10.71]])
+        forecast_tail = np.array([[8.20], [8.83], [9.30], [9.71], [10.10]])
 
-        # print(forecast.predicted)
+#        print(forecast.predicted)
         delta = 2.8
         forecast_good = np.abs(forecast.predicted[:len(forecast_head)] - forecast_head) <= delta
         # print(forecast_head)
@@ -249,24 +260,33 @@ class TestTimes(unittest.TestCase):
         model = TimeSeriesModel(dict(
             name='test',
             offset=30,
-            span=17,
-            forecast=5,
+            span=21,
+            forecast=7,
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES,
             threshold=30,
             max_evals=10,
         ))
+        source = MemDataSource()
+        generator = SinEventGenerator(avg=3, sigma=0.01)
+        # Align date range to day interval
+        to_date = datetime.datetime.now().timestamp()
+        to_date = math.floor(to_date / (3600*24)) * (3600*24)
+        from_date = to_date - 3600 * 24 * 7 * 3
+        for ts in generator.generate_ts(from_date, to_date, step=600):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
 
-        model.train(self.source, self.from_date, self.to_date)
+        model.train(source, from_date, to_date)
 
-        to_date = self.to_date
-        from_date = to_date - 48 * 3600
         # Verify that predict() is still functional when forecast>1
-        prediction = model.predict(self.source, from_date, to_date)
+        prediction = model.predict(source, to_date - 48 * 3600, to_date)
 
         expected = math.ceil(
-            (to_date - from_date) / model.bucket_interval
+            (48 * 3600) / model.bucket_interval
         )
         self.assertEqual(len(prediction.timestamps), expected)
         self.assertEqual(prediction.observed.shape, (expected, 2))
@@ -284,9 +304,9 @@ class TestTimes(unittest.TestCase):
                 delta=5,
             )
 
-        from_date = self.to_date - model.bucket_interval 
+        from_date = to_date - model.bucket_interval 
         to_date = from_date + 48 * 3600
-        forecast = model.forecast(self.source, from_date, to_date)
+        forecast = model.forecast(source, from_date, to_date)
         expected = math.ceil(
             (to_date - from_date) / model.bucket_interval
         )
@@ -308,30 +328,36 @@ class TestTimes(unittest.TestCase):
         all_nans[:] = np.nan
         self.assertEqual(nan_equal(forecast.observed, all_nans), True)
 
-        forecast_head = np.array([6.33,6.88,7.77,7.95,8.26,9.04,9.55,10.17,10.26,10.23,10.99,11.28,11.43])
+        forecast_head = np.array([9.15, 9.64, 10.06, 10.44, 10.71])
+        forecast_tail = np.array([8.20, 8.83, 9.30, 9.71, 10.10])
 
-        # print(forecast.predicted[:,0])
+#        print(forecast.predicted[:,0])
         # Verify forecast(count_foo) feature, must have sin shape
         delta = 2.8
         forecast_good = np.abs(forecast.predicted[:len(forecast_head),0] - forecast_head) <= delta
-        # print(forecast.predicted[:len(forecast_head),0])
-        # print(forecast_head)
-        # print(forecast_good)
+#        print(forecast.predicted[:len(forecast_head),0])
+#        print(forecast_head)
+#        print(forecast_good)
+        self.assertEqual(np.all(forecast_good), True)
+        forecast_good = np.abs(forecast.predicted[-len(forecast_tail):,0] - forecast_tail) <= delta
+#        print(forecast.predicted[-len(forecast_tail):,0])
+#        print(forecast_tail)
+#        print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
 
         # Verify forecast(avg_foo) feature, must be const noise centered around value=10
         forecast_head = np.array([ 10, 10, 10, 10, 10])
         forecast_tail = np.array([ 10, 10, 10, 10, 10])
         delta = 0.5
-        forecast_good = np.abs(forecast.predicted[:5,1] - forecast_head) <= delta
-        # print(forecast.predicted[:5,1])
-        # print(forecast_head)
-        # print(forecast_good)
+        forecast_good = np.abs(forecast.predicted[:len(forecast_head),1] - forecast_head) <= delta
+#       print(forecast.predicted[:len(forecast_head),1])
+#       print(forecast_head)
+#        print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
-        forecast_good = np.abs(forecast.predicted[-5:,1] - forecast_tail) <= delta
-        # print(forecast.predicted[-5:,1])
-        # print(forecast_tail)
-        # print(forecast_good)
+        forecast_good = np.abs(forecast.predicted[-len(forecast_tail):,1] - forecast_tail) <= delta
+#        print(forecast.predicted[-len(forecast_tail):,1])
+#        print(forecast_tail)
+#        print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
 
     def test_forecast_daytime(self):
@@ -413,13 +439,13 @@ class TestTimes(unittest.TestCase):
 
         # Verify forecast(count_foo) feature, must have sin shape
         delta = 2.8
-        forecast_good = np.abs(forecast.predicted[:5,0] - forecast_head) <= delta
-        # print(forecast.predicted[:5,0])
+        forecast_good = np.abs(forecast.predicted[:len(forecast_head),0] - forecast_head) <= delta
+        # print(forecast.predicted[:len(forecast_head),0])
         # print(forecast_head)
         # print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
-        forecast_good = np.abs(forecast.predicted[-5:,0] - forecast_tail) <= delta
-        # print(forecast.predicted[-5:,0])
+        forecast_good = np.abs(forecast.predicted[-len(forecast_tail):,0] - forecast_tail) <= delta
+        # print(forecast.predicted[-len(forecast_tail):,0])
         # print(forecast_tail)
         # print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
