@@ -841,7 +841,7 @@ class TimeSeriesModel(Model):
 
             ts = dt.timestamp()
             if ts < to_ts - self.bucket_interval:
-                X.append(ts)
+                X.append(timeval)
                 X_until = i + 1
 
         self.apply_defaults(dataset)
