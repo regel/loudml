@@ -23,6 +23,7 @@ from . import (
     schemas,
 )
 
+
 class Feature:
     """
     Model feature
@@ -35,8 +36,8 @@ class Feature:
         'measurement': Any(None, schemas.key),
         'match_all': Any(None, Schema([
             {Required(schemas.key): Any(
-                Boolean(),
                 int,
+                bool,
                 float,
                 All(str, Length(max=256)),
             )},

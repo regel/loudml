@@ -31,6 +31,7 @@ from . import (
     schemas,
     som,
 )
+
 from .misc import (
     make_ts,
     parse_timedelta,
@@ -52,7 +53,7 @@ class Aggregation:
         Required('features'): All([Feature.SCHEMA], Length(min=1)),
         'match_all': Any(None, Schema([
             {Required(schemas.key): Any(
-                Boolean(),
+                bool,
                 int,
                 float,
                 All(str, Length(max=256)),
