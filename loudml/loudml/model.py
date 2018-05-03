@@ -68,6 +68,8 @@ class Feature:
         self.script = script
         self.match_all = match_all
         self.anomaly_type = anomaly_type
+        self.is_input = True
+        self.is_output = True
 
     @classmethod
     def validate(cls, args):
@@ -84,8 +86,14 @@ class Model:
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
-        Optional('features'): All([Feature.SCHEMA], Length(min=1)),
-        Optional('influences'): Any(None, All([Feature.SCHEMA], Length(min=1))),
+        Optional('features'): Any(None,
+            All([Feature.SCHEMA], Length(min=1)),
+            Schema({
+                Optional('i'): All([Feature.SCHEMA], Length(min=1)),
+                Optional('o'): All([Feature.SCHEMA], Length(min=1)),
+                Optional('io'): All([Feature.SCHEMA], Length(min=1)),
+            }),
+        ),
         'routing': Any(None, schemas.key),
         'threshold': schemas.score,
         'max_threshold': schemas.score,
@@ -97,7 +105,6 @@ class Model:
         """
         name -- model settings
         """
-
         settings['type'] = self.TYPE
         settings = copy.deepcopy(settings)
 
@@ -109,16 +116,34 @@ class Model:
         self._state = state
 
         features = settings.get('features')
-        if features is None:
-            self.features = None
-        else:
+        if isinstance(features, list):
             self.features = [Feature(**feature) for feature in features]
+        elif isinstance(features, dict):
+            _in = features.get('i')
+            _out = features.get('o')
+            _in_out = features.get('io')
+            if _in is None:
+                _in = []
+            else:
+                _in = [Feature(**feature) for feature in _in]
+                for feature in _in:
+                    feature.is_input = True
+                    feature.is_output = False
 
-        influences = settings.get('influences')
-        if influences is None:
-            self.influences = []
-        else:
-            self.influences = [Feature(**feature) for feature in influences]
+            if _out is None:
+                _out = []
+            else:
+                _out = [Feature(**feature) for feature in _out]
+                for feature in _out:
+                    feature.is_input = False
+                    feature.is_output = True
+
+            if _in_out is None:
+                _in_out = []
+            else:
+                _in_out = [Feature(**feature) for feature in _in_out]
+
+            self.features = _in_out + _out + _in
 
         self.max_threshold = self.settings.get('max_threshold')
         if self.max_threshold is None:
@@ -148,10 +173,6 @@ class Model:
     @property
     def settings(self):
         return self._settings
-
-    @property
-    def nb_influences(self):
-        return len(self.influences)
 
     @property
     def nb_features(self):

@@ -194,8 +194,10 @@ class TimeSeriesPrediction:
         predicted = {}
 
         for i, feature in enumerate(self.model.features):
-            observed[feature.name] = [self.apply_default(i, x) for x in self.observed[:,i]]
-            predicted[feature.name] = [self.apply_default(i, x) for x in self.predicted[:,i]]
+            if feature.is_input:
+                observed[feature.name] = [self.apply_default(i, x) for x in self.observed[:,i]]
+            if feature.is_output:
+                predicted[feature.name] = [self.apply_default(i, x) for x in self.predicted[:,i]]
 
         result = {
             'timestamps': self.timestamps,
@@ -214,11 +216,11 @@ class TimeSeriesPrediction:
         return {
             'observed': {
                 feature.name: self.apply_default(j, self.observed[i][j])
-                for j, feature in enumerate(features)
+                for j, feature in enumerate(features) if feature.is_input==True
             },
             'predicted': {
                 feature.name: self.apply_default(j, self.predicted[i][j])
-                for j, feature in enumerate(features)
+                for j, feature in enumerate(features) if feature.is_output==True
             },
         }
 
@@ -356,11 +358,6 @@ class TimeSeriesModel(Model):
         """
         return int((to_ts - from_ts) / self.bucket_interval) + 2
 
-    def _empty_times_data(self, from_ts, to_ts):
-        nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
-        for j in range(nb_buckets):
-            yield None, None, None
-
     def apply_defaults(self, x):
         """
         Apply default feature value to np array
@@ -388,15 +385,7 @@ class TimeSeriesModel(Model):
         _maxs = np.max(np.nan_to_num(dataset), axis=0)
         rng = _maxs - _mins
         dataset = 1.0 - (_maxs - dataset) / rng
-        nb_features = len(self.features)
-        input_features = nb_features
-
-        if self.influences is not None:
-            input_features += len(self.influences)
-        if self.seasonality.get('daytime'):
-            input_features += 1
-        if self.seasonality.get('weekday'):
-            input_features += 1
+        input_features = len(self._x_indexes())
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
                      _mins, _maxs, rng)
@@ -557,11 +546,13 @@ class TimeSeriesModel(Model):
         data_x, data_y = [], []
         indexes = []
 
+        x_indexes = self._x_indexes()
+        y_indexes = self._y_indexes()
         for i in range(len(dataset) - self.span - self.forecast_val + 1):
             j = i + self.span
             k = i + self.span + self.forecast_val
-            partX = dataset[i:j, :]
-            partY = np.ravel(dataset[j:k, :len(self.features)])
+            partX = dataset[i:j, x_indexes]
+            partY = np.ravel(dataset[j:k, y_indexes])
 
             if not np.isnan(partX).any() and not np.isnan(partY).any():
                 data_x.append(partX)
@@ -623,28 +614,17 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
         nb_features = len(self.features)
-        nb_influences = len(self.influences)
-        dataset = np.empty((nb_buckets, nb_features+nb_influences), dtype=float)
+        dataset = np.zeros((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
         daytime = np.zeros((nb_buckets, 1), dtype=float)
         weekday = np.zeros((nb_buckets, 1), dtype=float)
 
         # Fill dataset
         data = datasource.get_times_data(self, from_ts, to_ts)
-        if nb_influences > 0:
-            _saved = self.features
-            self.features = self.influences
-            influences = datasource.get_times_data(self, from_ts, to_ts)
-            self.features = _saved
-        else:
-            influences = self._empty_times_data(from_ts, to_ts)
 
         i = None
-        for i, ((_, val, timeval),(_, influence_val, _)) in enumerate(zip(data, influences)):
-            if influence_val is not None:
-                dataset[i] = np.concatenate((val, influence_val), axis=0)
-            else:
-                dataset[i] = val
+        for i, (_, val, timeval) in enumerate(data):
+            dataset[i] = val
 
             dt = make_datetime(timeval)
             daytime[i] = np.array(dt_get_daytime(dt))
@@ -733,6 +713,44 @@ class TimeSeriesModel(Model):
         else:
             return self.forecast_val
 
+    def _xy_indexes(self):
+        """
+        Return array of feature indices that are input and output for training and prediction
+        """
+        ii = set(self._x_indexes()) & set(self._y_indexes())
+        return sorted(list(ii))
+
+    def _y_indexes(self):
+        """
+        Return array of feature indices that are output for training and predictions
+        """
+        all_features = self.features
+        y_indexes = []
+        for index, feature in enumerate(all_features):
+            if feature.is_output == True:
+                y_indexes.append(index)
+
+        return y_indexes
+
+    def _x_indexes(self):
+        """
+        Return array of feature indices that must be input to training
+        """
+        all_features = self.features
+        x_indexes = []
+        for index, feature in enumerate(all_features):
+            if feature.is_input == True:
+                x_indexes.append(index)
+
+        if self.seasonality.get('daytime'):
+            index += 1
+            x_indexes.append(index)
+        if self.seasonality.get('weekday'):
+            index += 1
+            x_indexes.append(index)
+
+        return x_indexes
+
     def _format_dataset_predict(self, dataset):
         """
         Format dataset for time-series prediction
@@ -759,9 +777,10 @@ class TimeSeriesModel(Model):
         data_x = []
         indexes = []
 
+        x_indexes = self._x_indexes()
         for i in range(len(dataset) - self._span + 1):
             j = i + self._span
-            partX = dataset[i:j, :]
+            partX = dataset[i:j, x_indexes]
 
             if not np.isnan(partX).any():
                 data_x.append(partX)
@@ -805,8 +824,8 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
         nb_features = len(self.features)
-        nb_influences = len(self.influences)
-        dataset = np.empty((nb_buckets, nb_features+nb_influences), dtype=float)
+        nb_outputs = len(self._y_indexes())
+        dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
         daytime = np.zeros((nb_buckets, 1), dtype=float)
         weekday = np.zeros((nb_buckets, 1), dtype=float)
@@ -817,23 +836,13 @@ class TimeSeriesModel(Model):
         logging.info("extracting data for range=[%s, %s]",
                      hist_from_str, hist_to_str)
         data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
-        if nb_influences > 0:
-            _saved = self.features
-            self.features = self.influences
-            influences = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
-            self.features = _saved
-        else:
-            influences = self._empty_times_data(hist_from_ts, hist_to_ts)
 
         # Only a subset of history will be used for computing the prediction
         X_until = None # right bound for prediction
         i = None
 
-        for i, ((_, val, timeval),(_, influence_val, _)) in enumerate(zip(data, influences)):
-            if influence_val is not None:
-                dataset[i] = np.concatenate((val, influence_val), axis=0)
-            else:
-                dataset[i] = val
+        for i, (_, val, timeval) in enumerate(data):
+            dataset[i] = val
 
             dt = make_datetime(timeval)
             daytime[i] = np.array(dt_get_daytime(dt))
@@ -854,7 +863,7 @@ class TimeSeriesModel(Model):
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
-            dataset = np.resize(dataset, (nb_buckets_found, nb_features+nb_influences))
+            dataset = np.resize(dataset, (nb_buckets_found, nb_features))
             daytime = np.resize(daytime, (nb_buckets_found, 1))
             weekday = np.resize(weekday, (nb_buckets_found, 1))
 
@@ -874,26 +883,28 @@ class TimeSeriesModel(Model):
             raise errors.LoudMLException("not enough data for prediction")
 
         logging.info("generating prediction")
-        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, nb_features))[:,0,:]
+        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, nb_outputs))[:,0,:]
 
         # XXX: Sometime keras predict negative values, this is unexpected
         Y_[Y_ < 0] = 0
 
         # min/max inverse operation
-        Z_ = _maxs[:nb_features] - rng[:nb_features] * (1.0 - Y_)
+        Z_ = _maxs[:nb_outputs] - rng[:nb_outputs] * (1.0 - Y_)
 
         # Build final result
         timestamps = X[self._span:]
         last_ts = make_ts(X[-1])
         timestamps.append(last_ts + self.bucket_interval)
 
-        shape = (predict_len, nb_features)
+        shape = (predict_len, nb_outputs)
         observed = np.array([self.defaults] * predict_len)
         predicted = np.array([self.defaults] * predict_len)
 
         for i, feature in enumerate(self.features):
-            observed[:,i] = dataset[self._span:][:,i]
-            predicted[j_sel - self._span,i] = Z_[:][:,i]
+            if feature.is_input == True:
+                observed[:,i] = dataset[self._span:][:,i]
+            if feature.is_output == True:
+                predicted[j_sel - self._span,i] = Z_[:][:,i]
 
         return TimeSeriesPrediction(
             self,
@@ -954,6 +965,8 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
         nb_features = len(self.features)
+        y_indexes = self._y_indexes()
+        nb_outputs = len(y_indexes)
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
         daytime = np.zeros((nb_buckets, 1), dtype=float)
@@ -1006,9 +1019,12 @@ class TimeSeriesModel(Model):
         timestamps=[]
         bucket_start = from_ts
         j = 0
+        xy_indexes = np.array(self._xy_indexes())
         while bucket_start < to_ts:
-            Y_ = _keras_model.predict(X).reshape((self._forecast, nb_features))
-            X[:, 0:self._forecast, 0:nb_features] = Y_
+            Y_ = _keras_model.predict(X).reshape((self._forecast, nb_outputs))
+            if len(xy_indexes) > 0:
+                _xy_indexes = xy_indexes - np.min(xy_indexes)
+                X[:, 0:self._forecast, xy_indexes] = Y_[:, _xy_indexes]
             if self.seasonality.get('daytime'):
                 if self.seasonality.get('weekday'):
                     dt_pos = -2
@@ -1038,7 +1054,7 @@ class TimeSeriesModel(Model):
                 X[:, 0:self._forecast, dt_pos] = norm_dt
 
             X = np.roll(X,-self._forecast,axis=1)
-            Z_ = _maxs[:nb_features] - rng[:nb_features] * (1.0 - Y_)
+            Z_ = _maxs[y_indexes] - rng[y_indexes] * (1.0 - Y_)
             for z in range(self._forecast):
                 if bucket_start < to_ts:
                     timestamps.append(ts_to_str(bucket_start))
@@ -1060,15 +1076,15 @@ class TimeSeriesModel(Model):
 
         global _mins, _maxs
 
-        nb_features = len(self.features)
+        nb_output = len(self._y_indexes())
 
         rng = _maxs - _mins
 
         X = observed
         Y = predicted
 
-        X = 1.0 - (_maxs[:nb_features] - X) / rng[:nb_features]
-        Y = 1.0 - (_maxs[:nb_features] - Y) / rng[:nb_features]
+        X = 1.0 - (_maxs[:nb_output] - X) / rng[:nb_output]
+        Y = 1.0 - (_maxs[:nb_output] - Y) / rng[:nb_output]
 
         diff = X - Y
 
