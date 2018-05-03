@@ -165,7 +165,7 @@ class TestTimes(unittest.TestCase):
             span=3,
             bucket_interval=20 * 60,
             interval=60,
-            features=FEATURES,
+            features=FEATURES[:1],
             max_threshold=30,
             min_threshold=25,
             max_evals=1,
