@@ -115,13 +115,13 @@ class TestFingerprints(unittest.TestCase):
             d, i, p = v
             tags=dict()
             tags['caller']=caller
-            tags['international']=i
-            tags['toll_call']=p
 
             self.source.insert_times_data(
                 ts=self.from_ts + j * step,
                 data={
                     'duration': d,
+                    'international': i,
+                    'toll_call': p,
                 },
                 measurement='xdr',
                 tags=tags,
