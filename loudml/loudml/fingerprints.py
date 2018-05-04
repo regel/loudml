@@ -531,23 +531,29 @@ class FingerprintsModel(Model):
 
         return kind, desc
 
-    def show(self):
-        self.load()
+    def show(self, show_summary=False):
+        exn = self.load()
+        if exn:
+            raise(exn)
+
         som_model = self._som_model
         fingerprints = self._state['fingerprints']
         centroids = som_model.centroids()
         result = {
             'fingerprints': fingerprints
         }
-        counts = [0] * (self.w * self.h)
+        counts = np.zeros(shape=(self.h, self.w), dtype=int)
         for fingerprint in fingerprints:
             x, y = fingerprint['location']
-            counts[som_model.location(x,y)] += 1
+            counts[x,y] += 1
+
+        if show_summary == True:
+            return '\n'.join([''.join(['{:3}'.format(cnt) for cnt in row]) for row in counts])
 
         grid = []
         for x in range(self.h):
             for y in range(self.w):
-                cnt = counts[som_model.location(x,y)]
+                cnt = counts[x,y]
                 grid.append({
                     'location': (x, y),
                     'count': cnt,

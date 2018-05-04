@@ -196,12 +196,21 @@ class ShowModelCommand(Command):
             action='store_true',
             dest='show_all',
         )
+        parser.add_argument(
+            '-s', '--statistics',
+            help="Give overall model statistics",
+            action='store_true',
+            dest='show_stats',
+        )
+
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         model = storage.load_model(args.model_name)
         if args.show_all:
             print(json.dumps(model.show(), indent=4))
+        if args.show_stats:
+            print(model.show(show_summary=True))
         else:
             print(json.dumps(model.preview, indent=4))
 
