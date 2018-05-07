@@ -83,6 +83,7 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 %exclude %{python3_sitelib}/loudml/*.py
 %exclude %{python3_sitelib}/loudml/__pycache__
 %{_bindir}/*
+%{python3_sitelib}/rmn_common/*
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml-*.egg-info/*
 
