@@ -72,6 +72,7 @@ done
 
 # LoudML daemon configuration
 install -m 0755 -d %{buildroot}/%{_sysconfdir}/loudml
+install -m 0755 -d %{buildroot}/%{_sysconfdir}/loudml/plugins.d
 install -m 0644 examples/config.yml %{buildroot}/%{_sysconfdir}/loudml/config.yml
 %{__install} -m 0644 -D systemd/loudmld.service %{buildroot}/%{_unitdir}/loudmld.service
 install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml

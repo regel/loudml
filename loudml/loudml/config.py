@@ -2,7 +2,10 @@
 LoudML configuration
 """
 
+import os
+import pkg_resources
 import multiprocessing
+import voluptuous
 import yaml
 
 from . import (
@@ -71,3 +74,25 @@ def load_config(path):
         raise errors.LoudMLException(exn)
 
     return Config(config)
+
+def load_plugins(path):
+    """
+    Load plug-ins
+    """
+
+    if not os.path.isdir(path):
+        path = os.path.dirname(path)
+
+    for ep in pkg_resources.iter_entry_points('loudml.plugins'):
+        try:
+            ep.load()(ep.name, path)
+        except OSError as exn:
+            raise errors.LoudMLException(exn)
+        except yaml.YAMLError as exn:
+            raise errors.LoudMLException(exn)
+        except voluptuous.Invalid as exn:
+            raise errors.Invalid(
+                exn.error_message,
+                name="{} plug-in configuration".format(ep.name),
+                path=exn.path,
+            )

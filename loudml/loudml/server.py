@@ -724,6 +724,7 @@ def main():
     try:
         g_config = loudml.config.load_config(args.config)
         g_storage = FileStorage(g_config.storage['path'])
+        loudml.config.load_plugins(args.config)
     except errors.LoudMLException as exn:
         logging.error(exn)
         sys.exit(1)

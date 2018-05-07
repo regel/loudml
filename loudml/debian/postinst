@@ -22,8 +22,8 @@ case "$1" in
     configure)
         addgroup --system --quiet loudml
         adduser --gecos "Loud ML" --system --quiet --no-create-home --disabled-login loudml
-        mkdir -p /etc/loudml
-        chown loudml.loudml /etc/loudml
+        mkdir -p /etc/loudml/plugins.d
+        chown -R loudml.loudml /etc/loudml
         chmod 2777 /etc/loudml
         mkdir -p /var/lib/loudml
         chown loudml.loudml /var/lib/loudml
