@@ -71,7 +71,7 @@ class CdrParser(Parser):
         self._rates = PhoneRates()
 
     def get_template(self, db_name, measurement):
-        resource = pkg_resources.resource_filename(__name__, 'resources/paritel.template')
+        resource = pkg_resources.resource_filename(__name__, 'resources/phonedb.template')
         content = open(resource, 'rU').read()
         return content.format(db_name, measurement)
 

@@ -31,8 +31,7 @@ setup(
 
     package_data = { '': [
         'phone_rates.csv',
-        'paritel.template',
-        'cirpack.template',
+        'phonedb.template',
         'greenflow.template',
         'beat.template',
     ]},
