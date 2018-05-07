@@ -25,11 +25,26 @@
           "toll_call": {{
             "type": "boolean"
           }},
+          "fraud_level": {{
+            "type": "keyword"
+          }},
+          "pseudo_price": {{
+            "type": "integer", "index": false
+          }},
           "called_number": {{
             "type": "keyword", "index": false
           }},
           "calling_number": {{
             "type": "keyword", "index": false
+          }},
+          "called_number_region": {{
+            "type": "keyword"
+          }},
+          "calling_number_region": {{
+            "type": "keyword"
+          }},
+          "direction" : {{
+            "type" : "long"
           }}
         }}
       }}

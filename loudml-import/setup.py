@@ -30,6 +30,7 @@ setup(
     test_suite='nose.collector',
 
     package_data = { '': [
+        'phone_rates.csv',
         'paritel.template',
         'cirpack.template',
         'greenflow.template',
@@ -40,6 +41,7 @@ setup(
         'loudml',
         'pandas',
         'phonenumbers',
+        'biopython',
     ],
     entry_points={
         'console_scripts': [

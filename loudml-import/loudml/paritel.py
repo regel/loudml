@@ -9,10 +9,11 @@ from phonenumbers import geocoder
 from phonenumbers import PhoneNumberType, PhoneNumberFormat, NumberParseException
 
 from rmn_common.data_import import Parser
+from .phone_rates import PhoneRates
 
 phonenumbers.PhoneMetadata.load_all()
 
-def _parse_number(num, local_region):
+def _parse_number(num, local_region, rates):
     y = phonenumbers.parse(num, local_region)
 
     #if phonenumbers.is_possible_number(y) == False:
@@ -36,18 +37,22 @@ def _parse_number(num, local_region):
     if region_code != local_region:
         international = True
 
+    fraud_level, pricing = rates.get_fraud_level_and_rate(output_num[1:])
+
     return {
         'premium': premium,
         'mobile': mobile,
         'international': international,
         'phonenumber': output_num,
         'region': region_code,
+        'fraud_level': fraud_level,
+        'pricing': pricing,
     }
 
 
-def parse_number(num, local_region):
+def parse_number(num, local_region, rates):
     try:
-        return _parse_number(num, local_region)
+        return _parse_number(num, local_region, rates)
     except phonenumbers.phonenumberutil.NumberParseException as exn:
         logging.error("invalid number: %s", num)
         return {
@@ -56,9 +61,15 @@ def parse_number(num, local_region):
             'international': False,
             'phonenumber': num,
             'region': 'INVALID',
+            'fraud_level': 'A',
+            'pricing': 1,
         }
 
 class CdrParser(Parser):
+    def __init__(self):
+        super().__init__()
+        self._rates = PhoneRates()
+
     def get_template(self, db_name, measurement):
         resource = pkg_resources.resource_filename(__name__, 'resources/paritel.template')
         content = open(resource, 'rU').read()
@@ -72,19 +83,33 @@ class CdrParser(Parser):
             print(row)
             raise ValueError
 
-        caller = parse_number(row['calling_number'], 'FR')
-        callee = parse_number(row['called_number'], 'FR')
+        total_call_duration = int(row['call_duration'])
+        calling_dict = parse_number(row['calling_number'], 'FR', self._rates)
+        called_dict = parse_number(row['called_number'], 'FR', self._rates)
+        calling_number = calling_dict['phonenumber']
+        called_number = called_dict['phonenumber']
+        calling_number_international = calling_dict['international']
+        calling_number_region = calling_dict['region']
+        called_number_international = called_dict['international']
+        called_number_region = called_dict['region']
+
+        fraud_level = called_dict['fraud_level']
+        pricing = called_dict['pricing']
 
         tag_dict = {
             'account': row['account_ref'],
         }
         row_data = {
-            'calling_number': caller['phonenumber'],
-            'called_number': callee['phonenumber'],
-            'duration': int(row['call_duration']),
-            'mobile': callee['mobile'],
-            'international': callee['international'],
-            'toll_call': callee['premium'],
+            'calling_number': calling_number,
+            'calling_number_region': calling_number_region,
+            'called_number': called_number,
+            'called_number_region': called_number_region,
+            'duration': total_call_duration,
+            'fraud_level': fraud_level,
+            'pseudo_price': pricing * total_call_duration/60,
+            'mobile': called_dict['mobile'],
+            'international': called_dict['international'],
+            'toll_call': called_dict['premium'],
         }
         return int(ts.timestamp()), tag_dict, row_data
 
