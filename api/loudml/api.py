@@ -17,14 +17,72 @@
 LoudML public API
 """
 
+import os
+import yaml
+
+from voluptuous import (
+    ALLOW_EXTRA,
+    Any,
+    Schema,
+)
+
+def validate(schema, data):
+    """
+    Validate data against a schema
+    """
+    return schema(data) if schema else data
+
+class Plugin:
+    """
+    Base class for LoudML plug-in
+    """
+
+    CONFIG_SCHEMA = None
+    instance = None
+
+    def __init__(self, name, config_dir):
+        self.set_instance(self)
+        self.name = name
+        self.config = None
+        path = os.path.join(config_dir, 'plugins.d', '{}.yml'.format(name))
+
+        try:
+            with open(path) as config_file:
+                config = yaml.load(config_file)
+        except FileNotFoundError:
+            # XXX No config or plug-in disabled
+            return
+
+        self.config = self.validate(config)
+
+    @classmethod
+    def validate(cls, config):
+        """
+        Validate plug-in configuration
+        """
+        return validate(cls.CONFIG_SCHEMA, config)
+
+    @classmethod
+    def set_instance(cls, instance):
+        cls.instance = instance
+
+
 class Hook:
     """
     Generate notification
     """
+    CONFIG_SCHEMA = None
 
     def __init__(self, name, config=None):
         self.name = name
-        self.config = config
+        self.config = self.validate(config)
+
+    @classmethod
+    def validate(cls, config):
+        """
+        Validate hook configuration
+        """
+        return validate(cls.CONFIG_SCHEMA, config)
 
     def on_anomaly(self, model, timestamp, score, predicted, observed, **kwargs):
         """
