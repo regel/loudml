@@ -591,7 +591,7 @@ class FingerprintsModel(Model):
 
         fps = {
             fingerprint['key']: fingerprint
-            for fingerprint in self.state['fingerprints']
+            for fingerprint in self._state['fingerprints']
         }
 
         prediction.changed = []
