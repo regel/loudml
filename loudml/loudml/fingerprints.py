@@ -308,6 +308,37 @@ class FingerprintsModel(Model):
         fp['fingerprint'] = [0] * len(fp['fingerprint'])
         self._state['fingerprints'].append(fp)
 
+    def _norm_features(
+        self,
+        x,
+        from_ts,
+        to_ts,
+    ):
+        if self.is_trained:
+            training_from_ts = make_ts(self._state['from_date'])
+            training_to_ts = make_ts(self._state['to_date'])
+        else:
+            training_from_ts = from_ts
+            training_to_ts = to_ts
+
+        training_time_range = training_to_ts - training_from_ts
+        time_range = to_ts - from_ts
+        norm_time_range = np.empty(shape=(self.nb_quadrants, self.nb_features), dtype=float)
+        norm_time_range[:] = np.nan
+
+        for quad_num in range(self.nb_quadrants):
+            for i, feature in enumerate(self.features):
+                if feature.metric == 'count':
+                    norm_time_range[quad_num, i] = training_time_range / time_range
+                elif feature.metric == 'sum':
+                    norm_time_range[quad_num, i] = training_time_range / time_range
+                else:
+                    norm_time_range[quad_num, i] = 1.0
+
+        norm_time_range = np.ravel(norm_time_range)
+        norm_x = np.nan_to_num((x*norm_time_range - self._means) / self._stds) 
+        return norm_x 
+
     def _build_fingerprints(
         self,
         dataset,
@@ -320,7 +351,7 @@ class FingerprintsModel(Model):
 
         for i, x in enumerate(mapped):
             key = keys[i]
-            _fingerprint = np.nan_to_num((dataset[i] - self._means) / self._stds)
+            _fingerprint = self._norm_features(dataset[i], from_ts, to_ts)
             fingerprints.append({
                 'key': key,
                 'time_range': (int(from_ts), int(to_ts)),
@@ -452,10 +483,8 @@ class FingerprintsModel(Model):
             'state': state,
         }
 
-    def _map_dataset(self, dataset):
-        zY = np.nan_to_num((dataset - self._means) / self._stds)
-
-        # Hyperparameters
+    def _map_dataset(self, dataset, from_ts, to_ts):
+        zY = self._norm_features(dataset, from_ts, to_ts)
         mapped = self._som_model.map_vects(zY)
         return mapped
 
@@ -501,6 +530,8 @@ class FingerprintsModel(Model):
 
         mapped = self._map_dataset(
             dataset,
+            from_ts,
+            to_ts,
         )
 
         fingerprints = self._build_fingerprints(
