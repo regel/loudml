@@ -202,17 +202,27 @@ class ShowModelCommand(Command):
             action='store_true',
             dest='show_stats',
         )
-
+        parser.add_argument(
+            '-y', '--yaml',
+            help="Dump in yaml format",
+            action='store_true',
+        )
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         model = storage.load_model(args.model_name)
         if args.show_all:
-            print(json.dumps(model.show(), indent=4))
-        if args.show_stats:
+            if args.yaml:
+                print(yaml.dump(model.show(), default_flow_style=False))
+            else:
+                print(json.dumps(model.show(), indent=4))
+        elif args.show_stats:
             print(model.show(show_summary=True))
         else:
-            print(json.dumps(model.preview, indent=4))
+            if args.yaml:
+                print(yaml.dump(model.preview, default_flow_style=False))
+            else:
+                print(json.dumps(model.preview, indent=4))
 
 
 class TrainCommand(Command):
