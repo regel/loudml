@@ -274,6 +274,8 @@ class FingerprintsModel(Model):
         # https://en.wikipedia.org/wiki/Feature_scaling
         self._means = np.mean(dataset, axis=0)
         self._stds = np.std(dataset, axis=0)
+        # force std=1.0 (normal distribution) if std is null
+        self._stds[self._stds == 0] = 1.0
         zY = np.nan_to_num((dataset - self._means) / self._stds)
 
         # Hyperparameters
