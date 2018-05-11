@@ -7,12 +7,18 @@ import json
 import logging
 import math
 import sys
+import os
+
+from itertools import repeat
 
 assert sys.version.startswith('3')
 
 _MAX_INT = sys.maxsize
 
 import numpy as np
+
+float_formatter = lambda x: "%.2f" % x
+np.set_printoptions(formatter={'float_kind':float_formatter})
 
 from voluptuous import (
     ALLOW_EXTRA,
@@ -37,6 +43,8 @@ from .misc import (
     parse_timedelta,
     ts_to_str,
     build_agg_name,
+    Pool,
+    chunks,
 )
 from .model import (
     Model,
@@ -106,6 +114,20 @@ class FingerprintsPrediction:
 
     def __str__(self):
         return json.dumps(self.format(), indent=4)
+
+
+def predict_scores(args):
+    model, source, key, date_range = args
+    model.load()
+    prediction = model.predict(
+        source,
+        date_range[0],
+        date_range[1],
+        key,
+    )
+    model.detect_anomalies(prediction)
+    model.unload()
+    return prediction
 
 
 class FingerprintsModel(Model):
@@ -457,6 +479,10 @@ class FingerprintsModel(Model):
             'to_date': ts_to_str(to_ts),
         }
 
+    def unload(self):
+        del self._som_model
+        self._som_model = None
+
     def load(self):
         if not self.is_trained:
             return errors.ModelNotTrained()
@@ -548,6 +574,94 @@ class FingerprintsModel(Model):
             fingerprints=fingerprints,
         )
 
+
+    def predict_ranges(
+        self,
+        datasource,
+        date_ranges,
+        key_val=None,
+    ):
+        self.load()
+
+        for from_date, to_date in date_ranges:
+            from_ts = make_ts(from_date)
+            to_ts = make_ts(to_date)
+    
+            # Fixup range to be sure that it is a multiple of interval
+            from_ts = math.floor(from_ts / self.interval) * self.interval
+            to_ts = math.ceil(to_ts / self.interval) * self.interval
+    
+            from_str = ts_to_str(from_ts)
+            to_str = ts_to_str(to_ts)
+    
+            logging.info("predict(%s) range=[%s, %s]",
+                         self.name, from_str, to_str)
+    
+            # Fill dataset
+            features_dicts=[]
+            for agg_num, agg in enumerate(self.aggs):
+                data = datasource.get_quadrant_data(self, agg, from_ts, to_ts, key_val)
+                data = {key:val for key, val in data}
+
+                features = dict()
+                for key, val in data.items():
+                    features[key] = self.format_quadrants(val, agg)
+                features_dicts.append(features)
+    
+            keys, dataset = self._make_dataset(features_dicts)
+            if len(keys) == 0:
+                logging.warning(errors.NoData("no data found for time range {}-{}".format(
+                    from_str,
+                    to_str,
+                )))
+                yield FingerprintsPrediction(
+                    from_ts=from_ts,
+                    to_ts=to_ts,
+                    fingerprints=[],
+                )
+                continue
+    
+            logging.info("found %d keys", len(keys))
+    
+            mapped = self._map_dataset(
+                dataset,
+                from_ts,
+                to_ts,
+            )
+    
+            fingerprints = self._build_fingerprints(
+                dataset,
+                mapped,
+                keys,
+                from_ts,
+                to_ts,
+            )
+    
+            yield FingerprintsPrediction(
+                from_ts=from_ts,
+                to_ts=to_ts,
+                fingerprints=fingerprints,
+            )
+
+    def predict_ranges_and_scores(
+        self,
+        datasource,
+        date_ranges,
+        key_val=None,
+        cpu_count=os.cpu_count(),
+    ):
+        pool = Pool()
+        for _date_ranges in chunks(date_ranges, size=cpu_count):
+            local_ranges = list(_date_ranges)
+            local_args = zip(repeat(self, len(local_ranges)), \
+                             repeat(datasource, len(local_ranges)), \
+                             repeat(key_val, len(local_ranges)), \
+                             local_ranges)
+            res = pool.map(predict_scores, local_args)
+            for prediction in sorted(res, key=lambda x: x.from_ts):
+                yield prediction
+
+        pool.close()
 
     def show(self, show_summary=False):
         exn = self.load()

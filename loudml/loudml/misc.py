@@ -220,6 +220,12 @@ def make_bool(mixed):
 
     raise ValueError
 
+def get_date_ranges(from_ts, max_ts, span, interval):
+    while (from_ts + span) < max_ts:
+        to_ts = from_ts + span
+        yield ts_to_str(from_ts), ts_to_str(to_ts)
+        from_ts += interval
+
 def deepsizeof(obj_0):
     """
     Compute object size recursively
