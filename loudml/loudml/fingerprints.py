@@ -117,7 +117,6 @@ class FingerprintsModel(Model):
         Required('height'): All(int, Range(min=1)),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('span'): schemas.TimeDelta(min=0, min_included=False),
-        Optional('use_daytime', default=False): Boolean(),
         Optional('daytime_interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('aggregations'): All([Aggregation.SCHEMA], Length(min=1)),
         'offset': schemas.TimeDelta(min=0),
@@ -152,10 +151,6 @@ class FingerprintsModel(Model):
             self._stds = np.array(state['stds'])
 
         self._som_model = None
-
-    @property
-    def use_daytime(self):
-        return self.settings.get('use_daytime') or False
 
     @property
     def type(self):
@@ -593,13 +588,6 @@ class FingerprintsModel(Model):
                 prediction.changed.append(key)
                 continue
 
-            time_span = fp['time_range'][1] - fp['time_range'][0]
-
-            if time_span < self.span:
-                # signature is shorter than minimum span
-                prediction.changed.append(key)
-                continue
-
             dist, score = self._som_model.distance(
                 fp['location'],
                 fp_pred['location'],
@@ -614,8 +602,6 @@ class FingerprintsModel(Model):
 
             stats = {
                 'score': score,
-                'max_score': score,
-                'uuid': '',
                 'kind': kind,
                 'description': desc,
             }

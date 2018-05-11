@@ -30,7 +30,6 @@ class TestFingerprints(unittest.TestCase):
             interval=60,
             span="24h",
             timestamp_field="@timestamp",
-            use_daytime=True,
             daytime_interval="6h",
             offset="30s",
             aggregations=
