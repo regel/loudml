@@ -7,10 +7,11 @@ import os
 import logging
 import multiprocessing
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 import numpy as np
-from scipy.spatial.distance import pdist
- 
+from scipy.stats import norm
+
 # fix random seed for reproducibility.
 # np.random.seed(7)
 from random import shuffle
@@ -216,7 +217,6 @@ class SOM(object):
         self._centroid_grid = centroid_grid
  
         self._tree = spatial.cKDTree(self._weightages)
-        self._pdist = np.percentile(pdist(self._weightages), 99)
         self._trained = True
  
     def get_centroids(self):
@@ -249,20 +249,28 @@ class SOM(object):
  
         return to_return
 
-    def distance(self,
+    def get_scores(self,
                  x,
                  y,
+                 low_highs,
         ):
-        xl = x[0] * self._n + x[1] 
+        xl = self.location(x[0], x[1])
         x = self._weightages[xl]
-        yl = y[0] * self._n + y[1] 
+        yl = self.location(y[0], y[1])
         y = self._weightages[yl]
-        dist = np.linalg.norm(x - y)
-        score = int(100 * dist / self._pdist) if self._pdist > 0 else 0
-        if score > 100:
-            score = 100
+        _norm = norm() 
+        scores = 100 * (2 * _norm.cdf(abs(x - y)) - 1)
+        diff = y - x 
+        scores[diff < 0] *= -1
 
-        return dist.item(), score
+        for i, ano_type in enumerate(low_highs):
+            if ano_type == 'low':
+                scores[i] = -min(scores[i], 0)
+            elif ano_type == 'high':
+                scores[i] = max(scores[i], 0)
+        scores = np.clip(scores, 0, 100)
+
+        return scores
 
     def location(self, x, y):
         return x * self._n + y
@@ -290,7 +298,6 @@ class SOM(object):
         self._centroid_grid = centroid_grid
 
         self._tree = spatial.cKDTree(self._weightages)
-        self._pdist = np.percentile(pdist(self._weightages), 99)
         self._trained = True
 
 def serialize_model(som_model):

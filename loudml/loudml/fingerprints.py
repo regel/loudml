@@ -497,43 +497,6 @@ class FingerprintsModel(Model):
             fingerprints=fingerprints,
         )
 
-    def _annotate_col(self, j):
-        quad_num = int(j / self.nb_features)
-        quadrant = "%s-%s" % (int(quad_num*24*3600/self.nb_quadrants), int((quad_num+1)*24*3600/self.nb_quadrants))
-        feature = self.feature_names[int(j) % self.nb_features]
-        return quadrant, feature
-
-    def get_description(self, Yc, Yo, yc, yo):
-        Yc = np.array(Yc)
-        Yo = np.array(Yo)
-        yc = np.array(yc)
-        yo = np.array(yo)
-
-        try:
-            diff = (Yc - Yo) / np.abs(Yo)
-            diff[np.isinf(diff)] = np.nan
-            max_arg = np.nanargmax(np.abs(diff))
-            max_val = diff[max_arg]
-            quadrant, feature = self._annotate_col(max_arg)
-            mul = int(max_val)
-            if mul < 0:
-                kind = 'Low'
-                desc = "Low {} in range {}. "\
-                       "Actual={} Typical={}".format(
-                    feature, quadrant, yc[max_arg], yo[max_arg]
-                )
-            else:
-                kind = 'High'
-                desc = "High {} in range {}. "\
-                       "Actual={} Typical={}".format(
-                    feature, quadrant, yc[max_arg], yo[max_arg]
-                )
-        except ValueError:
-            # FIXME: catching this exception here may mask some bugs.
-            # Explanations needed.
-            kind, desc = 'None', 'None'
-
-        return kind, desc
 
     def show(self, show_summary=False):
         exn = self.load()
@@ -573,8 +536,7 @@ class FingerprintsModel(Model):
         predicted by the model
         """
 
-        if not self.is_trained:
-            return errors.ModelNotTrained()
+        self.load()
 
         fps = {
             fingerprint['key']: fingerprint
@@ -584,6 +546,8 @@ class FingerprintsModel(Model):
         prediction.changed = []
         prediction.anomalies = []
 
+        low_highs = [feature.anomaly_type for feature in self.features]
+
         for fp_pred in prediction.fingerprints:
             key = fp_pred['key']
             fp = fps.get(key)
@@ -591,24 +555,25 @@ class FingerprintsModel(Model):
             if fp is None:
                 # signature = initial. We haven't seen this key during training
                 prediction.changed.append(key)
+                fp_pred['stats'] = {
+                    'scores': [],
+                    'score': 0.0,
+                    'anomaly': False,
+                }
                 continue
 
-            dist, score = self._som_model.distance(
+            scores = self._som_model.get_scores(
                 fp['location'],
                 fp_pred['location'],
+                low_highs,
             )
-
-            kind, desc = self.get_description(
-                fp_pred['_fingerprint'],
-                fp['_fingerprint'],
-                fp_pred['fingerprint'],
-                fp['fingerprint'],
-            )
+            logging.info("scores for {} = {}".format(key, scores))
+            max_arg = np.nanargmax(scores)
+            score = scores[max_arg]
 
             stats = {
-                'score': score,
-                'kind': kind,
-                'description': desc,
+                'scores': scores.tolist(),
+                'score': score.item(),
             }
 
             if score >= self.max_threshold:
