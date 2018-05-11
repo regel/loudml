@@ -256,10 +256,10 @@ class FingerprintsModel(Model):
                 _sum_of_squares = sum_of_squares[_pos]
 
                 if _count > 0:
-                    _variance = math.sqrt(_sum_of_squares / _count - (_sum/_count) ** 2)
                     if feature.metric == 'avg':
                         res[_pos] = _sum / _count
                     elif feature.metric == 'stddev':
+                        _variance = math.sqrt(_sum_of_squares / _count - (_sum/_count) ** 2)
                         res[_pos] = _variance
 
         return res
