@@ -402,6 +402,8 @@ class FingerprintsModel(Model):
             'index': model_index,
             'meta': model_meta,
             'fingerprints': fingerprints,
+            'from_date': ts_to_str(from_ts),
+            'to_date': ts_to_str(to_ts),
         }
 
     def load(self):
