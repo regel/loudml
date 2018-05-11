@@ -229,3 +229,59 @@ class TestFingerprints(unittest.TestCase):
             self.assertEqual(len(fp['fingerprint']), 36)
 
             self.assertEqual(fp['fingerprint'], self.expected_fp[fp['key']])
+
+
+    def test_count_sum_min_max(self):
+        model = FingerprintsModel(dict(
+            name='test',
+            key='caller',
+            max_keys=1024,
+            height=50,
+            width=50,
+            interval=60,
+            span="24h",
+            timestamp_field="@timestamp",
+            daytime_interval="24h",
+            offset="30s",
+            aggregations=
+              [dict(
+                measurement="xdr",
+                features=[
+                  dict(
+                    field="duration",
+                    name="count-all",
+                    metric="count"
+                  ),
+                  dict(
+                    field="duration",
+                    name="sum-all",
+                    metric="sum"
+                  ),
+                  dict(
+                    field="duration",
+                    name="min-all-duration",
+                    metric="min"
+                  ),
+                  dict(
+                    field="duration",
+                    name="max-all-duration",
+                    metric="max"
+                  )
+                ]
+              )],
+        ))
+
+        model.train(self.source, self.from_ts, self.to_ts)
+        prediction = model.predict(
+            self.source,
+            self.from_ts,
+            self.to_ts,
+        )
+        fps = prediction.format()['fingerprints']
+
+        self.assertEqual(fps['33601020304']['fingerprint'], [ 7.0, 3345.0,  5.0, 1200.0])
+        self.assertEqual(fps['33612345678']['fingerprint'], [10.0,  720.0, 30.0,  150.0])
+        self.assertEqual(fps['33688774455']['fingerprint'], [ 4.0, 2025.0,  5.0, 1200.0])
+
+
+    
