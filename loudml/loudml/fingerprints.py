@@ -288,6 +288,26 @@ class FingerprintsModel(Model):
         # Map vectors to their closest neurons
         return self._som_model.map_vects(zY)
 
+    def set_fingerprint(
+        self,
+        key,
+        fp,
+    ):
+        fps = {
+            fingerprint['key']: fingerprint
+            for fingerprint in self._state['fingerprints']
+        }
+        fps[key] = fp
+        self._state['fingerprints'] = [val for key, val in fps.items()]
+ 
+    def add_fingerprint(
+        self,
+        fp,
+    ):
+        fp['_fingerprint'] = [0] * len(fp['_fingerprint'])
+        fp['fingerprint'] = [0] * len(fp['fingerprint'])
+        self._state['fingerprints'].append(fp)
+
     def _build_fingerprints(
         self,
         dataset,
