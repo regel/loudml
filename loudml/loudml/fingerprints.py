@@ -88,10 +88,15 @@ class FingerprintsPrediction:
         self.anomalies = None
 
     def format(self):
+        fps = {
+            fingerprint['key']: fingerprint
+            for fingerprint in self.fingerprints
+        }
+
         result = {
             'from_date': ts_to_str(self.from_ts),
             'to_date': ts_to_str(self.to_ts),
-            'fingerprints': self.fingerprints,
+            'fingerprints': fps,
         }
         if self.changed is not None:
             result['changed'] = self.changed
