@@ -1224,3 +1224,312 @@ class TestTimes(unittest.TestCase):
         anomalies = buckets[2]['stats']['anomalies']
         self.assertEqual(len(anomalies), 1)
         self.assertEqual(anomalies['avg_baz']['type'], 'low')
+
+
+    def test_model_dict(self):
+        """
+        This test is meant to detect internal errors,
+        not to test the actual predicted values.
+        """
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=5,
+            forecast=1,
+            bucket_interval=20 * 60,
+            interval=60,
+            seasonality={
+                'daytime': False,
+                'weekday': False,
+            },
+            features=dict(
+                i=[
+                  {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+                o=[
+                  {
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+            ),
+            threshold=30,
+            max_evals=1,
+        ))
+        model.train(self.source, self.from_date, self.to_date)
+        self.assertTrue(model.is_trained)
+
+        from_date = self.to_date - 48 * 3600
+        to_date = self.to_date
+        prediction = model.predict(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        series = prediction.format_series()
+        self.assertTrue(isinstance(series['timestamps'], list))
+        self.assertEqual(len(series['observed'].keys()), 1)
+        self.assertTrue(isinstance(series['observed']['avg_foo'], list))
+        self.assertEqual(len(series['predicted'].keys()), 1)
+        self.assertTrue(isinstance(series['predicted']['count_foo'], list))
+
+        from_date = self.to_date - model.bucket_interval
+        to_date = self.to_date + 24 * 3600
+        prediction = model.forecast(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        for bucket in prediction.format_buckets():
+            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
+            self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
+
+    def test_model_dict2(self):
+        """
+        This test is meant to detect internal errors,
+        not to test the actual predicted values.
+        """
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=5,
+            forecast=1,
+            bucket_interval=20 * 60,
+            interval=60,
+            seasonality={
+                'daytime': False,
+                'weekday': False,
+            },
+            features=dict(
+                io=[
+                  {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+                o=[
+                  {
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+            ),
+            threshold=30,
+            max_evals=1,
+        ))
+        model.train(self.source, self.from_date, self.to_date)
+        self.assertTrue(model.is_trained)
+
+        from_date = self.to_date - 48 * 3600
+        to_date = self.to_date
+        prediction = model.predict(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        series = prediction.format_series()
+        self.assertTrue(isinstance(series['timestamps'], list))
+        self.assertEqual(len(series['observed'].keys()), 1)
+        self.assertTrue(isinstance(series['observed']['avg_foo'], list))
+        self.assertEqual(len(series['predicted'].keys()), 2)
+        self.assertTrue(isinstance(series['predicted']['count_foo'], list))
+        self.assertTrue(isinstance(series['predicted']['avg_foo'], list))
+
+        from_date = self.to_date - model.bucket_interval
+        to_date = self.to_date + 24 * 3600
+        prediction = model.forecast(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        for bucket in prediction.format_buckets():
+            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
+            self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
+            self.assertTrue(isinstance(bucket['predicted']['avg_foo'], float))
+
+    def test_model_dict3(self):
+        """
+        This test is meant to detect internal errors,
+        not to test the actual predicted values.
+        """
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=5,
+            forecast=1,
+            bucket_interval=20 * 60,
+            interval=60,
+            seasonality={
+                'daytime': True,
+                'weekday': False,
+            },
+            features=dict(
+                i=[
+                  {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+                o=[
+                  {
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+            ),
+            threshold=30,
+            max_evals=1,
+        ))
+        model.train(self.source, self.from_date, self.to_date)
+        self.assertTrue(model.is_trained)
+
+        from_date = self.to_date - 48 * 3600
+        to_date = self.to_date
+        prediction = model.predict(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        series = prediction.format_series()
+        self.assertTrue(isinstance(series['timestamps'], list))
+        self.assertEqual(len(series['observed'].keys()), 1)
+        self.assertTrue(isinstance(series['observed']['avg_foo'], list))
+        self.assertEqual(len(series['predicted'].keys()), 1)
+        self.assertTrue(isinstance(series['predicted']['count_foo'], list))
+
+        from_date = self.to_date - model.bucket_interval
+        to_date = self.to_date + 24 * 3600
+        prediction = model.forecast(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        for bucket in prediction.format_buckets():
+            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
+            self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
+
+    def test_model_dict4(self):
+        """
+        This test is meant to detect internal errors,
+        not to test the actual predicted values.
+        """
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=5,
+            forecast=1,
+            bucket_interval=20 * 60,
+            interval=60,
+            seasonality={
+                'daytime': True,
+                'weekday': True,
+            },
+            features=dict(
+                io=[
+                  {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+                o=[
+                  {
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                  },
+                ],
+            ),
+            threshold=30,
+            max_evals=1,
+        ))
+        model.train(self.source, self.from_date, self.to_date)
+        self.assertTrue(model.is_trained)
+
+        from_date = self.to_date - 48 * 3600
+        to_date = self.to_date
+        prediction = model.predict(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        series = prediction.format_series()
+        self.assertTrue(isinstance(series['timestamps'], list))
+        self.assertEqual(len(series['observed'].keys()), 1)
+        self.assertTrue(isinstance(series['observed']['avg_foo'], list))
+        self.assertEqual(len(series['predicted'].keys()), 2)
+        self.assertTrue(isinstance(series['predicted']['count_foo'], list))
+        self.assertTrue(isinstance(series['predicted']['avg_foo'], list))
+
+        from_date = self.to_date - model.bucket_interval
+        to_date = self.to_date + 24 * 3600
+        prediction = model.forecast(self.source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 2))
+        self.assertEqual(prediction.predicted.shape, (expected, 2))
+
+        for bucket in prediction.format_buckets():
+            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
+            self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
+            self.assertTrue(isinstance(bucket['predicted']['avg_foo'], float))
