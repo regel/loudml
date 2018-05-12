@@ -1,0 +1,18 @@
+bucket_interval: 10m
+default_datasource: iot_datasource
+features:
+  i:
+  - {field: CO2, measurement: room, metric: mean, name: mean_CO2}
+  - {field: Noise, measurement: room, metric: mean, name: mean_Noise}
+  o:
+  - {field: NrP, measurement: room, metric: mean, name: mean_NrP}
+forecast: 1
+interval: 1m
+max_evals: 1
+name: nbpeople-model
+offset: 30s
+seasonality: {daytime: false, weekday: false}
+span: 3
+threshold: 50
+type: timeseries
+
