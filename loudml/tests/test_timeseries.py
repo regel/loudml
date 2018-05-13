@@ -24,10 +24,13 @@ from loudml.timeseries import (
     TimeSeriesModel,
     TimeSeriesPrediction,
 )
+from loudml.model import Feature
+
 from loudml.memdatasource import MemDataSource
 from loudml.filestorage import TempStorage
 from loudml.misc import (
     make_datetime,
+    make_ts,
     dt_get_daytime,
     dt_get_weekday,
 )
@@ -1533,3 +1536,94 @@ class TestTimes(unittest.TestCase):
             self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['avg_foo'], float))
+
+    def test_model_nl(self):
+        """
+        Test real world data
+        """
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=3,
+            forecast=1,
+            bucket_interval="10m",
+            interval=60,
+            seasonality={
+                'daytime': False,
+                'weekday': False,
+            },
+            features=dict(
+                i=[
+                  {
+                   'name': 'mean_CO2',
+                   'metric': 'avg',
+                   'field': 'CO2',
+                  },
+                  {
+                   'name': 'mean_Noise',
+                   'metric': 'avg',
+                   'field': 'Noise',
+                  },
+                ],
+                o=[
+                  {
+                   'name': 'mean_NrP',
+                   'metric': 'avg',
+                   'field': 'NrP',
+                   'default': 0,
+                  },
+                ],
+            ),
+            threshold=30,
+            max_evals=10,
+        ))
+
+        source = MemDataSource()
+        source.load_csv('loudml/tests/resources/nl.csv.gz',
+                        encoding="utf-8",
+                        timestamp_field="DT",
+                        delimiter=";")
+        from_date = "2018-03-12 00:00"
+        to_date = "2018-03-19 00:00"
+        model.train(source, from_date, to_date)
+        self.assertTrue(model.is_trained)
+
+        prediction = model.predict(source, from_date, to_date)
+
+        expected = math.ceil(
+            (make_ts(to_date) - make_ts(from_date)) / model.bucket_interval
+        )
+
+        self.assertEqual(len(prediction.timestamps), expected)
+        self.assertEqual(prediction.observed.shape, (expected, 3))
+        self.assertEqual(prediction.predicted.shape, (expected, 3))
+
+        series = prediction.format_series()
+        self.assertTrue(isinstance(series['timestamps'], list))
+        self.assertEqual(len(series['observed'].keys()), 2)
+        self.assertTrue(isinstance(series['observed']['mean_CO2'], list))
+        self.assertTrue(isinstance(series['observed']['mean_Noise'], list))
+        self.assertEqual(len(series['predicted'].keys()), 1)
+        self.assertTrue(isinstance(series['predicted']['mean_NrP'], list))
+
+        features=[Feature(name='mean_NrP', metric='avg', field='NrP', default=0)]
+        rows = source._get_times_data(bucket_interval=model.bucket_interval,
+                                      from_date=from_date,
+                                      to_date=to_date,
+                                      features=features)
+        y_values = []
+        for _, y, _ in rows:
+            y_values.append(y)
+
+        y_values = np.array(y_values)
+        z_values = prediction.predicted[:,0]
+        for i, z in enumerate(z_values):
+            z_values[i] = int(z)
+
+        self.assertTrue(np.mean(y_values - z_values) <= 0.4)
+
+#        import matplotlib.pylab as plt
+#        plt.rcParams["figure.figsize"] = (17, 9)
+#        plt.plot(y_values, "--")
+#        plt.plot(z_values, ":")
+#        plt.show()
