@@ -1,14 +1,24 @@
 import bisect
 import logging
 import numpy as np
+import gzip
+import csv
 
 from . import (
     errors,
 )
 from .misc import (
     ts_to_str,
+    make_ts,
 )
 from .datasource import DataSource
+
+def make_float(s):
+    try:
+        val=float(s)
+    except ValueError:
+        val=s
+    return val
 
 class OrderedEntry:
     """
@@ -74,6 +84,30 @@ class MemDataSource(DataSource):
         })
         self.data = []
 
+    def process_csv_stream(self, fp, timestamp_field, **kwargs):
+        reader = csv.DictReader(fp, **kwargs)
+        for row in reader:
+            timestamp = row[timestamp_field]
+            data = {key:make_float(val) for key, val in row.items()}
+            data['timestamp'] = make_ts(timestamp)
+            self.insert_times_data(data)
+
+    def process_csv(self, path, encoding, timestamp_field, **kwargs):
+        logging.info("processing CSV file: %s", path)
+        with open(path, 'r', encoding=encoding) as fp:
+            self.process_csv_stream(fp, timestamp_field, **kwargs)
+
+    def process_gzip(self, path, encoding, timestamp_field, **kwargs):
+        logging.info("processing compressed file: %s", path)
+        with gzip.open(path, 'rt', encoding=encoding) as fp:
+            self.process_csv_stream(fp, timestamp_field, **kwargs)
+
+    def load_csv(self, path, encoding, timestamp_field, **kwargs):
+        if path.endswith('.csv'):
+            return self.process_csv(path, encoding, timestamp_field, **kwargs)
+        elif path.endswith('.csv.gz'):
+            return self.process_gzip(path, encoding, timestamp_field, **kwargs)
+
     def insert_data(self, data):
         """
         Insert entry
@@ -120,12 +154,14 @@ class MemDataSource(DataSource):
         """
         Get buckets of time-series between `from_date` and `to_date`
         """
+        from_ts = make_ts(from_date)
+        to_ts = make_ts(to_date)
 
-        lo = bisect.bisect_left(self.data, OrderedEntry(from_date)) if from_date else 0
-        bucket_start = from_date
+        lo = bisect.bisect_left(self.data, OrderedEntry(from_ts)) if from_date else 0
+        bucket_start = from_ts
 
         i = lo
-        while bucket_start < to_date:
+        while bucket_start < to_ts:
             bucket_end = bucket_start + bucket_interval
             bucket = TimeBucket(bucket_start)
 
@@ -174,24 +210,23 @@ class MemDataSource(DataSource):
     ):
         raise NotImplemented()
 
-    def get_times_data(
+    def _get_times_data(
         self,
-        model,
+        features,
+        bucket_interval,
         from_date=None,
         to_date=None,
     ):
-        features = model.features
-
         buckets = self.get_times_buckets(
             from_date,
             to_date,
-            model.bucket_interval,
+            bucket_interval,
         )
 
         t0 = None
 
         for bucket in buckets:
-            X = np.zeros(model.nb_features, dtype=float)
+            X = np.zeros(len(features), dtype=float)
             timestamp = bucket.key
             timeval = ts_to_str(timestamp)
 
@@ -202,6 +237,14 @@ class MemDataSource(DataSource):
                 t0 = timestamp
 
             yield (timestamp - t0), X, timeval
+
+    def get_times_data(
+        self,
+        model,
+        from_date=None,
+        to_date=None,
+    ):
+        return self._get_times_data(model.features, model.bucket_interval, from_date, to_date)
 
     def get_times_start(sel):
         """Get timestamp of first entry"""
