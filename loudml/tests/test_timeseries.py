@@ -366,8 +366,12 @@ class TestTimes(unittest.TestCase):
     def test_forecast_daytime(self):
         source = MemDataSource()
         generator = SinEventGenerator(avg=3, sigma=0.01)
+        # Align date range to day interval
+        to_date = datetime.datetime.now().timestamp()
+        to_date = math.floor(to_date / (3600*24)) * (3600*24)
+        from_date = to_date - 3600 * 24 * 7 * 3
 
-        for i, ts in enumerate(generator.generate_ts(self.from_date, self.to_date, step=600)):
+        for i, ts in enumerate(generator.generate_ts(from_date, to_date, step=600)):
             dt = make_datetime(ts)
             val = random.normalvariate(10, 1)
             if dt_get_daytime(dt) < 6 or dt_get_daytime(dt) > 22:
@@ -398,20 +402,20 @@ class TestTimes(unittest.TestCase):
             max_evals=10,
         ))
 
-        model.train(source, self.from_date, self.to_date)
+        model.train(source, from_date, to_date)
 
-        prediction = model.predict(source, self.from_date, self.to_date)
+        prediction = model.predict(source, from_date, to_date)
         # prediction.plot('count_foo')
 
         expected = math.ceil(
-            (self.to_date - self.from_date) / model.bucket_interval
+            (to_date - from_date) / model.bucket_interval
         )
 
         self.assertEqual(len(prediction.timestamps), expected)
         self.assertEqual(prediction.observed.shape, (expected, 1))
         self.assertEqual(prediction.predicted.shape, (expected, 1))
 
-        from_date = self.to_date - model.bucket_interval 
+        from_date = to_date - model.bucket_interval 
         to_date = from_date + 48 * 3600
         forecast = model.forecast(source, from_date, to_date)
 
@@ -437,11 +441,11 @@ class TestTimes(unittest.TestCase):
         #plt.plot(range(len(y_values), len(y_values)+len(z_values)), z_values, ":")
         #plt.show()
 
-        forecast_head = np.array([4.06, 4.04, 4.65, 4.51, 4.23])
-        forecast_tail = np.array([1.11, 1.50, 1.82, 2.67, 3.23])
+        forecast_head = np.array([3.95, 4.47, 4.70, 4.85, 5.31])
+        forecast_tail = np.array([4.17, 3.68, 3.97, 3.93, 4.07])
 
         # Verify forecast(count_foo) feature, must have sin shape
-        delta = 2.8
+        delta = 1.0
         forecast_good = np.abs(forecast.predicted[:len(forecast_head),0] - forecast_head) <= delta
         # print(forecast.predicted[:len(forecast_head),0])
         # print(forecast_head)
