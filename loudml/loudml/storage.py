@@ -10,7 +10,7 @@ from abc import (
 )
 
 from .misc import (
-    load_entry_point,
+    load_hook,
 )
 from .model import (
     load_model,
@@ -70,21 +70,26 @@ class Storage(metaclass=ABCMeta):
     def delete_model_hook(self, model_name, hook_name):
         """Delete model hook"""
 
+    def load_model_hook(self, model_name, hook_name):
+        """Load one model hook"""
+
+        hook_data = self.get_model_hook(model_name, hook_name)
+        return load_hook(hook_name, hook_data)
+
     def load_model_hooks(self, model_name):
         """Load all model hooks"""
 
         hooks = []
 
         for hook_name in self.list_model_hooks(model_name):
-            hook_data = self.get_model_hook(model_name, hook_name)
-            hook_type = hook_data.get('type')
-            hook_cls = load_entry_point('loudml.hooks', hook_type)
-            if hook_cls is None:
-                logging.error("unknown hook type '%s' for hook '%s/%s'",
-                              hook_type, model_name, hook_name)
+
+            try:
+                hook = load_model_hook(model_name, hook_name)
+            except loudml.LoudMLException as exn:
+                logging.error("cannot load hook '%s/%s': %s",
+                              model_name, hook_name, str(exn))
                 continue
 
-            hook = hook_cls(hook_name, hook_data.get('config'))
             hooks.append(hook)
 
         return hooks

@@ -410,6 +410,21 @@ class HookResource(Resource):
 api.add_resource(HooksResource, "/models/<model_name>/hooks")
 api.add_resource(HookResource, "/models/<model_name>/hooks/<hook_name>")
 
+@app.route("/models/<model_name>/hooks/<hook_name>/_test", methods=['POST'])
+@catch_loudml_error
+def hook_test(model_name, hook_name):
+    global g_storage
+    global g_training
+
+    model = g_storage.load_model(model_name)
+    hook = g_storage.load_model_hook(model_name, hook_name)
+
+    model.load()
+    prediction = model.generate_fake_prediction()
+    model.detect_anomalies(prediction, [hook])
+
+    return "ok", 200
+
 class DataSourcesResource(Resource):
     @catch_loudml_error
     def get(self):

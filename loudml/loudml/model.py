@@ -175,6 +175,12 @@ class Model:
             'state': state,
         }
 
+    def generate_fake_prediction(self):
+        """
+        Generate a prediction with fake values. Just for testing purposes.
+        """
+        return NotImplemented()
+
 def load_model(settings, state=None):
     """
     Load model

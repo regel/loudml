@@ -2,10 +2,12 @@
 LoudML time-series module
 """
 
+import datetime
 import json
 import logging
 import math
 import os
+import sys
 import numpy as np
 
 import tensorflow as tf
@@ -862,6 +864,14 @@ class TimeSeriesModel(Model):
             timestamps=timestamps,
             observed=observed,
             predicted=predicted,
+        )
+
+    def generate_fake_prediction(self):
+        return TimeSeriesPrediction(
+            self,
+            timestamps=[datetime.datetime.now().timestamp()],
+            observed=np.array([[sys.float_info.max] * len(self.features)]),
+            predicted=np.array([[0.0] * len(self.features)]),
         )
 
     def detect_anomalies(self, prediction, hooks=[]):
