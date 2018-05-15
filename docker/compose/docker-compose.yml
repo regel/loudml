@@ -1,0 +1,69 @@
+# This is a Docker Compose file to work with LoudML and an InfluxDB stack.
+#
+# The following ports are made visible:
+#   8077: LoudML API
+#   8888: Chronograph web interface
+#
+# Volumes for data persistence:
+#   loudml: LoudML
+#   influxdb: InfluxDB
+#
+# If necessary, make changes to LoudML container and rebuild it:
+#
+#   docker-compose build
+#
+# (note that rebuild is not automatic)
+#
+# Then start all the containers:
+#
+#   docker-compose up
+#
+# To open a shell to run commands in the LoudML container:
+#
+#   docker-compose exec loudml bash
+
+version: "2"
+
+services:
+  loudml:
+    build:
+      context: .
+      dockerfile: influx/Dockerfile
+    volumes:
+      - loudml:/var/lib/loudml/models
+    ports:
+      - "8077:8077"
+    depends_on:
+      - influxdb
+
+  influxdb:
+    image: influxdb:latest
+    volumes:
+      - influxdb:/var/lib/influxdb
+
+  kapacitor:
+    image: kapacitor:latest
+    depends_on:
+      - influxdb
+    links:
+      - influxdb
+    environment:
+      KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
+
+  chronograf:
+    image: chronograf:latest
+    depends_on:
+      - influxdb
+      - kapacitor
+    links:
+      - influxdb
+      - kapacitor
+    ports:
+      - "8888:8888"
+    environment:
+      INFLUXDB_URL: http://influxdb:8086
+      KAPACITOR_URL: http://kapacitor:9092
+
+volumes:
+  loudml:
+  influxdb:
