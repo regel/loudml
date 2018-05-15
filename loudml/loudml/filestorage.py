@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import shutil
+import tempfile
 
 from . import (
     errors,
@@ -223,3 +224,16 @@ class FileStorage(Storage):
             os.unlink(hook_path)
         except FileNotFoundError:
             raise errors.NotFound("hook not found")
+
+
+class TempStorage(FileStorage):
+    """
+    Temporary file storage
+    """
+
+    def __init__(self, prefix="", suffix=""):
+        self.tmp_dir = tempfile.mkdtemp(prefix=prefix, suffix=suffix)
+        super().__init__(self.tmp_dir)
+
+    def __del__(self):
+        shutil.rmtree(self.tmp_dir)

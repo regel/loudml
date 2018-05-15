@@ -25,7 +25,7 @@ from loudml.influx import (
 
 from loudml.timeseries import TimeSeriesModel
 from loudml.randevents import SinEventGenerator
-from loudml.memstorage import MemStorage
+from loudml.filestorage import TempStorage
 
 
 FEATURES = [
@@ -210,7 +210,7 @@ class TestInfluxLong(unittest.TestCase):
         })
         self.source.drop()
         self.source.init()
-        self.storage = MemStorage()
+        self.storage = TempStorage()
 
         generator = SinEventGenerator(avg=3, sigma=0.05)
 

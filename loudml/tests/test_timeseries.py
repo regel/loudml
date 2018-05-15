@@ -18,7 +18,7 @@ from loudml.timeseries import (
     TimeSeriesPrediction,
 )
 from loudml.memdatasource import MemDataSource
-from loudml.memstorage import MemStorage
+from loudml.filestorage import TempStorage
 from loudml.misc import (
     make_datetime,
     dt_get_weekday,
@@ -48,7 +48,7 @@ class TestTimes(unittest.TestCase):
         super().__init__(*args, **kwargs)
 
         self.source = MemDataSource()
-        self.storage = MemStorage()
+        self.storage = TempStorage()
 
         self.model = TimeSeriesModel(dict(
             name='test',
@@ -214,7 +214,7 @@ class TestTimes(unittest.TestCase):
 
     def test_predict_with_nan(self):
         source = MemDataSource()
-        storage = MemStorage()
+        storage = TempStorage()
 
         to_date = datetime.datetime.now().replace(
             hour=0,
