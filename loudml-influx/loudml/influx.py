@@ -76,6 +76,14 @@ def make_ts_ns(mixed):
     """
     return ts_to_ns(make_ts(mixed))
 
+def format_bool(string):
+    if string.lower() == 'true':
+        return 'True'
+    elif string.lower() == 'false':
+        return 'False'
+    else:
+        return string
+
 def aggregator(*aliases):
     """
     Decorator to register aggregators and indexing them by their aliases

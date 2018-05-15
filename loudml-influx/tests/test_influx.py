@@ -11,6 +11,11 @@ logging.getLogger('tensorflow').disabled = True
 import loudml.errors as errors
 import loudml.test
 
+from loudml.misc import (
+    escape_quotes,
+    escape_doublequotes,
+)
+
 from loudml.influx import (
     _build_queries,
     _build_time_predicates,

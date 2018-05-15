@@ -56,3 +56,26 @@ Building RPM repository:
 ```bash
 make clean && make repo
 ```
+
+## Generate data for testing purposes
+
+The `loudml-core` package includes a `loudml-faker` tool for generating random
+data for testing purposes.
+
+For help, see:
+
+```bash
+loudml-faker -h
+```
+
+### Generating data into InfluxDB
+
+```bash
+loudml-faker -o influx -a localhost -b mydb -m mydata --from now-3w --to now
+```
+
+### Generating data into Elasticsearch
+
+```bash
+loudml-faker -o elastic -a localhost:9200 -i myindex --from now-3w --to now
+```
