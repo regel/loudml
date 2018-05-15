@@ -34,7 +34,8 @@ class TestFileStorage(unittest.TestCase):
                 bucket_interval=3,
                 interval=60,
                 features=FEATURES,
-                threshold=30,
+                max_threshold=70,
+                min_threshold=60,
             ))
             self.assertEqual(model.type, 'timeseries')
             storage.create_model(model)
@@ -48,7 +49,8 @@ class TestFileStorage(unittest.TestCase):
                 bucket_interval=20,
                 interval=120,
                 features=FEATURES,
-                threshold=30,
+                max_threshold=70,
+                min_threshold=60,
             ))
             storage.create_model(model)
 

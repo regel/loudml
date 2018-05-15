@@ -32,6 +32,8 @@ seasonality = Schema({
     Optional('weekday', default=False): Boolean(),
 })
 
+score = Any(All(Any(int, float), Range(min=0, max=100)), None)
+
 class TimeDelta:
     """
     Schema for time-delta

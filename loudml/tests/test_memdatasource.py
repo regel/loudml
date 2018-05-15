@@ -31,7 +31,8 @@ class TestMemDataSource(unittest.TestCase):
             bucket_interval=3,
             interval=60,
             features=FEATURES,
-            threshold=30,
+            max_threshold=70,
+            min_threshold=60,
         ))
         data = [
             # (foo, timestamp)

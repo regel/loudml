@@ -7,7 +7,8 @@ offset: 30
 span: 5
 bucket_interval: 20m
 interval: 60
-threshold: 30
+max_threshold: 70
+min_threshold: 60
 max_evals: 100
 
 features:

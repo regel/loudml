@@ -42,10 +42,6 @@ class Storage(metaclass=ABCMeta):
         """Delete model"""
 
     @abstractmethod
-    def set_threshold(self, name, threshold):
-        """Set model threshold"""
-
-    @abstractmethod
     def save_model(self, model):
         """Save model"""
 

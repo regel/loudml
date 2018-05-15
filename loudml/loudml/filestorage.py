@@ -151,11 +151,6 @@ class FileStorage(Storage):
 
         return data
 
-    def set_threshold(self, name, threshold):
-        settings = self._get_model_settings(name)
-        settings['threshold'] = threshold
-        self._write_model_settings(self.model_path(name), settings)
-
     def list_models(self):
         return [
              os.path.splitext(os.path.basename(path))[0]

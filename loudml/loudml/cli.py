@@ -371,6 +371,7 @@ class PredictCommand(Command):
 
             if args.anomalies:
                 model.detect_anomalies(prediction)
+                storage.save_model(model)
 
             if args.save:
                 source.save_timeseries_prediction(prediction, model)

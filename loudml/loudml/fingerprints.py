@@ -616,7 +616,7 @@ class FingerprintsModel(Model):
                 'description': desc,
             }
 
-            if score >= self.threshold:
+            if score >= self.max_threshold:
                 # TODO have a Model.logger to prefix all logs with model name
                 logging.warning("detected anomaly for %s (score = %.1f)",
                                 key, score)

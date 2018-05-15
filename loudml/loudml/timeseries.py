@@ -892,6 +892,10 @@ class TimeSeriesModel(Model):
         anomaly_indices = []
 
         for i, ts in enumerate(prediction.timestamps):
+            dt = ts_to_datetime(ts)
+            date_str = datetime_to_str(dt)
+            is_anomaly = False
+
             X = prediction.observed[i]
             Y = prediction.predicted[i]
 
@@ -902,35 +906,61 @@ class TimeSeriesModel(Model):
             dist = np.linalg.norm(X - Y)
             score = min((dist / max_dist) * 100, 100)
 
-            if score >= self.threshold:
-                dt = ts_to_datetime(ts)
-
-                # TODO have a Model.logger to prefix all logs with model name
-                logging.warning("detected anomaly at %s (score = %.1f)",
-                                datetime_to_str(dt), score)
-                anomaly = True
+            if score >= self.max_threshold:
+                is_anomaly = True
                 anomaly_indices.append(i)
 
-                for hook in hooks:
-                    logging.info("notifying '%s' hook", hook.name)
-                    data = prediction.format_bucket_data(i)
-                    hook.on_anomaly(
-                        self.name,
-                        dt,
-                        score,
-                        data['predicted'],
-                        data['observed'],
-                        mse,
-                        dist,
-                    )
+            anomaly = self._state.get('anomaly')
+
+            if anomaly is None:
+                if is_anomaly:
+                    # This is a new anomaly
+
+                    # TODO have a Model.logger to prefix all logs with model name
+                    logging.warning("detected anomaly for model '%s' at %s (score = %.1f)",
+                                    self.name, date_str, score)
+
+                    self._state['anomaly'] = {
+                        'start_ts': ts,
+                        'max_score': score,
+                    }
+
+                    for hook in hooks:
+                        logging.debug("notifying '%s' hook", hook.name)
+                        data = prediction.format_bucket_data(i)
+                        hook.on_anomaly_start(
+                            self.name,
+                            dt,
+                            score,
+                            data['predicted'],
+                            data['observed'],
+                            mse,
+                            dist,
+                        )
             else:
-                anomaly = False
+                if is_anomaly:
+                    anomaly['max_score'] = max(anomaly['max_score'], score)
+                    logging.warning(
+                        "anomaly still in progress for model '%s' at %s (score = %.1f)",
+                        self.name, date_str, score,
+                    )
+                elif score < self.min_threshold:
+                    logging.info(
+                        "anomaly ended for model '%s' at %s (score = %.1f)",
+                        self.name, date_str, score,
+                    )
+
+                    for hook in hooks:
+                        logging.debug("notifying '%s' hook", hook.name)
+                        hook.on_anomaly_end(self.name, dt, score)
+
+                    self._state['anomaly'] = None
 
             stats.append({
                 'mse': mse,
                 'dist': dist,
                 'score': score,
-                'anomaly': anomaly,
+                'anomaly': is_anomaly,
             })
 
         prediction.stats = stats

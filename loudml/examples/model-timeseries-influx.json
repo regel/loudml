@@ -21,6 +21,7 @@
   "name": "timeseries-influx",
   "offset": 30,
   "span": 5,
-  "threshold": 30,
+  "max_threshold": 70,
+  "min_threshold": 60,
   "type": "timeseries"
 }

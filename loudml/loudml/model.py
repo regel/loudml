@@ -83,7 +83,9 @@ class Model:
         Optional('features'): All([Feature.SCHEMA], Length(min=1)),
         Optional('influences'): Any(None, All([Feature.SCHEMA], Length(min=1))),
         'routing': Any(None, schemas.key),
-        'threshold': Any(int, float, Range(min=0, max=100)),
+        'threshold': schemas.score,
+        'max_threshold': schemas.score,
+        'min_threshold': schemas.score,
         'max_evals': All(int, Range(min=1)),
     }, extra=ALLOW_EXTRA)
 
@@ -114,7 +116,17 @@ class Model:
         else:
             self.influences = [Feature(**feature) for feature in influences]
 
-        self.threshold = self.settings.get('threshold', 75)
+        self.max_threshold = self.settings.get('max_threshold')
+        if self.max_threshold is None:
+            # Backward compatibility
+            self.max_threshold = self.settings.get('threshold', 75)
+            self.settings['max_threshold'] = self.max_threshold
+
+        self.min_threshold = self.settings.get('min_threshold')
+        if self.min_threshold is None:
+            # Backward compatibility
+            self.min_threshold = self.settings.get('threshold', 75)
+            self.settings['min_threshold'] = self.min_threshold
 
     @classmethod
     def validate(cls, settings):

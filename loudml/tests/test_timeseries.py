@@ -57,7 +57,8 @@ class TestTimes(unittest.TestCase):
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES,
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=5,
         ))
 
@@ -137,7 +138,8 @@ class TestTimes(unittest.TestCase):
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES,
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=1,
         ))
 
@@ -268,7 +270,8 @@ class TestTimes(unittest.TestCase):
                    'field': 'foo',
                 },
             ],
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=1,
         ))
 
@@ -312,7 +315,8 @@ class TestTimes(unittest.TestCase):
                    'default': None,
                 },
             ],
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=1,
         ))
 
@@ -446,7 +450,8 @@ class TestTimes(unittest.TestCase):
                    'default': 0,
                 },
             ],
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=50,
         ))
 
@@ -506,7 +511,8 @@ class TestTimes(unittest.TestCase):
                    'default': 0,
                 },
             ],
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=1,
         ))
         self.assertTrue(model.seasonality.get('daytime'), True)
@@ -584,7 +590,8 @@ class TestTimes(unittest.TestCase):
                    'default': 0,
                 },
             ],
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=1,
         ))
 
@@ -658,7 +665,8 @@ class TestTimes(unittest.TestCase):
                    'default': 0,
                 },
             ],
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=5,
         ))
 
@@ -726,7 +734,8 @@ class TestTimes(unittest.TestCase):
                    'default': 0,
                 },
             ],
-            threshold=30,
+            max_threshold=30,
+            min_threshold=25,
             max_evals=1,
         ))
 
