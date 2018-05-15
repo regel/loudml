@@ -43,12 +43,14 @@ from . import (
     schemas,
 )
 from .misc import (
-    make_ts,
-    make_datetime,
+    datetime_to_str,
     dt_get_weekday,
     dt_get_daytime,
-    ts_to_str,
+    make_datetime,
+    make_ts,
     parse_timedelta,
+    ts_to_str,
+    ts_to_datetime,
 )
 from .model import (
     Model,
@@ -849,7 +851,7 @@ class TimeSeriesModel(Model):
         # Build final result
         timestamps = X[self._span:]
         last_ts = make_ts(X[-1])
-        timestamps.append(ts_to_str(last_ts + self.bucket_interval))
+        timestamps.append(last_ts + self.bucket_interval)
 
         shape = (predict_len, nb_features)
         observed = np.array([self.defaults] * predict_len)
@@ -901,9 +903,11 @@ class TimeSeriesModel(Model):
             score = min((dist / max_dist) * 100, 100)
 
             if score >= self.threshold:
+                dt = ts_to_datetime(ts)
+
                 # TODO have a Model.logger to prefix all logs with model name
-                logging.warning("detected anomaly for %s (score = %.1f)",
-                                ts, score)
+                logging.warning("detected anomaly at %s (score = %.1f)",
+                                datetime_to_str(dt), score)
                 anomaly = True
                 anomaly_indices.append(i)
 
@@ -912,7 +916,7 @@ class TimeSeriesModel(Model):
                     data = prediction.format_bucket_data(i)
                     hook.on_anomaly(
                         self.name,
-                        ts,
+                        dt,
                         score,
                         data['predicted'],
                         data['observed'],
