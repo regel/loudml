@@ -84,11 +84,12 @@ class Hook:
         """
         return validate(cls.CONFIG_SCHEMA, config)
 
-    def on_anomaly(self, model, timestamp, score, predicted, observed, **kwargs):
+    def on_anomaly(self, model, dt, score, predicted, observed, **kwargs):
         """
         Callback function called on anomaly detection
 
-        timestamp -- UNIX timestamp of the anomaly
+        model -- model name
+        dt -- Timestamp of the anomaly as a datetime.datetime object
         score -- Computed anomaly score [0-100]
         predicted -- Predicted values
         observed -- Observed values
