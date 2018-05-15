@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# This script builds a release version of LoudML (based on Debian Stretch
+# packages) and deploys the image on DockerHub.
+#
+# Requirements:
+#  - DockerHub password
+#
+# Environment variables:
+#  - DOCKER_ID_USER: DockerHub login (defaults to 'loudml')
+
+set -ex
+
+: "${DOCKER_ID_USER:=loudml}"
+export DOCKER_ID_USER
+
+declare -r tag="community:latest"
+declare -r dir="community"
+
+docker build -t "$tag" "$dir"
+docker login --username "$DOCKER_ID_USER"
+docker tag "$tag" "$DOCKER_ID_USER/$tag"
+docker push "$DOCKER_ID_USER/$tag"
+docker logout
