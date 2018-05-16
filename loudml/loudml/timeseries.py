@@ -869,11 +869,20 @@ class TimeSeriesModel(Model):
         )
 
     def generate_fake_prediction(self):
+        now_ts = datetime.datetime.now().timestamp()
+        timestamps = [
+            now_ts - 2 * self.bucket_interval,
+            now_ts - self.bucket_interval,
+            now_ts,
+        ]
+        normal = [0.0] * len(self.features)
+        anomaly = [sys.float_info.max] * len(self.features)
+
         return TimeSeriesPrediction(
             self,
-            timestamps=[datetime.datetime.now().timestamp()],
-            observed=np.array([[sys.float_info.max] * len(self.features)]),
-            predicted=np.array([[0.0] * len(self.features)]),
+            timestamps=timestamps,
+            observed=np.array([normal, anomaly, normal]),
+            predicted=np.array([normal, normal, normal]),
         )
 
     def detect_anomalies(self, prediction, hooks=[]):
