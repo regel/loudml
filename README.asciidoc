@@ -6,17 +6,17 @@ The disruptive machine learning API
 Links
 ~~~~~
 
-[GitHub page of the project](https://github.com/regel)
+https://github.com/regel[GitHub page of the project]
 
 You can submit issues and suggest new exciting features at: https://github.com/regel/loudml/issues[Issues]
 
-Official website: http://www.loudml.com
+Official website: http://www.loudml.com[loudml.com]
 
-[Documentation](http://loudml.io/guide/)
+http://loudml.io/guide/[Documentation]
 
 Plug-ins
 ~~~~~~~~
 
-https://github.com/vnyb/loudml-plugin-example[Example] - Example of plug-in, fork it to create your own!
-https://github.com/vnyb/loudml-plugin-mail[Mail] - Send e-mail notifications on anomaly detection
-https://github.com/vnyb/loudml-plugin-http[HTTP] - Notify anomaly detection with webhooks
+* https://github.com/vnyb/loudml-plugin-example[Example] - Example of plug-in, fork it to create your own!
+* https://github.com/vnyb/loudml-plugin-mail[Mail] - Send e-mail notifications on anomaly detection
+* https://github.com/vnyb/loudml-plugin-http[HTTP] - Notify anomaly detection with webhooks
