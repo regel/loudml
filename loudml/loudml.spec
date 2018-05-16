@@ -70,6 +70,12 @@ do
 	basename="${basename%.cpython-34.pyc}" ;
 	mv $filename %{buildroot}/%{python3_sitelib}/loudml/${basename}.pyc ;
 done
+for filename in $(find %{buildroot}/%{python3_sitelib}/rmn_common/__pycache__/ -name "*.cpython-34.pyc") ;
+do
+	basename=$(basename $filename) ;
+	basename="${basename%.cpython-34.pyc}" ;
+	mv $filename %{buildroot}/%{python3_sitelib}/rmn_common/${basename}.pyc ;
+done
 
 # LoudML daemon configuration
 install -m 0755 -d %{buildroot}/%{_sysconfdir}/loudml
@@ -82,10 +88,13 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 # Exclude source .py files, and PEP3147 __pycache__
 %exclude %{python3_sitelib}/loudml/*.py
 %exclude %{python3_sitelib}/loudml/__pycache__
+%exclude %{python3_sitelib}/rmn_common/*.py
+%exclude %{python3_sitelib}/rmn_common/__pycache__
 %{_bindir}/*
 %{python3_sitelib}/rmn_common/*
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml-*.egg-info/*
+%{python3_sitelib}/rmn_common/*
 
 # LoudML daemon configuration
 %attr(2777,root,loudml) %dir %{_sysconfdir}/loudml

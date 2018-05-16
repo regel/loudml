@@ -28,6 +28,12 @@ override_dh_install:
 		dst=$$(basename $$src .cpython-35.pyc).pyc; \
 		cp $$src ${_pydir}/loudml/$$dst; \
 	done
+	rm -f ${_pydir}/rmn_common/*.py
+	for src in $$(find ${_pydir}/rmn_common/__pycache__/ -name "*.cpython-35.pyc"); \
+	do \
+		dst=$$(basename $$src .cpython-35.pyc).pyc; \
+		cp $$src ${_pydir}/rmn_common/$$dst; \
+	done
 
 override_dh_installinit:
 	dh_installinit --no-start --name=loudmld
