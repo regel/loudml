@@ -28,6 +28,8 @@ from loudml import (
     errors,
 )
 
+from loudml.api import Hook
+
 FEATURES = [
     {
         'name': 'count_foo',
@@ -42,6 +44,24 @@ FEATURES = [
         'default': 10,
     },
 ]
+
+class TestHook(Hook):
+    def __init__(self):
+        super().__init__(name='test')
+        self.events = []
+
+    def on_anomaly_start(self, model, dt, *args, **kwargs):
+        self.events.append({
+            'type': 'start',
+            'dt': dt,
+        })
+
+    def on_anomaly_end(self, model, dt, *args, **kwargs):
+        self.events.append({
+            'type': 'end',
+            'dt': dt,
+        })
+
 
 class TestTimes(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -749,3 +769,89 @@ class TestTimes(unittest.TestCase):
             self.assertEqual(len(prediction.timestamps), 24 * 7)
             model.detect_anomalies(prediction)
             self.assertEqual(len(prediction.get_anomalies()), 0)
+
+    def test_thresholds(self):
+        source = MemDataSource()
+        to_date = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=datetime.timezone.utc,
+        ).timestamp()
+
+        # Generate 3 weeks days of data
+        nb_days = 3 * 7
+        hist_to = to_date
+        hist_from = to_date - 3600 * 24 * nb_days
+        ts = hist_from
+        value = 5
+
+        for i in range(nb_days):
+            for j in range(0, 24):
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': value,
+                })
+                ts += 3600
+
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=6,
+            bucket_interval=3600,
+            interval=60,
+            features=[
+                {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                },
+            ],
+            max_threshold=50,
+            min_threshold=45,
+            max_evals=1,
+        ))
+
+        model.train(source, hist_from, hist_to)
+        self.assertTrue(model.is_trained)
+
+        # Add an extra day
+        ts = hist_to
+        values = []
+
+        # Normal value on [00:00-06:00[
+        values += [value] * 6
+
+        # Increase on [06:00-12:00[
+        values += list(range(value, value + 6))
+
+        # Decrease on [12:00-18:00[
+        values += list(range(value + 6, value, -1))
+
+        # Normal value on [18:00-24:00[
+        values += [value] * 6
+
+        for value in values:
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': value,
+            })
+            ts += 3600
+
+        prediction = model.predict(source, hist_to, ts)
+        self.assertEqual(len(prediction.timestamps), 24)
+
+        hook = TestHook()
+
+        model.detect_anomalies(prediction, hooks=[hook])
+
+        self.assertEqual(len(hook.events), 2)
+        event0, event1 = hook.events
+        self.assertEqual(event0['type'], 'start')
+        self.assertEqual(event1['type'], 'end')
+        self.assertGreaterEqual(
+            (event1['dt'] - event0['dt']).seconds,
+            6 * 3600,
+        )
