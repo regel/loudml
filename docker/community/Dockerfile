@@ -12,7 +12,8 @@ RUN echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/ stretch
     pip3 install 'hyperopt==0.1' && \
     pip3 install 'tensorflow<=1.3.1,>=1.3.0'
 
-RUN apt-get install -y --allow-unauthenticated loudml
+RUN apt-get install -y --allow-unauthenticated \
+    loudml loudml-influx loudml-elastic
 
 COPY loudml.yml /etc/loudml/config.yml
 ENTRYPOINT /usr/bin/loudmld
