@@ -84,7 +84,16 @@ class Hook:
         """
         return validate(cls.CONFIG_SCHEMA, config)
 
-    def on_anomaly(self, model, dt, score, predicted, observed, **kwargs):
+    def on_anomaly_start(
+        self,
+        model,
+        dt,
+        score,
+        predicted,
+        observed,
+        *args,
+        **kwargs
+    ):
         """
         Callback function called on anomaly detection
 
@@ -97,3 +106,13 @@ class Hook:
         dist -- Distance
         """
         raise NotImplemented()
+
+    def on_anomaly_end(self, model, dt, score, *args, **kwargs):
+        """
+        Callback function called on anomaly detection
+
+        model -- model name
+        dt -- Timestamp of the anomaly as a datetime.datetime object
+        score -- Computed anomaly score [0-100]
+        """
+        pass
