@@ -915,7 +915,7 @@ class TimeSeriesModel(Model):
                 diff[i] = abs(diff[i])
 
         mse = (diff ** 2).mean(axis=None)
-        scores = 100 * diff
+        scores = np.clip(100 * diff, 0, 100)
 
         return scores, mse
 
