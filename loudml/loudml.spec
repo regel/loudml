@@ -83,6 +83,9 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 %exclude %{python3_sitelib}/loudml/__pycache__
 %exclude %{python3_sitelib}/rmn_common/*.py
 %exclude %{python3_sitelib}/rmn_common/__pycache__
+# Skip dependencies management by pkg_resources (does not work well with our
+# vendor system)
+>>>>>>> vendor: add vendor mechanism for RHEL/CentOS
 %{_bindir}/*
 %{python3_sitelib}/rmn_common/*
 %{python3_sitelib}/loudml/*
