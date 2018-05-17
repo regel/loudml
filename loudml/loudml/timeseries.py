@@ -885,17 +885,45 @@ class TimeSeriesModel(Model):
             predicted=np.array([normal, normal, normal]),
         )
 
-    def detect_anomalies(self, prediction, hooks=[]):
+    def get_scores(self, predicted, observed):
         """
-        Detect anomalies on observed data by comparing them to the values
-        predicted by the model
+        Compute scores and mean squared error
         """
 
         global _mins, _maxs
 
         nb_features = len(self.features)
-        max_dist = np.linalg.norm(np.zeros(nb_features) - np.ones(nb_features))
+
         rng = _maxs - _mins
+
+        X = observed
+        Y = predicted
+
+        X = 1.0 - (_maxs[:nb_features] - X) / rng[:nb_features]
+        Y = 1.0 - (_maxs[:nb_features] - Y) / rng[:nb_features]
+
+        diff = X - Y
+
+        for i, feature in enumerate(self.features):
+            ano_type = feature.anomaly_type
+
+            if ano_type == 'low':
+                diff[i] = -min(diff[i], 0)
+            elif ano_type == 'high':
+                diff[i] = max(diff[i], 0)
+            else:
+                diff[i] = abs(diff[i])
+
+        mse = (diff ** 2).mean(axis=None)
+        scores = 100 * diff
+
+        return scores, mse
+
+    def detect_anomalies(self, prediction, hooks=[]):
+        """
+        Detect anomalies on observed data by comparing them to the values
+        predicted by the model
+        """
 
         stats = []
         anomaly_indices = []
@@ -904,18 +932,31 @@ class TimeSeriesModel(Model):
             dt = ts_to_datetime(ts)
             date_str = datetime_to_str(dt)
             is_anomaly = False
+            anomalies = {}
 
-            X = prediction.observed[i]
-            Y = prediction.predicted[i]
+            predicted = prediction.predicted[i]
+            observed = prediction.observed[i]
 
-            X = 1.0 - (_maxs[:nb_features] - X) / rng[:nb_features]
-            Y = 1.0 - (_maxs[:nb_features] - Y) / rng[:nb_features]
+            scores, mse = self.get_scores(
+                predicted,
+                observed,
+            )
 
-            mse = ((X - Y) ** 2).mean(axis=None)
-            dist = np.linalg.norm(X - Y)
-            score = min((dist / max_dist) * 100, 100)
+            max_score = 0
 
-            if score >= self.max_threshold:
+            for j, score in enumerate(scores):
+                max_score = max(max_score, score)
+
+                if score < self.max_threshold:
+                    continue
+
+                feature = self.features[j]
+                anomalies[feature.name] = {
+                    'type': 'low' if observed[j] < predicted[j] else 'high',
+                    'score': score,
+                }
+
+            if len(anomalies):
                 is_anomaly = True
                 anomaly_indices.append(i)
 
@@ -927,11 +968,11 @@ class TimeSeriesModel(Model):
 
                     # TODO have a Model.logger to prefix all logs with model name
                     logging.warning("detected anomaly for model '%s' at %s (score = %.1f)",
-                                    self.name, date_str, score)
+                                    self.name, date_str, max_score)
 
                     self._state['anomaly'] = {
                         'start_ts': ts,
-                        'max_score': score,
+                        'max_score': max_score,
                     }
 
                     for hook in hooks:
@@ -940,36 +981,35 @@ class TimeSeriesModel(Model):
                         hook.on_anomaly_start(
                             self.name,
                             dt,
-                            score,
+                            max_score,
                             data['predicted'],
                             data['observed'],
                             mse,
-                            dist,
                         )
             else:
                 if is_anomaly:
-                    anomaly['max_score'] = max(anomaly['max_score'], score)
+                    anomaly['max_score'] = max(anomaly['max_score'], max_score)
                     logging.warning(
                         "anomaly still in progress for model '%s' at %s (score = %.1f)",
-                        self.name, date_str, score,
+                        self.name, date_str, max_score,
                     )
                 elif score < self.min_threshold:
                     logging.info(
                         "anomaly ended for model '%s' at %s (score = %.1f)",
-                        self.name, date_str, score,
+                        self.name, date_str, max_score,
                     )
 
                     for hook in hooks:
                         logging.debug("notifying '%s' hook", hook.name)
-                        hook.on_anomaly_end(self.name, dt, score)
+                        hook.on_anomaly_end(self.name, dt, max_score)
 
                     self._state['anomaly'] = None
 
             stats.append({
                 'mse': mse,
-                'dist': dist,
-                'score': score,
+                'score': max_score,
                 'anomaly': is_anomaly,
+                'anomalies': anomalies,
             })
 
         prediction.stats = stats

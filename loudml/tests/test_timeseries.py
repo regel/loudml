@@ -439,7 +439,6 @@ class TestTimes(unittest.TestCase):
             stats = bucket.get('stats')
             self.assertIsNotNone(stats)
             self.assertIsNotNone(stats.get('mse'))
-            self.assertIsNotNone(stats.get('dist'))
             self.assertIsNotNone(stats.get('score'))
             self.assertIsNotNone(stats.get('anomaly'))
 
@@ -855,3 +854,100 @@ class TestTimes(unittest.TestCase):
             (event1['dt'] - event0['dt']).seconds,
             6 * 3600,
         )
+
+    def test_low_high(self):
+        source = MemDataSource()
+        to_date = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=datetime.timezone.utc,
+        ).timestamp()
+
+        # Generate 1 week days of data
+        nb_days = 7
+        hist_to = to_date
+        hist_from = to_date - 3600 * 24 * nb_days
+        ts = hist_from
+
+        for i in range(nb_days):
+            for j in range(0, 24):
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': random.randrange(45, 55),
+                    'bar': random.randrange(45, 55),
+                    'baz': random.randrange(45, 55),
+
+                })
+                ts += 3600
+
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=6,
+            bucket_interval=3600,
+            interval=60,
+            features=[
+                {
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'anomaly_type': 'low',
+                },
+                {
+                   'name': 'avg_bar',
+                   'metric': 'avg',
+                   'field': 'bar',
+                   'anomaly_type': 'high',
+                },
+                {
+                   'name': 'avg_baz',
+                   'metric': 'avg',
+                   'field': 'baz',
+                   'anomaly_type': 'low_high',
+                },
+            ],
+            max_threshold=30,
+            min_threshold=25,
+            max_evals=1,
+        ))
+
+        model.train(source, hist_from, hist_to)
+        self.assertTrue(model.is_trained)
+
+        ts = hist_to
+        data = [
+            [20.0, 50.0, 80.0],
+            [50.0, 80.0, 50.0],
+            [50.0, 50.0, 20.0],
+        ]
+
+        for values in data:
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': values[0],
+                'bar': values[1],
+                'baz': values[2],
+            })
+            ts += 3600
+
+        prediction = model.predict(source, hist_to, ts)
+        self.assertEqual(len(prediction.timestamps), 3)
+
+        model.detect_anomalies(prediction)
+
+        buckets = prediction.format_buckets()
+
+        anomalies = buckets[0]['stats']['anomalies']
+        self.assertEqual(len(anomalies), 2)
+        self.assertEqual(anomalies['avg_foo']['type'], 'low')
+        self.assertEqual(anomalies['avg_baz']['type'], 'high')
+
+        anomalies = buckets[1]['stats']['anomalies']
+        self.assertEqual(len(anomalies), 1)
+        self.assertEqual(anomalies['avg_bar']['type'], 'high')
+
+        anomalies = buckets[2]['stats']['anomalies']
+        self.assertEqual(len(anomalies), 1)
+        self.assertEqual(anomalies['avg_baz']['type'], 'low')

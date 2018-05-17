@@ -43,6 +43,7 @@ class Feature:
         ])),
         'default': Any(None, int, float),
         'script': Any(None, str),
+        Optional('anomaly_type', default='low_high'): Any('low', 'high', 'low_high'),
     })
 
     def __init__(
@@ -54,6 +55,7 @@ class Feature:
         match_all=None,
         default=None,
         script=None,
+        anomaly_type='low_high',
     ):
         self.validate(locals())
 
@@ -64,6 +66,7 @@ class Feature:
         self.default = np.nan if default is None else float(default)
         self.script = script
         self.match_all = match_all
+        self.anomaly_type = anomaly_type
 
     @classmethod
     def validate(cls, args):
