@@ -35,6 +35,7 @@ setup(
         "tensorflow==1.7.0",
         "h5py>=2.7.0",
         "hyperopt==0.1",
+        "numpy>=1.10.0",
         "psutil>=2.2.1",
         "PyYAML>=3.11",
         "voluptuous>=0.10.5",
