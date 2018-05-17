@@ -5,9 +5,7 @@ The Debian package for Loud ML can be downloaded from our
 <<deb-repo,APT repository>>. It can be used to install
 Loud ML on any Debian-based system such as Debian and Ubuntu.
 
-The latest stable version of Loud ML can be found on the
-link:/downloads/loudml[Download Loud ML] page. Other versions can
-be found on the link:/downloads/past-releases[Past Releases page].
+All stable versions of Loud ML can be found in our <<deb-repo,APT repository>>
 
 [[deb-key]]
 ==== Import the Loud ML PGP Key
