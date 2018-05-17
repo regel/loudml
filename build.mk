@@ -32,6 +32,7 @@ rpmbuild --define "name $(2)" \
          --define "version $(VERSION)" \
          --define "_topdir $(RPMBUILD_DIR)" \
          --define "_rpmdir $(RPMREPO_DIR)" \
+   	     $(3) \
          -bb "$<"
 endef
 

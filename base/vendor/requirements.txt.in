@@ -1,0 +1,9 @@
+networkx==1.11
+dateutils>=0.6.6
+Flask>=0.12.2
+Flask-restful>=0.3.6
+networkx==1.11
+tensorflow==1.7.0
+h5py==2.7.1
+hyperopt==0.1
+voluptuous==0.10.5

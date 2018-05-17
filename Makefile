@@ -34,6 +34,7 @@ test:
 
 rpm:
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
+	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-base rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-influx rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-import rpm
@@ -42,6 +43,7 @@ rpm:
 
 deb:
 	$(MAKE) -C loudml deb
+	$(MAKE) -C loudml-base deb
 	$(MAKE) -C loudml-elastic deb
 	$(MAKE) -C loudml-influx deb
 	$(MAKE) -C loudml-import deb

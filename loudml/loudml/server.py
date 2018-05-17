@@ -2,6 +2,8 @@
 LoudML server
 """
 
+import loudml.vendor
+
 import argparse
 import datetime
 import logging

@@ -19,6 +19,7 @@ Requires: python34-pip
 Requires: python34-yaml
 Requires: python34-psutil
 Requires: curl
+Requires: loudml-base
 
 # Disable debug package
 %define debug_package %{nil}
@@ -34,15 +35,6 @@ Requires: curl
 make clean
 
 %pre
-pip3 install dateutils>=0.6.6
-pip3 install Flask>=0.12.2
-pip3 install Flask-restful>=0.3.6
-pip3 install networkx==1.11
-pip3 install --upgrade tensorflow==1.7.0
-pip3 install h5py==2.7.1
-pip3 install hyperopt==0.1
-pip3 install voluptuous==0.10.5
-
 if ! getent group loudml; then
   groupadd --system loudml
 fi

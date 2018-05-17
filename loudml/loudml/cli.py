@@ -2,6 +2,8 @@
 LoudML command line tool
 """
 
+import loudml.vendor
+
 import argparse
 import json
 import logging
