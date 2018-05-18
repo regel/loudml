@@ -850,7 +850,7 @@ class TimeSeriesModel(Model):
 
             ts = dt.timestamp()
             if ts < to_ts - self.bucket_interval:
-                X.append(timeval)
+                X.append(make_ts(timeval))
                 X_until = i + 1
 
         self.apply_defaults(dataset)
@@ -1057,7 +1057,7 @@ class TimeSeriesModel(Model):
             Z_ = _maxs[y_indexes] - rng[y_indexes] * (1.0 - Y_)
             for z in range(self._forecast):
                 if bucket_start < to_ts:
-                    timestamps.append(ts_to_str(bucket_start))
+                    timestamps.append(bucket_start)
                     predicted[j] = Z_[z][:]
                 bucket_start += self.bucket_interval
                 j += 1
@@ -1076,6 +1076,8 @@ class TimeSeriesModel(Model):
 
         global _mins, _maxs
 
+        outputs = [feature for feature in self.features if feature.is_output]
+
         nb_output = len(self._y_indexes())
 
         rng = _maxs - _mins
@@ -1088,7 +1090,7 @@ class TimeSeriesModel(Model):
 
         diff = X - Y
 
-        for i, feature in enumerate(self.features):
+        for i, feature in enumerate(outputs):
             ano_type = feature.anomaly_type
 
             if ano_type == 'low':
@@ -1129,12 +1131,16 @@ class TimeSeriesModel(Model):
             max_score = 0
 
             for j, score in enumerate(scores):
+                feature = self.features[j]
+
+                if not feature.is_output:
+                    continue
+
                 max_score = max(max_score, score)
 
                 if score < self.max_threshold:
                     continue
 
-                feature = self.features[j]
                 anomalies[feature.name] = {
                     'type': 'low' if observed[j] < predicted[j] else 'high',
                     'score': score,
