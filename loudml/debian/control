@@ -27,5 +27,6 @@ Depends:
   python3-numpy,
   python3-voluptuous,
   python3-yaml,
+  loudml-api,
 Description: LoudML core package
  LoudML core package.
