@@ -85,6 +85,7 @@ class Hook:
         score,
         predicted,
         observed,
+        anomalies,
         *args,
         **kwargs
     ):
@@ -97,7 +98,7 @@ class Hook:
         predicted -- Predicted values
         observed -- Observed values
         mse -- MSE
-        dist -- Distance
+        anomalies -- dict of abnormal features
         """
         raise NotImplemented()
 
