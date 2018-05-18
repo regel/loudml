@@ -20,12 +20,6 @@ LoudML public API
 import os
 import yaml
 
-from voluptuous import (
-    ALLOW_EXTRA,
-    Any,
-    Schema,
-)
-
 def validate(schema, data):
     """
     Validate data against a schema
