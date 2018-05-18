@@ -17,5 +17,4 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${python3:Depends},
-  python3-voluptuous,
 Description: LoudML API package

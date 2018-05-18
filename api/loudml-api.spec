@@ -26,7 +26,6 @@ cd api
 make clean
 
 %pre
-pip3 install voluptuous==0.10.5
 
 %install
 cd api
