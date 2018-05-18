@@ -980,11 +980,11 @@ class TimeSeriesModel(Model):
                         data = prediction.format_bucket_data(i)
                         hook.on_anomaly_start(
                             self.name,
-                            dt,
-                            max_score,
-                            data['predicted'],
-                            data['observed'],
-                            mse,
+                            dt=dt,
+                            score=max_score,
+                            predicted=data['predicted'],
+                            observed=data['observed'],
+                            anomalies=anomalies,
                         )
             else:
                 if is_anomaly:
