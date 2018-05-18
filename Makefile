@@ -2,6 +2,7 @@ BUILD_DIR = $(CURDIR)/build
 RPMREPO_DIR := $(BUILD_DIR)/rpmrepo
 
 clean:
+	$(MAKE) -C public/api clean
 	$(MAKE) -C loudml clean
 	$(MAKE) -C loudml-elastic clean
 	$(MAKE) -C loudml-influx clean
@@ -9,6 +10,7 @@ clean:
 	rm -rf build
 
 install:
+	$(MAKE) -C public/api install
 	$(MAKE) -C loudml install
 	$(MAKE) -C loudml-elastic install
 	$(MAKE) -C loudml-influx install
@@ -19,12 +21,14 @@ uninstall:
 	$(MAKE) -C loudml-import uninstall
 	$(MAKE) -C loudml-elastic uninstall
 	$(MAKE) -C loudml uninstall
+	$(MAKE) -C public/api uninstall
 
 dev:
 	$(MAKE) -C loudml-influx dev
 	$(MAKE) -C loudml-import dev
 	$(MAKE) -C loudml-elastic dev
 	$(MAKE) -C loudml dev
+	$(MAKE) -C public/api dev
 
 test:
 	$(MAKE) -C loudml test
@@ -33,6 +37,7 @@ test:
 	$(MAKE) -C loudml-import test
 
 rpm:
+	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C public/api rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C base rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic rpm
@@ -42,6 +47,7 @@ rpm:
 	@find $(BUILD_DIR) -name '*.rpm'
 
 deb:
+	$(MAKE) -C public/api deb
 	$(MAKE) -C loudml deb
 	$(MAKE) -C base deb
 	$(MAKE) -C loudml-elastic deb
