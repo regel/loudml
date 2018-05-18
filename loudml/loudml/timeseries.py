@@ -664,13 +664,11 @@ class TimeSeriesModel(Model):
             'mins': _mins.tolist(),
             'maxs': _maxs.tolist(),
             'loss': score[0],
-            'accuracy': score[1],
 
         }
 
         return {
             'loss': score[0],
-            'accuracy': score[1],
         }
 
     def load(self):

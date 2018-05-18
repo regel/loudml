@@ -271,7 +271,6 @@ class TrainCommand(Command):
                 max_evals=args.max_evals,
             )
             print("loss: %f" % result['loss'])
-            print("accuracy: %f" % result['accuracy'])
         elif model.type == 'fingerprints':
             if not args.from_date:
                 raise LoudMLException(

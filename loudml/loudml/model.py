@@ -205,7 +205,6 @@ class Model:
 
         if self.is_trained:
             state['loss'] = self.state.get('loss')
-            state['accuracy'] = self.state.get('accuracy')
 
         return {
             'settings': self.settings,
