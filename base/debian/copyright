@@ -1,0 +1,8 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: loudml-base
+Source: http://www.loudml.io
+
+Files: *
+Copyright: 2018 Red Mint Network
+License: Proprietary
+ All rights reserved.

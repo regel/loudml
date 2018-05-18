@@ -1,31 +1,17 @@
-Source: loudml
+Source: loudml-base
 Section: unknown
 Priority: optional
 Maintainer: Red Mint Network <packaging@redmintnetwork.com>
 Build-Depends:
   debhelper (>= 9),
-  dh-python,
-  dh-systemd,
-  python-all,
-  python-setuptools,
-  python3-all,
-  python3-setuptools
+  python3-pip,
 Standards-Version: 3.9.5
 Homepage: http://www.loudml.io/
 #Vcs-Git: git://anonscm.debian.org/collab-maint/loudml.git
 #Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/loudml.git;a=summary
 
-Package: loudml
+Package: loudml-base
 Architecture: all
 Depends:
   ${misc:Depends},
-  ${python3:Depends},
-  loudml-base,
-  python3-flask,
-  python3-h5py,
-  python3-networkx,
-  python3-numpy,
-  python3-voluptuous,
-  python3-yaml,
-Description: LoudML core package
- LoudML core package.
+Description: LoudML dependencies

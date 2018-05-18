@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_install:
+	rm -rf debian/loudml-base
+	pip3 install -r vendor/requirements.txt -t debian/loudml-base/usr/lib/loudml/vendor

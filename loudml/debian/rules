@@ -34,6 +34,7 @@ override_dh_install:
 		dst=$$(basename $$src .cpython-35.pyc).pyc; \
 		cp $$src ${_pydir}/rmn_common/$$dst; \
 	done
+	find ${_pydir} -name requires.txt | xargs rm -f
 
 override_dh_installinit:
 	dh_installinit --no-start --name=loudmld
