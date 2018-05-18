@@ -94,6 +94,7 @@ class Worker:
             if detect_anomalies:
                 hooks = self.storage.load_model_hooks(model_name)
                 model.detect_anomalies(prediction, hooks)
+                self.storage.save_model(model)
 
                 # TODO .detect_anomalies() produces warning messages
                 # and store anomalies into 'prediction'.
