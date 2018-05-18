@@ -1307,7 +1307,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(prediction.predicted.shape, (expected, 2))
 
         for bucket in prediction.format_buckets():
-            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['timestamp'], float))
             self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
 
@@ -1384,7 +1384,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(prediction.predicted.shape, (expected, 2))
 
         for bucket in prediction.format_buckets():
-            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['timestamp'], float))
             self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['avg_foo'], float))
@@ -1461,7 +1461,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(prediction.predicted.shape, (expected, 2))
 
         for bucket in prediction.format_buckets():
-            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['timestamp'], float))
             self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
 
@@ -1538,7 +1538,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(prediction.predicted.shape, (expected, 2))
 
         for bucket in prediction.format_buckets():
-            self.assertTrue(isinstance(bucket['timestamp'], str))
+            self.assertTrue(isinstance(bucket['timestamp'], float))
             self.assertTrue(isinstance(bucket['observed']['avg_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['count_foo'], float))
             self.assertTrue(isinstance(bucket['predicted']['avg_foo'], float))
