@@ -40,6 +40,5 @@ setup(
     ],
 
     install_requires=[
-        'loudml',
     ],
 )
