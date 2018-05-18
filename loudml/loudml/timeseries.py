@@ -10,6 +10,7 @@ import os
 import sys
 import numpy as np
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow.contrib.keras.api.keras import backend as K
 from tensorflow.contrib.keras.api.keras.models import Sequential
