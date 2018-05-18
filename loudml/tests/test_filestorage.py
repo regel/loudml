@@ -5,6 +5,8 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
+import loudml.vendor
+
 from loudml import (
     errors,
 )

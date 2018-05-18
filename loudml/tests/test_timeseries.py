@@ -16,6 +16,8 @@ def nan_equal(a,b):
 
 logging.getLogger('tensorflow').disabled = True
 
+import loudml.vendor
+
 from loudml.randevents import (
     FlatEventGenerator,
     SinEventGenerator,

@@ -4,6 +4,7 @@ import numpy as np
 import os
 import unittest
 
+import loudml.vendor
 import loudml.errors as errors
 from loudml.memdatasource import MemDataSource
 
