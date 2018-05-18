@@ -589,7 +589,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(prediction.predicted.shape, (24, 2))
 
         # Adding this call to ensure detect_anomalies() can deal with nan
-        self.model.detect_anomalies(prediction)
+        model.detect_anomalies(prediction)
 
         self.assertEqual(prediction.format_series()['predicted']['avg_foo'][13:13+model.span],
                          [None] * model.span)
