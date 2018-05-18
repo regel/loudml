@@ -652,6 +652,11 @@ class TimeSeriesModel(Model):
             num_epochs,
             max_evals,
         )
+        for key, val in best_params.items():
+            if not isinstance(val, str) and \
+               not isinstance(val, int) and \
+               not isinstance(val, float):
+                best_params[key] = np.asscalar(val)
 
         model_b64, weights_b64 = _serialize_keras_model(_keras_model)
 
