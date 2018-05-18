@@ -1,0 +1,21 @@
+Source: loudml-api
+Section: unknown
+Priority: optional
+Maintainer: Red Mint Network <packaging@redmintnetwork.com>
+Build-Depends:
+  debhelper (>= 9),
+  dh-python,
+  python3-all,
+  python3-setuptools
+Standards-Version: 3.9.5
+Homepage: http://www.loudml.io/
+Vcs-Git: git://github.com/regel/loudml/loudml.git
+#Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/loudml.git;a=summary
+
+Package: loudml-api
+Architecture: all
+Depends:
+  ${misc:Depends},
+  ${python3:Depends},
+  python3-voluptuous,
+Description: LoudML API package
