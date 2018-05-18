@@ -80,8 +80,8 @@ class Storage(metaclass=ABCMeta):
         for hook_name in self.list_model_hooks(model_name):
 
             try:
-                hook = load_model_hook(model_name, hook_name)
-            except loudml.LoudMLException as exn:
+                hook = self.load_model_hook(model_name, hook_name)
+            except errors.LoudMLException as exn:
                 logging.error("cannot load hook '%s/%s': %s",
                               model_name, hook_name, str(exn))
                 continue
