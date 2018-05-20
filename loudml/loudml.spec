@@ -55,6 +55,8 @@ sed -i 's/# *DISABLED check_instance()/check_instance()/' loudml/server.py
     echo -e "error: instance checking no present"
 
 make install DESTDIR=%{buildroot}
+install -m 0755 -d %{buildroot}/%{_datarootdir}/loudml
+install -m 0644 LICENSE %{buildroot}/%{_datarootdir}/loudml/LICENSE
 
 # PYC binary distribution, mv files to pre-PEP-3147 location to be able to
 # load modules
@@ -89,6 +91,7 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 # vendor system)
 %exclude %{python3_sitelib}/loudml-*.egg-info/requires.txt
 %{_bindir}/*
+%license %{_datarootdir}/loudml/LICENSE
 %{python3_sitelib}/rmn_common/*
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml-*.egg-info/*
