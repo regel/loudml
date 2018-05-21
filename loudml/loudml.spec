@@ -18,7 +18,6 @@ Requires: python34
 Requires: python34-pip
 Requires: python34-yaml
 Requires: python34-psutil
-Requires: python34-numpy
 Requires: curl
 Requires: loudml-api
 Requires: loudml-base
