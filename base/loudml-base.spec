@@ -7,7 +7,7 @@ License:       Open Source
 URL:           http://www.loudml.com
 Requires:      python34
 BuildRequires: python34
-BuildRequires: python34-pip
+AutoReqProv:   no
 
 # Disable debug package
 %define debug_package %{nil}
@@ -18,7 +18,7 @@ Dependencies for LoudML.
 
 
 %install
-pip3 install -r %{srcdir}/vendor/requirements.txt -t %{buildroot}/%{_libdir}/loudml/vendor
+/opt/redmint/bin/pip install -r %{srcdir}/vendor/requirements.txt -t %{buildroot}/%{_libdir}/loudml/vendor
 
 # rpmbuild tries to automatically optimize Python packages, but this fails
 # because it tries to compile Python 3 code with Python 2 compiler.
