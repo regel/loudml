@@ -5,4 +5,403 @@ Source: http://www.loudml.io
 Files: *
 Copyright: 2018 Red Mint Network
 License: Proprietary
- All rights reserved.
+ LOUD ML COMMUNITY LICENSE
+ .
+ Ref. 2018.001.001
+ .
+ .
+ THIS LOUD ML COMMUNITY LICENSE (the "Agreement") is entered between the
+ Licensee by accepting these full terms and condition before downloading
+ and installing the Loud ML Community Products, the contents of this
+ Agreement being made available on the http://loudml.io website, as well as
+ being provided in the LICENSE File enclosed in the Installation Package,
+ which the Licensee is required to expressly accept upon its first run
+ of the Loud ML Community Software, and RED MINT NETWORK, société
+ par actions simplifiée registered under the laws of France with the
+ company register in ANNECY under the registration number 814 766 358
+ and having its registered office at allée de la Mandallaz Duo Cité
+ A - Pae de la Bouvarde - 74370 Epagny Metz-Tessy - France (hereinafter
+ "RED MINT NETWORK").
+ .
+ .
+ The parties hereby agree as follows:
+ .
+ 1.	LICENSE GRANT, RIGHTS AND RESTRICTIONS - THIRD PARTY’S RIGHTS
+ .
+ 1.1	Subject to the terms and conditions of this Agreement, RED MINT
+ NETWORK hereby grants Licensee a non-exclusive, non-transferable license
+ to (i) install and use the Loud ML Community Products internally on the
+ Authorized Platform only and solely for Licensee’s own internal uses
+ and purposes, including creating Licensee’s Applications, (ii) and use
+ the Loud ML Community Products elements obtained from the contents of
+ the Installation Packages, in unmodified form, for creating up to three
+ (3) machine learning models for use in Licensee’s Applications in
+ Licensee’s Applications Code, such Loud ML Community Products elements
+ remaining, in any case, subject to the terms of this Agreement, for use
+ of Licensee’s Applications internally on the Authorized Platform only
+ and solely for Licensee’s own internal uses and purposes.
+ .
+ 1.2	This Loud ML Community License does not allow the Licensee to
+ use the Licensee’s Applications for the benefit of third parties, or
+ to distribute or provide in any manner the Licensee’s Applications to
+ third parties. For being allowed to use the Licensee’s Applications
+ for the benefit of third parties or to market and sell it to its own
+ customers, the Licensee shall enter into a full Startup or Enterprise
+ Loud ML License Agreement with RED MINT NETWORK, which is a separate
+ contract, and pay the corresponding license fees.
+ .
+ 1.3	RED MINT NETWORK may allow, on a case by case basis, the Licensee
+ to redistribute the Loud ML Community Products as part or non-commercial
+ or open source projects, as further detailed in Section 4 of this
+ Agreement. Licensee shall be otherwise prohibited from distributing the
+ Loud ML Community Products, whether as a whole or any or its elements.
+ .
+ 1.4	Licensee undertakes not to alter, remove or destroy any copyright,
+ trademark, or other proprietary rights notice that appear on the any of
+ the elements of the Loud ML Community Products and Documentation.
+ .
+ 1.5	Licensee acknowledges that the Loud ML Community Products may
+ be provided alongside with third party elements which may be used with
+ the Loud ML Community Products in accordance with the Documentation,
+ or that the Documentation may refer to these Third Party Elements as
+ being usable with the Loud ML Community Products (hereafter Third Party
+ Elements). Usage of such Third Party Elements is not governed by this
+ Agreement, and shall be governed by the relevant license established by
+ the owners or editors of such Third Party Elements. Such license terms
+ may be obtained from such owners or editors, or may be provided alongside
+ with Loud ML Community Products if such Third Party Elements are provided
+ in such a manner. Licensee undertakes to comply with any such applicable
+ license terms. Licensee shall not alter, remove or destroy any copyright,
+ trademark, or other proprietary rights notice that appear on the Third
+ Party Elements.
+ .
+ 1.6	Licensee shall have no proprietary rights in the Loud ML
+ Community Products and Documentation. All modifications and enhancements
+ to the Loud ML Community Products developed by RED MINT NETWORK, whether
+ or not made at Licensee’s request, shall belong exclusively to RED
+ MINT NETWORK. Licensee shall not directly or indirectly (a) use Loud
+ ML Community Products to create any computer software program, which
+ is substantially similar to any Loud ML Community Product; (b) without
+ prejudice to any rights that the Licensee may have according to mandatory
+ provisions of applicable law that may not be derogated and which are not
+ subject to contractual waiver, reverse engineer, decompile, disassemble,
+ reverse-assemble, or attempt to derive the source code for any Loud ML
+ Community Product; or (c) loan, transfer, time-share, lease or rent the
+ Loud ML Community Products.
+ .
+ 2.	NO LICENSE FEES - RECORDS AND AUDITS
+ .
+ 2.1	NO LICENSE FEES. The rights granted under this Agreement are
+ granted free of charge to the Licensee subject to the Licensee’s
+ acceptance and compliance with the terms of this Agreement, including
+ the model number limitation set forth in Section 3.1 hereafter.
+ .
+ 2.2	RECORDS - AUDIT RIGHTS. Licensee shall keep clear and
+ complete records with respect to its internal use of Loud ML Community
+ Products. RED MINT NETWORK or its authorized agent shall have the right to
+ periodically have access to equipment, records and documents of Licensee
+ to verify compliance by Licensee with the terms of this Agreement,
+ including compliance with the model number limitation stated in Section
+ 3.1. If the audit reveals a breach of Licensee’s confidentiality
+ and security undertakings, or a material breach of this Agreement, the
+ cost of such auditing shall be borne by Licensee without prejudice to
+ indemnification of RED MINT NETWORK’s damage.
+ .
+ 3.	MODEL NUMBER LIMITATION AND EXCLUSIONS
+ .
+ 3.1	This Agreement only grants the Licensee the right the use the
+ Loud ML Community Products for creating three (3) machine learning models
+ for use in Licensee’s Applications. The Licensee undertakes not to
+ use the Loud ML Community Products in any manner to circumvent directly
+ or indirectly this limitation, not to proceed to multiple installations,
+ create multiple instances or processes, and shall not alter in any manner
+ any technical restrictions included in the Loud ML Community Products
+ for enforcing these limitations.
+ .
+ 3.2	This Agreement does not include provision of any maintenance
+ or support services, or any other services. Maintenance services are
+ provided only under the full Startup or Enterprise Loud ML License
+ Agreement, which is a separate contract the Licensee may enter into with
+ RED MINT NETWORK. If the Licensee is a GitHub user, the Licensee may,
+ as any GitHub user, submit bug reports or requests on the official
+ GitHub account for Loud ML Community Products, but RED MINT NETWORK
+ does not guarantee a response, or that any such report or request will
+ be addressed by RED MINT NETWORK, or that any response received through
+ the GitHub platform from the community of a GitHub users is approved or
+ verified by RED MINT NETWORK.
+ .
+ 3.3	This Agreement does not grant the right to the Licensee to
+ receive updates or upgrades to Loud ML Community Products, which
+ are provided under the full Startup or Enterprise Loud ML License
+ Agreement. Installations or updates may be done manually by the Licensee,
+ by fully deinstalling the previous version, and installing a new version.
+ .
+ 3.4	Any software or intellectual property right of RED MINT NETWORK
+ not expressly granted under this Agreement shall be deemed excluded from
+ the rights granted under this Agreement, and any services not expressly
+ described under this Agreement shall be deemed not to be provided by RED
+ MINT NETWORK. In particular, under this Agreement, RED MINT NETWORK does
+ not provide the Licensee with any hosting services, specific software
+ development, training, hotline or other form of assistance or provision
+ of engineering expertise in relation to usage of the Loud ML Community
+ Products, to use of machine learning techniques or other additional
+ services.
+ .
+ 4.	REQUESTS FOR REDISTRIBUTION OF THE LOUD ML COMMUNITY PRODUCTS
+ AS PART OR NON-COMMERCIAL OR OPEN SOURCE PROJECTS
+ .
+ 4.1	In the event the Licensee is the publisher of non-commercial or
+ open source software, hereafter the Licensee’s Non-Commercial Software,
+ in which use of Loud ML Community Products is contemplated, Licensee
+ may request permission from RED MINT NETWORK for redistributing the
+ unmodified contents of the Installation Packages as a dependency for
+ the operation of the Licensee’s Application.
+ .
+ 4.2	Any such permission shall only be deemed given when granted
+ in writing by RED MINT NETWORK. RED MINT NETWORK reserves the right,
+ at its sole discretion, to accept or refuse such requests, or revoke
+ any granted permission, without need for RED MINT NETWORK to justify a
+ refusal. Unless otherwise agreed in writing, the right for the Licensee
+ to allow sub-distribution is not granted.
+ .
+ 4.3	Without prejudice to other particular agreement between RED
+ MINT NETWORK and the Licensee for the purposes of this Section 4, the
+ Licensee agrees that, in consideration for the granted permission, it
+ shall comply with the following obligations or requirements in relation to
+ its redistribution of the unmodified contents of the Installation Packages
+ as a dependency for the operation of the Licensee’s Application:
+ .
+ -	Licensee shall provide visibility to the Loud ML brand and
+ RED MINT NETWORK, by including corresponding notices and logos in the
+ form made available by RED MINT NETWORK in its communication to third
+ parties regarding Licensee’s Non-Commercial Software, including on
+ its official website for Licensee’s Non-Commercial Software project
+ and in its documentation;
+ .
+ -	Licensee’s use of the Loud ML Community Products, or their
+ distribution under this Section 4, shall not, in any manner, infringe
+ RED MINT NETWORK’s rights, or allow third parties to infringe RED MINT
+ NETWORK’s rights, including RED MINT NETWORK’s proprietary rights or
+ intellectual property rights, or the terms of this Agreement, including
+ the model number limitation stated in Section 3.1;
+ .
+ -	Loud ML Community Products shall not be modified, including the
+ terms of this Agreement, which shall fully apply to the users of the
+ Licensee’s Non-Commercial Software in relation to the contents of the
+ Installation Packages. Any license chosen by the Licensee to apply to
+ its Licensee’s Non-Commercial Software shall not apply in any manner to
+ Loud ML Community Products, including by way of any copyleft mechanism,
+ and the Licensee shall clearly separate its Licensee’s Non-Commercial
+ Software and the Loud ML Community Products as being two different and
+ independent products subject to their own different license terms.
+ .
+ 5.	OPTIONAL OPT-IN FOR STATISTICS SENT TO RED MINT NETWORK
+ .
+ 5.1	When installing the Loud ML Community Products, the Licensee will
+ be prompted to confirm its agreement or disagreement for the collection
+ of statistics of use generated by Loud ML Community Products, after the
+ Licensee has read the corresponding privacy policy made available on
+ the http://loudml.io website. The Licensee may also opt-out from these
+ statistics in the manner described in the Loud ML Community Products
+ documentation.
+ .
+ 5.2	Such statistics are encrypted and sent to RED MINT NETWORK through
+ the Internet to RED MINT NETWORK’s servers located in France, through an
+ encrypted https connection in accordance with the following details. RED
+ MINT NETWORK collects the following information every 24 hours: usage
+ duration, number of models used, error codes generated, version of
+ the operating system used; version of the Loud ML Community Products,
+ excluding any from Licensee’s external databases or data sources. The
+ IP address of the Licensee is removed from the data received through
+ the https protocol, and is no other directly or indirectly personally
+ identifiable information is being collected or used by RED MINT NETWORK.
+ .
+ 5.3	RED MINT NETWORK is the only recipient of the data collected,
+ which RED MINT NETWORK will use only for the purposes of producing
+ aggregate anonymous statistics of use, and improving the stability and
+ functionality of Loud ML Community Products.
+ .
+ 6.	LIMITATION OF LIABILITY
+ .
+ 6.1	THE LOUD ML COMMUNITY PRODUCTS ARE PROVIDED TO THE LICENSEE
+ UNDER THIS AGREEMENT AS IS, FOR ITS OWN INTERNAL USES AND PURPOSES ONLY,
+ AND WITHOUT ANY WARRANTY OR GUARANTY WHATSOEVER, WHETHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ RED MINT NETWORK BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+ OF OR IN CONNECTION WITH THE LOUD ML COMMUNITY PRODUCTS OR THE USE OR
+ OTHER DEALINGS IN THE LOUD ML COMMUNITY PRODUCTS, INCLUDING LICENSEE’S
+ APPLICATIONS OR LICENSEE’S APPLICATIONS CODE. RED MINT NETWORK EXPRESSLY
+ EXCLUDES ALL WARRANTY AGAINST HIDDEN DEFECTS AND DOES NOT WARRANT THAT
+ THE LOUD ML COMMUNITY PRODUCTS (I) WILL BE UNINTERRUPTED OR ERROR FREE;
+ (II) WILL MEET LICENSEE’S INDIVIDUAL REQUIREMENTS; OR (III) WILL
+ OPERATE IN COMBINATIONS.
+ .
+ 6.2	RED MINT NETWORK shall not be responsible to Licensee for any
+ loss of data, loss of profit, loss of revenue, loss of business or
+ loss of goodwill, business interruption as well as for any indirect or
+ unforeseeable damages arising out of this Agreement. Since the license
+ for the Loud ML Community Products is provided free of charge: (i) RED
+ MINT NETWORK shall not be liable to Licensee for any damages, whether
+ direct or indirect, caused to Licensee through its use of the Loud ML
+ Community Products or resulting from the performance of this Agreement;
+ and (ii) the Licensee acknowledges that it agrees to bear all risk and
+ responsibility deriving from its use of the Loud ML Community Products
+ or resulting from the performance of this Agreement.
+ .
+ 6.3	Licensee shall indemnify, defend and hold RED MINT NETWORK
+ harmless against all costs and liabilities of any kind that arise out
+ of performance of Licensee’s Applications, or its integration of Loud
+ ML Community Products therewith.
+ .
+ 7.	TERMINATION
+ .
+ 7.1	TERMINATION. RED MINT NETWORK may terminate this Agreement at any
+ time, upon written notice, if the Licensee is in breach of this Agreement,
+ in particular if the Licensee breaches RED MINT NETWORK’s intellectual
+ property rights, or circumvents or attempts to circumvent any limitations
+ or technical protections referred to in Section 3.1 enforcing the
+ contractual limit of use the Loud ML Community Products for creating not
+ more than three (3) machine learning models. The Licensee may terminate
+ this Agreement by fully deinstalling the Loud ML Community Products.
+ .
+ 7.2	RESULTS OF EXPIRATION OR TERMINATION. The license right granted
+ herein shall terminate automatically upon the termination of this
+ Agreement, including the right to use any Licensee’s Application or
+ Licensee’s Application Code. Upon termination of this Agreement for
+ any reason Licensee shall destroy any elements of the Loud ML Community
+ Products, including any parts included in any of Licensee’s Application
+ Code.
+ .
+ 8.	GENERAL PROVISIONS
+ .
+ 8.1	REFERENCE. By accepting the terms of this Agreement, the Licensee
+ agrees that RED MINT NETWORK may mention the Licensee’s name in the
+ list of its users together with its logo for commercial reference purposes
+ in the usual manner for the profession.
+ .
+ 8.2	ASSIGNMENT. The rights granted herein are personal to
+ Licensee. The Licensee may not assign or transfer any of the rights set
+ forth herein without the express written consent of RED MINT NETWORK
+ (which shall not be unreasonably withheld). A change in control of the
+ Licensee shall be considered an assignment for purposes of this Section
+ 8.2. RED MINT NETWORK may assign this Agreement without prior written
+ consent of the Licensee.
+ .
+ 8.3	EXPORT CONTROL. It is expressly agreed by the parties that
+ the delivery of the products, technology, equipment, and software in
+ accordance with this Agreement shall be subject to all applicable exports
+ controls administered by any competent agency, administration or imposed
+ by any applicable regulation, especially in the United States of America
+ or the European Union, which may impose such controls, including but
+ not limited to controls on the export of technical data, equipment,
+ software and know how. Licensee hereby acknowledges and agrees that
+ unless prior authorization is obtained from the competent authorities
+ Licensee shall not export, re-export, or release, directly or indirectly,
+ any technology, or software in any form, received from RED MINT NETWORK,
+ or export, directly or indirectly, any direct product of such technology
+ or software in any form to any destination or country to which the export,
+ re-export or release of the technology, software in any form, or direct
+ product is prohibited by such regulations. The assurances provided for
+ herein are furnished to RED MINT NETWORK by Licensee, in particular,
+ in compliance with Part 740 (Technology and Software under Restriction)
+ of the U.S. Export Administration Regulations (EAR), and European Union
+ Regulation (EC) No 428/2009. For the avoidance of doubt, no provision
+ of this Section 8.3 shall be deemed to grant any intellectual property
+ right not expressly granted by RED MINT NETWORK under this Agreement,
+ especially any distribution right to any third party.
+ .
+ 8.4	GOVERNING LAW - JURISDICTION. This Agreement is governed by,
+ and construed in accordance with the laws of France. The United Nations
+ Convention on Contracts for the International Sale of Goods is excluded
+ from application hereto. The parties shall use reasonable efforts to
+ resolve amicably any disputes that may relate to or arise under this
+ Agreement. Any disputes that cannot be resolved in such manner shall be
+ submitted to the jurisdiction of the competent courts in Paris, France.
+ .
+ 8.5	ENTIRE AGREEMENT. This Agreement constitutes the entire
+ agreement between the parties regarding the subject matter hereof, no
+ other documents issued by the Licensee or other writing not expressly
+ incorporated into this Agreement shall be binding on RED MINT NETWORK. No
+ provisions of this Agreement may be modified except by an agreement in
+ writing signed by the parties.
+ .
+ 8.6	WAIVER. RED MINT NETWORK's failure to exercise any of its rights
+ hereunder shall not be deemed a waiver of any such rights.
+ .
+ 8.7	SEVERABILITY. If any provision of this Agreement is held by
+ any court of competent jurisdiction to be void, invalid, unlawful or
+ unenforceable, that provision will be severed from the Agreement and
+ any remaining provisions will continue in full force, so long as the
+ Agreement still expresses the intent of the parties.
+ .
+ 8.8	SURVIVAL. The provisions of this Agreement that, by their nature
+ and content, must survive the completion, rescission, termination or
+ expiration of this Agreement in order to achieve the fundamental purposes
+ of this Agreement shall so survive and continue to bind the parties.
+ .
+ 8.9	HEADINGS. All headings in this Agreement are included solely for
+ convenient reference and shall not affect the meaning or interpretation
+ of this Agreement.
+ .
+ 8.10	LANGUAGE. The parties have specifically agreed to conclude this
+ Agreement in English. The English language version of this Agreement shall
+ be the official text hereof, despite translations or interpretation of
+ this Agreement in other languages.
+ .
+ 9.	DEFINITIONS
+ .
+ “Authorized Platform” means a single installation of the Loud ML
+ Community Products, on a single server exclusively used by the Licensee.
+ .
+ "Documentation" means text material that describes the design, functions,
+ operation or use of the Loud ML Community Products and which is supplied
+ to Licensee by RED MINT NETWORK in accordance with this Agreement for
+ Licensee’s same own internal uses and purposes.
+ .
+ "Installation Packages" means the packages for Loud ML Community Products
+ which are made available by RED MINT NETWORK, containing the elements of
+ the Loud ML Community Products, including software programs and elements
+ provided in object code, as well as helper files in source code and text
+ files, and the text of this Loud ML Community License, all of them being
+ licensed to the Licensee under this Agreement.
+ .
+ "Licensee’s Application" means the application developed by Licensee
+ exclusively for its own internal uses and purposes, excluding any direct
+ or indirect use by any third party or for the benefit of any third party,
+ or any distribution or provision to any third party, in any manner
+ whatsoever, including as a service, of the Licensee’s Applications
+ or their operation and results, or of any part of the Licensee’s
+ Applications Code including any element extracted from or derived from
+ the Installation Packages.
+ .
+ “Licensee’s Applications Code” means the code produced by the
+ Licensee by using the Loud ML Community Products for programming
+ Licensee’s Applications, resulting, in particular, from use of Loud
+ ML Community Products machine learning API, which shall include, in
+ unmodified form, the contents of the Installation Packages, including
+ the LICENSE File, which remain in any case subject to the terms of
+ this Agreement.
+ .
+ “LICENSE File“ means the file included in the Installation Packages
+ containing the terms of this Agreement.
+ .
+ "Loud ML Community Core Software" means the core software authored by
+ RED MINT NETWORK, providing the machine learning API and functionalities.
+ .
+ "Loud ML Community Products" means the software middleware framework
+ authored by RED MINT NETWORK, licensed to the Licensee under this
+ Agreement. Loud ML Community Products include a machine learning API,
+ allowing the Licensee to aggregate and use data from supported external
+ databases and supported data sources in Licensee’s Applications in
+ accordance with the terms and conditions set forth in this Agreement. The
+ Loud ML Community Products include the Loud ML Community Core Software,
+ and certain Loud ML Community TSDS Modules.
+ .
+ "Loud ML Community TSDS Modules" means the modules authored by RED MINT
+ NETWORK, which allow the Loud ML Community Core Software to work with
+ certain Time Series Database Systems.
+ .
+ .
+ [ END OF LOUD ML COMMUNITY LICENSE - Ref. 2018.001.001 ]

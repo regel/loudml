@@ -33,7 +33,7 @@ setup(
         "Flask-restful>=0.3.5",
         "loudml-api>=1.3.0",
         "networkx==1.11",
-        "tensorflow==1.7.0",
+        "tensorflow==1.3.0",
         "h5py>=2.7.0",
         "hyperopt==0.1",
         "numpy>=1.10.0",
