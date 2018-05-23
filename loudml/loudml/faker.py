@@ -79,7 +79,7 @@ def dump_to_elastic(generator, addr, index, doc_type, tags=None, clear=False):
     })
 
     if clear:
-        source.delete_index()
+        source.drop()
 
     properties = {
         "timestamp": {
@@ -96,7 +96,9 @@ def dump_to_elastic(generator, addr, index, doc_type, tags=None, clear=False):
                 "type": "keyword",
             }
 
-    source.create_index({
+    source.init(
+        template_name="{}_template".format(index),
+        template={
         "template": index,
         "mappings": {
             doc_type: {

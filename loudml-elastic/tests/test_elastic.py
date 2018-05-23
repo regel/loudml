@@ -60,9 +60,8 @@ class TestElasticDataSource(unittest.TestCase):
             'addr': os.environ['ELASTICSEARCH_ADDR'],
             'index': self.index,
         })
-        self.source.delete_index()
-        self.source.create_index(template_name="test",
-                                 template=TEMPLATE)
+        self.source.drop()
+        self.source.init(template_name="test", template=TEMPLATE)
 
         self.model = TimeSeriesModel(dict(
             name='test',
@@ -95,7 +94,7 @@ class TestElasticDataSource(unittest.TestCase):
         time.sleep(10)
 
     def tearDown(self):
-        self.source.delete_index()
+        self.source.drop()
 
     def test_get_times_data(self):
         res = self.source.get_times_data(
@@ -151,8 +150,8 @@ class TestElasticFingerprints(loudml.test.TestFingerprints):
             'addr': addr,
             'index': self.index,
         })
-        self.source.delete_index()
-        self.source.create_index(VOIP_TEMPLATE)
+        self.source.drop()
+        self.source.init(template_name="test", template=TEMPLATE)
 
     def __del__(self):
-        self.source.delete_index()
+        self.source.drop()
