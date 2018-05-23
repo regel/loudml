@@ -248,21 +248,41 @@ class ElasticsearchDataSource(DataSource):
         ) as exn:
             raise errors.TransportError(str(exn))
 
-    def insert_data(self,
-                    data,
-                    doc_type='generic',
-                    doc_id=None,
-                    timestamp=0,
-                    ):
+
+    def get_index_name(self, index=None, timestamp=None):
+        """
+        Build index name
+        """
+
+        if index is None:
+            index = self.index
+
+        if '*' in index:
+            if timestamp is None:
+                dt = datetime.datetime.now()
+            else:
+                dt = datetime.datetime.fromtimestamp(timestamp)
+
+            index = index.replace('*', dt.strftime("%Y.%m.%d"))
+
+        return index
+
+    def insert_data(
+        self,
+        data,
+        index=None,
+        doc_type='generic',
+        doc_id=None,
+        timestamp=None,
+    ):
         """
         Insert entry into the index
         """
 
+        index = self.get_index_name(index, timestamp)
+
         req = {
-            '_index': "{}-{}".format(
-                self.index,
-                datetime.datetime.fromtimestamp(timestamp).strftime("%Y.%m.%d"),
-            ),
+            '_index': index,
             '_type': doc_type,
             '_source': data,
         }
@@ -277,9 +297,12 @@ class ElasticsearchDataSource(DataSource):
         ts,
         data,
         tags=None,
-        measurement='generic',
+        index=None,
+        doc_type='generic',
         doc_id=None,
         timestamp_field='timestamp',
+        *args,
+        **kwargs
     ):
         """
         Insert time-indexed entry
@@ -292,9 +315,15 @@ class ElasticsearchDataSource(DataSource):
             for tag, tag_val in tags.items():
                 data[tag] = tag_val
 
-        self.insert_data(data, doc_type=measurement, doc_id=doc_id, timestamp=int(ts))
+        self.insert_data(
+            data,
+            index=index,
+            doc_type=doc_type,
+            doc_id=doc_id,
+            timestamp=int(ts),
+        )
 
-    def search(self, body, index=None, routing=None, size=0):
+    def search(self, body, index=None, routing=None, doc_type=None, size=0):
         """
         Send search query to Elasticsearch
         """
@@ -309,6 +338,7 @@ class ElasticsearchDataSource(DataSource):
         try:
             return self.es.search(
                 index=index,
+                doc_type=doc_type,
                 size=size,
                 body=body,
                 params=params,
@@ -666,9 +696,15 @@ class ElasticsearchDataSource(DataSource):
 
             yield (timestamp - t0) / 1000, X, timeval
 
-    def save_timeseries_prediction(self, prediction, model):
+    def save_timeseries_prediction(
+        self,
+        prediction,
+        model,
+        index=None,
+    ):
         for bucket in prediction.format_buckets():
             self.insert_times_data(
+                index=index,
                 doc_type='prediction_{}'.format(model.name),
                 ts=bucket['timestamp'],
                 data=bucket['predicted'],

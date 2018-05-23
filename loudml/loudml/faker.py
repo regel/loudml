@@ -115,7 +115,6 @@ def dump_to_elastic(generator, addr, index, doc_type, tags=None, clear=False):
 
         data.update(tags)
         source.insert_times_data(
-            measurement=measurement,
             ts=ts,
             data=data,
             doc_type=doc_type,
@@ -158,6 +157,12 @@ def main():
         help="Measurement",
         type=str,
         default='dummy_data',
+    )
+    parser.add_argument(
+        '--doc-type',
+        help="Document type",
+        type=str,
+        default='generic',
     )
     parser.add_argument(
         '--from',
@@ -233,6 +238,13 @@ def main():
                 tags=tag_dict,
             )
         elif arg.output == 'elastic':
-            pass
+            dump_to_elastic(
+                generator,
+                addr=arg.addr,
+                db=arg.database,
+                clear=arg.clear,
+                doc_type=arg.doc_type,
+                tags=tag_dict,
+            )
     except errors.LoudMLException as exn:
         logging.error(exn)

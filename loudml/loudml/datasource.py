@@ -119,7 +119,14 @@ class DataSource(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def insert_times_data(self, ts, data, measurement, tags=None):
+    def insert_times_data(
+        self,
+        ts,
+        data,
+        tags=None,
+        *args,
+        **kwargs
+    ):
         """
         Insert time-indexed entry
         """

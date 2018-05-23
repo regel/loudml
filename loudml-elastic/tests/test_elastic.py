@@ -96,6 +96,20 @@ class TestElasticDataSource(unittest.TestCase):
     def tearDown(self):
         self.source.drop()
 
+    def test_get_index_name(self):
+        ts = 1527156069
+
+        self.assertEqual(self.source.get_index_name(), self.index)
+        self.assertEqual(self.source.get_index_name("test"), "test")
+        self.assertEqual(
+            self.source.get_index_name("test", timestamp=ts),
+            "test"
+        )
+        self.assertEqual(
+            self.source.get_index_name("test-*", timestamp=ts),
+            "test-2018.05.24",
+        )
+
     def test_get_times_data(self):
         res = self.source.get_times_data(
             self.model,

@@ -50,6 +50,13 @@ def main():
         default='generic',
     )
     parser.add_argument(
+        '--doc-type',
+        help="Document type",
+        type=str,
+        required=False,
+        default='generic',
+    )
+    parser.add_argument(
         '-F', '--flush',
         help="Flush database",
         action='store_true',
@@ -86,13 +93,20 @@ def main():
 
         source.init(**kwargs)
 
+        kwargs = {}
+
+        if arg.measurement:
+            kwargs['measurement'] = arg.measurement
+        if arg.doc_type:
+            kwargs['doc_type'] = arg.doc_type
+
         i = None
         for i, (ts, tag_dict, data) in enumerate(parser.run(arg.path)):
             source.insert_times_data(
-                measurement=arg.measurement,
                 ts=ts,
                 data=data,
                 tags=tag_dict,
+                **kwargs,
             )
 
         if i == None:
