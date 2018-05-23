@@ -7,8 +7,6 @@ export PYBUILD_DISABLE = test
 # Disable build for Python2
 export PYBUILD_DISABLE_python2 = 1
 
-export DH_ALWAYS_EXCLUDE=fingerprints.*
-
 %:
 	dh $@ --with python3,systemd --buildsystem=pybuild
 
@@ -22,8 +20,12 @@ override_dh_auto_configure:
 # /usr/share/dh-python/dhpython/fs.py:is_unwanted_file() has to be edited to
 # always return False.
 _pydir := debian/loudml/usr/lib/python3.5/dist-packages
+_enterprise_pydir := debian/loudml-enterprise/usr/lib/python3.5/dist-packages
 override_dh_install:
 	dh_install
+
+	mkdir -p debian/loudml
+	mv debian/python3-loudml/* debian/loudml/
 	rm -f ${_pydir}/loudml/*.py
 	for src in $$(find ${_pydir}/loudml/__pycache__/ -name "*.cpython-35.pyc"); \
 	do \
@@ -37,6 +39,9 @@ override_dh_install:
 		cp $$src ${_pydir}/rmn_common/$$dst; \
 	done
 	find ${_pydir} -name requires.txt | xargs rm -f
+
+	mkdir -p ${_enterprise_pydir}/loudml
+	mv ${_pydir}/loudml/fingerprints.* ${_enterprise_pydir}/loudml
 
 override_dh_installinit:
 	dh_installinit --no-start --name=loudmld

@@ -24,3 +24,10 @@ Depends:
   loudml-api,
 Description: LoudML core package
  LoudML core package.
+
+Package: loudml-enterprise
+Architecture: all
+Depends:
+  loudml (= ${binary:Version}),
+Description: LoudML Enterprise exclusive features
+ Additional model: fingerprints.
