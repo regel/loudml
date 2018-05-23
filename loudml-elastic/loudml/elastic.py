@@ -294,6 +294,30 @@ class ElasticsearchDataSource(DataSource):
 
         self.insert_data(data, doc_type=measurement, doc_id=doc_id, timestamp=int(ts))
 
+    def search(self, body, index=None, routing=None, size=0):
+        """
+        Send search query to Elasticsearch
+        """
+
+        if index is None:
+            index = self.index
+
+        params = {}
+        if routing is not None:
+            params['routing'] = routing
+
+        try:
+            return self.es.search(
+                index=index,
+                size=size,
+                body=body,
+                params=params,
+            )
+        except elasticsearch.exceptions.TransportError as exn:
+            raise errors.TransportError(str(exn))
+        except urllib3.exceptions.HTTPError as exn:
+            raise errors.DataSourceError(self.name, str(exn))
+
     @staticmethod
     def _build_aggs(model):
         """
@@ -345,10 +369,6 @@ class ElasticsearchDataSource(DataSource):
           }
         }
 
-        es_params={}
-        if model.routing is not None:
-            es_params['routing'] = model.routing
-
         must = []
         date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
         if date_range is not None:
@@ -361,17 +381,10 @@ class ElasticsearchDataSource(DataSource):
                 }
             }
 
-        try:
-            es_res = self.es.search(
-                index=self.index,
-                size=0,
-                body=body,
-                params=es_params,
-            )
-        except elasticsearch.exceptions.TransportError as exn:
-            raise errors.TransportError(str(exn))
-        except urllib3.exceptions.HTTPError as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+        es_res = self.search(
+            body,
+            routing=model.routing,
+        )
 
         return int(es_res['aggregations']['count']['value'])
 
@@ -491,10 +504,6 @@ class ElasticsearchDataSource(DataSource):
         to_date=None,
         key=None,
     ):
-        es_params={}
-        if model.routing is not None:
-            es_params['routing'] = model.routing
-
         from_ms, to_ms = _date_range_to_ms(from_date, to_date)
 
         if key is None:
@@ -517,20 +526,16 @@ class ElasticsearchDataSource(DataSource):
                 num_partition=num_partition,
             )
 
-            try:
-                es_res = self.es.search(
-                    index=self.index,
-                    size=0,
-                    body=body,
-                    params=es_params,
-                )
-            except elasticsearch.exceptions.TransportError as exn:
-                raise errors.TransportError(str(exn))
-            except urllib3.exceptions.HTTPError as exn:
-                raise errors.DataSourceError(self.name, str(exn))
+            es_res = self.search(
+                body,
+                routing=model.routing,
+            )
 
             for bucket in es_res['aggregations']['key']['buckets']:
-                yield self.read_quadrant_aggs(bucket['key'], bucket['quadrant_data']['buckets'])
+                yield self.read_quadrant_aggs(
+                    bucket['key'],
+                    bucket['quadrant_data']['buckets'],
+                )
 
     @classmethod
     def _build_times_query(
@@ -607,10 +612,6 @@ class ElasticsearchDataSource(DataSource):
     ):
         features = model.features
 
-        es_params={}
-        if model.routing is not None:
-            es_params['routing'] = model.routing
-
         from_ms, to_ms = _date_range_to_ms(from_date, to_date)
 
         body = self._build_times_query(
@@ -619,17 +620,10 @@ class ElasticsearchDataSource(DataSource):
             to_ms=to_ms,
         )
 
-        try:
-            es_res = self.es.search(
-                index=self.index,
-                size=0,
-                body=body,
-                params=es_params,
-            )
-        except elasticsearch.exceptions.TransportError as exn:
-            raise errors.TransportError(str(exn))
-        except urllib3.exceptions.HTTPError as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+        es_res = self.search(
+            body,
+            routing=model.routing,
+        )
 
         hits = es_res['hits']['total']
         if hits == 0:
