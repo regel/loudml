@@ -78,6 +78,7 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 
 %files
 %defattr(-,root,root,-)
+%exclude %{python3_sitelib}/loudml/fingerprints.*
 # Exclude source .py files, and PEP3147 __pycache__
 %exclude %{python3_sitelib}/loudml/*.py
 %exclude %{python3_sitelib}/loudml/__pycache__
