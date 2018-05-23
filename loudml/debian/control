@@ -21,7 +21,6 @@ Depends:
   ${misc:Depends},
   ${python3:Depends},
   loudml-base,
-  python3-flask,
   loudml-api,
 Description: LoudML core package
  LoudML core package.
