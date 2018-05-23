@@ -12,7 +12,10 @@ import loudml.test
 
 from loudml.elastic import ElasticsearchDataSource
 
-from loudml.timeseries import TimeSeriesModel
+from loudml.timeseries import (
+    TimeSeriesModel,
+    TimeSeriesPrediction,
+)
 
 TEMPLATE = {
     "template": "test-*",
@@ -121,6 +124,44 @@ class TestElasticDataSource(unittest.TestCase):
             [line[1] for line in res],
             [[2.5], [0.0], [4.0]],
         )
+
+    def test_save_timeseries_prediction(self):
+        now_ts = datetime.datetime.now().timestamp()
+
+        timestamps = [
+            now_ts,
+            now_ts + self.model.bucket_interval,
+        ]
+        predicted = [[4.0], [2.0]]
+
+        prediction = TimeSeriesPrediction(
+            self.model,
+            timestamps=timestamps,
+            predicted=np.array(predicted),
+            observed=np.array([[4.1], [1.9]]),
+        )
+
+        self.source.save_timeseries_prediction(prediction, self.model)
+        self.source.refresh()
+
+        res = self.source.search(
+            index="{}-*".format(self.index),
+            doc_type="prediction_{}".format(self.model.name),
+            routing=self.model.routing,
+            size=100,
+            body={}
+        )
+
+        hits = res['hits']['hits']
+        self.assertEqual(len(hits), 2)
+
+        for i, hit in enumerate(hits):
+            source = hit['_source']
+            self.assertEqual(source, {
+                'avg_foo': predicted[i][0],
+                'timestamp': int(timestamps[i] * 1000),
+            })
+
 
 VOIP_TEMPLATE = {
     "template": "test-voip-*",
