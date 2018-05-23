@@ -144,6 +144,7 @@ class ElasticsearchDataSource(DataSource):
         cfg['type'] = 'elasticsearch'
         super().__init__(cfg)
         self._es = None
+        self._touched_indices = []
 
     @property
     def addr(self):
@@ -248,6 +249,19 @@ class ElasticsearchDataSource(DataSource):
         ) as exn:
             raise errors.TransportError(str(exn))
 
+    def refresh(self, index=None):
+        """
+        Explicitely refresh index
+        """
+
+        if index is None:
+            indices = self._touched_indices
+            self._touched_indices = []
+        else:
+            indices = [index]
+
+        for i in indices:
+            self.es.indices.refresh(i)
 
     def get_index_name(self, index=None, timestamp=None):
         """
@@ -291,6 +305,7 @@ class ElasticsearchDataSource(DataSource):
             req['_id'] = doc_id
 
         self.enqueue(req)
+        self._touched_indices.append(index)
 
     def insert_times_data(
         self,
