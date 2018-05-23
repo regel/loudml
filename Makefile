@@ -48,6 +48,7 @@ rpm:
 
 deb:
 	$(MAKE) -C public/api deb
+	mv public/*.deb .
 	$(MAKE) -C loudml deb
 	$(MAKE) -C base deb
 	$(MAKE) -C loudml-elastic deb
