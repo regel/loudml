@@ -22,11 +22,6 @@ Depends:
   ${python3:Depends},
   loudml-base,
   python3-flask,
-  python3-h5py,
-  python3-networkx,
-  python3-numpy,
-  python3-voluptuous,
-  python3-yaml,
   loudml-api,
 Description: LoudML core package
  LoudML core package.

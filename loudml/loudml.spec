@@ -15,9 +15,6 @@ Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
 Requires: python34
-Requires: python34-pip
-Requires: python34-yaml
-Requires: python34-psutil
 Requires: curl
 Requires: loudml-api
 Requires: loudml-base

@@ -19,6 +19,7 @@ Dependencies for LoudML.
 
 %install
 /opt/redmint/bin/pip install -r %{srcdir}/vendor/requirements.txt -t %{buildroot}/%{_libdir}/loudml/vendor
+find %{buildroot}/%{_libdir}/loudml/vendor -name __pycache__ | xargs rm -rf
 
 # rpmbuild tries to automatically optimize Python packages, but this fails
 # because it tries to compile Python 3 code with Python 2 compiler.
