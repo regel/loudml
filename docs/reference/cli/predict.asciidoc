@@ -22,7 +22,7 @@ And this example will output result to `stdout`:
        "predicted": {
            "avg_temp_feature": 30.1
        },
-       "timestamp": "2018-01-26T17:00:00Z"
+       "timestamp": 1516986000.0
    },
    {
        "observed": {
@@ -31,7 +31,7 @@ And this example will output result to `stdout`:
        "predicted": {
            "avg_temp_feature": 28.01
        },
-       "timestamp": "2018-01-26T17:20:00Z"
+       "timestamp": 1516987200.0
    },
 ........
 ]
@@ -45,6 +45,5 @@ The `predict` command supports the following options:
 `-b`::       Will format the output into buckets
 `-s`::       Will save output predictions to the data-source
 `model`::      The model name
-`datasource`::  (optional) microseconds
 
 

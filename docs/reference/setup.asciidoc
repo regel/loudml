@@ -23,6 +23,7 @@ The matrix of officially supported operating systems is:
 |Distribution|Version      
 |Linux CentOS 7    | >= 7.3 
 |Linux Debian 9    | stretch
+|Docker            | -
 |======================
 
 Loud ML is tested on the listed platforms, but it is possible that it will
@@ -35,7 +36,7 @@ work on other platforms too.
 Loud ML requires at least https://www.tensorflow.org/versions/r1.3/[TensorFlow 1.3]
 in order to run.
  
-We recommend using the standard version provided by Google.
+The standard version provided by Google is embedded in loudml-base package and automatically installed in a vendor/ directory.
 
 --
 

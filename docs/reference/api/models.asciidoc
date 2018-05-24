@@ -7,6 +7,7 @@ The APIs support similar functions found in the model CLI, including:
 * <<cli-create-model,Creating a model>>
 * <<cli-delete-model,Deleting a model>>
 * <<cli-list-models,Listing existing models>>
+* <<cli-forecast,Generating forecast for a given model>>
 * Running a new job to train the model
 * Running periodic inference with new data
 
@@ -93,8 +94,8 @@ by polling the <<api-jobs>> API.
 === Activate Model API
 
 After training, you can start a model in order to output
-predictions every `bucket_interval`. The predicted values
-will automatically be written to your data source. 
+predictions every `interval`. The predicted values will
+automatically be written to your data source. 
 
 [source,js]
 --------------------------------------------------
@@ -108,13 +109,67 @@ This task can be stopped using `_stop`:
 POST /models/cpu_and_mem-model/_stop
 --------------------------------------------------
 
-[WARNING]
-==================================================
+=== Forecast API
 
-This functionality is experimental and may be changed or
-removed completely in a future release. Please note
-that version {version} is a beta release and is intended
-for testing purposes only.
+After training is completed, you can request the forecast of
+future feature values using the forecast API.
 
-==================================================
+[source,js]
+--------------------------------------------------
+POST /models/pricing_model/_forecast?from=now&to=now+1h
+--------------------------------------------------
+
+On success, it will return a job identifier.
+
+[source,js]
+--------------------------------------------------
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Content-Type: application/json
+< Content-Length: 39
+< Server: Werkzeug/0.12.2 Python/3.4.5
+< Date: Fri, 14 Mar 2018 10:00:00 GMT
+< 
+"b67c10d6-3886-4285-a19c-2b908323238a"
+--------------------------------------------------
+
+You can then query the job result using the <<api-jobs,Job API>>:
+
+[source,js]
+--------------------------------------------------
+GET /jobs/b67c10d6-3886-4285-a19c-2b908323238a
+--------------------------------------------------
+
+The result of the above get operation will contain the forecast result,
+according to feature names and properties defined in your model.
+
+[source,js]
+--------------------------------------------------
+{
+    "id": "b67c10d6-3886-4285-a19c-2b908323238a",
+    "state": "done", 
+    "type": "forecast",
+    "result": {
+        "predicted": {
+            "pricing_feature": [
+                1.0200526714324951,
+                1.0138707160949707,
+                1.0268415212631226,
+                1.0200526714324951,
+                1.0138707160949707,
+                1.0268415212631226
+            ]
+        },
+        "timestamps": [
+            1521018000.0,
+            1521018600.0,
+            1521019200.0,
+            1521019800.0,
+            1521020400.0,
+            1521021000.0
+        ]
+    }
+}
+--------------------------------------------------
+
 

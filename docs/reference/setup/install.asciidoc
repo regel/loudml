@@ -19,7 +19,15 @@ RPM repository.
 +
 <<rpm>>
 
+`docker`::
+
+The `docker` image is suitable to run Loud ML in a container environment
+across several operating systems.
+<<docker>>
+
+
 include::install/deb.asciidoc[]
 
 include::install/rpm.asciidoc[]
 
+include::install/docker.asciidoc[]

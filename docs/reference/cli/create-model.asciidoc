@@ -31,7 +31,8 @@ may contain the following settings:
   "name": "avg_temp2-model",
   "offset": 30,
   "span": 5,
-  "threshold": 30,
+  "max_threshold": 90,
+  "min_threshold": 50,
   "type": "timeseries"
 }
 --------------------------------------------------
@@ -41,13 +42,16 @@ The supported settings are:
 [horizontal]
 `bucket_interval`::       (duration) The bucket aggregation interval
 `default_datasource`::       (string) The implicit data source to query and insert data
-`features`::       (array) An array of features derived from the aggregated input data
+`features`::       (array) An array of features, or dictionary of features, derived from the aggregated input data
 `interval`::       (duration) The periodic anomaly detection interval
 `max_evals`::      (integer) The integer number of iterations to produce a model with optimal accuracy
 `name`::  (string) Name of this model. This identifier must be unique
 `offset`::   (duration) The time offset used when querying the data source
-`span`::   (integer) The span interval, defined as the number of time buckets to use for predicting the next feature values
-`threshold`::   (integer) The anomaly threshold between 0 and 100
+`seasonality`::   (dictionary) Enables `daytime` or `weekday` patterns detection in the model. Default is disabled.
+`forecast`::   (integer) The forecast horizon, defined as the number of time buckets to forecast when requesting the model to predict future data
+`span`::   (integer) The span interval, defined as the number of past time buckets to use as a proxy to predict future data
+`max_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies start when this threshold is exceeded.
+`min_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies end when the current scores fall behind this threshold
 `type`::   (string) `timeseries`
 `timestamp_field`::   (string) Optional. The main timestamp field in your TSDB data source. The default value for this field is `timestamp`. You can set the value to `@timestamp` or the value that fits your TSDB mapping.
 
@@ -64,9 +68,9 @@ The same instructions allow you to define both single variate (unique feature)
 and multivariate models.
 
 Defining multiple features in the model opens the possiblity to find correlations
-between features that will help to achieve a better accuracy in the predictions.
-Say, for example the temperature, and sun exposure measurements both captured
-in measurements available in the same database.
+between features automalically, and achieve a better accuracy in the predictions.
+
+An example of using <<times-dsl-multiple-dimensions, time series with distinct input and output features>> is available in the documentation.
 
 ==================================================
 
@@ -75,6 +79,9 @@ in measurements available in the same database.
 
 All features defined in the model will query and aggregate data from the same
 data source.
+
+Please vote and let us know if you'd like us to implement native data aggregations
+and features across distinct data-sources: https://github.com/regel/loudml/issues/22[GitHub Aggregating from distinct data sources]
 
 ==================================================
 

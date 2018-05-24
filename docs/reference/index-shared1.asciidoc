@@ -16,3 +16,5 @@ include::api.asciidoc[]
 include::glossary.asciidoc[]
 
 include::release-notes.asciidoc[]
+
+include::faq.asciidoc[]

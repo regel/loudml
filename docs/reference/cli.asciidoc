@@ -10,6 +10,7 @@ This section contains a detailed description of the `loudml` command line interf
 * <<cli-list-models>>
 * <<cli-train>>
 * <<cli-predict>>
+* <<cli-forecast>>
 
 Running the `loudml` command with -h option in a terminal will output the
 following help message:
@@ -18,7 +19,7 @@ following help message:
 --------------------------------------------------
 loudml -h
 usage: loudml [-h] [-c CONFIG]
-              {delete-model,predict,train,list-models,create-model} ...
+              {delete-model,predict,forecast,train,list-models,create-model} ...
 
 LoudML command-line tool
 
@@ -29,7 +30,7 @@ optional arguments:
                         /etc/loudml/config.yml)
 
 Commands:
-  {delete-model,predict,train,list-models,create-model}
+  {delete-model,predict,forecast,train,list-models,create-model}
 --------------------------------------------------
 
 If you want to use the default path for LoudML storage (`/var/lib/loudml`),
@@ -53,4 +54,6 @@ include::cli/list-models.asciidoc[]
 include::cli/train.asciidoc[]
 
 include::cli/predict.asciidoc[]
+
+include::cli/forecast.asciidoc[]
 

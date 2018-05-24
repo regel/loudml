@@ -1,0 +1,49 @@
+[[cli-forecast]]
+== Forecast Command
+
+The forecast command will return a time series forecast for a given time range,
+and a given model. For example the command below will output forecasts
+for model named `pricing-model` between now and the next 24 hours:
+
+[source,bash]
+--------------------------------------------------
+loudml forecast --from "now" --to "now+1d" pricing-model
+--------------------------------------------------
+
+And this example will output result to `stdout`:
+
+[source,js]
+--------------------------------------------------
+{
+[...]
+    "predicted": {
+        "pricing_feature": [
+            1.0200526714324951,
+            1.0138707160949707,
+            1.0268415212631226,
+            1.0200526714324951,
+            1.0138707160949707,
+            1.0268415212631226
+        ]
+    },
+    "timestamps": [
+        1521018000.0,
+        1521018600.0,
+        1521019200.0,
+        1521019800.0,
+        1521020400.0,
+        1521021000.0
+    ]
+}
+--------------------------------------------------
+
+The `forecast` command supports the following options:
+
+[horizontal]
+`-f`::       (date) The `from` date in range query, supports <<date-math,Date Math>> notation.
+`-t`::       (date) The `to` date in range query, supports <<date-math,Date Math>> notation. 
+`-b`::       Will format the output into buckets
+`-s`::       Will save output to the data-source
+`model`::      The model name
+
+

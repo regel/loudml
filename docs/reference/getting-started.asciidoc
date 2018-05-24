@@ -4,15 +4,27 @@
 [partintro]
 --
 
-Loud ML is a highly scalable machine learning API. It allows you to analyze big volumes of data quickly and use machine learning models in your application without the algorithms complexity. It is generally used as the underlying engine/technology that powers applications that have predictive requirements.
+Loud ML is a new deep learning API that makes it simple to prepare, train, and deploy machine learning models for predictive analytics with your favorite database. The user selects the times series that they want to model; set the model date ranges, and Loud ML will build the models and save them back into the desired database for analysis. Loud ML does all the work and removes the complexity of machine learning with Tensorflow.
 
-Here are a few sample use-cases that Loud ML could be used for:
+It is used as the underlying technology that powers applications with predictive capabilities, and shortest time to market.
 
-. dynamically scale and drive smart load-balancing decisions for VMWARE and/or KVM virtual resources according to predicted load, enabling cloud and hosting providers to reduce operating costs while delivering high-quality services and response times to their users;
-. embed smart intent-based decisions in network services and NGN equipment when network traffic patterns indicate that streaming congestion will impact customer experience, permitting service providers to scale and reduce operating costs;
-. spot anomalies in e-commerce purchasing patterns, and automatically send smart alerts which filter out noise, ensuring e-commerce companies receive the most relevant alerts when things go wrong in the customer’s journey; and,
-. predict changes in customer purchasing history, enabling retail companies to forecast demand with optimal accuracy.
+Here are a few sample use-cases that Loud ML is used for:
 
+* Detecting abnormal dips in user traffic and responding to incident before they impact customers satisfaction
+* Detecting ouliers in periodic fluctuations over changing baseline, eg e-commerce transactions where the time of day, and even the season, implies varying changes in the data
+* Spotting abnormal load in a distributed database
+* Dynamically spotting network traffic patterns and anticipating congestion before it impacts customer experience
+* Forecasting various quantities: for finance, for retail, for energy, and for supply chain optimization
+* Abnormal fraud pattern detection
+* Wizard magic, to reveal hidden features eg guessing foot steps when your only data is X,Y,Z acceleration. 
+
+[NOTE]
+==================================================
+
+Wizard magic is powered by `supervised` learning. All other cases are fully `unsupervised`
+since they do not require labelled data to forecast the output.
+
+==================================================
 
 For the rest of this tutorial, you will be guided through the process of getting Loud ML up and running, taking a peek inside it, and performing basic operations like creating, training, and using your data to get accurate predictions. At the end of this tutorial, you should have a good idea of what Loud ML is, how it works, and hopefully be inspired to see how you can use it to build sophisticated applications mining intelligence from your data.
 --

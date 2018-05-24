@@ -3,7 +3,7 @@
 
 Loud ML ships with good defaults and requires very little configuration.
 Most settings can be changed using the Loud ML 
-<<cli>> CLI.
+<<cli,CLI>>.
 
 The configuration files should contain settings which are specific to 
 your NoSQL databases (such as database name and remote access parameters),
@@ -16,6 +16,9 @@ or settings which Loud ML requires in order to be respond to API calls.
 Loud ML has one configuration file:
 
 * `config.yml` for configuring Loud ML
+
+Any change to `config.yml` file requires a restart of the `loudmld` service.
+Depending on your Linux distributions, the command may vary.
 
 These files are located in the config directory, whose default location depends
 on whether or not the installation is from an archive distribution (`whl` or
@@ -61,4 +64,45 @@ Settings can also be flattened as follows:
 --------------------------------------------------
 storage.path: /var/lib/loudml
 --------------------------------------------------
+
+The `loudmld` HTTP server will listen on the address and port defined
+in your configuration file.
+
+[source,yaml]
+--------------------------------------------------
+server:
+    listen: localhost:8077
+--------------------------------------------------
+
+Finally you can define your data sources, ie how Loud ML will connect to
+your databases and find all information required for machine learning.
+
+[source,yaml]
+--------------------------------------------------
+datasources:
+  - name: favorite_source
+    type: influxdb
+    addr: localhost:8086
+    database: favoritedb
+  - name: other_source
+    type: elasticsearch
+    addr: localhost:9200
+    index: some_index*
+--------------------------------------------------
+
+The supported settings are:
+
+[horizontal]
+`name`::       (string) A user defined name that will refer to this data source
+`type`::       (string) Accepts `influxdb`, or `elasticsearch`
+`addr`::       (string) The network address and port number to connect to the database
+`database`::   (string) The database name. This property is only relevant if `type` equals `influxdb`
+`index`::      (string) The index pattern. This property is only relevant if `type` equals `elasticsearch`
+`dbuser`::     (string) User name, if using HTTP basic authentication to connect to the database
+`dbuser_password`::      (string) User password, if using HTTP basic authentication to connect to the database
+`use_ssl`::    (boolean) Enable this flag if the SSL protocol must be used to connect to the database
+`verify_ssl`:: (boolean) Enable this flag to authenticate the server's certificate
+`ca_certs`::   (string) File path to trusted CA certificates file. This file will be used to authenticate the server's certificate.
+`client_cert`:: (string) File path to client certificate file. This file will be sent to the server in order to authenticate Loud ML queries to the database
+`client_key`:: (string) File path to client private key. This property is required if `client_cert` is used, and must point to the private key matching the client certificate
 
