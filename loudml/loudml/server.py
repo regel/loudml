@@ -640,7 +640,7 @@ def model_stop(model_name):
 
     return "model deactivated"
 
-@app.route("/models/<model_name>/_forecast", methods=['GET'])
+@app.route("/models/<model_name>/_forecast", methods=['POST'])
 @catch_loudml_error
 def model_forecast(model_name):
     global g_storage
