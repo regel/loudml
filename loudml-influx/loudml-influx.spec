@@ -10,7 +10,6 @@ Source0: %{name}-%{version}.tar.gz
 
 BuildRequires: python34 python34-pip
 Requires: python34
-Requires: python34-pip
 Requires: loudml == %{version}
 
 # Disable debug package
@@ -25,9 +24,6 @@ Requires: loudml == %{version}
 
 %build
 make clean
-
-%pre
-pip3 install influxdb>=5.0.0
 
 %install
 make -C loudml-influx install DESTDIR=%{buildroot}
