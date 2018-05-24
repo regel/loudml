@@ -9,6 +9,12 @@ import time
 from . import (
     errors,
 )
+from .config import (
+    load_config,
+)
+from .datasource import (
+    load_datasource,
+)
 from .misc import (
     make_datetime,
 )
@@ -30,7 +36,7 @@ def dump_to_json(generator):
 
     data = []
 
-    for ts, entry in generator():
+    for ts, entry in generator:
         entry['timestamp'] = ts
         data.append(entry)
 
@@ -44,80 +50,57 @@ def build_tag_dict(tags=None):
             tag_dict[k] = v
     return tag_dict
 
-def dump_to_influx(generator, addr, db, measurement, tags=None, clear=False):
-    from .influx import InfluxDataSource
+def init_datasource(arg, tags=None):
+    config = load_config(arg.config)
+    src_settings = config.get_datasource(arg.output)
+    datasource = load_datasource(src_settings)
 
-    source = InfluxDataSource({
-        'name': 'influx',
-        'addr': addr,
-        'database': db,
-    })
+    if arg.clear:
+        datasource.drop()
 
-    if clear:
-        source.drop()
-    source.init()
+    kwargs = {}
 
+    if src_settings['type'] == 'elasticsearch':
+        properties = {
+            "timestamp": {
+                "type": "date"
+            },
+            "foo": {
+                "type": "float",
+            },
+        }
+
+        if tags:
+            for k in tags.keys():
+                properties[k] = {
+                    "type": "keyword",
+                }
+
+        kwargs['template_name'] = "faker"
+        kwargs['template'] = {
+            'template': "faker",
+            'mappings': {
+                arg.doc_type: {
+                    'include_in_all': True,
+                    'properties': properties,
+                },
+            }
+        }
+
+    datasource.init(**kwargs)
+    return datasource
+
+def dump_to_datasource(generator, datasource, tags=None, **kwargs):
     for ts, data in generator:
         now = time.time()
         if ts > now:
             time.sleep(ts - now)
 
-        source.insert_times_data(
-            measurement=measurement,
+        datasource.insert_times_data(
             ts=ts,
             data=data,
             tags=tags,
-        )
-
-def dump_to_elastic(generator, addr, index, doc_type, tags=None, clear=False):
-    from .elastic import ElasticsearchDataSource
-
-    source = ElasticsearchDataSource({
-        'name': 'elastic',
-        'addr': addr,
-        'index': index,
-    })
-
-    if clear:
-        source.drop()
-
-    properties = {
-        "timestamp": {
-            "type": "date"
-        },
-        "foo": {
-            "type": "float",
-        },
-    }
-
-    if tags:
-        for k in tags.keys():
-            properties[k] = {
-                "type": "keyword",
-            }
-
-    source.init(
-        template_name="{}_template".format(index),
-        template={
-        "template": index,
-        "mappings": {
-            doc_type: {
-                "include_in_all": true,
-                "properties": properties,
-            },
-        }
-    })
-
-    for ts, data in generator:
-        now = time.time()
-        if ts > now:
-            time.sleep(ts - now)
-
-        data.update(tags)
-        source.insert_times_data(
-            ts=ts,
-            data=data,
-            doc_type=doc_type,
+            **kwargs
         )
 
 def main():
@@ -130,27 +113,15 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
+        '-c', '--config',
+        type=str,
+        default="/etc/loudml/config.yml",
+        help="Path to LoudML configuration",
+    )
+    parser.add_argument(
         '-o', '--output',
         type=str,
-        choices=['json', 'influx', 'elastic'],
-        default='json',
-    )
-    parser.add_argument(
-        '-a', '--addr',
-        help="Output address",
-        type=str,
-        default="localhost",
-    )
-    parser.add_argument(
-        '-i', '--index',
-        help="Index",
-        type=str,
-    )
-    parser.add_argument(
-        '-b', '--database',
-        help="Database",
-        type=str,
-        default='dummy_db',
+        help="Name of destination datasource",
     )
     parser.add_argument(
         '-m', '--measurement',
@@ -191,7 +162,7 @@ def main():
         default=5,
     )
     parser.add_argument(
-        '-c', '--clear',
+        '--clear',
         help="Clear database or index before insertion "\
              "(risk of data loss! Use with caution!)",
         action='store_true',
@@ -206,6 +177,15 @@ def main():
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+
+    tags = build_tag_dict(arg.tags)
+
+    if arg.output:
+        try:
+            datasource = init_datasource(arg, tags=tags)
+        except errors.LoudMLException as exn:
+            logging.error(exn)
+            return 1
 
     if arg.shape == 'flat':
         ts_generator = FlatEventGenerator(avg=arg.avg)
@@ -223,28 +203,17 @@ def main():
 
     generator = generate_data(ts_generator, from_date.timestamp(), to_date.timestamp())
 
-    tag_dict = build_tag_dict(arg.tags)
+    if arg.output is None:
+        dump_to_json(generator)
+    else:
+        kwargs = {}
 
-    try:
-        if arg.output == 'json':
-            dump_to_json(data)
-        elif arg.output == 'influx':
-            dump_to_influx(
-                generator,
-                addr=arg.addr,
-                db=arg.database,
-                clear=arg.clear,
-                measurement=arg.measurement,
-                tags=tag_dict,
-            )
-        elif arg.output == 'elastic':
-            dump_to_elastic(
-                generator,
-                addr=arg.addr,
-                db=arg.database,
-                clear=arg.clear,
-                doc_type=arg.doc_type,
-                tags=tag_dict,
-            )
-    except errors.LoudMLException as exn:
-        logging.error(exn)
+        if arg.measurement:
+            kwargs['measurement'] = arg.measurement
+        if arg.doc_type:
+            kwargs['doc_type'] = arg.doc_type
+
+        try:
+            dump_to_datasource(generator, datasource, tags=tags, **kwargs)
+        except errors.LoudMLException as exn:
+            logging.error(exn)
