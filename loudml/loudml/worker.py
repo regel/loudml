@@ -2,6 +2,8 @@
 LoudML worker
 """
 
+import loudml.vendor
+
 import logging
 import signal
 
