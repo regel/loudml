@@ -11,7 +11,7 @@ It is used as the underlying technology that powers applications with predictive
 Here are a few sample use-cases that Loud ML is used for:
 
 * Detecting abnormal dips in user traffic and responding to incident before they impact customers satisfaction
-* Detecting ouliers in periodic fluctuations over changing baseline, eg e-commerce transactions where the time of day, and even the season, implies varying changes in the data
+* Detecting outliers in periodic fluctuations over changing baseline, eg e-commerce transactions where the time of day, and even the season, implies varying changes in the data
 * Spotting abnormal load in a distributed database
 * Dynamically spotting network traffic patterns and anticipating congestion before it impacts customer experience
 * Forecasting various quantities: for finance, for retail, for energy, and for supply chain optimization
