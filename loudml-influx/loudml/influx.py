@@ -2,6 +2,8 @@
 InfluxDB module for LoudML
 """
 
+import loudml.vendor
+
 import logging
 import itertools
 
