@@ -2,8 +2,6 @@
 Elasticsearch module for LoudML
 """
 
-import loudml.vendor
-
 import datetime
 import logging
 import math

@@ -2,8 +2,6 @@
 Miscelaneous Loud ML helpers
 """
 
-import loudml.vendor
-
 import datetime
 import dateutil.parser
 import pkg_resources
