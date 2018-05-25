@@ -106,7 +106,7 @@ def main():
                 ts=ts,
                 data=data,
                 tags=tag_dict,
-                **kwargs,
+                **kwargs
             )
 
         if i == None:
