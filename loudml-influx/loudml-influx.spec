@@ -42,6 +42,9 @@ done
 # Exclude source .py files, and PEP3147 __pycache__
 %exclude %{python3_sitelib}/loudml/*.py
 %exclude %{python3_sitelib}/loudml/__pycache__
+# Skip dependencies management by pkg_resources (does not work well with our
+# vendor system)
+%exclude %{python3_sitelib}/loudml_influx*.egg-info/requires.txt
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml_influx*.pth
 %{python3_sitelib}/loudml_influx*.egg-info/*
