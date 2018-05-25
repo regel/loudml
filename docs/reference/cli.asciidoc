@@ -43,6 +43,15 @@ chmod -R g+w /var/lib/loudml
 usermod -a -G loudml <user>
 --------------------------------------------------
 
+[IMPORTANT]
+==================================================
+
+Run previous command in your favourite shell and then completely log out of
+your account and log back in (if in doubt, reboot!)
+
+==================================================
+
+
 --
 
 include::cli/create-model.asciidoc[]
