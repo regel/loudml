@@ -19,7 +19,7 @@ Please raise issues on https://github.com/regel/loudml/issues[Github] if you exp
 * Awesome new functions, including:
 ** forecast: let's take a look into the future!
 ** seasonality: periodic fluctuations arise from physical world activities; one flag to turn it on and you will love it!
-** several input, output, or input/output features in a model: want to forecast energy production based on sun and wind conditions? Give it a try.
+** unlimited input, output, or input/output features in a model: want to forecast energy production based on sun and wind conditions? Give it a try.
 * Huge enhancements and more freedom in the anomaly detection API. You now have the freedom to create your own handler.
 * Enhanced support and bug fixes for Elasticsearch.
 
