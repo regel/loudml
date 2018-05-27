@@ -646,6 +646,7 @@ def model_forecast(model_name):
     global g_storage
 
     params = {
+        'save_prediction': get_bool_arg('save_prediction'),
     }
 
     model = g_storage.load_model(model_name)
