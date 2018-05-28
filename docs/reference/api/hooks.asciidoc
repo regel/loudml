@@ -65,7 +65,7 @@ To download the source code and install the mail plugin, run:
 [source,sh]
 --------------------------------------------------
 git clone https://github.com/vnyb/loudml-plugin-mail
-cd loudml_plugin_mail/
+cd loudml-plugin-mail/
 ./setup.py install
 --------------------------------------------------
 
@@ -156,7 +156,7 @@ The `loudml_plugin_mail/` directory will contain a file named `example.json`
 [NOTE]
 ==================================================
 
-The .py file provided in `loudml_plugin_mail` directory will parse this file,
+The .py file provided in `loudml-plugin-mail` directory will parse this file,
 and expect certain settings to be included. If you fork this code you have 
 the freedom to implement the configuration settings you need.
 
