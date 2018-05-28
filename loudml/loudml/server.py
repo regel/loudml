@@ -117,6 +117,7 @@ class Job:
         self.state = 'idle'
         self.result = None
         self.error = None
+        self.progress = None
 
     @property
     def desc(self):
@@ -129,6 +130,8 @@ class Job:
             desc['result'] = self.result
         if self.error:
             desc['error'] = self.error
+        if self.progress:
+            desc['progress'] = self.progress
         return desc
 
     @property
@@ -173,7 +176,7 @@ class Job:
         logging.info("job[%s] failed: %s", self.id, self.error)
 
 
-def set_job_state(job_id, state):
+def set_job_state(job_id, state, progress=None):
     """
     Set job state
     """
@@ -190,6 +193,7 @@ def set_job_state(job_id, state):
         return
 
     job.state = state
+    job.progress = progress
 
 def read_messages():
     """
@@ -202,7 +206,11 @@ def read_messages():
             msg = g_queue.get(block=False)
 
             if msg['type'] == 'job_state':
-                set_job_state(msg['job_id'], msg['state'])
+                set_job_state(
+                    msg['job_id'],
+                    msg['state'],
+                    progress=msg.get('progress'),
+                )
         except queue.Empty:
             break
 
@@ -288,6 +296,9 @@ class ModelResource(Resource):
         global g_storage
 
         model = g_storage.load_model(model_name)
+
+        preview = model.preview
+
         return jsonify(model.preview)
 
     @catch_loudml_error

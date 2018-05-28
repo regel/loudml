@@ -326,6 +326,8 @@ class TimeSeriesModel(Model):
             for feature in self.features
         ]
 
+        self.current_eval = None
+
     @property
     def type(self):
         return self.TYPE
@@ -373,11 +375,14 @@ class TimeSeriesModel(Model):
         batch_size=64,
         num_epochs=100,
         max_evals=None,
+        progress_cb=None,
     ):
         global _mins, _maxs
 
         if max_evals is None:
             max_evals = self.settings.get('max_evals', 10)
+
+        self.current_eval = 0
 
         # Min-max preprocessing to bring data in interval (0,1)
         # FIXME: support other normalization techniques
@@ -452,6 +457,10 @@ class TimeSeriesModel(Model):
                 batch_size=batch_size,
                 verbose=_verbose,
             )
+
+            self.current_eval += 1
+            if progress_cb is not None:
+                progress_cb(self.current_eval, max_evals)
 
             return scores
 
@@ -581,6 +590,7 @@ class TimeSeriesModel(Model):
         batch_size=64,
         num_epochs=100,
         max_evals=None,
+        progress_cb=None,
     ):
         """
         Train model
@@ -645,7 +655,10 @@ class TimeSeriesModel(Model):
             batch_size,
             num_epochs,
             max_evals,
+            progress_cb=progress_cb,
         )
+        self.current_eval = None
+
         for key, val in best_params.items():
             if not isinstance(val, str) and \
                not isinstance(val, int) and \
