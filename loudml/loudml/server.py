@@ -288,7 +288,7 @@ class ModelResource(Resource):
         global g_storage
 
         model = g_storage.load_model(model_name)
-        return jsonify(model.settings)
+        return jsonify(model.preview)
 
     @catch_loudml_error
     def delete(self, model_name):
