@@ -345,10 +345,7 @@ def model_train(model_name):
     job = TrainingJob(model_name, **kwargs)
     job.start()
 
-    if model_name not in g_training:
-        g_training[model_name] = {}
-
-    g_training[model_name][job.id] = job
+    g_training[model_name] = job
 
     return jsonify(job.id)
 
@@ -431,7 +428,6 @@ api.add_resource(HookResource, "/models/<model_name>/hooks/<hook_name>")
 @catch_loudml_error
 def hook_test(model_name, hook_name):
     global g_storage
-    global g_training
 
     model = g_storage.load_model(model_name)
     hook = g_storage.load_model_hook(model_name, hook_name)
@@ -501,29 +497,15 @@ class TrainingJob(Job):
         return self._kwargs
 
 
-class TrainingJobsResource(Resource):
-    @catch_loudml_error
-    def get(self, model_name):
-        global g_training
+@app.route("/models/<model_name>/training")
+def model_training_job(model_name):
+    global g_training
 
-        jobs = g_training.get(model_name, {})
-        return jsonify([job.desc for job in jobs.values()])
+    job = g_training.get(model_name)
+    if job is None:
+        return "training job not found", 404
 
-class TrainingJobResource(Resource):
-    @catch_loudml_error
-    def get(self, model_name, job_id):
-        global g_jobs
-
-        jobs = g_training.get(model_name, {})
-        job = jobs.get(job_id)
-
-        if job is None:
-            return "training job not found", 404
-
-        return jsonify(job.desc)
-
-api.add_resource(TrainingJobsResource, "/training/<model_name>")
-api.add_resource(TrainingJobResource, "/training/<model_name>/<job_id>")
+    return jsonify(job.desc)
 
 class PredictionJob(Job):
     """
