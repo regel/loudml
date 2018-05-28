@@ -35,6 +35,9 @@ from flask_restful import (
     Api,
     Resource,
 )
+from gevent.pywsgi import (
+    WSGIServer,
+)
 from . import (
     errors,
     schemas,
@@ -819,7 +822,8 @@ def main():
     restart_predict_jobs()
 
     try:
-        app.run(host=host, port=int(port))
+        http_server = WSGIServer((host, int(port)), app)
+        http_server.serve_forever()
     except KeyboardInterrupt:
         pass
 

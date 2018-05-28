@@ -16,6 +16,8 @@ elasticsearch==6.2.0
 flask-restful==0.3.6
 flask==1.0.2
 future==0.16.0            # via hyperopt
+gevent==1.3.1
+greenlet==0.4.13          # via gevent
 h5py==2.7.1
 html5lib==0.9999999       # via bleach, tensorflow-tensorboard
 hyperopt==0.1
