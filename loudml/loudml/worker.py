@@ -81,7 +81,7 @@ class Worker:
         model.train(
             source,
             progress_cb=progress_cb,
-            **kwargs,
+            **kwargs
         )
         self.storage.save_model(model)
 
