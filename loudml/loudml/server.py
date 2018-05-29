@@ -37,6 +37,7 @@ from flask_restful import (
 )
 from . import (
     errors,
+    schemas,
 )
 from .filestorage import (
     FileStorage,
@@ -227,7 +228,7 @@ def get_bool_arg(param, default=False):
     try:
         return make_bool(request.args.get(param, default))
     except ValueError:
-        raise error.Invalid("invalid value for parameter '{}'".format(param))
+        raise errors.Invalid("invalid value for parameter '{}'".format(param))
 
 def get_int_arg(param, default=None):
     """
@@ -238,7 +239,20 @@ def get_int_arg(param, default=None):
     except KeyError:
         return default
     except ValueError:
-        raise error.Invalid("invalid value for parameter '{}'".format(param))
+        raise errors.Invalid("invalid value for parameter '{}'".format(param))
+
+def get_date_arg(param, default=None, is_mandatory=False):
+    """
+    Read date URL parameter
+    """
+    try:
+        value = request.args[param]
+    except KeyError:
+        if is_mandatory:
+            raise errors.Invalid("'{}' parameter is required".format(param))
+        return default
+
+    return schemas.validate(schemas.Timestamp(), value, name=param)
 
 class ModelsResource(Resource):
     @catch_loudml_error
@@ -314,8 +328,8 @@ def model_train(model_name):
     model = g_storage.load_model(model_name)
     kwargs = {}
 
-    kwargs['from_date'] = request.args.get('from', "now-1d")
-    kwargs['to_date'] = request.args.get('to', "now")
+    kwargs['from_date'] = get_date_arg('from', is_mandatory=True)
+    kwargs['to_date'] = get_date_arg('to')
 
     datasource = request.args.get('datasource')
     if datasource is not None:
@@ -615,7 +629,7 @@ def model_start(model_name):
     model.set_run_params(params)
     g_storage.save_model(model)
 
-    params['from'] = request.args.get('from', None)
+    params['from'] = get_date_arg('from')
     _model_start(model, params)
 
     return "real-time prediction started", 200
@@ -651,8 +665,8 @@ def model_forecast(model_name):
 
     model = g_storage.load_model(model_name)
 
-    params['from_date'] = request.args.get('from', 'now')
-    params['to_date'] = request.args.get('to', None)
+    params['from_date'] = get_date_arg('from', default='now')
+    params['to_date'] = get_date_arg('to', defaut=None)
     job_id = _model_forecast(model, params)
 
     return job_id, 200

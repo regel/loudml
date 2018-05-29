@@ -246,19 +246,5 @@ class MemDataSource(DataSource):
     ):
         return self._get_times_data(model.features, model.bucket_interval, from_date, to_date)
 
-    def get_times_start(sel):
-        """Get timestamp of first entry"""
-
-        if not self.data:
-            raise errors.NoData()
-        return self.data[0].value
-
-    def get_times_end(self):
-        """Get timestamp of last entry"""
-
-        if not self.data:
-            raise errors.NoData()
-        return self.data[-1].value
-
     def save_timeseries_prediction(self, prediction, model):
         raise NotImplemented()

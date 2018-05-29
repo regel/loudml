@@ -575,8 +575,8 @@ class TimeSeriesModel(Model):
     def train(
         self,
         datasource,
-        from_date=None,
-        to_date=None,
+        from_date,
+        to_date="now",
         train_size=0.67,
         batch_size=64,
         num_epochs=100,
@@ -589,15 +589,8 @@ class TimeSeriesModel(Model):
         _keras_model, _graph = None, None
         _mins, _maxs = None, None
 
-        if from_date:
-            from_ts = make_ts(from_date)
-        else:
-            from_ts = datasource.get_times_start(self.index)
-
-        if to_date:
-            to_ts = make_ts(to_date)
-        else:
-            to_ts = datasource.get_times_end(self.index)
+        from_ts = make_ts(from_date)
+        to_ts = make_ts(to_date)
 
         from_str = ts_to_str(from_ts)
         to_str = ts_to_str(to_ts)
