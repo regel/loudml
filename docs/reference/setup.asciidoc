@@ -26,17 +26,17 @@ The matrix of officially supported operating systems is:
 |Docker            | -
 |======================
 
-Loud ML is tested on the listed platforms, but it is possible that it will
+Loud ML is tested on the listed platforms, but it may
 work on other platforms too.
 
 [float]
 [[tf-version]]
 == TensorFlow Version
 
-Loud ML requires at least https://www.tensorflow.org/versions/r1.3/[TensorFlow 1.3]
+Loud ML requires, at a minimum, https://www.tensorflow.org/versions/r1.3/[TensorFlow 1.3]
 in order to run.
  
-The standard version provided by Google is embedded in loudml-base package and automatically installed in a vendor/ directory.
+The standard version provided by Google is embedded in the loudml-base package and is automatically installed in a vendor/ directory.
 
 --
 
