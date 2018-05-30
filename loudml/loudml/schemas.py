@@ -12,12 +12,14 @@ from voluptuous import (
     Invalid,
     Length,
     Match,
+    message,
     Optional,
     Range,
     Schema,
 )
 
 from .misc import (
+    make_ts,
     parse_timedelta,
 )
 
@@ -45,6 +47,18 @@ class TimeDelta:
     def __call__(self, v):
         parse_timedelta(v, **self._kwargs)
         return v
+
+@message('expected absolute or relative date', cls=Invalid)
+def Timestamp(v):
+    """
+    Schema for timestamps
+    """
+
+    try:
+        make_ts(v)
+    except TypeError:
+        raise ValueError("value expected")
+    return v
 
 
 def validate(schema, data, name=None):

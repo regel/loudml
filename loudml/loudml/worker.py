@@ -67,7 +67,22 @@ class Worker:
         src_settings = self.config.get_datasource(src_name)
         source = loudml.datasource.load_datasource(src_settings)
 
-        model.train(source, **kwargs)
+        def progress_cb(current_eval, max_evals):
+            self._msg_queue.put({
+                'type': 'job_state',
+                'job_id': self.job_id,
+                'state': 'running',
+                'progress': {
+                    'eval': current_eval,
+                    'max_evals': max_evals,
+                },
+            })
+
+        model.train(
+            source,
+            progress_cb=progress_cb,
+            **kwargs
+        )
         self.storage.save_model(model)
 
     def predict(

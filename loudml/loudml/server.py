@@ -35,8 +35,12 @@ from flask_restful import (
     Api,
     Resource,
 )
+from gevent.pywsgi import (
+    WSGIServer,
+)
 from . import (
     errors,
+    schemas,
 )
 from .filestorage import (
     FileStorage,
@@ -113,6 +117,7 @@ class Job:
         self.state = 'idle'
         self.result = None
         self.error = None
+        self.progress = None
 
     @property
     def desc(self):
@@ -125,6 +130,8 @@ class Job:
             desc['result'] = self.result
         if self.error:
             desc['error'] = self.error
+        if self.progress:
+            desc['progress'] = self.progress
         return desc
 
     @property
@@ -169,7 +176,7 @@ class Job:
         logging.info("job[%s] failed: %s", self.id, self.error)
 
 
-def set_job_state(job_id, state):
+def set_job_state(job_id, state, progress=None):
     """
     Set job state
     """
@@ -186,6 +193,7 @@ def set_job_state(job_id, state):
         return
 
     job.state = state
+    job.progress = progress
 
 def read_messages():
     """
@@ -198,7 +206,11 @@ def read_messages():
             msg = g_queue.get(block=False)
 
             if msg['type'] == 'job_state':
-                set_job_state(msg['job_id'], msg['state'])
+                set_job_state(
+                    msg['job_id'],
+                    msg['state'],
+                    progress=msg.get('progress'),
+                )
         except queue.Empty:
             break
 
@@ -227,7 +239,7 @@ def get_bool_arg(param, default=False):
     try:
         return make_bool(request.args.get(param, default))
     except ValueError:
-        raise error.Invalid("invalid value for parameter '{}'".format(param))
+        raise errors.Invalid("invalid value for parameter '{}'".format(param))
 
 def get_int_arg(param, default=None):
     """
@@ -238,7 +250,20 @@ def get_int_arg(param, default=None):
     except KeyError:
         return default
     except ValueError:
-        raise error.Invalid("invalid value for parameter '{}'".format(param))
+        raise errors.Invalid("invalid value for parameter '{}'".format(param))
+
+def get_date_arg(param, default=None, is_mandatory=False):
+    """
+    Read date URL parameter
+    """
+    try:
+        value = request.args[param]
+    except KeyError:
+        if is_mandatory:
+            raise errors.Invalid("'{}' parameter is required".format(param))
+        return default
+
+    return schemas.validate(schemas.Timestamp(), value, name=param)
 
 class ModelsResource(Resource):
     @catch_loudml_error
@@ -271,7 +296,10 @@ class ModelResource(Resource):
         global g_storage
 
         model = g_storage.load_model(model_name)
-        return jsonify(model.settings)
+
+        preview = model.preview
+
+        return jsonify(model.preview)
 
     @catch_loudml_error
     def delete(self, model_name):
@@ -314,8 +342,8 @@ def model_train(model_name):
     model = g_storage.load_model(model_name)
     kwargs = {}
 
-    kwargs['from_date'] = request.args.get('from', "now-1d")
-    kwargs['to_date'] = request.args.get('to', "now")
+    kwargs['from_date'] = get_date_arg('from', is_mandatory=True)
+    kwargs['to_date'] = get_date_arg('to')
 
     datasource = request.args.get('datasource')
     if datasource is not None:
@@ -328,10 +356,7 @@ def model_train(model_name):
     job = TrainingJob(model_name, **kwargs)
     job.start()
 
-    if model_name not in g_training:
-        g_training[model_name] = {}
-
-    g_training[model_name][job.id] = job
+    g_training[model_name] = job
 
     return jsonify(job.id)
 
@@ -414,7 +439,6 @@ api.add_resource(HookResource, "/models/<model_name>/hooks/<hook_name>")
 @catch_loudml_error
 def hook_test(model_name, hook_name):
     global g_storage
-    global g_training
 
     model = g_storage.load_model(model_name)
     hook = g_storage.load_model_hook(model_name, hook_name)
@@ -484,29 +508,15 @@ class TrainingJob(Job):
         return self._kwargs
 
 
-class TrainingJobsResource(Resource):
-    @catch_loudml_error
-    def get(self, model_name):
-        global g_training
+@app.route("/models/<model_name>/training")
+def model_training_job(model_name):
+    global g_training
 
-        jobs = g_training.get(model_name, {})
-        return jsonify([job.desc for job in jobs.values()])
+    job = g_training.get(model_name)
+    if job is None:
+        return "training job not found", 404
 
-class TrainingJobResource(Resource):
-    @catch_loudml_error
-    def get(self, model_name, job_id):
-        global g_jobs
-
-        jobs = g_training.get(model_name, {})
-        job = jobs.get(job_id)
-
-        if job is None:
-            return "training job not found", 404
-
-        return jsonify(job.desc)
-
-api.add_resource(TrainingJobsResource, "/training/<model_name>")
-api.add_resource(TrainingJobResource, "/training/<model_name>/<job_id>")
+    return jsonify(job.desc)
 
 class PredictionJob(Job):
     """
@@ -615,7 +625,7 @@ def model_start(model_name):
     model.set_run_params(params)
     g_storage.save_model(model)
 
-    params['from'] = request.args.get('from', None)
+    params['from'] = get_date_arg('from')
     _model_start(model, params)
 
     return "real-time prediction started", 200
@@ -646,12 +656,13 @@ def model_forecast(model_name):
     global g_storage
 
     params = {
+        'save_prediction': get_bool_arg('save_prediction'),
     }
 
     model = g_storage.load_model(model_name)
 
-    params['from_date'] = request.args.get('from', 'now')
-    params['to_date'] = request.args.get('to', None)
+    params['from_date'] = get_date_arg('from', default='now')
+    params['to_date'] = get_date_arg('to', defaut=None)
     job_id = _model_forecast(model, params)
 
     return job_id, 200
@@ -804,7 +815,8 @@ def main():
     restart_predict_jobs()
 
     try:
-        app.run(host=host, port=int(port))
+        http_server = WSGIServer((host, int(port)), app)
+        http_server.serve_forever()
     except KeyboardInterrupt:
         pass
 
