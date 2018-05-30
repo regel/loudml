@@ -199,6 +199,9 @@ class FileStorage(Storage):
     def set_model_hook(self, model_name, hook_name, hook_type, config):
         """Set model hook"""
 
+        if not self.model_exists(model_name):
+            raise errors.ModelNotFound()
+
         hooks_dir = self.model_hooks_dir(model_name)
         try:
             os.makedirs(hooks_dir, exist_ok=True)
