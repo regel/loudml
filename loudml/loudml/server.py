@@ -265,18 +265,36 @@ def get_date_arg(param, default=None, is_mandatory=False):
 
     return schemas.validate(schemas.Timestamp(), value, name=param)
 
+def get_model_info(name):
+    global g_storage
+    global g_training
+
+    model = g_storage.load_model(name)
+    info = model.preview
+
+    job = g_training.get(name)
+    if job:
+        job_desc = job.desc
+
+        training = {
+            'job_id': job.id,
+            'state': job_desc['state'],
+        }
+        progress = job_desc.get('progress')
+        if progress:
+            training['progress'] = progress
+
+        info['training'] = training
+
+    return info
+
 class ModelsResource(Resource):
     @catch_loudml_error
     def get(self):
-        global g_storage
-
         models = []
 
         for name in g_storage.list_models():
-            model = g_storage.load_model(name)
-            models.append({
-                'settings': model.settings,
-            })
+            models.append(get_model_info(name))
 
         return jsonify(models)
 
@@ -293,13 +311,7 @@ class ModelsResource(Resource):
 class ModelResource(Resource):
     @catch_loudml_error
     def get(self, model_name):
-        global g_storage
-
-        model = g_storage.load_model(model_name)
-
-        preview = model.preview
-
-        return jsonify(model.preview)
+        return jsonify(get_model_info(model_name))
 
     @catch_loudml_error
     def delete(self, model_name):
