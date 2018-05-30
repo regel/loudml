@@ -343,7 +343,7 @@ def model_train(model_name):
     kwargs = {}
 
     kwargs['from_date'] = get_date_arg('from', is_mandatory=True)
-    kwargs['to_date'] = get_date_arg('to')
+    kwargs['to_date'] = get_date_arg('to', default="now")
 
     datasource = request.args.get('datasource')
     if datasource is not None:
