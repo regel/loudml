@@ -5,6 +5,8 @@ rpmsrc_dir := $(RPMBUILD_DIR)/SOURCES
 VERSION ?= $(shell git describe --tags --match 'v*.*.*' | \
                        sed -e 's/^v//' -e 's/-/./g')
 
+export LOUDML_VERSION=$(VERSION)
+
 FULLNAME := $(NAME)-$(VERSION)
 
 # setup.py install options

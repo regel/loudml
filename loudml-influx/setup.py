@@ -4,12 +4,13 @@
 Setup InfluxDB module for LoudML
 """
 
+import os
 from setuptools import setup
 
 setup(
     name='loudml-influx',
 
-    version='1.2',
+    version=os.getenv('LOUDML_VERSION', '1.3'),
 
     description="InfluxDB module for LoudML",
 

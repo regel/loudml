@@ -4,12 +4,13 @@
 Setup LoudML python package
 """
 
+import os
 from setuptools import setup
 
 setup(
     name='loudml',
 
-    version='1.2',
+    version=os.getenv('LOUDML_VERSION', '1.3'),
 
     description="Machine Learning application",
 
