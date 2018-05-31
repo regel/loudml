@@ -829,6 +829,8 @@ def main():
     try:
         http_server = WSGIServer((host, int(port)), app)
         http_server.serve_forever()
+    except OSError as exn:
+        logging.error(str(exn))
     except KeyboardInterrupt:
         pass
 
