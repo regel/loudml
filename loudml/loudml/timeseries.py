@@ -935,6 +935,7 @@ class TimeSeriesModel(Model):
 
         return TimeSeriesPrediction(
             self,
+            timestamps=timestamps,
             observed=np.array([normal, anomaly, normal]),
             predicted=np.array([normal, normal, normal]),
         )
