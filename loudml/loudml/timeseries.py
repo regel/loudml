@@ -1179,14 +1179,20 @@ class TimeSeriesModel(Model):
                     for hook in hooks:
                         logging.debug("notifying '%s' hook", hook.name)
                         data = prediction.format_bucket_data(i)
-                        hook.on_anomaly_start(
-                            self.name,
-                            dt=dt,
-                            score=max_score,
-                            predicted=data['predicted'],
-                            observed=data['observed'],
-                            anomalies=anomalies,
-                        )
+
+                        try:
+                            hook.on_anomaly_start(
+                                self.name,
+                                dt=dt,
+                                score=max_score,
+                                predicted=data['predicted'],
+                                observed=data['observed'],
+                                anomalies=anomalies,
+                            )
+                        except Exception as exn:
+                            # XXX: catch all the exception to avoid
+                            # interruption
+                            logging.exception(exn)
             else:
                 if is_anomaly:
                     anomaly['max_score'] = max(anomaly['max_score'], max_score)
