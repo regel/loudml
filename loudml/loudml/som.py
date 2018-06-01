@@ -61,7 +61,6 @@ class SOM(object):
         """
  
         #Assign required variables first
-        self._pool = multiprocessing.Pool()
         self._dim = dim
         self._m = m
         self._n = n
@@ -169,10 +168,6 @@ class SOM(object):
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._pool.close()
-        self._pool.join()
- 
     def _neuron_locations(self, m, n):
         """
         Yields one by one the 2-D locations of the individual neurons
@@ -243,10 +238,13 @@ class SOM(object):
             raise ValueError("SOM not trained yet")
  
         to_return = []
+        pool = multiprocessing.Pool()
         func = partial(get_nearest, self._tree)
-        for dd, ii in flatten(self._pool.map(func, list(chunks(input_vects, batch)))):
+        for dd, ii in flatten(pool.map(func, list(chunks(input_vects, batch)))):
             to_return.append(self._locations[ii])
- 
+
+        pool.close()
+        pool.join()
         return to_return
 
     def get_scores(self,
