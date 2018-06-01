@@ -8,6 +8,10 @@ import numpy as np
 import pkg_resources
 import sys
 
+import itertools
+import multiprocessing
+import multiprocessing.pool
+
 from collections import (
     Set,
     Mapping,
@@ -296,4 +300,32 @@ def list_from_np(array):
     Convert numpy array into a jsonifiable list
     """
     return [nan_to_none(x) for x in array]
+
+
+
+class NoDaemonProcess(multiprocessing.Process):
+    # make 'daemon' attribute always return False
+    def _get_daemon(self):
+        return False
+    def _set_daemon(self, value):
+        pass
+    daemon = property(_get_daemon, _set_daemon)
+
+
+# We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
+# because the latter is only a wrapper function, not a proper class.
+class Pool(multiprocessing.pool.Pool):
+    Process = NoDaemonProcess
+
+
+def chunks(iterable, size=1):
+    iterator = iter(iterable)
+    for first in iterator:    # stops when iterator is depleted
+        def chunk():          # construct generator for next chunk
+            yield first       # yield element from for loop
+            for more in itertools.islice(iterator, size - 1):
+                yield more    # yield more elements from the iterator
+        yield chunk()         # in outer generator, yield next chunk
+
+
 
