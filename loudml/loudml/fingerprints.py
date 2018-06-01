@@ -519,6 +519,7 @@ class FingerprintsModel(Model):
         datasource,
         from_date,
         to_date,
+        key=None,
     ):
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
@@ -538,7 +539,7 @@ class FingerprintsModel(Model):
         # Fill dataset
         features_dicts=[]
         for agg_num, agg in enumerate(self.aggs):
-            data = datasource.get_quadrant_data(self, agg, from_ts, to_ts)
+            data = datasource.get_quadrant_data(self, agg, from_ts, to_ts, key)
             features = dict()
             for key, val in data:
                 features[key] = self.format_quadrants(val, agg)
