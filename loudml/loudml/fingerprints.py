@@ -119,12 +119,21 @@ class FingerprintsPrediction:
 def predict_scores(args):
     model, source, key, date_range = args
     model.load()
-    prediction = model.predict(
-        source,
-        date_range[0],
-        date_range[1],
-        key,
-    )
+    try:
+        prediction = model.predict(
+            source,
+            date_range[0],
+            date_range[1],
+            key,
+        )
+    except errors.NoData as exn:
+        logging.warning(exn)
+        prediction = FingerprintsPrediction(
+                        from_ts=make_ts(date_range[0]),
+                        to_ts=make_ts(date_range[1]),
+                        fingerprints=[],
+                        )
+
     model.detect_anomalies(prediction)
     model.unload()
     return prediction
