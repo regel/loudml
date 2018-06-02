@@ -75,6 +75,7 @@ setup(
             'train=loudml.cli:TrainCommand',
             'predict=loudml.cli:PredictCommand',
             'forecast=loudml.cli:ForecastCommand',
+            'run=loudml.cli:RunCommand',
         ],
         'loudml.models': [
             'fingerprints=loudml.fingerprints:FingerprintsModel',

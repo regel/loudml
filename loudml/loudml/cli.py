@@ -25,6 +25,9 @@ from .errors import (
 )
 from .misc import (
     parse_constraint,
+    make_ts,
+    ts_to_str,
+    get_date_ranges,
 )
 from .filestorage import (
     FileStorage,
@@ -581,6 +584,122 @@ class PredictCommand(Command):
             else:
                 print(prediction)
 
+
+class RunCommand(Command):
+    """
+    Run model predictions between 2 given dates
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+        parser.add_argument(
+            '-d', '--datasource',
+            help="Data source",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--from',
+            help="From date",
+            type=str,
+            dest='from_date',
+        )
+        parser.add_argument(
+            '-t', '--to',
+            help="To date",
+            type=str,
+            dest='to_date',
+        )
+        parser.add_argument(
+            '-m', '--min_threshold',
+            help="Minimum threshold for anomaly detection",
+            type=int,
+        )
+        parser.add_argument(
+            '-M', '--max_threshold',
+            help="Maximum threshold for anomaly detection",
+            type=int,
+        )
+        parser.add_argument(
+            '-k', '--key',
+            help="Filter with the given key only",
+            type=str,
+        )
+
+    def exec(self, args):
+        storage = FileStorage(self.config.storage['path'])
+        model = storage.load_model(args.model_name)
+        source = get_datasource(
+            self.config,
+            args.datasource or model.default_datasource,
+        )
+
+        if not model.is_trained:
+            raise ModelNotTrained()
+        
+        if args.min_threshold is None:
+            min_threshold = model.threshold
+        else:
+            min_threshold = args.min_threshold
+
+        if args.max_threshold is None:
+            max_threshold = 100
+        else:
+            max_threshold = args.max_threshold
+
+        model.threshold = min_threshold
+
+        if model.type == 'fingerprints':
+            if not args.from_date:
+                raise LoudMLException("'from' argument is required for fingerprints")
+            if not args.to_date:
+                raise LoudMLException("'to' argument is required for fingerprints")
+
+            from_ts = make_ts(args.from_date)
+            max_ts = make_ts(args.to_date)
+            date_ranges = get_date_ranges(from_ts, max_ts, model.span, model.interval)
+            predictions = model.predict_ranges_and_scores(
+                source,
+                date_ranges,
+                args.key,
+            )
+            state = set()
+            for prediction in predictions:
+                for fp in prediction.fingerprints:
+                    key = fp['key']
+                    stats = fp['stats']
+                    max_score = stats['score']
+                    source.insert_times_data(
+                        ts=prediction.to_ts,
+                        data={ 'score': max_score },
+                        tags={ 'key': key },
+                        measurement='scores',
+                    )
+                    if max_score >= max_threshold and not key in state:
+                        state.add(key)
+                        date_str = ts_to_str(prediction.to_ts - model.interval)
+                        logging.warning("detected anomaly for model '%s' and key '%s' at %s (score = %.1f)",
+                                        model.name, key, date_str, max_score)
+
+                    elif max_score >= min_threshold and key in state:
+                        date_str = ts_to_str(prediction.to_ts)
+                        logging.warning(
+                            "anomaly still in progress for model '%s' and key '%s' at %s (score = %.1f)",
+                            model.name, key, date_str, max_score,
+                        )
+                    elif max_score < min_threshold and key in state:
+                        state.remove(key)
+                        date_str = ts_to_str(prediction.from_ts)
+                        logging.info(
+                            "anomaly ended for model '%s' and key '%s' at %s (score = %.1f)",
+                            model.name, key, date_str, max_score,
+                        )
+                   
+                del prediction
+        
 
 def get_commands():
     """
