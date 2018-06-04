@@ -8,6 +8,7 @@ import logging
 import math
 import sys
 import os
+import copy
 
 from itertools import repeat
 
@@ -723,6 +724,11 @@ class FingerprintsModel(Model):
 
         low_highs = [feature.anomaly_type for feature in self.features]
 
+        dimens = self.nb_dimensions
+        _fingerprint = np.zeros(shape=(1, dimens), dtype=float)
+        mapped = self._som_model.map_vects(_fingerprint)
+        _location = (mapped[0][0].item(), mapped[0][1].item())
+
         for fp_pred in prediction.fingerprints:
             key = fp_pred['key']
             fp = fps.get(key)
@@ -735,7 +741,10 @@ class FingerprintsModel(Model):
                     'score': 0.0,
                     'anomaly': False,
                 }
-                continue
+                fp = copy.deepcopy(fp_pred)
+                # Assign zeros ie, an all-average profile by default
+                fp['_fingerprint'] = _fingerprint.tolist()
+                fp['location'] = _location
 
             scores = self._som_model.get_scores(
                 fp['location'],
