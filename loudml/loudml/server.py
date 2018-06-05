@@ -214,7 +214,7 @@ def read_messages():
         except queue.Empty:
             break
 
-@app.errorhandler(errors.Invalid)
+@app.errorhandler(errors.LoudMLException)
 def handle_loudml_error(exn):
     response = jsonify({
         'error': str(exn),
