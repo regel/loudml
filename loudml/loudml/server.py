@@ -5,10 +5,11 @@ LoudML server
 import loudml.vendor
 
 import argparse
+import concurrent.futures
 import datetime
 import logging
 import multiprocessing
-import multiprocessing.pool
+import pebble
 import pkg_resources
 import queue
 import sys
@@ -90,21 +91,6 @@ class RepeatingTimer(object):
         self.timer.start()
 
 
-class NoDaemonProcess(multiprocessing.Process):
-    # make 'daemon' attribute always return False
-    def _get_daemon(self):
-        return False
-    def _set_daemon(self, value):
-        pass
-    daemon = property(_get_daemon, _set_daemon)
-
-
-# We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
-# because the latter is only a wrapper function, not a proper class.
-class Pool(multiprocessing.pool.Pool):
-    Process = NoDaemonProcess
-
-
 class Job:
     """
     LoudML job
@@ -118,6 +104,7 @@ class Job:
         self.result = None
         self.error = None
         self.progress = None
+        self._future = None
 
     @property
     def desc(self):
@@ -151,30 +138,50 @@ class Job:
 
         g_jobs[self.id] = self
         self.state = 'waiting'
-        g_pool.apply_async(
-            func=loudml.worker.run,
+        self._future = g_pool.schedule(
+            loudml.worker.run,
             args=[self.id, self.func] + self.args,
-            kwds=self.kwargs,
-            callback=self.done,
-            error_callback=self.fail,
+            kwargs=self.kwargs,
         )
+        self._future.add_done_callback(self.done)
+
+    def cancel(self):
+        """
+        Cancel job
+        """
+        self.state = 'canceling'
+        logging.info("job[%s] canceling...", self.id)
+        self._future.cancel()
 
     def done(self, result):
         """
         Callback executed when job is done
         """
-        self.state = 'done'
-        self.result = result
-        logging.info("job[%s] done", self.id)
 
-    def fail(self, error):
-        """
-        Callback executed when job fails
-        """
-        self.state = 'failed'
-        self.error = str(error)
-        logging.info("job[%s] failed: %s", self.id, self.error)
+        try:
+            self.result = self._future.result()
+            self.state = 'done'
+            logging.info("job[%s] done", self.id)
+        except concurrent.futures.CancelledError as exn:
+            self.error = "job canceled"
+            self.state = 'canceled'
+            logging.error("job[%s] canceled", self.id)
+        except Exception as exn:
+            self.error = str(exn)
+            self.state = 'failed'
+            logging.error("job[%s] failed: %s", self.id, self.error)
 
+
+@app.route("/jobs/<job_id>/_cancel", methods=['POST'])
+def job_stop(job_id):
+    global g_jobs
+
+    job = g_jobs.get(job_id)
+    if job is None:
+        return "job not found", 404
+
+    job.cancel()
+    return "job canceled"
 
 def set_job_state(job_id, state, progress=None):
     """
@@ -519,7 +526,6 @@ class TrainingJob(Job):
     def kwargs(self):
         return self._kwargs
 
-
 @app.route("/models/<model_name>/training")
 def model_training_job(model_name):
     global g_training
@@ -812,11 +818,11 @@ def main():
         sys.exit(1)
 
     g_queue = multiprocessing.Queue()
-    g_pool = Pool(
-        processes=g_config.server['workers'],
+    g_pool = pebble.ProcessPool(
+        max_workers=g_config.server.get('workers', 1),
+        max_tasks=g_config.server.get('maxtasksperchild', 1),
         initializer=loudml.worker.init_worker,
         initargs=[args.config, g_queue],
-        maxtasksperchild=g_config.server['maxtasksperchild'],
     )
 
     timer = RepeatingTimer(1, read_messages)
@@ -836,5 +842,5 @@ def main():
 
     logging.info("stopping")
     timer.cancel()
-    g_pool.close()
+    g_pool.stop()
     g_pool.join()
