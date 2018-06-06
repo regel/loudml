@@ -17,15 +17,6 @@ API, unless otherwise specified.
 
 The following options can be applied to all of the REST APIs.
 
-[float]
-=== Pretty Results
-
-When appending `?pretty=true` to any request made, the JSON returned
-will be pretty formatted (use it for debugging only!). Another option is
-to set `?format=yaml` which will cause the result to be returned in the
-(sometimes) more readable yaml format.
-
-
 [[date-math]]
 [float]
 === Date Math
@@ -39,7 +30,6 @@ one or more maths expressions:
 
 * `+1h` - add one hour
 * `-1d` - subtract one day
-* `/d`  - round down to the nearest day
 
 The supported time units differ from those supported by <<time-units, time units>> for durations.
 The supported units are:
