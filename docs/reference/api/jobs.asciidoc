@@ -5,6 +5,15 @@ The jobs API allows to get a typed JSON document from the current
 jobs running asynchronously based on its identifier. The following example gets a
 JSON document from the job with identifier `b67c10d6-3886-4285-a19c-2b908323238a`:
 
+=== Getting job information
+
+[source,js]
+--------------------------------------------------
+GET /jobs/<job_id>
+--------------------------------------------------
+
+Example:
+
 [source,js]
 --------------------------------------------------
 GET /jobs/b67c10d6-3886-4285-a19c-2b908323238a
@@ -36,3 +45,16 @@ A top level GET operation will list all running jobs.
 GET /jobs
 --------------------------------------------------
 
+=== Cancelling a job
+
+[source,js]
+--------------------------------------------------
+POST /jobs/<job_id>/_cancel
+--------------------------------------------------
+
+Example:
+
+[source,js]
+--------------------------------------------------
+POST /jobs/b67c10d6-3886-4285-a19c-2b908323238a/_cancel
+--------------------------------------------------
