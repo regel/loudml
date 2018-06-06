@@ -39,10 +39,10 @@ To perform a rolling upgrade:
 . *Back up your data*
 +
 --
-Backup your training directory
+Backup your configuration and model data
 [source,bash]
 --------------------------------------------------
-tar -zcvf archive.tar.gz /var/lib/loudml
+tar -zcvf archive.tar.gz /etc/loudml /var/lib/loudml
 --------------------------------------------------
 --
 . *Stop the running loudmld service.*
