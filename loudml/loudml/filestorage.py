@@ -65,8 +65,12 @@ class FileStorage(Storage):
         return os.path.join(self.model_dir, model_name)
 
     def _write_json(self, path, data):
-        with open(path, 'w') as fd:
+        tmp_path = "." + path + ".tmp"
+
+        with open(tmp_path, 'w') as fd:
             json.dump(data, fd)
+
+        os.rename(tmp_path, path)
 
     def _load_json(self, path):
         with open(path) as fd:
