@@ -17,6 +17,12 @@ API, unless otherwise specified.
 
 The following options can be applied to all of the REST APIs.
 
+[float]
+=== Pretty Results
+
+When appending `?pretty=true` to any request made, the JSON returned
+will be pretty formatted (use it for debugging only!). 
+
 [[date-math]]
 [float]
 === Date Math
