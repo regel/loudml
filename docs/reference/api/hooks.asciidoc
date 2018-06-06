@@ -16,7 +16,7 @@ hook can be unregistered at any time.
 
 [source,js]
 --------------------------------------------------
-PUT /models/my-model/hooks
+PUT /models/<model_name>/hooks
 {
    ...your parameters
 }
@@ -39,6 +39,13 @@ The HTTP content type must be `application/json`
 === Delete Hook API
 
 To delete the hook named `email-hook`, use the DELETE method:
+
+[source,js]
+--------------------------------------------------
+DELETE /models/<model_name>/hooks/<hook_name>
+--------------------------------------------------
+
+Example:
 
 [source,js]
 --------------------------------------------------
