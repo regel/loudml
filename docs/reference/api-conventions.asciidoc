@@ -24,32 +24,50 @@ The following options can be applied to all of the REST APIs.
 Most parameters which accept a formatted date value -- such as `from` and `to`
 in <<timeseries-dsl,queries>> `range` queries -- understand date maths.
 
-The expression starts with an anchor date, which can either be `now`, or a
-date string ending with `||`. This anchor date can optionally be followed by
-one or more maths expressions:
+The accepted formats are:
 
-* `+1h` - add one hour
-* `-1d` - subtract one day
+  * UNIX timestamp in second
+  * ISO 8601 date
+  * Relative date
+ 
+==== UNIX timestamp
+ 
+The UNIX timestamp must be in second (integer or float).
 
-The supported time units differ from those supported by <<time-units, time units>> for durations.
-The supported units are:
+Examples:
+
+  * `1523635200`
+  * `1523635200.123`
+
+==== ISO 8601 date
+
+This is the standard date and time format. See https://en.wikipedia.org/wiki/ISO_8601 for further information.
+
+Examples:
+
+  * `2018-05-13T18:00:00Z`
+  * `2018-05-13T18:00:00.123Z`
+  * `2018-05-13T20:00:00+02:00`
+  * `2018-04-13T18:00:00.123+0200`
+
+==== Relative date
+
+The relative date are expressions that contain the current date and time `now` followed by an optional expression representing the positive or negative delta.
+
+Accepted units for time delta are:
 
 [horizontal]
-`y`:: years
-`M`:: months
-`w`:: weeks
-`d`:: days
-`h`:: hours
-`H`:: hours
-`m`:: minutes
 `s`:: seconds
+`m`:: minutes
+`h`:: hours
+`d`:: days
+`w`:: weeks
 
 Assuming `now` is `2001-01-01 12:00:00`, some examples are:
 
-`now+1h`:: `now` in milliseconds plus one hour. Resolves to: `2001-01-01 13:00:00`
-`now-1h`:: `now` in milliseconds minus one hour. Resolves to: `2001-01-01 11:00:00`
-`now-1h/d`:: `now` in milliseconds minus one hour, rounded down to UTC 00:00. Resolves to: `2001-01-01 00:00:00``
- `2001-01-01\|\|+1M/d`:: `now` in milliseconds plus one month. Resolves to: `2001-02-01 00:00:00`
+`now`:: current date, resolves to `2001-01-01 12:00:00`
+`now+2h`:: add two hours, resolves to `2001-01-01 14:00:00`
+`now-1d`:: subtract one day, resolves to `2000-12-31 12:00:00`
 
 [float]
 === Parameters
@@ -78,13 +96,11 @@ Whenever durations need to be specified, e.g. for a `timeout` parameter, the dur
 the unit, like `2d` for 2 days.  The supported units are:
 
 [horizontal]
+`w`::       weeks
 `d`::       days
 `h`::       hours
 `m`::       minutes
 `s`::       seconds
-`ms`::      milliseconds
-`micros`::  microseconds
-`nanos`::   nanoseconds
 
 [[time-intervals]]
 [float]
