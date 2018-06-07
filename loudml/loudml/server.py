@@ -129,6 +129,12 @@ class Job:
     def kwargs(self):
         return {}
 
+    def is_stopped(self):
+        """
+        Tell if job is stopped
+        """
+        return self.state in ['done', 'failed', 'canceled']
+
     def start(self):
         """
         Submit job to worker pool
@@ -149,6 +155,12 @@ class Job:
         """
         Cancel job
         """
+
+        if self.is_stopped():
+            raise errors.Conflict(
+                "job is already stopped (state = {})".format(self.state),
+            )
+
         self.state = 'canceling'
         logging.info("job[%s] canceling...", self.id)
         self._future.cancel()
