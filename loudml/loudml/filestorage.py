@@ -65,7 +65,7 @@ class FileStorage(Storage):
         return os.path.join(self.model_dir, model_name)
 
     def _write_json(self, path, data):
-        tmp_path = "." + path + ".tmp"
+        tmp_path = path + ".tmp"
 
         with open(tmp_path, 'w') as fd:
             json.dump(data, fd)
