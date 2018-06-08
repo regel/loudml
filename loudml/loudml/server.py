@@ -641,8 +641,41 @@ def _model_forecast(model, params):
     job.start()
     return str(job.id)
 
+@app.route("/models/<model_name>/_predict", methods=['POST'])
+def model_predict(model_name):
+    global g_storage
+    global g_config
+
+    # TODO 1.4 There are very similar code in worker and CLI. Try to factorize
+
+    save_prediction = request.args.get('save_prediction', default=False)
+    detect_anomalies = request.args.get('detect_anomalies', default=False)
+
+    model = g_storage.load_model(model_name)
+    src_settings = g_config.get_datasource(model.default_datasource)
+    source = loudml.datasource.load_datasource(src_settings)
+
+    prediction = model.predict(
+        source,
+        from_date = get_date_arg('from', is_mandatory=True),
+        to_date = get_date_arg('to', is_mandatory=True),
+    )
+
+    if save_prediction:
+        source.save_timeseries_prediction(prediction, model)
+    if detect_anomalies:
+        model.detect_anomalies(prediction)
+
+    fmt = request.args.get('format', default='series')
+
+    if fmt == 'buckets':
+        return jsonify(prediction.format_buckets())
+    elif fmt == 'series':
+        return jsonify(prediction.format_series())
+    else:
+        raise errors.Invalid('unknown requested format')
+
 @app.route("/models/<model_name>/_start", methods=['POST'])
-@catch_loudml_error
 def model_start(model_name):
     global g_storage
 
