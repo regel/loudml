@@ -179,9 +179,23 @@ class Worker:
                 raise errors.Invalid('unknown requested format')
 
         elif model.type == 'fingerprints':
-            logging.info("job[%s]: computing fingerprints for model '%s'",
+            logging.info("job[%s]: calculated fingerprints for model '%s'",
                          self.job_id, self.model.name)
-            if save_prediction:
+            if detect_anomalies:
+                hooks = self.storage.load_model_hooks(model_name)
+                model.detect_anomalies(prediction, hooks)
+
+                for fp in prediction.fingerprints:
+                    key = fp['key']
+                    stats = fp['stats']
+                    max_score = stats['score']
+                    source.insert_times_data(
+                        ts=prediction.to_ts,
+                        data={ 'score': max_score },
+                        tags={ model.key: key },
+                        measurement='scores_{}'.format(model.name),
+                    )
+
                 self.storage.save_model(model)
         else:
             logging.info("job[%s] prediction done", self.job_id)
