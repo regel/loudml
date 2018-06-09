@@ -40,9 +40,11 @@ from . import (
 )
 
 from .misc import (
+    datetime_to_str,
     make_ts,
     parse_timedelta,
     ts_to_str,
+    ts_to_datetime,
     build_agg_name,
     Pool,
     chunks,
@@ -706,7 +708,7 @@ class FingerprintsModel(Model):
         result['grid'] = grid
         return result
 
-    def detect_anomalies(self, prediction):
+    def detect_anomalies(self, prediction, hooks=[]):
         """
         Detect anomalies on observed data by comparing them to the values
         predicted by the model
@@ -720,7 +722,7 @@ class FingerprintsModel(Model):
         }
 
         prediction.changed = []
-        prediction.anomalies = []
+        prediction.anomalies = None
 
         low_highs = [feature.anomaly_type for feature in self.features]
 
@@ -729,7 +731,12 @@ class FingerprintsModel(Model):
         mapped = self._som_model.map_vects(_fingerprint)
         _location = (mapped[0][0].item(), mapped[0][1].item())
 
+        dt = ts_to_datetime(prediction.to_ts)
+        date_str = datetime_to_str(dt)
         for fp_pred in prediction.fingerprints:
+            is_anomaly = False
+            anomalies = {}
+
             key = fp_pred['key']
             fp = fps.get(key)
 
@@ -740,6 +747,7 @@ class FingerprintsModel(Model):
                     'scores': [],
                     'score': 0.0,
                     'anomaly': False,
+                    'anomalies': [],
                 }
                 fp = copy.deepcopy(fp_pred)
                 # Assign zeros ie, an all-average profile by default
@@ -753,20 +761,83 @@ class FingerprintsModel(Model):
             )
             logging.info("scores for {} = {}".format(key, scores))
             max_arg = np.nanargmax(scores)
-            score = scores[max_arg]
+            max_score = scores[max_arg].item()
+
+            for j, score in enumerate(scores):
+                quadrant = int(j / self.nb_features)
+                pos = int(j % self.nb_features)
+                feature = self.features[pos]
+
+                if score < self.max_threshold:
+                    continue
+
+                anomalies[feature.name] = {
+                    'type': feature.anomaly_type,
+                    'score': score,
+                    'quadrant': quadrant,
+                }
+
+            if len(anomalies):
+                is_anomaly = True
 
             stats = {
                 'scores': scores.tolist(),
-                'score': score.item(),
+                'score': max_score,
+                'anomaly': is_anomaly,
+                'anomalies': anomalies,
             }
 
-            if score >= self.max_threshold:
-                # TODO have a Model.logger to prefix all logs with model name
-                logging.warning("detected anomaly for %s (score = %.1f)",
-                                key, score)
-                prediction.anomalies.append(key)
-                stats['anomaly'] = True
-            else:
-                stats['anomaly'] = False
-
             fp_pred['stats'] = stats
+
+            if self._state.get('anomaly') is None:
+                self._state['anomaly'] = {}
+
+            anomaly = self._state.get('anomaly').get(key)
+
+            if anomaly is None:
+                if is_anomaly:
+                    # This is a new anomaly
+
+                    # TODO have a Model.logger to prefix all logs with model name
+                    logging.warning("detected anomaly for model '%s' and key '%s' at %s (score = %.1f)",
+                                    self.name, key, date_str, max_score)
+
+                    self._state['anomaly'][key] = {
+                        'start_ts': make_ts(date_str),
+                        'max_score': max_score,
+                    }
+
+                    for hook in hooks:
+                        logging.debug("notifying '%s' hook", hook.name)
+                        hook.on_anomaly_start(
+                            self.name,
+                            dt=dt,
+                            score=max_score,
+                            predicted=fp_pred['fingerprint'],
+                            observed=None,
+                            expected=fp['fingerprint'],
+                            key=key,
+                            anomalies=anomalies,
+                        )
+            else:
+                if is_anomaly:
+                    anomaly['max_score'] = max(anomaly['max_score'], max_score)
+                    logging.warning(
+                        "anomaly still in progress for model '%s' and key '%s' at %s (score = %.1f)",
+                        self.name, key, date_str, max_score,
+                    )
+                    self._state['anomaly'][key] = anomaly
+                elif score < self.min_threshold:
+                    logging.info(
+                        "anomaly ended for model '%s' and key '%s' at %s (score = %.1f)",
+                        self.name, key, date_str, max_score,
+                    )
+
+                    for hook in hooks:
+                        logging.debug("notifying '%s' hook", hook.name)
+                        hook.on_anomaly_end(self.name, dt, max_score, key=key)
+
+                    self._state['anomaly'].pop(key)
+
+        prediction.anomalies = self._state['anomaly']
+
