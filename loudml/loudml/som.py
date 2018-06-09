@@ -233,18 +233,23 @@ class SOM(object):
         info for each input vector(in the same order), corresponding
         to mapped neuron.
         """
-        batch = 64
+        batch = 256 # FIXME: find best value to distribute the workload
         if not self._trained:
             raise ValueError("SOM not trained yet")
  
         to_return = []
-        pool = multiprocessing.Pool()
-        func = partial(get_nearest, self._tree)
-        for dd, ii in flatten(pool.map(func, list(chunks(input_vects, batch)))):
-            to_return.append(self._locations[ii])
+        if len(input_vects) > batch:
+            pool = multiprocessing.Pool()
+            func = partial(get_nearest, self._tree)
+            for dd, ii in flatten(pool.map(func, list(chunks(input_vects, batch)))):
+                to_return.append(self._locations[ii])
+    
+            pool.close()
+            pool.join()
+        else:
+            for dd, ii in get_nearest(self._tree, input_vects):
+                to_return.append(self._locations[ii])
 
-        pool.close()
-        pool.join()
         return to_return
 
     def get_scores(self,
