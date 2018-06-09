@@ -621,12 +621,12 @@ class RunCommand(Command):
         parser.add_argument(
             '-M', '--max_threshold',
             help="Maximum threshold for anomaly detection",
-            type=int,
+            type=float,
         )
         parser.add_argument(
             '-k', '--key',
             help="Filter with the given key only",
-            type=str,
+            type=float,
         )
 
     def exec(self, args):
