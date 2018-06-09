@@ -675,8 +675,8 @@ class RunCommand(Command):
                     source.insert_times_data(
                         ts=prediction.to_ts,
                         data={ 'score': max_score },
-                        tags={ 'key': key },
-                        measurement='scores',
+                        tags={ model.key: key },
+                        measurement='scores_{}'.format(model.name),
                     )
                     if max_score >= max_threshold and not key in state:
                         state.add(key)
