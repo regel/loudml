@@ -692,7 +692,7 @@ def model_forecast(model_name):
     model = g_storage.load_model(model_name)
 
     params['from_date'] = get_date_arg('from', default='now')
-    params['to_date'] = get_date_arg('to', defaut=None)
+    params['to_date'] = get_date_arg('to', is_mandatory=True)
     job_id = _model_forecast(model, params)
 
     return job_id, 200
