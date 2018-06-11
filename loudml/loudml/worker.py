@@ -115,7 +115,16 @@ class Worker:
                 # and store anomalies into 'prediction'.
                 # Now, we can get them using 'prediction.get_anomalies()'
                 # and store them anywhere
-            return prediction.format_series()
+
+            fmt = kwargs.get('format', 'series')
+
+            if fmt == 'buckets':
+                return prediction.format_buckets()
+            elif fmt == 'series':
+                return prediction.format_series()
+            else:
+                raise errors.Invalid('unknown requested format')
+
         elif model.type == 'fingerprints':
             logging.info("job[%s]: computing fingerprints for model '%s'",
                          self.job_id, self.model.name)

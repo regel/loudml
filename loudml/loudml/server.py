@@ -101,7 +101,7 @@ class Job:
     def __init__(self):
         self.id = str(uuid.uuid4())
         self.state = 'idle'
-        self.result = None
+        self._result = None
         self.error = None
         self.progress = None
         self._future = None
@@ -114,7 +114,7 @@ class Job:
             'state': self.state,
         }
         if self.result:
-            desc['result'] = self.result
+            desc['result'] = self._result
         if self.error:
             desc['error'] = self.error
         if self.progress:
@@ -149,7 +149,7 @@ class Job:
             args=[self.id, self.func] + self.args,
             kwargs=self.kwargs,
         )
-        self._future.add_done_callback(self.done)
+        self._future.add_done_callback(self._done_cb)
 
     def cancel(self):
         """
@@ -165,13 +165,13 @@ class Job:
         logging.info("job[%s] canceling...", self.id)
         self._future.cancel()
 
-    def done(self, result):
+    def _done_cb(self, result):
         """
         Callback executed when job is done
         """
 
         try:
-            self.result = self._future.result()
+            self._result = self._future.result()
             self.state = 'done'
             logging.info("job[%s] done", self.id)
         except concurrent.futures.CancelledError as exn:
@@ -182,6 +182,12 @@ class Job:
             self.error = str(exn)
             self.state = 'failed'
             logging.error("job[%s] failed: %s", self.id, self.error)
+
+    def result(self):
+        """
+        Return job result
+        """
+        return self._future.result()
 
 
 @app.route("/jobs/<job_id>/_cancel", methods=['POST'])
@@ -646,34 +652,19 @@ def model_predict(model_name):
     global g_storage
     global g_config
 
-    # TODO 1.4 There are very similar code in worker and CLI. Try to factorize
-
-    save_prediction = request.args.get('save_prediction', default=False)
-    detect_anomalies = request.args.get('detect_anomalies', default=False)
-
-    model = g_storage.load_model(model_name)
-    src_settings = g_config.get_datasource(model.default_datasource)
-    source = loudml.datasource.load_datasource(src_settings)
-
-    prediction = model.predict(
-        source,
-        from_date = get_date_arg('from', is_mandatory=True),
-        to_date = get_date_arg('to', is_mandatory=True),
+    job = PredictionJob(
+        model_name,
+        from_date=get_date_arg('from', is_mandatory=True),
+        to_date=get_date_arg('to', is_mandatory=True),
+        save_prediction=request.args.get('save_prediction', default=False),
+        detect_anomalies=request.args.get('detect_anomalies', default=False),
     )
+    job.start()
 
-    if save_prediction:
-        source.save_timeseries_prediction(prediction, model)
-    if detect_anomalies:
-        model.detect_anomalies(prediction)
+    if get_bool_arg('bg', default=False):
+        return str(job.id)
 
-    fmt = request.args.get('format', default='series')
-
-    if fmt == 'buckets':
-        return jsonify(prediction.format_buckets())
-    elif fmt == 'series':
-        return jsonify(prediction.format_series())
-    else:
-        raise errors.Invalid('unknown requested format')
+    return jsonify(job.result())
 
 @app.route("/models/<model_name>/_start", methods=['POST'])
 def model_start(model_name):
