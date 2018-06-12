@@ -8,13 +8,7 @@
 #   loudml: LoudML
 #   influxdb: InfluxDB
 #
-# If necessary, make changes to LoudML container and rebuild it:
-#
-#   docker-compose build
-#
-# (note that rebuild is not automatic)
-#
-# Then start all the containers:
+# To start all the containers:
 #
 #   docker-compose up
 #
@@ -26,11 +20,10 @@ version: "2"
 
 services:
   loudml:
-    build:
-      context: .
-      dockerfile: influx/Dockerfile
+    image: loudml/community
     volumes:
-      - loudml:/var/lib/loudml/models
+      - ./config.yml:/etc/loudml/config.yml:ro
+      - ./loudml:/var/lib/loudml
     ports:
       - "8077:8077"
     depends_on:
@@ -51,7 +44,7 @@ services:
       KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
 
   chronograf:
-    image: chronograf:latest
+    image: loudml/chronograf
     depends_on:
       - influxdb
       - kapacitor
@@ -65,5 +58,4 @@ services:
       KAPACITOR_URL: http://kapacitor:9092
 
 volumes:
-  loudml:
   influxdb:
