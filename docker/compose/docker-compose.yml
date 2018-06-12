@@ -58,6 +58,7 @@ services:
     environment:
       INFLUXDB_URL: http://influxdb:8086
       KAPACITOR_URL: http://kapacitor:9092
+      LOUDML_URL: http://loudml:8077
 
 volumes:
   influxdb:
