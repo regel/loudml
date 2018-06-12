@@ -31,6 +31,8 @@ services:
 
   influxdb:
     image: influxdb:latest
+    ports:
+      - "8086:8086"
     volumes:
       - influxdb:/var/lib/influxdb
 
