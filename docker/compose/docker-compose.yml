@@ -40,8 +40,6 @@ services:
     image: kapacitor:latest
     depends_on:
       - influxdb
-    links:
-      - influxdb
     environment:
       KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
 
@@ -50,9 +48,7 @@ services:
     depends_on:
       - influxdb
       - kapacitor
-    links:
-      - influxdb
-      - kapacitor
+      - loudml
     ports:
       - "8888:8888"
     environment:
