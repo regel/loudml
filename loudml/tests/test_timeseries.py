@@ -1585,10 +1585,18 @@ class TestTimes(unittest.TestCase):
         ))
 
         source = MemDataSource()
-        source.load_csv('loudml/tests/resources/nl.csv.gz',
-                        encoding="utf-8",
-                        timestamp_field="DT",
-                        delimiter=";")
+
+        csv_path = os.path.join(
+            os.path.dirname(__file__),
+            'resources',
+            'nl.csv.gz',
+        )
+        source.load_csv(
+            csv_path,
+            encoding="utf-8",
+            timestamp_field="DT",
+            delimiter=";",
+        )
         from_date = "2018-03-12 00:00"
         to_date = "2018-03-19 00:00"
         model.train(source, from_date, to_date)
