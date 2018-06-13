@@ -74,3 +74,7 @@ $(BUILD_DIR)/rpmrepo-$(VERSION).tar: rpmrepo
 	tar -C $(BUILD_DIR) -cvf "$@" rpmrepo
 
 repo: rpmrepo
+
+.PHONY: docker
+docker:
+	$(MAKE) -C docker
