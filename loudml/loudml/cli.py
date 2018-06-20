@@ -628,6 +628,11 @@ class RunCommand(Command):
             help="Filter with the given key only",
             type=float,
         )
+        parser.add_argument(
+            '-a', '--anomalies',
+            help="Detect anomalies",
+            action='store_true',
+        )
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
@@ -650,7 +655,12 @@ class RunCommand(Command):
         else:
             max_threshold = args.max_threshold
 
-        model.threshold = min_threshold
+        model.min_threshold = min_threshold
+        model.max_threshold = max_threshold
+        if args.anomalies:
+            hooks = storage.load_model_hooks(args.model_name)
+        else:
+            hooks = []
 
         if model.type == 'fingerprints':
             if not args.from_date:
@@ -661,13 +671,16 @@ class RunCommand(Command):
             from_ts = make_ts(args.from_date)
             max_ts = make_ts(args.to_date)
             date_ranges = get_date_ranges(from_ts, max_ts, model.span, model.interval)
-            predictions = model.predict_ranges_and_scores(
+            predictions = model.predict_ranges(
                 source,
                 date_ranges,
                 args.key,
             )
-            state = set()
+
             for prediction in predictions:
+                if args.anomalies:
+                    model.detect_anomalies(prediction, hooks)
+                
                 for fp in prediction.fingerprints:
                     key = fp['key']
                     stats = fp['stats']
@@ -678,26 +691,7 @@ class RunCommand(Command):
                         tags={ model.key: key },
                         measurement='scores_{}'.format(model.name),
                     )
-                    if max_score >= max_threshold and not key in state:
-                        state.add(key)
-                        date_str = ts_to_str(prediction.to_ts - model.interval)
-                        logging.warning("detected anomaly for model '%s' and key '%s' at %s (score = %.1f)",
-                                        model.name, key, date_str, max_score)
 
-                    elif max_score >= min_threshold and key in state:
-                        date_str = ts_to_str(prediction.to_ts)
-                        logging.warning(
-                            "anomaly still in progress for model '%s' and key '%s' at %s (score = %.1f)",
-                            model.name, key, date_str, max_score,
-                        )
-                    elif max_score < min_threshold and key in state:
-                        state.remove(key)
-                        date_str = ts_to_str(prediction.from_ts)
-                        logging.info(
-                            "anomaly ended for model '%s' and key '%s' at %s (score = %.1f)",
-                            model.name, key, date_str, max_score,
-                        )
-                   
                 del prediction
         
 
