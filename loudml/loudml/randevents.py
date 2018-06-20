@@ -69,7 +69,7 @@ class EventGenerator(metaclass=ABCMeta):
             nb_events = int(nb_events) + extra
 
             for i in range(nb_events):
-                yield int(ts + i * step / nb_events)
+                yield ts + i * step / nb_events
 
 
 class FlatEventGenerator(EventGenerator):
