@@ -11,6 +11,13 @@ from abc import (
     abstractmethod,
 )
 
+def day_saw_variate(ts):
+    """
+    Sawtooth variate function with 24h-period
+    """
+    t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
+    return (ts - t0) / (24 * 3600)
+
 def day_sin_variate(ts):
     """
     Sinusoid variate function with 24h-period
@@ -68,6 +75,15 @@ class EventGenerator(metaclass=ABCMeta):
 class FlatEventGenerator(EventGenerator):
     def variate(self, ts):
         return self.avg
+
+
+class SawEventGenerator(EventGenerator):
+    """
+    Random event generator with sawtooth shape
+    """
+
+    def variate(self, ts):
+        return self.avg * day_saw_variate(ts)
 
 
 class SinEventGenerator(EventGenerator):

@@ -22,6 +22,7 @@ from .randevents import (
     CamelEventGenerator,
     LoudMLEventGenerator,
     FlatEventGenerator,
+    SawEventGenerator,
     SinEventGenerator,
 )
 
@@ -152,7 +153,7 @@ def main():
     parser.add_argument(
         '--shape',
         help="Data shape",
-        choices=['flat', 'sin', 'camel', 'loudml'],
+        choices=['flat', 'saw', 'sin', 'camel', 'loudml'],
         default='sin',
     )
     parser.add_argument(
@@ -193,6 +194,8 @@ def main():
         ts_generator = LoudMLEventGenerator()
     elif arg.shape == 'camel':
         ts_generator = CamelEventGenerator()
+    elif arg.shape == 'saw':
+        ts_generator = SawEventGenerator()
     else:
         ts_generator = SinEventGenerator(avg=10, sigma=2)
 
