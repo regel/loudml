@@ -499,6 +499,10 @@ class FingerprintsModel(Model):
         if not self.is_trained:
             return errors.ModelNotTrained()
 
+        # exit if already loaded
+        if self._som_model:
+            return
+
         self._som_model = som.load_model(
             self._state['ckpt'],
             self._state['index'],
