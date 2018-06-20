@@ -36,9 +36,10 @@ class EventGenerator(metaclass=ABCMeta):
     Random event generator
     """
 
-    def __init__(self, avg=5, sigma=1):
+    def __init__(self, avg=5, sigma=1, trend=0):
         self.avg = avg
         self.sigma = sigma
+        self.trend = trend
 
     @abstractmethod
     def variate(self, ts):
@@ -55,11 +56,17 @@ class EventGenerator(metaclass=ABCMeta):
         to_ms = int(to_ts * 1000)
         step_ms = int(step * 1000)
 
+        base = 0
+        increase = step * self.trend / 3600
+
         for ts_ms in range(from_ms, to_ms, step_ms):
             ts = ts_ms / 1000
+            base += increase
             avg = self.variate(ts)
             assert avg >= 0
+
             nb_events = random.normalvariate(avg, self.sigma)
+            nb_events += base
 
             if nb_events <= 0:
                 continue

@@ -163,6 +163,12 @@ def main():
         default=5,
     )
     parser.add_argument(
+        '--trend',
+        help="Trend (event increase per hour)",
+        type=float,
+        default=0,
+    )
+    parser.add_argument(
         '--clear',
         help="Clear database or index before insertion "\
              "(risk of data loss! Use with caution!)",
@@ -189,15 +195,15 @@ def main():
             return 1
 
     if arg.shape == 'flat':
-        ts_generator = FlatEventGenerator(avg=arg.avg)
+        ts_generator = FlatEventGenerator(avg=arg.avg, trend=arg.trend)
     elif arg.shape == 'loudml':
-        ts_generator = LoudMLEventGenerator()
+        ts_generator = LoudMLEventGenerator(trend=arg.trend)
     elif arg.shape == 'camel':
-        ts_generator = CamelEventGenerator()
+        ts_generator = CamelEventGenerator(trend=arg.trend)
     elif arg.shape == 'saw':
-        ts_generator = SawEventGenerator()
+        ts_generator = SawEventGenerator(trend=arg.trend)
     else:
-        ts_generator = SinEventGenerator(avg=10, sigma=2)
+        ts_generator = SinEventGenerator(avg=10, sigma=2, trend=arg.trend)
 
     from_date = make_datetime(arg.from_date)
     to_date = make_datetime(arg.to_date)
