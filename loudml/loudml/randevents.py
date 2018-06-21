@@ -25,6 +25,15 @@ def day_sin_variate(ts):
     t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
     return math.sin(2 * math.pi * (ts - t0) / (24 * 3600))
 
+def day_triangle_variate(ts):
+    """
+    Triangle variate function with 24h-period
+    """
+    t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
+
+    x = (ts - t0) / (24 * 3600)
+    return 2 * x if x < 0.5 else 2 * (1 - x)
+
 def randfloat(lo, hi):
     """
     Return random float between `lo` and `hi`
@@ -98,6 +107,16 @@ class SinEventGenerator(EventGenerator):
 
     def variate(self, ts):
         return self.base + self.amplitude * day_sin_variate(ts)
+
+
+class TriangleEventGenerator(EventGenerator):
+    """
+    Random event generator with triangle shape
+    """
+
+    def variate(self, ts):
+        return self.base + self.amplitude * day_triangle_variate(ts)
+
 
 class PatternGenerator(EventGenerator):
     """

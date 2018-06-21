@@ -24,6 +24,7 @@ from .randevents import (
     FlatEventGenerator,
     SawEventGenerator,
     SinEventGenerator,
+    TriangleEventGenerator,
 )
 
 def generate_data(ts_generator, from_date, to_date):
@@ -153,7 +154,14 @@ def main():
     parser.add_argument(
         '--shape',
         help="Data shape",
-        choices=['flat', 'saw', 'sin', 'camel', 'loudml'],
+        choices=[
+            'flat',
+            'saw',
+            'sin',
+            'triangle',
+            'camel',
+            'loudml',
+        ],
         default='sin',
     )
     parser.add_argument(
@@ -208,6 +216,12 @@ def main():
         ts_generator = CamelEventGenerator(base=arg.base, trend=arg.trend)
     elif arg.shape == 'saw':
         ts_generator = SawEventGenerator(
+            base=arg.base,
+            amplitude=arg.amplitude,
+            trend=arg.trend,
+        )
+    elif arg.shape == 'triangle':
+        ts_generator = TriangleEventGenerator(
             base=arg.base,
             amplitude=arg.amplitude,
             trend=arg.trend,
