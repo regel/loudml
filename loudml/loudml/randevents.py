@@ -36,8 +36,9 @@ class EventGenerator(metaclass=ABCMeta):
     Random event generator
     """
 
-    def __init__(self, avg=5, sigma=1, trend=0):
-        self.avg = avg
+    def __init__(self, base=1, amplitude=1, sigma=1, trend=0):
+        self.base = base
+        self.amplitude = amplitude
         self.sigma = sigma
         self.trend = trend
 
@@ -56,17 +57,14 @@ class EventGenerator(metaclass=ABCMeta):
         to_ms = int(to_ts * 1000)
         step_ms = int(step * 1000)
 
-        base = 0
         increase = step * self.trend / 3600
 
         for ts_ms in range(from_ms, to_ms, step_ms):
             ts = ts_ms / 1000
-            base += increase
-            avg = self.variate(ts)
-            assert avg >= 0
+            self.base += increase
 
+            avg = self.variate(ts)
             nb_events = random.normalvariate(avg, self.sigma)
-            nb_events += base
 
             if nb_events <= 0:
                 continue
@@ -81,7 +79,7 @@ class EventGenerator(metaclass=ABCMeta):
 
 class FlatEventGenerator(EventGenerator):
     def variate(self, ts):
-        return self.avg
+        return self.base
 
 
 class SawEventGenerator(EventGenerator):
@@ -90,7 +88,7 @@ class SawEventGenerator(EventGenerator):
     """
 
     def variate(self, ts):
-        return self.avg * day_saw_variate(ts)
+        return self.base + self.amplitude * day_saw_variate(ts)
 
 
 class SinEventGenerator(EventGenerator):
@@ -98,11 +96,8 @@ class SinEventGenerator(EventGenerator):
     Random event generator with sinusoid shape
     """
 
-    def __init__(self, avg=5, sigma=1):
-        super().__init__(avg=avg, sigma=sigma)
-
     def variate(self, ts):
-        return max(self.avg * day_sin_variate(ts) + self.avg, 0)
+        return self.base + self.amplitude * day_sin_variate(ts)
 
 class PatternGenerator(EventGenerator):
     """
@@ -119,10 +114,13 @@ class PatternGenerator(EventGenerator):
 d       r s
 """
 
-    def __init__(self, base=1, factor=8):
-        super().__init__(sigma=0)
-        self.base = base
-        self.factor = factor
+    def __init__(self, base=1, amplitude=8, sigma=1, trend=0):
+        super().__init__(
+            base=base,
+            amplitude=amplitude,
+            sigma=sigma,
+            trend=trend,
+        )
 
         PATTERN = self.PATTERN.rstrip().splitlines()
         values = [0] * len(max(PATTERN, key=len))
@@ -140,7 +138,7 @@ d       r s
         t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
         x = int(len(self._values) * (ts - t0) / (24 * 3600)) % len(self._values)
 
-        return self.base + self.factor * self._values[x]
+        return self.base + self.amplitude * self._values[x]
 
 class LoudMLEventGenerator(PatternGenerator):
     """

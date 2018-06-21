@@ -157,10 +157,16 @@ def main():
         default='sin',
     )
     parser.add_argument(
-        '--avg',
-        help="Average rate",
+        '--amplitude',
+        help="Peak amplitude for periodic shapes",
         type=float,
-        default=5,
+        default=1,
+    )
+    parser.add_argument(
+        '--base',
+        help="Base value for number of events",
+        type=float,
+        default=1,
     )
     parser.add_argument(
         '--trend',
@@ -195,15 +201,24 @@ def main():
             return 1
 
     if arg.shape == 'flat':
-        ts_generator = FlatEventGenerator(avg=arg.avg, trend=arg.trend)
+        ts_generator = FlatEventGenerator(base=arg.base, trend=arg.trend)
     elif arg.shape == 'loudml':
-        ts_generator = LoudMLEventGenerator(trend=arg.trend)
+        ts_generator = LoudMLEventGenerator(base=arg.base, trend=arg.trend)
     elif arg.shape == 'camel':
-        ts_generator = CamelEventGenerator(trend=arg.trend)
+        ts_generator = CamelEventGenerator(base=arg.base, trend=arg.trend)
     elif arg.shape == 'saw':
-        ts_generator = SawEventGenerator(trend=arg.trend)
+        ts_generator = SawEventGenerator(
+            base=arg.base,
+            amplitude=arg.amplitude,
+            trend=arg.trend,
+        )
     else:
-        ts_generator = SinEventGenerator(avg=10, sigma=2, trend=arg.trend)
+        ts_generator = SinEventGenerator(
+            base=arg.base,
+            amplitude=arg.amplitude,
+            trend=arg.trend,
+            sigma=2,
+        )
 
     from_date = make_datetime(arg.from_date)
     to_date = make_datetime(arg.to_date)
