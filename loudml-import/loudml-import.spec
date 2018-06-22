@@ -27,6 +27,14 @@ make clean
 
 %pre
 
+# Remove old trailing files. Required for users who have installed <=1.3.2
+find %{python3_sitelib} \
+  -name '*loudml_import-1.2.*.egg-info' -o \
+  -name '*loudml_import-1.3.0.*.egg-info' -o \
+  -name '*loudml_import-1.3.1.*.egg-info' -o \
+  -name '*loudml_import-1.3.2.*.egg-info' \
+  | xargs rm -rf
+
 %install
 make -C loudml-import install DESTDIR=%{buildroot}
 
@@ -35,7 +43,7 @@ make -C loudml-import install DESTDIR=%{buildroot}
 %{_bindir}/*
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml_import*.pth
-%{python3_sitelib}/loudml_import*.egg-info/*
+%dir %{python3_sitelib}/loudml_import*.egg-info
 
 %doc
 
