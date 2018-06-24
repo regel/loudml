@@ -21,10 +21,13 @@ import loudml.vendor
 from loudml.randevents import (
     FlatEventGenerator,
     SinEventGenerator,
+    TriangleEventGenerator,
 )
 from loudml.timeseries import (
     TimeSeriesModel,
     TimeSeriesPrediction,
+    _get_scores,
+    _revert_scores,
 )
 from loudml.model import Feature
 
@@ -108,6 +111,206 @@ class TestTimes(unittest.TestCase):
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
             })
+
+    def test_min_max(self):
+        feature = Feature(name='foo', metric='count', field='bar', default=0, scores='min_max')
+        dataset = np.random.random_sample((500,))
+        _mins = np.min(np.nan_to_num(dataset), axis=0)
+        _maxs = np.max(np.nan_to_num(dataset), axis=0)
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
+        scores = _get_scores(
+            feature,
+            dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        reverted = _revert_scores(
+            feature,
+            scores,
+            _data=dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        self.assertEqual(dataset.shape, scores.shape)
+        self.assertEqual(dataset.shape, reverted.shape)
+        self.assertEqual(np.allclose(dataset, reverted), True)
+
+    def test_standardize(self):
+        feature = Feature(name='foo', metric='count', field='bar', default=0, scores='standardize')
+        dataset = np.random.random_sample((500,))
+        _mins = np.min(np.nan_to_num(dataset), axis=0)
+        _maxs = np.max(np.nan_to_num(dataset), axis=0)
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
+        scores = _get_scores(
+            feature,
+            dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        reverted = _revert_scores(
+            feature,
+            scores,
+            _data=dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        self.assertEqual(dataset.shape, scores.shape)
+        self.assertEqual(dataset.shape, reverted.shape)
+        self.assertEqual(np.allclose(dataset, reverted), True)
+
+
+    def test_predict_standardize(self):
+        features = [
+        {
+            'name': 'count_foo',
+            'metric': 'count',
+            'field': 'foo',
+            'scores': 'standardize',
+            'transform': 'diff',
+        },
+        ]
+
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=20,
+            forecast=10,
+            bucket_interval=2*3600,
+            interval=60,
+            features=features,
+            threshold=30,
+            max_evals=30,
+        ))
+        source = MemDataSource()
+        generator = TriangleEventGenerator(
+            base=0,
+            amplitude=2,
+            trend=0.1,
+        )
+        # Align date range to day interval
+        to_date = datetime.datetime.now().timestamp()
+        to_date = math.floor(to_date / (3600*24)) * (3600*24)
+        from_date = to_date - 3600 * 24 * 7 * 3
+        for ts in generator.generate_ts(from_date, to_date, step=600):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
+
+        model.train(source, from_date, to_date - 3600 * 24 * 5)
+        orig = model.predict(source, from_date, to_date)
+
+        from_date = to_date - 3600 * 24 * 5
+        prediction = model.predict(source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+#        prediction.plot(features[0]['name'])
+        import matplotlib.pylab as plt
+        plt.rcParams["figure.figsize"] = (17, 9)
+        y_values = orig.observed[:,0]
+        plt.plot(range(1,1+len(y_values)), y_values, "--")
+        z_values = prediction.predicted[:,0]
+        plt.plot(range(len(y_values)-len(z_values), len(y_values)), z_values, ":")
+        plt.show()
+
+
+    def test_normalize(self):
+        feature = Feature(name='foo', metric='count', field='bar', default=0, scores='normalize')
+        dataset = np.random.random_sample((500,))
+        _mins = np.min(np.nan_to_num(dataset), axis=0)
+        _maxs = np.max(np.nan_to_num(dataset), axis=0)
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
+        scores = _get_scores(
+            feature,
+            dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        reverted = _revert_scores(
+            feature,
+            scores,
+            _data=dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        self.assertEqual(dataset.shape, scores.shape)
+        self.assertEqual(dataset.shape, reverted.shape)
+        self.assertEqual(np.allclose(dataset, reverted), True)
+
+    def test_predict_normalize(self):
+        features = [
+        {
+            'name': 'count_foo',
+            'metric': 'count',
+            'field': 'foo',
+            'scores': 'normalize',
+            'transform': 'diff',
+        },
+        ]
+
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=20,
+            forecast=10,
+            bucket_interval=2*3600,
+            interval=60,
+            features=features,
+            threshold=30,
+            max_evals=30,
+        ))
+        source = MemDataSource()
+        generator = TriangleEventGenerator(
+            base=1,
+            amplitude=2,
+            trend=0.1,
+        )
+        # Align date range to day interval
+        to_date = datetime.datetime.now().timestamp()
+        to_date = math.floor(to_date / (3600*24)) * (3600*24)
+        from_date = to_date - 3600 * 24 * 7 * 3
+        for ts in generator.generate_ts(from_date, to_date, step=600):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
+
+        model.train(source, from_date, to_date - 3600 * 24 * 5)
+        orig = model.predict(source, from_date, to_date)
+
+        from_date = to_date - 3600 * 24 * 5
+        prediction = model.predict(source, from_date, to_date)
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+#        prediction.plot(features[0]['name'])
+        import matplotlib.pylab as plt
+        plt.rcParams["figure.figsize"] = (17, 9)
+        y_values = orig.observed[:,0]
+        plt.plot(range(1,1+len(y_values)), y_values, "--")
+        z_values = prediction.predicted[:,0]
+        plt.plot(range(len(y_values)-len(z_values), len(y_values)), z_values, ":")
+        plt.show()
 
     def test_validation(self):
         valid = {
