@@ -1109,7 +1109,7 @@ class TimeSeriesModel(Model):
         logging.info("generating forecast")
         timestamps=[]
         bucket_start = from_ts
-        j = 0
+        bucket = 0
         xy_indexes = np.array(self._xy_indexes())
         while bucket_start < to_ts:
             Y_ = _keras_model.predict(X).reshape((self._forecast, nb_outputs))
@@ -1164,9 +1164,9 @@ class TimeSeriesModel(Model):
             for z in range(self._forecast):
                 if bucket_start < to_ts:
                     timestamps.append(bucket_start)
-                    predicted[j] = Z_[z][:]
+                    predicted[bucket] = Z_[z][:]
                 bucket_start += self.bucket_interval
-                j += 1
+                bucket += 1
 
         return TimeSeriesPrediction(
             self,
