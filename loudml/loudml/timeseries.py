@@ -81,12 +81,20 @@ def _transform(feature, y):
     if feature.transform == "diff":
         return np.concatenate(([np.nan], np.diff(y, axis=0)))
 
+def _revert_transform(feature, y, y0):
+    if feature.transform == "diff":
+        return np.cumsum(np.concatenate(([y0], y[1:])))
+
 def _get_scores(feature, y, _min, _max, _mean, _std):
     if feature.scores == "min_max":
         _range = _max - _min
         y = 1.0 - (_max - y) / _range
     elif feature.scores == "normalize":
         y0 = y[~np.isnan(y)][0]
+        if y0 > 0 and y0 < 0.01:
+            y0 = 0.01
+        elif y0 < 0 and y0 > -0.01:
+            y0 = -0.01
         y = (y / y0) - 1.0
     elif feature.scores == "standardize":
         y = (y - _mean) / _std
@@ -354,6 +362,13 @@ class TimeSeriesModel(Model):
         ]
 
         self.current_eval = None
+    
+    def enum_features(self, is_input=None, is_output=None):
+        j = 0
+        for i, feature in enumerate(self.features):
+            if feature.is_input == is_input or feature.is_output == is_output:
+                yield i, j, feature
+                j += 1
 
     @property
     def type(self):
@@ -518,7 +533,7 @@ class TimeSeriesModel(Model):
               'span': self.get_hp_span('d1_span'),
               'forecast': self.get_hp_forecast('d1_forecast'),
               'l1': 1+hp.randint('d1_l1', 100),
-              'activation': hp.choice('d1_activation', ['tanh']),
+              'activation': hp.choice('d1_activation', ['linear', 'tanh']),
               'loss_fct': hp.choice('d1_loss_fct', ['mean_squared_error']),
               'optimizer': hp.choice('d1_optimizer', ['adam']),
             },
@@ -528,7 +543,7 @@ class TimeSeriesModel(Model):
               'forecast': self.get_hp_forecast('d2_forecast'),
               'l1': 1+hp.randint('d2_l1', 100),
               'l2': 1+hp.randint('d2_l2', 100),
-              'activation': hp.choice('d2_activation', ['tanh']),
+              'activation': hp.choice('d2_activation', ['linear', 'tanh']),
               'loss_fct': hp.choice('d2_loss_fct', ['mean_squared_error']),
               'optimizer': hp.choice('d2_optimizer', ['adam']),
             }
@@ -873,7 +888,6 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
         nb_features = len(self.features)
-        nb_outputs = len(self._y_indexes())
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
         daytime = np.zeros((nb_buckets, 1), dtype=float)
@@ -918,6 +932,7 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
+        real = np.copy(dataset)
         for j, feature in enumerate(self.features):
             if feature.transform is not None:
                 dataset[:,j] = _transform(feature, dataset[:,j])
@@ -947,40 +962,42 @@ class TimeSeriesModel(Model):
             raise errors.LoudMLException("not enough data for prediction")
 
         logging.info("generating prediction")
-        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, nb_outputs))[:,0,:]
+        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, len(self._y_indexes())))[:,0,:]
 
-        # XXX: Sometime keras predict negative values, this is unexpected
-        Y_[Y_ < 0] = 0
+        # FIXME: np.clip() according to feature preprocessing choice
+        # Y_[Y_ < 0] = 0
 
         Z_ = np.empty_like(Y_)
-        for j, feature in enumerate(self.features):
-            if not feature.is_output:
-                continue
-
+        for i, j, feature in self.enum_features(is_output=True):
             Z_[:,j] = _revert_scores(
                 feature,
                 Y_[:,j],
-                _data=dataset[data_indexes - self._span,j],
-                _min=_mins[j],
-                _max=_maxs[j],
-                _mean=_means[j],
-                _std=_stds[j],
+                _data=dataset[self._span:,i],
+                _min=_mins[i],
+                _max=_maxs[i],
+                _mean=_means[i],
+                _std=_stds[i],
             )
+
+            if feature.transform is not None:
+                Z_[:,j] = _revert_transform(
+                    feature,
+                    Z_[:,j],
+                    real[self._span,j],
+                )
 
         # Build final result
         timestamps = X[self._span:]
         last_ts = make_ts(X[-1])
         timestamps.append(last_ts + self.bucket_interval)
 
-        shape = (predict_len, nb_outputs)
         observed = np.array([self.defaults] * predict_len)
         predicted = np.array([self.defaults] * predict_len)
 
-        for i, feature in enumerate(self.features):
-            if feature.is_input == True:
-                observed[:,i] = dataset[self._span:][:,i]
-            if feature.is_output == True:
-                predicted[data_indexes - self._span,i] = Z_[:][:,i]
+        for i, j, feature in self.enum_features(is_input=True):
+            observed[:,i] = real[self._span:][:,i]
+        for i, j, feature in self.enum_features(is_output=True):
+            predicted[data_indexes - self._span,i] = Z_[:][:,j]
 
         return TimeSeriesPrediction(
             self,
@@ -1147,18 +1164,15 @@ class TimeSeriesModel(Model):
             X = np.roll(X, -self._forecast, axis=1)
 
             Z_ = np.empty_like(Y_)
-            for j, feature in enumerate(self.features):
-                if not feature.is_output:
-                    continue
-
+            for i, j, feature in self.enum_features(is_output=True):
                 Z_[:,j] = _revert_scores(
                     feature,
                     Y_[:,j],
-                    _data=dataset[data_indexes - self._span,j],
-                    _min=_mins[j],
-                    _max=_maxs[j],
-                    _mean=_means[j],
-                    _std=_stds[j],
+                    _data=None,
+                    _min=_mins[i],
+                    _max=_maxs[i],
+                    _mean=_means[i],
+                    _std=_stds[i],
                 )
 
             for z in range(self._forecast):
@@ -1186,6 +1200,8 @@ class TimeSeriesModel(Model):
 
         nb_output = len(self._y_indexes())
 
+        # FIXME: change according to feature preprocessing. tip: for standardization, use
+        # scoring function present in fingerprints_ok branch
         rng = _maxs - _mins
 
         X = observed
