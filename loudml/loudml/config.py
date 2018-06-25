@@ -13,6 +13,8 @@ from . import (
     errors,
 )
 
+DEFAULT_MAX_RUNNING_MODELS = 3
+
 class Config:
     """
     LoudML configuration
@@ -39,6 +41,8 @@ class Config:
             self._server['workers'] = multiprocessing.cpu_count()
         if 'maxtasksperchild' not in self._server:
             self._server['maxtasksperchild'] = 1
+        if 'maxrunningmodels' not in self._server:
+            self._server['maxrunningmodels'] = DEFAULT_MAX_RUNNING_MODELS
 
     @property
     def datasources(self):

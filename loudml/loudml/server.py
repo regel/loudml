@@ -7,6 +7,7 @@ import loudml.vendor
 import argparse
 import concurrent.futures
 import datetime
+import json
 import logging
 import multiprocessing
 import pebble
@@ -22,6 +23,8 @@ import inspect
 import loudml.config
 import loudml.model
 import loudml.worker
+
+from loudml.license import License
 
 from threading import (
     Timer,
@@ -62,8 +65,6 @@ g_storage = None
 g_pool = None
 g_queue = None
 g_running_models = {}
-
-MAX_RUNNING_MODELS = 3
 
 # Do not change: pid file to ensure we're running single instance
 APP_INSTALL_PATHS = [
@@ -610,7 +611,7 @@ def _model_start(model, params):
             "real-time prediction is already active for this model",
         )
 
-    if len(g_running_models) >= MAX_RUNNING_MODELS:
+    if len(g_running_models) >= g_config.server['maxrunningmodels']:
         raise errors.LimitReached(
             "maximum number of running models is reached",
         )
@@ -824,6 +825,42 @@ def restart_predict_jobs():
         except errors.LoudMLException as exn:
             logging.error("cannot restart job for model '%s'", model.name)
 
+
+def set_limits(license_file):
+    """
+    Enforce limitations described in license file
+
+    :param license_file: path to license file
+    :type  license_file: str
+
+    :raise Exception: when unable to validate license
+
+    If no license file is provided, defaults are used.
+    """
+
+    global g_config
+
+    # Keep defaults
+    if license_file is None:
+        return
+
+    l = License()
+    l.load(license_file)
+    if not l.validate():
+        raise Exception("unable to validate license")
+
+    print("Contents: \n" + l.data.decode('ascii'))
+
+    try:
+        data = json.loads(l.data.decode('ascii'))
+    except Exception as e:
+        logging.error(e)
+        raise
+
+    limits = data['limits']
+    g_config.server['maxrunningmodels'] = limits['models']
+
+
 def main():
     """
     LoudML server
@@ -844,6 +881,11 @@ def main():
         type=str,
         default="/etc/loudml/config.yml",
     )
+    parser.add_argument(
+        '-l', '--license',
+        help="Path to license file",
+        type=str
+    )
 
     args = parser.parse_args()
 
@@ -860,6 +902,16 @@ def main():
         loudml.config.load_plugins(args.config)
     except errors.LoudMLException as exn:
         logging.error(exn)
+        sys.exit(1)
+
+    try:
+        set_limits(args.license)
+    except FileNotFoundError:
+        logging.error("Unable to read license file %s", args.license)
+        sys.exit(1)
+    except Exception as e:
+        logging.error(e)
+        logging.error("Unable to validate license file %s", args.license)
         sys.exit(1)
 
     g_queue = multiprocessing.Queue()

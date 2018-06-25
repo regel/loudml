@@ -33,6 +33,7 @@ numpy==1.14.3
 pebble==4.3.8
 protobuf==3.5.2.post1     # via tensorflow, tensorflow-tensorboard
 psutil==5.4.5
+pycrypto==2.6.1
 pymongo==3.6.1            # via hyperopt
 python-dateutil==2.7.3    # via dateutils, influxdb
 pytz==2018.4              # via dateutils, flask-restful, influxdb
