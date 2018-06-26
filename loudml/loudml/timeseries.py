@@ -340,6 +340,8 @@ class TimeSeriesModel(Model):
 
         self.mins = None
         self.maxs = None
+        self.means = None
+        self.stds = None
 
         if self.span is None or self.span == "auto":
             self.min_span = settings.get('min_span') or _hp_span_min
@@ -412,6 +414,15 @@ class TimeSeriesModel(Model):
         for i, feature in enumerate(self.features):
             x[np.isnan(x[:,i])] = self.defaults[i]
 
+    def stat_dataset(self, dataset):
+        """
+        Compute dataset sets and keep them as reference for canonicalization
+        """
+        self.mins = np.min(np.nan_to_num(dataset), axis=0)
+        self.maxs = np.max(np.nan_to_num(dataset), axis=0)
+        self.means = np.nanmean(dataset, axis=0)
+        self.stds = np.nanstd(dataset, axis=0)
+
     def _train_on_dataset(
         self,
         dataset,
@@ -426,12 +437,7 @@ class TimeSeriesModel(Model):
 
         self.current_eval = 0
 
-        # Preprocess each column (axis=0)
-        self.mins = np.min(np.nan_to_num(dataset), axis=0)
-        self.maxs = np.max(np.nan_to_num(dataset), axis=0)
-
-        _means = np.nanmean(dataset, axis=0)
-        _stds = np.nanstd(dataset, axis=0)
+        self.stat_dataset(dataset)
 
         for j, feature in enumerate(self.features):
             dataset[:,j] = _get_scores(
@@ -439,8 +445,8 @@ class TimeSeriesModel(Model):
                 dataset[:,j],
                 _min=self.mins[j],
                 _max=self.maxs[j],
-                _mean=_means[j],
-                _std=_stds[j],
+                _mean=self.means[j],
+                _std=self.stds[j],
             )
 
         input_features = len(self._x_indexes())
@@ -954,8 +960,13 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        _means = np.nanmean(dataset, axis=0)
-        _stds = np.nanstd(dataset, axis=0)
+        # XXX For backward compatibility
+        if self.means is None:
+            logging.warning("model state has no mean values, new training needed")
+            self.means = np.nanmean(dataset, axis=0)
+        if self.stds is None:
+            logging.warning("model state has no std values, new training needed")
+            self.stds = np.nanstd(dataset, axis=0)
 
         norm_dataset = np.empty_like(dataset)
         for j, feature in enumerate(self.features):
@@ -964,8 +975,8 @@ class TimeSeriesModel(Model):
                 dataset[:,j],
                 _min=self.mins[j],
                 _max=self.maxs[j],
-                _mean=_means[j],
-                _std=_stds[j],
+                _mean=self.means[j],
+                _std=self.stds[j],
             )
 
         data_indexes, X_test = self._format_dataset_predict(norm_dataset[:X_until])
@@ -987,8 +998,8 @@ class TimeSeriesModel(Model):
                 _data=dataset[self._span:,i],
                 _min=self.mins[i],
                 _max=self.maxs[i],
-                _mean=_means[i],
-                _std=_stds[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
             )
 
             if feature.transform is not None:
@@ -1113,16 +1124,22 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        _means = np.nanmean(dataset, axis=0)
-        _stds = np.nanstd(dataset, axis=0)
+        # XXX For backward compatibility
+        if self.means is None:
+            logging.warning("model state has no mean values, new training needed")
+            self.means = np.nanmean(dataset, axis=0)
+        if self.stds is None:
+            logging.warning("model state has no std values, new training needed")
+            self.stds = np.nanstd(dataset, axis=0)
+
         for j, feature in enumerate(self.features):
             dataset[:,j] = _get_scores(
                 feature,
                 dataset[:,j],
                 _min=self.mins[j],
                 _max=self.maxs[j],
-                _mean=_means[j],
-                _std=_stds[j],
+                _mean=self.means[j],
+                _std=self.stds[j],
             )
 
         data_indexes, X = self._format_dataset_predict(dataset)
@@ -1189,8 +1206,8 @@ class TimeSeriesModel(Model):
                     _data=None,
                     _min=self.mins[i],
                     _max=self.maxs[i],
-                    _mean=_means[i],
-                    _std=_stds[i],
+                    _mean=self.means[i],
+                    _std=self.stds[i],
                 )
 
             for z in range(self._forecast):
