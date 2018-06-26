@@ -709,7 +709,7 @@ class TestTimes(unittest.TestCase):
             })
 
         # Detect anomalies
-        pred_to = ano_to
+        pred_to = to_date
         pred_from = pred_to - 24 * 3 * self.model.bucket_interval
         prediction = self.model.predict(self.source, pred_from, pred_to)
 
@@ -763,43 +763,41 @@ class TestTimes(unittest.TestCase):
 
     def test_daytime_model(self):
         source = MemDataSource()
+
+        # Generate N days of data
+        nb_days = 90
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
             second=0,
             microsecond=0,
         ).timestamp()
+        from_date = to_date - 3600 * 24 * nb_days
+        generator = SinEventGenerator(base=3, amplitude=3, sigma=0.01)
 
-        # Generate N days of data
-        nb_days = 90
-        hist_to = to_date
-        hist_from = to_date - 3600 * 24 * nb_days
-        ts = hist_from
-        for i in range(nb_days):
-            # [0h-12h[ data. Regular point at 2 AM
-            for j in range(12):
-                if j == 2:
-                    source.insert_times_data({
-                        'timestamp': ts,
-                        'foo': j,
-                    })
-                ts += 3600
+        # Regular data
+        for ts in self.generator.generate_ts(self.from_date, self.to_date, step=60):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
 
-            # No data for [12h, 24h[
-            for j in range(12):
-                ts += 3600
+        # Insert anomaly at 02:00-04:00 on the last day
+        ano_from = to_date - 22 * 3600
+        ano_to = ano_from + 2 * 3600
 
-        # insert anomaly (no data point expected in this time range)
-        ts = hist_to - 3600 * 6
-        source.insert_times_data({
-            'timestamp': ts,
-            'foo': j,
-        })
+        generator = FlatEventGenerator(base=4, sigma=0.01)
+
+        for ts in generator.generate_ts(ano_from, ano_to, step=60):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
 
         model = TimeSeriesModel(dict(
             name='test',
             offset=30,
-            span=3,
+            span=8,
             bucket_interval=3600,
             interval=60,
             seasonality={
@@ -815,18 +813,20 @@ class TestTimes(unittest.TestCase):
             ],
             max_threshold=30,
             min_threshold=25,
-            max_evals=1,
+            max_evals=10,
         ))
         self.assertTrue(model.seasonality.get('daytime'), True)
 
         # train on N-1 days
-        model.train(source, hist_from, hist_to - 3600 * 24)
+        model.train(source, from_date, to_date - 3600 * 24)
         self.assertTrue(model.is_trained)
 
         # predict on last 24h
-        to_date = hist_to
-        from_date = to_date - 3600 * 24
-        prediction = model.predict(source, from_date, to_date)
+        pred_to = to_date
+        pred_from = to_date - 3600 * 24 * 4
+        prediction = model.predict(source, pred_from, pred_to)
+
+        prediction.plot('count_foo')
 
         self.assertEqual(len(prediction.timestamps), 24)
         self.assertEqual(prediction.observed.shape, (24, 1))
@@ -834,11 +834,24 @@ class TestTimes(unittest.TestCase):
 
         model.detect_anomalies(prediction)
         buckets = prediction.format_buckets()
-        # Anomaly MUST NOT be detected in bucket[-22] (the 2 AM point)
-        self.assertFalse(buckets[-22]['stats']['anomaly'])
-        # Anomaly MUST be detected in bucket[-6]
-        self.assertTrue(buckets[-6]['stats']['anomaly'])
-        self.assertAlmostEqual(100, buckets[-6]['stats']['score'], delta=10)
+
+
+        import json
+        print(json.dumps(buckets, indent=4))
+
+        # No anomaly MUST be detected on 00:00-02:00
+        self.assertFalse(buckets[0]['stats']['anomaly'])
+        self.assertFalse(buckets[1]['stats']['anomaly'])
+
+        # Anomaly MUST be detected on 02:00-04:00
+        self.assertTrue(buckets[2]['stats']['anomaly'])
+        self.assertAlmostEqual(100, buckets[2]['stats']['score'], delta=10)
+        self.assertTrue(buckets[3]['stats']['anomaly'])
+        self.assertAlmostEqual(100, buckets[3]['stats']['score'], delta=10)
+
+        # No anomaly after on 04:00
+        self.assertFalse(buckets[4]['stats']['anomaly'])
+        self.assertFalse(buckets[4]['stats']['anomaly'])
 
     def test_not_daytime_model(self):
         source = MemDataSource()
