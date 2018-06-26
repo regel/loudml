@@ -68,7 +68,6 @@ np.set_printoptions(formatter={'float_kind':float_formatter})
 # global vars for easy reusability
 # This UNIX process is handling a unique model
 _keras_model, _graph = None, None
-_mins, _maxs = None, None
 _verbose = 0
 
 # _hp_forecast_min=1 Backward compat with 1.2
@@ -339,6 +338,9 @@ class TimeSeriesModel(Model):
 
         self.span = settings.get('span')
 
+        self.mins = None
+        self.maxs = None
+
         if self.span is None or self.span == "auto":
             self.min_span = settings.get('min_span') or _hp_span_min
             self.max_span = settings.get('max_span') or _hp_span_max
@@ -362,7 +364,7 @@ class TimeSeriesModel(Model):
         ]
 
         self.current_eval = None
-    
+
     def enum_features(self, is_input=None, is_output=None):
         j = 0
         for i, feature in enumerate(self.features):
@@ -419,24 +421,24 @@ class TimeSeriesModel(Model):
         max_evals=None,
         progress_cb=None,
     ):
-        global _mins, _maxs
-
         if max_evals is None:
             max_evals = self.settings.get('max_evals', 10)
 
         self.current_eval = 0
 
         # Preprocess each column (axis=0)
-        _mins = np.min(np.nan_to_num(dataset), axis=0)
-        _maxs = np.max(np.nan_to_num(dataset), axis=0)
+        self.mins = np.min(np.nan_to_num(dataset), axis=0)
+        self.maxs = np.max(np.nan_to_num(dataset), axis=0)
+
         _means = np.nanmean(dataset, axis=0)
         _stds = np.nanstd(dataset, axis=0)
+
         for j, feature in enumerate(self.features):
             dataset[:,j] = _get_scores(
                 feature,
                 dataset[:,j],
-                _min=_mins[j],
-                _max=_maxs[j],
+                _min=self.mins[j],
+                _max=self.maxs[j],
                 _mean=_means[j],
                 _std=_stds[j],
             )
@@ -444,7 +446,7 @@ class TimeSeriesModel(Model):
         input_features = len(self._x_indexes())
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
-                     _mins, _maxs, _maxs - _mins)
+                     self.mins, self.maxs, self.maxs - self.mins)
 
         def cross_val_model(params):
             global _keras_model, _graph
@@ -645,9 +647,12 @@ class TimeSeriesModel(Model):
         """
         Train model
         """
-        global _keras_model, _graph, _mins, _maxs
+        global _keras_model, _graph
+
         _keras_model, _graph = None, None
-        _mins, _maxs = None, None
+
+        self.mins, self.maxs = None, None
+        self.means, self.stds = None, None
 
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
@@ -727,8 +732,10 @@ class TimeSeriesModel(Model):
             'loss_fct': best_params['loss_fct'],
             'optimizer': best_params['optimizer'],
             'best_params': best_params,
-            'mins': _mins.tolist(),
-            'maxs': _maxs.tolist(),
+            'mins': self.mins.tolist(),
+            'maxs': self.maxs.tolist(),
+            'means': self.means.tolist(),
+            'stds': self.stds.tolist(),
             'loss': score[0],
 
         }
@@ -741,7 +748,7 @@ class TimeSeriesModel(Model):
         """
         Load current model
         """
-        global _keras_model, _graph, _mins, _maxs
+        global _keras_model, _graph
 
         if not self.is_trained:
             raise errors.ModelNotTrained()
@@ -753,8 +760,13 @@ class TimeSeriesModel(Model):
             self._state['optimizer'],
         )
 
-        _mins = np.array(self._state['mins'])
-        _maxs = np.array(self._state['maxs'])
+        self.mins = np.array(self._state['mins'])
+        self.maxs = np.array(self._state['maxs'])
+
+        if 'means' in self._state:
+            self.means = np.array(self._state['means'])
+        if 'stds' in self._state:
+            self.stds = np.array(self._state['stds'])
 
     @property
     def is_trained(self):
@@ -950,8 +962,8 @@ class TimeSeriesModel(Model):
             norm_dataset[:,j] = _get_scores(
                 feature,
                 dataset[:,j],
-                _min=_mins[j],
-                _max=_maxs[j],
+                _min=self.mins[j],
+                _max=self.maxs[j],
                 _mean=_means[j],
                 _std=_stds[j],
             )
@@ -973,8 +985,8 @@ class TimeSeriesModel(Model):
                 feature,
                 Y_[:,j],
                 _data=dataset[self._span:,i],
-                _min=_mins[i],
-                _max=_maxs[i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
                 _mean=_means[i],
                 _std=_stds[i],
             )
@@ -1107,8 +1119,8 @@ class TimeSeriesModel(Model):
             dataset[:,j] = _get_scores(
                 feature,
                 dataset[:,j],
-                _min=_mins[j],
-                _max=_maxs[j],
+                _min=self.mins[j],
+                _max=self.maxs[j],
                 _mean=_means[j],
                 _std=_stds[j],
             )
@@ -1146,7 +1158,10 @@ class TimeSeriesModel(Model):
                     dt = make_datetime(timeval)
                     dt_next[forecast_pos] = dt_get_daytime(dt)
 
-                norm_dt = 1.0 - (_maxs[dt_pos] - dt_next) / (_maxs[dt_pos] - _mins[dt_pos])
+                max_value = self.maxs[dt_pos]
+                rng = max_value - self.mins[dt_pos]
+
+                norm_dt = 1.0 - (max_value - dt_next) / rng
                 X[:, 0:self._forecast, dt_pos] = norm_dt
 
             if self.seasonality.get('weekday'):
@@ -1158,7 +1173,10 @@ class TimeSeriesModel(Model):
                     dt = make_datetime(timeval)
                     dt_next[forecast_pos] = dt_get_weekday(dt)
 
-                norm_dt = 1.0 - (_maxs[dt_pos] - dt_next) / (_maxs[dt_pos] - _mins[dt_pos])
+                max_value = self.maxs[dt_pos]
+                rng = max_value - self.mins[dt_pos]
+
+                norm_dt = 1.0 - (max_value - dt_next) / rng
                 X[:, 0:self._forecast, dt_pos] = norm_dt
 
             X = np.roll(X, -self._forecast, axis=1)
@@ -1169,8 +1187,8 @@ class TimeSeriesModel(Model):
                     feature,
                     Y_[:,j],
                     _data=None,
-                    _min=_mins[i],
-                    _max=_maxs[i],
+                    _min=self.mins[i],
+                    _max=self.maxs[i],
                     _mean=_means[i],
                     _std=_stds[i],
                 )
@@ -1194,21 +1212,19 @@ class TimeSeriesModel(Model):
         Compute scores and mean squared error
         """
 
-        global _mins, _maxs
-
         outputs = [feature for feature in self.features if feature.is_output]
 
         nb_output = len(self._y_indexes())
 
         # FIXME: change according to feature preprocessing. tip: for standardization, use
         # scoring function present in fingerprints_ok branch
-        rng = _maxs - _mins
+        rng = self.maxs - self.mins
 
         X = observed
         Y = predicted
 
-        X = 1.0 - (_maxs[:nb_output] - X) / rng[:nb_output]
-        Y = 1.0 - (_maxs[:nb_output] - Y) / rng[:nb_output]
+        X = 1.0 - (self.maxs[:nb_output] - X) / rng[:nb_output]
+        Y = 1.0 - (self.maxs[:nb_output] - Y) / rng[:nb_output]
 
         diff = X - Y
 
