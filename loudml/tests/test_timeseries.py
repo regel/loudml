@@ -1020,7 +1020,7 @@ class TestTimes(unittest.TestCase):
         source = MemDataSource()
 
         # Generate N days of data
-        nb_days = 90
+        nb_days = 30
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
@@ -1031,7 +1031,7 @@ class TestTimes(unittest.TestCase):
         generator = SinEventGenerator(base=3, amplitude=3, sigma=0.01)
 
         # Regular data
-        for ts in self.generator.generate_ts(self.from_date, self.to_date, step=60):
+        for ts in self.generator.generate_ts(from_date, to_date, step=60):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -1052,8 +1052,8 @@ class TestTimes(unittest.TestCase):
         model = TimeSeriesModel(dict(
             name='test',
             offset=30,
-            span=8,
-            bucket_interval=3600,
+            span=12,
+            bucket_interval=30 * 60,
             interval=60,
             seasonality={
                 'daytime': True,
@@ -1068,7 +1068,7 @@ class TestTimes(unittest.TestCase):
             ],
             max_threshold=30,
             min_threshold=25,
-            max_evals=10,
+            max_evals=1,
         ))
         self.assertTrue(model.seasonality.get('daytime'), True)
 
@@ -1078,35 +1078,42 @@ class TestTimes(unittest.TestCase):
 
         # predict on last 24h
         pred_to = to_date
-        pred_from = to_date - 3600 * 24 * 4
+        pred_from = to_date - 3600 * 24
         prediction = model.predict(source, pred_from, pred_to)
 
-        prediction.plot('count_foo')
+        # prediction.plot('count_foo')
 
-        self.assertEqual(len(prediction.timestamps), 24)
-        self.assertEqual(prediction.observed.shape, (24, 1))
-        self.assertEqual(prediction.predicted.shape, (24, 1))
+        self.assertEqual(len(prediction.timestamps), 48)
+        self.assertEqual(prediction.observed.shape, (48, 1))
+        self.assertEqual(prediction.predicted.shape, (48, 1))
 
         model.detect_anomalies(prediction)
         buckets = prediction.format_buckets()
 
-
-        import json
-        print(json.dumps(buckets, indent=4))
+        # import json
+        # print(json.dumps(buckets, indent=4))
 
         # No anomaly MUST be detected on 00:00-02:00
         self.assertFalse(buckets[0]['stats']['anomaly'])
         self.assertFalse(buckets[1]['stats']['anomaly'])
+        self.assertFalse(buckets[2]['stats']['anomaly'])
+        self.assertFalse(buckets[3]['stats']['anomaly'])
 
-        # Anomaly MUST be detected on 02:00-04:00
-        self.assertTrue(buckets[2]['stats']['anomaly'])
-        self.assertAlmostEqual(100, buckets[2]['stats']['score'], delta=10)
-        self.assertTrue(buckets[3]['stats']['anomaly'])
-        self.assertAlmostEqual(100, buckets[3]['stats']['score'], delta=10)
+        # Anomaly MUST be detected on 02:00-03:30
+        self.assertTrue(buckets[4]['stats']['anomaly'])
+        self.assertGreater(buckets[4]['stats']['score'], 30)
+        self.assertTrue(buckets[5]['stats']['anomaly'])
+        self.assertGreater(buckets[5]['stats']['score'], 25)
+        self.assertTrue(buckets[6]['stats']['anomaly'])
+        self.assertGreater(buckets[6]['stats']['score'], 25)
+        self.assertTrue(buckets[7]['stats']['anomaly'])
+        self.assertGreater(buckets[7]['stats']['score'], 25)
 
-        # No anomaly after on 04:00
-        self.assertFalse(buckets[4]['stats']['anomaly'])
-        self.assertFalse(buckets[4]['stats']['anomaly'])
+        # Prediction may be uncertain on 03:30-07:00
+
+        # No anomaly after 07:00
+        self.assertFalse(buckets[14]['stats']['anomaly'])
+        self.assertFalse(buckets[15]['stats']['anomaly'])
 
     def test_not_daytime_model(self):
         source = MemDataSource()
@@ -1162,7 +1169,7 @@ class TestTimes(unittest.TestCase):
             ],
             max_threshold=30,
             min_threshold=25,
-            max_evals=1,
+            max_evals=5,
         ))
 
         # train on N-1 days
