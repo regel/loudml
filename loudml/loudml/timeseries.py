@@ -863,7 +863,7 @@ class TimeSeriesModel(Model):
 
     @property
     def _span(self):
-        if 'span' in self._state['best_params']:
+        if self._state and 'span' in self._state['best_params']:
             return self._state['best_params']['span']
         else:
             return self.span
