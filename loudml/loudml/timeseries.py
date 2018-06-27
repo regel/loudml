@@ -84,10 +84,15 @@ def _revert_transform(feature, y, y0):
     if feature.transform == "diff":
         return np.cumsum(np.concatenate(([y0], y[1:])))
 
+def canonicalize_min_max(value, _min, _max):
+    return 1.0 - (_max - value) / (_max - _min)
+
+def uncanonicalize_min_max(value, _min, _max):
+    return _max - (_max - _min) * (1.0 - value)
+
 def _get_scores(feature, y, _min, _max, _mean, _std):
     if feature.scores == "min_max":
-        _range = _max - _min
-        y = 1.0 - (_max - y) / _range
+        y = canonicalize_min_max(y, _min, _max)
     elif feature.scores == "normalize":
         y0 = y[~np.isnan(y)][0]
         if y0 > 0 and y0 < 0.01:
@@ -101,8 +106,7 @@ def _get_scores(feature, y, _min, _max, _mean, _std):
 
 def _revert_scores(feature, y, _data, _min, _max, _mean, _std):
     if feature.scores == "min_max":
-        _range = _max - _min
-        y = _max - _range * (1.0 - y)
+        y = uncanonicalize_min_max(y, _min, _max)
     elif feature.scores == "normalize":
         p0 = _data[~np.isnan(_data)][0]
         y = p0 * (y + 1.0)
@@ -414,6 +418,89 @@ class TimeSeriesModel(Model):
         for i, feature in enumerate(self.features):
             x[np.isnan(x[:,i])] = self.defaults[i]
 
+    def canonicalize_dataset(
+        self,
+        dataset,
+        only_outputs=False,
+        out=None,
+    ):
+        """
+        Canonicalize dataset values
+        """
+
+        if out is None:
+            out = np.empty_like(dataset)
+
+        for i, j, feature in self.enum_features(
+            is_input=not only_outputs,
+            is_output=True,
+        ):
+            out[:,j] = _get_scores(
+                feature,
+                dataset[:,j],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
+
+        if only_outputs:
+            return out
+
+        if self.seasonality.get('daytime'):
+            i += 1
+            j += 1
+            out[:,j] = canonicalize_min_max(dataset[:,i], 0, 23)
+
+        if self.seasonality.get('weekday'):
+            i += 1
+            j += 1
+            out[:,j] = canonicalize_min_max(dataset[:,i], 0, 6)
+
+        return out
+
+    def uncanonicalize_dataset(
+        self,
+        dataset,
+        only_outputs=False,
+        out=None,
+    ):
+        """
+        Uncanonicalize dataset values
+        """
+
+        if out is None:
+            out = np.empty_like(dataset)
+
+        for i, j, feature in self.enum_features(
+            is_input=not only_outputs,
+            is_output=True,
+        ):
+            out[:,j] = _revert_scores(
+                feature,
+                dataset[:,j],
+                _data=dataset[self._span:,i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
+
+        if only_outputs:
+            return out
+
+        if self.seasonality.get('daytime'):
+            i += 1
+            j += 1
+            out[:,j] = uncanonicalize_min_max(dataset[:,i], 0, 23)
+
+        if self.seasonality.get('weekday'):
+            i += 1
+            j += 1
+            out[:,j] = uncanonicalize_min_max(dataset[:,i], 0, 6)
+
+        return out
+
     def stat_dataset(self, dataset):
         """
         Compute dataset sets and keep them as reference for canonicalization
@@ -439,15 +526,8 @@ class TimeSeriesModel(Model):
 
         self.stat_dataset(dataset)
 
-        for j, feature in enumerate(self.features):
-            dataset[:,j] = _get_scores(
-                feature,
-                dataset[:,j],
-                _min=self.mins[j],
-                _max=self.maxs[j],
-                _mean=self.means[j],
-                _std=self.stds[j],
-            )
+        # Canonicalize dataset in-place
+        self.canonicalize_dataset(dataset, out=dataset)
 
         input_features = len(self._x_indexes())
 
@@ -968,16 +1048,7 @@ class TimeSeriesModel(Model):
             logging.warning("model state has no std values, new training needed")
             self.stds = np.nanstd(dataset, axis=0)
 
-        norm_dataset = np.empty_like(dataset)
-        for j, feature in enumerate(self.features):
-            norm_dataset[:,j] = _get_scores(
-                feature,
-                dataset[:,j],
-                _min=self.mins[j],
-                _max=self.maxs[j],
-                _mean=self.means[j],
-                _std=self.stds[j],
-            )
+        norm_dataset = self.canonicalize_dataset(dataset)
 
         data_indexes, X_test = self._format_dataset_predict(norm_dataset[:X_until])
 
@@ -990,22 +1061,13 @@ class TimeSeriesModel(Model):
         # FIXME: np.clip() according to feature preprocessing choice
         # Y_[Y_ < 0] = 0
 
-        Z_ = np.empty_like(Y_)
-        for i, j, feature in self.enum_features(is_output=True):
-            Z_[:,j] = _revert_scores(
-                feature,
-                Y_[:,j],
-                _data=dataset[self._span:,i],
-                _min=self.mins[i],
-                _max=self.maxs[i],
-                _mean=self.means[i],
-                _std=self.stds[i],
-            )
+        Y = self.uncanonicalize_dataset(Y_, only_outputs=True)
 
+        for i, j, feature in self.enum_features(is_output=True):
             if feature.transform is not None:
-                Z_[:,j] = _revert_transform(
+                Y[:,j] = _revert_transform(
                     feature,
-                    Z_[:,j],
+                    Y[:,j],
                     real[self._span,j],
                 )
 
@@ -1020,7 +1082,7 @@ class TimeSeriesModel(Model):
         for i, j, feature in self.enum_features(is_input=True):
             observed[:,i] = real[self._span:][:,i]
         for i, j, feature in self.enum_features(is_output=True):
-            predicted[data_indexes - self._span,i] = Z_[:][:,j]
+            predicted[data_indexes - self._span,i] = Y[:][:,j]
 
         return TimeSeriesPrediction(
             self,

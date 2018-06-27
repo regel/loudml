@@ -359,6 +359,58 @@ class TestTimes(unittest.TestCase):
         self._require_training()
         self.assertTrue(self.model.is_trained)
 
+    def test_canonicalize(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=8,
+            bucket_interval=3600,
+            interval=60,
+            seasonality={
+                'daytime': True,
+                'weekday': True,
+            },
+            features={
+                'i': [{
+                   'name': 'foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                }],
+                'o': [{
+                   'name': 'bar',
+                   'metric': 'avg',
+                   'field': 'bar',
+                   'default': 0,
+                }],
+                'io': [{
+                   'name': 'baz',
+                   'metric': 'avg',
+                   'field': 'baz',
+                   'default': 0,
+                }],
+            },
+            max_threshold=30,
+            min_threshold=25,
+            max_evals=10,
+        ))
+
+        dataset = np.array([
+            [3.0, 3.0, 3.0, 23.0, 2.0],
+            [5.0, 5.0, 5.0, 0.0, 3.0],
+            [8.0, 8.0, 8.0, 1.0, 3.0],
+        ])
+
+        model.stat_dataset(dataset)
+
+        z_scores = model.canonicalize_dataset(dataset)
+
+        for v in z_scores.flatten():
+            self.assertTrue(0.0 <= v <= 1.0)
+
+        result = model.uncanonicalize_dataset(z_scores)
+        self.assertTrue(np.array_equal(result, dataset))
+
     def test_format(self):
         import numpy as np
 
