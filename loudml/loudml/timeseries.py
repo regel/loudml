@@ -1197,6 +1197,9 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
+        y0 = np.empty(len(self._y_indexes()), dtype=float)
+        y0[:] = dataset[-1]
+
         for j, feature in enumerate(self.features):
             if feature.transform is not None:
                 dataset[:,j] = _transform(feature, dataset[:,j])
@@ -1215,16 +1218,7 @@ class TimeSeriesModel(Model):
             self.stds = np.nanstd(dataset, axis=0)
             self.stds[self.stds == 0] = 1.0
 
-        for j, feature in enumerate(self.features):
-            dataset[:,j] = _get_scores(
-                feature,
-                dataset[:,j],
-                _min=self.mins[j],
-                _max=self.maxs[j],
-                _mean=self.means[j],
-                _std=self.stds[j],
-            )
-
+        self.canonicalize_dataset(dataset, out=dataset)
         data_indexes, X = self._format_dataset_predict(dataset)
 
         if len(X) == 0:
@@ -1240,65 +1234,50 @@ class TimeSeriesModel(Model):
         bucket_start = from_ts
         bucket = 0
         xy_indexes = np.array(self._xy_indexes())
+
         while bucket_start < to_ts:
             Y_ = _keras_model.predict(X).reshape((self._forecast, nb_outputs))
+
             if len(xy_indexes) > 0:
+                # Keep I/O feature only
                 _xy_indexes = xy_indexes - np.min(xy_indexes)
                 X[:, 0:self._forecast, xy_indexes] = Y_[:, _xy_indexes]
-            if self.seasonality.get('daytime'):
-                if self.seasonality.get('weekday'):
-                    dt_pos = -2
-                else:
-                    dt_pos = -1
 
-                dt_next = np.empty(shape=(self._forecast), dtype=float)
-                dt_next[:] = np.nan
-                for forecast_pos in range(self._forecast):
-                    timeval = bucket_start + forecast_pos * self.bucket_interval
-                    dt = make_datetime(timeval)
-                    dt_next[forecast_pos] = dt_get_daytime(dt)
+            has_daytime = self.seasonality.get('daytime')
+            has_weekday = self.seasonality.get('weekday')
 
-                max_value = self.maxs[dt_pos]
-                rng = max_value - self.mins[dt_pos]
+            if has_daytime or has_weekday:
+                # Compute seasonality values for current forecast
 
-                norm_dt = 1.0 - (max_value - dt_next) / rng
-                X[:, 0:self._forecast, dt_pos] = norm_dt
+                for i in range(self._forecast):
+                    dt = make_datetime(bucket_start + i * self.bucket_interval)
+                    col_pos = len(xy_indexes)
 
-            if self.seasonality.get('weekday'):
-                dt_pos = -1
-                dt_next = np.empty(shape=(self._forecast), dtype=float)
-                dt_next[:] = np.nan
-                for forecast_pos in range(self._forecast):
-                    timeval = bucket_start + forecast_pos * self.bucket_interval
-                    dt = make_datetime(timeval)
-                    dt_next[forecast_pos] = dt_get_weekday(dt)
+                    if has_daytime:
+                        val = canonicalize_daytime(dt_get_daytime(dt))
+                        X[:, 0:self._forecast, col_pos] = val
+                        col_pos += 1
 
-                max_value = self.maxs[dt_pos]
-                rng = max_value - self.mins[dt_pos]
-
-                norm_dt = 1.0 - (max_value - dt_next) / rng
-                X[:, 0:self._forecast, dt_pos] = norm_dt
+                    if has_weekday:
+                        val = canonicalize_weekday(dt_get_weekday(dt)),
+                        X[:, 0:self._forecast, col_pos] = val
+                        col_pos += 1
 
             X = np.roll(X, -self._forecast, axis=1)
+            Y = self.uncanonicalize_dataset(Y_, only_outputs=True)
 
-            Z_ = np.empty_like(Y_)
             for i, j, feature in self.enum_features(is_output=True):
-                Z_[:,j] = _revert_scores(
-                    feature,
-                    Y_[:,j],
-                    _data=None,
-                    _min=self.mins[i],
-                    _max=self.maxs[i],
-                    _mean=self.means[i],
-                    _std=self.stds[i],
-                )
+                if feature.transform:
+                    Y[:,j] = _revert_transform(feature, Y[:,j], y0[j])
 
-            for z in range(self._forecast):
+            for j in range(self._forecast):
                 if bucket_start < to_ts:
                     timestamps.append(bucket_start)
-                    predicted[bucket] = Z_[z][:]
+                    predicted[bucket] = Y[j][:]
                 bucket_start += self.bucket_interval
                 bucket += 1
+
+            y0[:] = Y[-1]
 
         return TimeSeriesPrediction(
             self,

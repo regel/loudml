@@ -38,6 +38,7 @@ from loudml.misc import (
     make_ts,
     dt_get_daytime,
     dt_get_weekday,
+    ts_to_str,
 )
 
 from loudml import (
@@ -714,6 +715,102 @@ class TestTimes(unittest.TestCase):
         # print(forecast_tail)
         # print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
+
+    def test_forecast_non_stationary(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=21,
+            forecast=7,
+            bucket_interval=30 * 60,
+            interval=60,
+            seasonality={
+                'daytime': True,
+                'weekday': True,
+            },
+            features={
+                'io': [{
+                   'name': 'count_foo',
+                   'metric': 'count',
+                   'field': 'foo',
+                   'default': 0,
+                   'transform': 'diff',
+                   'scores': 'standardize', #min_max', # FIXME standardize does not work
+                }],
+                'o': [{
+                   'name': 'avg_foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                }],
+            },
+            threshold=30,
+            max_evals=5,
+        ))
+        source = MemDataSource()
+        generator = TriangleEventGenerator(base=0, amplitude=2, sigma=0.01, trend=0.1)
+
+        to_date = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        ).timestamp()
+        from_date = to_date - 3600 * 24 * 7 * 3
+
+        for ts in generator.generate_ts(from_date, to_date, step=600):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
+
+        model.train(source, from_date, to_date)
+        prediction = model.predict(source, from_date, to_date)
+
+        from_date = to_date - model.bucket_interval
+        to_date = from_date + 48 * 3600
+        forecast = model.forecast(source, from_date, to_date)
+        predicted = forecast.predicted[:,0]
+
+        expected = math.ceil(
+            (to_date - from_date) / model.bucket_interval
+        )
+
+        #forecast.plot('count_foo')
+        #import matplotlib.pylab as plt
+        #plt.rcParams["figure.figsize"] = (17, 9)
+        #y_values = prediction.observed[:,0]
+        #plt.plot(range(1,1+len(y_values)), y_values, "--")
+        #plt.plot(range(len(y_values), len(y_values)+len(predicted)), predicted, ":")
+        #plt.show()
+
+        self.assertEqual(len(forecast.timestamps), expected)
+        self.assertEqual(forecast.observed.shape, (expected, len(model.features)))
+        self.assertEqual(forecast.predicted.shape, (expected, len(model.features)))
+
+        all_nans = np.empty((expected, len(model.features)), dtype=float)
+        all_nans[:] = np.nan
+        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+
+        # FIXME: Due to noise at y0, forecast may be inaccurate that's why
+        # we use a +3/-3 tolerance here
+        delta = 3.0
+
+        # Head
+        #expected = np.array([152.0, 152.25, 152.5, 152.85, 153.20])
+        #good = np.abs(predicted[:len(expected)] - expected) <= delta
+        #print("predicted")
+        #print(predicted[:len(expected)])
+        #print(good)
+        #self.assertEqual(np.all(good), True)
+
+        # Tail
+        expected = np.array([163.5, 164.65, 164.95, 165.15, 165.55])
+        good = np.abs(predicted[-len(expected):] - expected) <= delta
+        #print("predicted")
+        #print(predicted[-len(expected):])
+        #print(good)
+        self.assertEqual(np.all(good), True)
 
     def test_predict_aligned(self):
         self._require_training()
