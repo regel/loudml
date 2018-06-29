@@ -90,6 +90,18 @@ def canonicalize_min_max(value, _min, _max):
 def uncanonicalize_min_max(value, _min, _max):
     return _max - (_max - _min) * (1.0 - value)
 
+def canonicalize_daytime(value):
+    return canonicalize_min_max(value, 0, 23)
+
+def uncanonicalize_daytime(value):
+    return uncanonicalize_min_max(value, 0, 23)
+
+def canonicalize_weekday(value):
+    return canonicalize_min_max(value, 0, 6)
+
+def uncanonicalize_weekday(value):
+    return uncanonicalize_min_max(value, 0, 6)
+
 def _get_scores(feature, y, _min, _max, _mean, _std):
     if feature.scores == "min_max":
         y = canonicalize_min_max(y, _min, _max)
@@ -450,12 +462,12 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('daytime'):
             i += 1
             j += 1
-            out[:,j] = canonicalize_min_max(dataset[:,i], 0, 23)
+            out[:,j] = canonicalize_daytime(dataset[:,i])
 
         if self.seasonality.get('weekday'):
             i += 1
             j += 1
-            out[:,j] = canonicalize_min_max(dataset[:,i], 0, 6)
+            out[:,j] = canonicalize_weekday(dataset[:,i])
 
         return out
 
@@ -492,12 +504,12 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('daytime'):
             i += 1
             j += 1
-            out[:,j] = uncanonicalize_min_max(dataset[:,i], 0, 23)
+            out[:,j] = uncanonicalize_daytime(dataset[:,i])
 
         if self.seasonality.get('weekday'):
             i += 1
             j += 1
-            out[:,j] = uncanonicalize_min_max(dataset[:,i], 0, 6)
+            out[:,j] = uncanonicalize_weekday(dataset[:,i])
 
         return out
 
