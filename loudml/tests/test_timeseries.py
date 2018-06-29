@@ -1062,7 +1062,7 @@ class TestTimes(unittest.TestCase):
 
         # Detect anomalies
         pred_to = to_date
-        pred_from = pred_to - 24 * 3 * self.model.bucket_interval
+        pred_from = pred_to - 3 * self.model.bucket_interval
         prediction = self.model.predict(self.source, pred_from, pred_to)
 
         self.model.detect_anomalies(prediction)
