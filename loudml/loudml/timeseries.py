@@ -209,6 +209,7 @@ class TimeSeriesPrediction:
         self.predicted = predicted
         self.anomaly_indices = None
         self.stats = None
+        self.watch = None
 
     def get_anomalies(self):
         """
@@ -252,7 +253,9 @@ class TimeSeriesPrediction:
             'predicted': predicted,
         }
         if self.stats is not None:
-            result['stats'] = self.stats,
+            result['stats'] = self.stats
+        if self.watch is not None:
+            result['watch'] = self.watch
         return result
 
     def format_bucket_data(self, i):
@@ -1427,3 +1430,31 @@ class TimeSeriesModel(Model):
 
         prediction.stats = stats
         prediction.anomaly_indices = anomaly_indices
+
+    def watch_feature(self, prediction, feature_name, _type, threshold):
+        if _type == 'low':
+            exceeds = lambda x: x <= threshold
+        else:
+            exceeds = lambda x: x >= threshold
+
+        exceed_ts = None
+
+        for i, feature in enumerate(self.features):
+            if feature.name != feature_name:
+                continue
+
+            for j, ts in enumerate(prediction.timestamps):
+                value = prediction.predicted[j][i]
+
+                if exceeds(value):
+                    exceed_ts = ts
+                    break
+
+
+        prediction.watch = {
+            'feature': feature_name,
+            'type': _type,
+            'threshold': threshold,
+            'exceed_date': ts_to_str(exceed_ts) if exceed_ts else None,
+        }
+        return exceed_ts

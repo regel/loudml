@@ -290,6 +290,31 @@ def get_date_arg(param, default=None, is_mandatory=False):
 
     return schemas.validate(schemas.Timestamp(), value, name=param)
 
+
+def get_watch_feature():
+    value = request.args.get('watch_feature')
+    if value is None:
+        return None
+
+    try:
+        feature, _type, threshold = value.split(':')
+    except ValueError:
+        raise errors.Invalid("invalid format for 'watch_feature' parameter")
+
+    if _type not in ('low', 'high'):
+        raise errors.Invalid("invalid threshold type for 'watch_feature parameter")
+
+    try:
+        threshold = int(threshold)
+    except ValueError:
+        raise errors.Invalid("invalid threshold for 'watch_feature' parameter")
+
+    return {
+        'feature': feature,
+        'type': _type,
+        'threshold': threshold,
+    }
+
 def get_model_info(name):
     global g_storage
     global g_training
@@ -709,6 +734,8 @@ def model_forecast(model_name):
 
     params['from_date'] = get_date_arg('from', default='now')
     params['to_date'] = get_date_arg('to', is_mandatory=True)
+
+    params['watch_feature'] = get_watch_feature()
     job = ForecastJob(model.name, **params)
     job.start()
 

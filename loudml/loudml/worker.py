@@ -146,11 +146,22 @@ class Worker:
         model = self.storage.load_model(model_name)
         src_settings = self.config.get_datasource(model.default_datasource)
         source = loudml.datasource.load_datasource(src_settings)
+
+        watch_feature = kwargs.pop('watch_feature')
+
         forecast = model.forecast(source, **kwargs)
 
         if model.type == 'timeseries':
             logging.info("job[%s] forecasted values for %d time buckets",
                          self.job_id, len(forecast.timestamps))
+            if watch_feature:
+                model.watch_feature(
+                    forecast,
+                    watch_feature['feature'],
+                    watch_feature['type'],
+                    watch_feature['threshold'],
+                )
+
             if save_prediction:
                 source.save_timeseries_prediction(forecast, model)
 
