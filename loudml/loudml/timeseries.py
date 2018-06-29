@@ -107,10 +107,6 @@ def _get_scores(feature, y, _min, _max, _mean, _std):
         y = canonicalize_min_max(y, _min, _max)
     elif feature.scores == "normalize":
         y0 = y[~np.isnan(y)][0]
-        if y0 > 0 and y0 < 0.01:
-            y0 = 0.01
-        elif y0 < 0 and y0 > -0.01:
-            y0 = -0.01
         y = (y / y0) - 1.0
     elif feature.scores == "standardize":
         y = (y - _mean) / _std
