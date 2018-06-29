@@ -521,6 +521,7 @@ class TimeSeriesModel(Model):
         self.maxs = np.max(np.nan_to_num(dataset), axis=0)
         self.means = np.nanmean(dataset, axis=0)
         self.stds = np.nanstd(dataset, axis=0)
+        self.stds[self.stds == 0] = 1.0
 
     def _train_on_dataset(
         self,
@@ -1059,6 +1060,7 @@ class TimeSeriesModel(Model):
         if self.stds is None:
             logging.warning("model state has no std values, new training needed")
             self.stds = np.nanstd(dataset, axis=0)
+            self.stds[self.stds == 0] = 1.0
 
         norm_dataset = self.canonicalize_dataset(dataset)
 
@@ -1205,6 +1207,7 @@ class TimeSeriesModel(Model):
         if self.stds is None:
             logging.warning("model state has no std values, new training needed")
             self.stds = np.nanstd(dataset, axis=0)
+            self.stds[self.stds == 0] = 1.0
 
         for j, feature in enumerate(self.features):
             dataset[:,j] = _get_scores(
