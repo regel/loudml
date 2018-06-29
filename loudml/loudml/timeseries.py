@@ -1132,6 +1132,10 @@ class TimeSeriesModel(Model):
     ):
         global _keras_model
 
+        for feature in self.features:
+            if feature.is_input and not feature.is_output:
+                raise Invalid("model has pure input feature(s), unable to forecast")
+
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
 
