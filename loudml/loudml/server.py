@@ -639,14 +639,6 @@ def _model_start(model, params):
     g_running_models[model.name] = timer
     timer.start()
 
-def _model_forecast(model, params):
-    """
-    Run forecast (one-shot)
-    """
-    job = ForecastJob(model.name, **params)
-    job.start()
-    return str(job.id)
-
 @app.route("/models/<model_name>/_predict", methods=['POST'])
 def model_predict(model_name):
     global g_storage
@@ -717,9 +709,13 @@ def model_forecast(model_name):
 
     params['from_date'] = get_date_arg('from', default='now')
     params['to_date'] = get_date_arg('to', is_mandatory=True)
-    job_id = _model_forecast(model, params)
+    job = ForecastJob(model.name, **params)
+    job.start()
 
-    return job_id, 200
+    if get_bool_arg('bg', default=False):
+        return str(job.id)
+
+    return jsonify(job.result())
 
 #
 # Example of job
