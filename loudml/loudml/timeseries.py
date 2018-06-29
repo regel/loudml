@@ -784,15 +784,21 @@ class TimeSeriesModel(Model):
             daytime[i] = np.array(dt_get_daytime(dt))
             weekday[i] = np.array(dt_get_weekday(dt))
 
-        self.apply_defaults(dataset)
-
         if i is None:
             raise errors.NoData("no data found for time range {}-{}".format(
                 from_str,
                 to_str,
             ))
 
-        logging.info("found %d time periods", i + 1)
+        self.apply_defaults(dataset)
+
+        nb_buckets_found = i + 1
+        if nb_buckets_found < nb_buckets:
+            dataset = np.resize(dataset, (nb_buckets_found, nb_features))
+            daytime = np.resize(daytime, (nb_buckets_found, 1))
+            weekday = np.resize(weekday, (nb_buckets_found, 1))
+
+        logging.info("found %d time periods", nb_buckets_found)
 
         for j, feature in enumerate(self.features):
             if feature.transform is not None:
