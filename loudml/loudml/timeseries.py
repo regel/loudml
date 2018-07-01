@@ -755,6 +755,10 @@ class TimeSeriesModel(Model):
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
 
+        # Fixup range to be sure that it is a multiple of bucket_interval
+        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
+        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
+
         from_str = ts_to_str(from_ts)
         to_str = ts_to_str(to_ts)
 
