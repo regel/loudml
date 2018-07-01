@@ -796,10 +796,10 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = self._compute_nb_buckets(period.from_ts, period.to_ts)
         nb_features = len(self.features)
-        dataset = np.zeros((nb_buckets, nb_features), dtype=float)
+        dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
-        daytime = np.zeros((nb_buckets, 1), dtype=float)
-        weekday = np.zeros((nb_buckets, 1), dtype=float)
+        daytime = np.empty((nb_buckets, 1), dtype=float)
+        weekday = np.empty((nb_buckets, 1), dtype=float)
 
         # Fill dataset
         data = datasource.get_times_data(self, period.from_ts, period.to_ts)
@@ -1019,8 +1019,8 @@ class TimeSeriesModel(Model):
         nb_features = len(self.features)
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
-        daytime = np.zeros((nb_buckets, 1), dtype=float)
-        weekday = np.zeros((nb_buckets, 1), dtype=float)
+        daytime = np.empty((nb_buckets, 1), dtype=float)
+        weekday = np.empty((nb_buckets, 1), dtype=float)
 
         X = []
 
@@ -1171,8 +1171,8 @@ class TimeSeriesModel(Model):
         nb_outputs = len(y_indexes)
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
-        daytime = np.zeros((nb_buckets, 1), dtype=float)
-        weekday = np.zeros((nb_buckets, 1), dtype=float)
+        daytime = np.empty((nb_buckets, 1), dtype=float)
+        weekday = np.empty((nb_buckets, 1), dtype=float)
 
         # Fill dataset
         logging.info("extracting data for range=%s", hist)
