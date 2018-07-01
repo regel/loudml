@@ -309,6 +309,11 @@ class ForecastCommand(Command):
             type=str,
         )
         parser.add_argument(
+            '-c', '--constraint',
+            help="Test constraint, using format: feature:low|high:threshold",
+            type=str,
+        )
+        parser.add_argument(
             '-f', '--from',
             help="From date",
             type=str,
@@ -356,11 +361,39 @@ class ForecastCommand(Command):
             if not args.to_date:
                 raise LoudMLException("'to' argument is required for time-series")
 
+            constraint = None
+            if args.constraint:
+                try:
+                    feature, _type, threshold = args.constraint.split(':')
+                except ValueError:
+                    raise errors.Invalid("invalid format for 'constraint' parameter")
+            
+                if _type not in ('low', 'high'):
+                    raise errors.Invalid("invalid threshold type for 'constraint' parameter")
+            
+                try:
+                    threshold = float(threshold)
+                except ValueError:
+                    raise errors.Invalid("invalid threshold for 'constraint' parameter")
+            
+                constraint = {
+                    'feature': feature,
+                    'type': _type,
+                    'threshold': threshold,
+                }
+
             prediction = model.forecast(
                 source,
                 args.from_date,
                 args.to_date,
             )
+            if constraint:
+                model.test_constraint(
+                    prediction,
+                    constraint['feature'],
+                    constraint['type'],
+                    constraint['threshold'],
+                )
 
             if args.save:
                 source.save_timeseries_prediction(prediction, model)
