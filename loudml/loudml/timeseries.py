@@ -10,6 +10,7 @@ import math
 import os
 import sys
 import numpy as np
+from scipy.stats import norm
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
@@ -1292,40 +1293,68 @@ class TimeSeriesModel(Model):
             predicted=predicted,
         )
 
-    def get_scores(self, predicted, observed):
+    def scoring(self, predicted, observed):
         """
         Compute scores and mean squared error
         """
 
-        outputs = [feature for feature in self.features if feature.is_output]
+        _norm = norm()
+        x = np.empty((len(self._y_indexes()),), dtype=float)
+        y = np.empty((len(self._y_indexes()),), dtype=float)
+        scores = np.zeros((len(self._y_indexes()),), dtype=float)
 
-        nb_output = len(self._y_indexes())
+        for i, j, feature in self.enum_features(
+            is_input=False,
+            is_output=True,
+        ):
+            x[j] = _get_scores(
+                feature,
+                observed[i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
+            y[j] = _get_scores(
+                feature,
+                predicted[i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
 
-        # FIXME: change according to feature preprocessing. tip: for standardization, use
-        # scoring function present in fingerprints_ok branch
-        rng = self.maxs - self.mins
-
-        X = observed
-        Y = predicted
-
-        X = 1.0 - (self.maxs[:nb_output] - X) / rng[:nb_output]
-        Y = 1.0 - (self.maxs[:nb_output] - Y) / rng[:nb_output]
-
-        diff = X - Y
-
-        for i, feature in enumerate(outputs):
+        diff = x - y
+        for i, j, feature in self.enum_features(
+            is_input=False,
+            is_output=True,
+        ):
             ano_type = feature.anomaly_type
+            if feature.scores == "standardize":
+                scores[j] = 2 * _norm.cdf(abs(x - y)) - 1
+                # Required to handle the 'low' condition
+                if diff[j] < 0:
+                    scores[j] *= -1
 
-            if ano_type == 'low':
-                diff[i] = -min(diff[i], 0)
-            elif ano_type == 'high':
-                diff[i] = max(diff[i], 0)
+                if ano_type == 'low':
+                    scores[j] = -min(scores[j], 0)
+                elif ano_type == 'high':
+                    scores[j] = max(scores[j], 0)
+                else:
+                    scores[j] = abs(scores[j])
+
+                scores[j] = 100 * max(0, min(1, scores[j]))
             else:
-                diff[i] = abs(diff[i])
+                if ano_type == 'low':
+                    diff[j] = -min(diff[j], 0)
+                elif ano_type == 'high':
+                    diff[j] = max(diff[j], 0)
+                else:
+                    diff[j] = abs(diff[j])
+
+                scores[j] = 100 * max(0, min(1, diff[j]))
 
         mse = (diff ** 2).mean(axis=None)
-        scores = np.clip(100 * diff, 0, 100)
-
         return scores, mse
 
     def detect_anomalies(self, prediction, hooks=[]):
@@ -1346,7 +1375,7 @@ class TimeSeriesModel(Model):
             predicted = prediction.predicted[i]
             observed = prediction.observed[i]
 
-            scores, mse = self.get_scores(
+            scores, mse = self.scoring(
                 predicted,
                 observed,
             )
