@@ -28,6 +28,8 @@ from loudml.timeseries import (
     TimeSeriesPrediction,
     _get_scores,
     _revert_scores,
+    _transform,
+    _revert_transform,
 )
 from loudml.model import Feature
 
@@ -169,6 +171,45 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(dataset.shape, reverted.shape)
         self.assertEqual(np.allclose(dataset, reverted), True)
 
+    def test_transform(self):
+        feature = Feature(name='foo',
+                          metric='count',
+                          field='bar',
+                          default=0,
+                          scores='standardize',
+                          transform='diff')
+        orig = np.random.random_sample((500,))
+        dataset = _transform(feature, orig)
+
+        _mins = np.min(np.nan_to_num(dataset), axis=0)
+        _maxs = np.max(np.nan_to_num(dataset), axis=0)
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
+        scores = _get_scores(
+            feature,
+            dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        reverted = _revert_scores(
+            feature,
+            scores,
+            _data=dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        reverted = _revert_transform(
+            feature,
+            reverted,
+            orig[0],
+            )
+        self.assertEqual(orig.shape, scores.shape)
+        self.assertEqual(orig.shape, reverted.shape)
+        self.assertEqual(np.allclose(orig, reverted), True)
 
     def test_predict_standardize(self):
         features = [
