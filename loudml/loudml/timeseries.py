@@ -1164,6 +1164,11 @@ class TimeSeriesModel(Model):
             period.from_ts,
         )
 
+        for j, feature in enumerate(self.features):
+            if feature.transform == "diff":
+                hist.from_ts -= self.bucket_interval
+                break
+
         # Prepare dataset
         nb_buckets = int((hist.to_ts - hist.from_ts) / self.bucket_interval)
         nb_features = len(self.features)
