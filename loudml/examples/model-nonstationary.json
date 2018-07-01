@@ -1,5 +1,5 @@
 {
-  "bucket_interval": "30m",
+  "bucket_interval": "60m",
   "default_datasource": "influx",
   "features": {
     "io": [
@@ -12,26 +12,18 @@
           "transform": "diff",
           "scores": "standardize"
         }
-    ],
-    "o": [
-        {
-          "field": "foo",
-          "measurement": "mydata",
-          "metric": "avg",
-          "name": "avg_foo"
-        }
     ]
   },
   "seasonality": {
-      "daytime": true,
-      "weekday": true
+      "daytime": false,
+      "weekday": false
   },
   "interval": 60,
   "max_evals": 5,
   "name": "nonstationary",
   "offset": 30,
-  "span": 21,
-  "forecast": 7,
+  "span": 48,
+  "forecast": 12,
   "max_threshold": 70,
   "min_threshold": 60,
   "type": "timeseries"
