@@ -1089,8 +1089,11 @@ class TimeSeriesModel(Model):
         logging.info("generating prediction")
         Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, len(self._y_indexes())))[:,0,:]
 
-        # FIXME: np.clip() according to feature preprocessing choice
-        # Y_[Y_ < 0] = 0
+        for _, j, feature in self.enum_features(is_output=True):
+            if feature.scores == "standardize":
+                Y_[:,j] = np.clip(Y_[:,j], -3, 3)
+            elif feature.scores == "min_max":
+                Y_[:,j] = np.clip(Y_[:,j], 0, 1)
 
         Y = self.uncanonicalize_dataset(Y_, only_outputs=True)
 
@@ -1244,6 +1247,11 @@ class TimeSeriesModel(Model):
 
         while bucket_start < period.to_ts:
             Y_ = _keras_model.predict(X).reshape((self._forecast, nb_outputs))
+            for _, j, feature in self.enum_features(is_output=True):
+                if feature.scores == "standardize":
+                    Y_[:,j] = np.clip(Y_[:,j], -3, 3)
+                elif feature.scores == "min_max":
+                    Y_[:,j] = np.clip(Y_[:,j], 0, 1)
 
             if len(xy_indexes) > 0:
                 # Keep I/O feature only
