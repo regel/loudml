@@ -225,7 +225,7 @@ class TimeSeriesPrediction:
         self.predicted = predicted
         self.anomaly_indices = None
         self.stats = None
-        self.watch = None
+        self.constraint = None
 
     def get_anomalies(self):
         """
@@ -270,8 +270,8 @@ class TimeSeriesPrediction:
         }
         if self.stats is not None:
             result['stats'] = self.stats
-        if self.watch is not None:
-            result['watch'] = self.watch
+        if self.constraint is not None:
+            result['constraint'] = self.constraint
         return result
 
     def format_bucket_data(self, i):
@@ -1432,7 +1432,7 @@ class TimeSeriesModel(Model):
         prediction.stats = stats
         prediction.anomaly_indices = anomaly_indices
 
-    def watch_feature(self, prediction, feature_name, _type, threshold):
+    def test_constraint(self, prediction, feature_name, _type, threshold):
         if _type == 'low':
             exceeds = lambda x: x <= threshold
         else:
@@ -1452,10 +1452,10 @@ class TimeSeriesModel(Model):
                     break
 
 
-        prediction.watch = {
+        prediction.constraint = {
             'feature': feature_name,
             'type': _type,
             'threshold': threshold,
-            'exceed_date': ts_to_str(exceed_ts) if exceed_ts else None,
+            'date': ts_to_str(exceed_ts) if exceed_ts else None,
         }
         return exceed_ts

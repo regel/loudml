@@ -147,19 +147,19 @@ class Worker:
         src_settings = self.config.get_datasource(model.default_datasource)
         source = loudml.datasource.load_datasource(src_settings)
 
-        watch_feature = kwargs.pop('watch_feature')
+        constraint = kwargs.pop('constraint')
 
         forecast = model.forecast(source, **kwargs)
 
         if model.type == 'timeseries':
             logging.info("job[%s] forecasted values for %d time buckets",
                          self.job_id, len(forecast.timestamps))
-            if watch_feature:
-                model.watch_feature(
+            if constraint:
+                model.test_constraint(
                     forecast,
-                    watch_feature['feature'],
-                    watch_feature['type'],
-                    watch_feature['threshold'],
+                    constraint['feature'],
+                    constraint['type'],
+                    constraint['threshold'],
                 )
 
             if save_prediction:

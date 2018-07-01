@@ -291,23 +291,23 @@ def get_date_arg(param, default=None, is_mandatory=False):
     return schemas.validate(schemas.Timestamp(), value, name=param)
 
 
-def get_watch_feature():
-    value = request.args.get('watch_feature')
+def get_constraint():
+    value = request.args.get('constraint')
     if value is None:
         return None
 
     try:
         feature, _type, threshold = value.split(':')
     except ValueError:
-        raise errors.Invalid("invalid format for 'watch_feature' parameter")
+        raise errors.Invalid("invalid format for 'constraint' parameter")
 
     if _type not in ('low', 'high'):
-        raise errors.Invalid("invalid threshold type for 'watch_feature parameter")
+        raise errors.Invalid("invalid threshold type for 'constraint' parameter")
 
     try:
-        threshold = int(threshold)
+        threshold = float(threshold)
     except ValueError:
-        raise errors.Invalid("invalid threshold for 'watch_feature' parameter")
+        raise errors.Invalid("invalid threshold for 'constraint' parameter")
 
     return {
         'feature': feature,
@@ -735,7 +735,7 @@ def model_forecast(model_name):
     params['from_date'] = get_date_arg('from', default='now')
     params['to_date'] = get_date_arg('to', is_mandatory=True)
 
-    params['watch_feature'] = get_watch_feature()
+    params['constraint'] = get_constraint()
     job = ForecastJob(model.name, **params)
     job.start()
 
