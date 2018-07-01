@@ -116,8 +116,75 @@ class TestTimes(unittest.TestCase):
             })
 
     def test_min_max(self):
-        feature = Feature(name='foo', metric='count', field='bar', default=0, scores='min_max')
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=8,
+            bucket_interval=3600,
+            interval=60,
+            seasonality={
+                'daytime': True,
+                'weekday': True,
+            },
+            features={
+                'i': [{
+                   'name': 'foo',
+                   'metric': 'avg',
+                   'field': 'foo',
+                   'default': 0,
+                }],
+                'o': [{
+                   'name': 'bar',
+                   'metric': 'avg',
+                   'field': 'bar',
+                   'default': 0,
+                }],
+                'io': [{
+                   'name': 'baz',
+                   'metric': 'avg',
+                   'field': 'baz',
+                   'default': 0,
+                }],
+            },
+            max_threshold=30,
+            min_threshold=25,
+            max_evals=10,
+        ))
         dataset = np.random.random_sample((500,))
+        _mins = np.min(np.nan_to_num(dataset), axis=0)
+        _maxs = np.max(np.nan_to_num(dataset), axis=0)
+        _means = np.nanmean(dataset, axis=0)
+        _stds = np.nanstd(dataset, axis=0)
+        scores = _get_scores(
+            feature,
+            dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        reverted = _revert_scores(
+            feature,
+            scores,
+            _data=dataset,
+            _min=_mins,
+            _max=_maxs,
+            _mean=_means,
+            _std=_stds,
+        )
+        self.assertEqual(dataset.shape, scores.shape)
+        self.assertEqual(dataset.shape, reverted.shape)
+        self.assertEqual(np.allclose(dataset, reverted), True)
+
+    def test_min_max_flat(self):
+        feature = Feature(
+            name='foo',
+            metric='count',
+            field='bar',
+            default=0,
+            scores='min_max',
+        )
+        dataset = [5] * 500
         _mins = np.min(np.nan_to_num(dataset), axis=0)
         _maxs = np.max(np.nan_to_num(dataset), axis=0)
         _means = np.nanmean(dataset, axis=0)
@@ -415,24 +482,38 @@ class TestTimes(unittest.TestCase):
                 'weekday': True,
             },
             features={
-                'i': [{
-                   'name': 'foo',
-                   'metric': 'avg',
-                   'field': 'foo',
-                   'default': 0,
-                }],
-                'o': [{
-                   'name': 'bar',
-                   'metric': 'avg',
-                   'field': 'bar',
-                   'default': 0,
-                }],
-                'io': [{
-                   'name': 'baz',
-                   'metric': 'avg',
-                   'field': 'baz',
-                   'default': 0,
-                }],
+                'io': [
+                    # standardize
+                    {
+                        'name': 'qux',
+                        'metric': 'avg',
+                        'field': 'qux',
+                        'default': 0,
+                        'scores': 'standardize',
+                    }
+                ],
+
+                'o': [
+                    # min/max
+                    {
+                       'name': 'foo',
+                       'metric': 'avg',
+                       'field': 'foo',
+                       'default': 0,
+                       'scores': 'min_max',
+                    },
+                ],
+
+                'i': [
+                    # min/max (flat)
+                    {
+                       'name': 'bar',
+                       'metric': 'avg',
+                       'field': 'bar',
+                       'default': 0,
+                       'scores': 'min_max',
+                    },
+                ],
             },
             max_threshold=30,
             min_threshold=25,
@@ -440,16 +521,17 @@ class TestTimes(unittest.TestCase):
         ))
 
         dataset = np.array([
-            [3.0, 3.0, 3.0, 23.0, 2.0],
-            [5.0, 5.0, 5.0, 0.0, 3.0],
-            [8.0, 8.0, 8.0, 1.0, 3.0],
+            [3.0, 2.0, 2.0, 23.0, 1.0],
+            [4.0, 5.0, 2.0, 0.0,  2.0],
+            [5.0, 8.0, 2.0, 1.0,  2.0],
+            [2.0, 3.0, 2.0, 2.0,  2.0],
         ])
-
         model.stat_dataset(dataset)
 
         z_scores = model.canonicalize_dataset(dataset)
 
-        for v in z_scores.flatten():
+        # Check that values are in [0-1] for 'min_max'
+        for v in z_scores[:,1:3].flatten():
             self.assertTrue(0.0 <= v <= 1.0)
 
         result = model.uncanonicalize_dataset(z_scores)

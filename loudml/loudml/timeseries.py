@@ -86,7 +86,9 @@ def _revert_transform(feature, y, y0):
         return np.cumsum(np.concatenate(([y0], y[1:])))
 
 def canonicalize_min_max(value, _min, _max):
-    return 1.0 - (_max - value) / (_max - _min)
+    # XXX: division by zero is evil
+    rng = max(_max - _min, 0.0001)
+    return 1.0 - (_max - value) / rng
 
 def uncanonicalize_min_max(value, _min, _max):
     return _max - (_max - _min) * (1.0 - value)
@@ -479,7 +481,7 @@ class TimeSeriesModel(Model):
         ):
             out[:,j] = _get_scores(
                 feature,
-                dataset[:,j],
+                dataset[:,i],
                 _min=self.mins[i],
                 _max=self.maxs[i],
                 _mean=self.means[i],
@@ -520,7 +522,7 @@ class TimeSeriesModel(Model):
         ):
             out[:,j] = _revert_scores(
                 feature,
-                dataset[:,j],
+                dataset[:,i],
                 _data=dataset[self._span:,i],
                 _min=self.mins[i],
                 _max=self.maxs[i],
