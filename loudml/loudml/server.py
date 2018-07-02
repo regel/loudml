@@ -650,6 +650,7 @@ def model_predict(model_name):
         from_date=get_date_arg('from', is_mandatory=True),
         to_date=get_date_arg('to', is_mandatory=True),
         save_prediction=request.args.get('save_prediction', default=False),
+        save_scores=request.args.get('save_scores', default=False),
         detect_anomalies=request.args.get('detect_anomalies', default=False),
     )
     job.start()
@@ -665,6 +666,7 @@ def model_start(model_name):
 
     params = {
         'save_prediction': get_bool_arg('save_prediction'),
+        'save_scores': get_bool_arg('save_scores'),
         'detect_anomalies': get_bool_arg('detect_anomalies'),
     }
 

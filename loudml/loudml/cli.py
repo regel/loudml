@@ -465,6 +465,17 @@ class PredictCommand(Command):
 
             if args.anomalies:
                 model.detect_anomalies(prediction)
+                if args.save:
+                    for bucket in prediction.format_buckets():
+                        stats = bucket.get('stats')
+                        score = stats.get('score')
+                        is_anomaly = stats.get('anomaly')
+                        source.insert_times_data(
+                            ts=bucket['timestamp'],
+                            data={ 'score': score },
+                            tags={ 'anomaly': is_anomaly },
+                            measurement='scores_{}'.format(model.name),
+                        )
 
             if args.save:
                 source.save_timeseries_prediction(prediction, model)

@@ -89,6 +89,7 @@ class Worker:
         self,
         model_name,
         save_prediction=False,
+        save_scores=False,
         detect_anomalies=False,
         **kwargs
     ):
@@ -110,6 +111,18 @@ class Worker:
                 hooks = self.storage.load_model_hooks(model_name)
                 model.detect_anomalies(prediction, hooks)
                 self.storage.save_model(model)
+
+                if save_scores:
+                    for bucket in prediction.format_buckets():
+                        stats = bucket.get('stats')
+                        score = stats.get('score')
+                        is_anomaly = stats.get('anomaly')
+                        source.insert_times_data(
+                            ts=bucket['timestamp'],
+                            data={ 'score': score },
+                            tags={ 'anomaly': is_anomaly },
+                            measurement='scores_{}'.format(model.name),
+                        )
 
                 # TODO .detect_anomalies() produces warning messages
                 # and store anomalies into 'prediction'.
