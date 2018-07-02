@@ -271,6 +271,9 @@ class SOM(object):
                 scores[i] = -min(scores[i], 0)
             elif ano_type == 'high':
                 scores[i] = max(scores[i], 0)
+            else:
+                scores[i] = abs(scores[i])
+
         scores = np.clip(scores, 0, 100)
 
         return scores
