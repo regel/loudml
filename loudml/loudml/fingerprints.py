@@ -2,6 +2,7 @@
 Loud ML fingerprints module
 """
 
+import datetime
 import copy
 import json
 import logging
@@ -711,6 +712,42 @@ class FingerprintsModel(Model):
 
         result['grid'] = grid
         return result
+
+    def generate_fake_prediction(self):
+        #to_ts = datetime.datetime.now().timestamp()
+        to_ts = make_ts('2017-12-25T04:00:00.000Z')
+        from_ts = to_ts - self.span
+
+        training_from_ts = make_ts(self._state['from_date'])
+        training_to_ts = make_ts(self._state['to_date'])
+
+        key = '1018797' # FIXME: should be an input argument
+        dimens = self.nb_dimensions
+        sigma = 5
+        fingerprint = self._means + sigma * self._stds
+        _fingerprint = np.zeros(shape=(1,dimens), dtype=float)
+        _fingerprint[:] = sigma
+        mapped = self._som_model.map_vects(_fingerprint)
+        _location = (mapped[0][0].item(), mapped[0][1].item())
+
+        fingerprints = [
+            {
+                "fingerprint": fingerprint.tolist(),
+                "_fingerprint": _fingerprint[0].tolist(),
+                "location": _location,
+                "key": key,
+                "time_range": [
+                    int(training_from_ts),
+                    int(training_to_ts)
+                ],
+            }
+        ]
+
+        return FingerprintsPrediction(
+            from_ts=from_ts,
+            to_ts=to_ts,
+            fingerprints=fingerprints,
+        )
 
     def detect_anomalies(self, prediction, hooks=[]):
         """
