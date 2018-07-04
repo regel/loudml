@@ -784,20 +784,15 @@ class FingerprintsModel(Model):
             if fp is None:
                 # signature = initial. We haven't seen this key during training
                 prediction.changed.append(key)
-                fp_pred['stats'] = {
-                    'scores': [],
-                    'score': 0.0,
-                    'anomaly': False,
-                    'anomalies': [],
-                }
-                fp = copy.deepcopy(fp_pred)
                 # Assign zeros ie, an all-average profile by default
-                fp['_fingerprint'] = _fingerprint.tolist()
+                fp = {}
+                fp['fingerprint'] = self._means
+                fp['_fingerprint'] = _fingerprint[0].tolist()
                 fp['location'] = _location
 
             scores = self._som_model.get_scores(
-                fp['location'],
-                fp_pred['location'],
+                np.array(fp['_fingerprint']),
+                np.array(fp_pred['_fingerprint']),
                 low_highs,
             )
             logging.info("scores for {} = {}".format(key, scores))
@@ -828,8 +823,6 @@ class FingerprintsModel(Model):
                 'anomalies': anomalies,
             }
 
-            fp_pred['stats'] = stats
-
             if self._state.get('anomaly') is None:
                 self._state['anomaly'] = {}
 
@@ -854,9 +847,9 @@ class FingerprintsModel(Model):
                             self.name,
                             dt=dt,
                             score=max_score,
-                            predicted=fp_pred['fingerprint'],
+                            predicted=fp_pred,
                             observed=None,
-                            expected=fp['fingerprint'],
+                            expected=fp,
                             key=key,
                             anomalies=anomalies,
                         )
@@ -879,6 +872,8 @@ class FingerprintsModel(Model):
                         hook.on_anomaly_end(self.name, dt, max_score, key=key)
 
                     self._state['anomaly'].pop(key)
+
+            fp_pred['stats'] = stats
 
         prediction.anomalies = self._state['anomaly']
 

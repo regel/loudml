@@ -253,17 +253,14 @@ class SOM(object):
         return to_return
 
     def get_scores(self,
-                 x,
                  y,
+                 x,
                  low_highs,
         ):
-        xl = self.location(x[0], x[1])
-        x = self._weightages[xl]
-        yl = self.location(y[0], y[1])
-        y = self._weightages[yl]
         _norm = norm() 
-        scores = 100 * (2 * _norm.cdf(abs(x - y)) - 1)
-        diff = y - x 
+        diff = x - y
+        scores = 2 * _norm.cdf(abs(x - y)) - 1
+        # Required to handle the 'low' condition
         scores[diff < 0] *= -1
 
         for i, ano_type in enumerate(low_highs):
@@ -274,8 +271,7 @@ class SOM(object):
             else:
                 scores[i] = abs(scores[i])
 
-        scores = np.clip(scores, 0, 100)
-
+        scores = 100 * np.clip(scores, 0, 1)
         return scores
 
     def location(self, x, y):
