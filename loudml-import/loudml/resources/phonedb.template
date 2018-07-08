@@ -16,38 +16,62 @@
           "duration": {{
             "type": "integer", "index": false
           }},
-          "mobile": {{
-            "type": "boolean"
+          "category": {{
+            "type": "integer"
           }},
-          "international": {{
-            "type": "boolean"
-          }},
-          "toll_call": {{
-            "type": "boolean"
-          }},
-          "fraud_level": {{
-            "type": "keyword"
-          }},
-          "pseudo_price": {{
-            "type": "integer", "index": false
-          }},
-          "destination_region": {{
-            "type": "keyword", "index": false
-          }},
-          "called_number": {{
-            "type": "keyword", "index": false
-          }},
-          "calling_number": {{
-            "type": "keyword", "index": false
-          }},
-          "called_number_region": {{
-            "type": "keyword"
-          }},
-          "calling_number_region": {{
-            "type": "keyword"
+          "cost": {{
+            "type": "float", "index": false
           }},
           "direction" : {{
             "type" : "long"
+          }},
+          "origin_phonenumber": {{
+            "type": "keyword", "index": false
+          }},
+          "origin_country": {{
+            "type": "keyword"
+          }},
+          "origin_region": {{
+            "type": "keyword"
+          }},
+          "origin_international": {{
+            "type": "boolean"
+          }},
+          "origin_premium": {{
+            "type": "boolean"
+          }},
+          "origin_mobile": {{
+            "type": "boolean"
+          }},
+          "destination_phonenumber": {{
+            "type": "keyword", "index": false
+          }},
+          "destination_country": {{
+            "type": "keyword"
+          }},
+          "destination_region": {{
+            "type": "keyword"
+          }},
+          "destination_international": {{
+            "type": "boolean"
+          }},
+          "destination_premium": {{
+            "type": "boolean"
+          }},
+          "destination_mobile": {{
+            "type": "boolean"
+          }},
+          "group": {{
+            "type": "keyword"
+          }},
+          "code": {{
+            "type": "keyword"
+          }},
+          "rate": {{
+            "type": "float", "index": false
+          }},
+          "destination": {{
+            "type": "keyword"
           }}
         }}
       }}

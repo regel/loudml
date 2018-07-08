@@ -43,6 +43,7 @@ setup(
         'loudml',
         'pandas',
         'phonenumbers',
+        'pycountry',
         'biopython',
     ],
     entry_points={
