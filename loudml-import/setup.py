@@ -31,7 +31,9 @@ setup(
     test_suite='nose.collector',
 
     package_data = { '': [
-        'phone_rates.csv',
+        'codes_and_destinations.csv',
+        'groups.csv',
+        'rates.csv',
         'phonedb.template',
         'greenflow.template',
         'beat.template',
