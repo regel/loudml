@@ -46,6 +46,7 @@ setup(
         "pycrypto>=2.6.1",
         "PyYAML>=3.11",
         "voluptuous>=0.10.5",
+        "scikit-learn>=0.19.1",
     ],
 
     extras_require={
