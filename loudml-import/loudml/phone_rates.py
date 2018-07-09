@@ -1,4 +1,6 @@
 
+import loudml.vendor
+from loudml.knn import get_groups
 
 import pkg_resources
 import csv
@@ -42,6 +44,7 @@ class PhoneRates():
                 
         self._groups = self.load_groups()
         self._rates = self.load_rates()
+        self._rate_groups = get_groups([val for key, val in self._rates.items()])
 
     def load_rates(self):
         rates = {}
@@ -162,16 +165,23 @@ class PhoneRates():
                 'code': 'NONE',
                 'group': 'NONE',
                 'rate': 0.0,
+                'category': 0,
             }
         else:
             destination = self._destinations[code]
 
         group = self.get_group(calling)
         rate = self.get_rate(destination, group)
+        category = 0
+        for j, (_min, _max) in enumerate(self._rate_groups):
+            if rate >= _min and rate < _max:
+                category = j
+
         return {
             'destination': destination,
             'code': code,
             'group': group,
             'rate': rate,
+            'category': category,
         }
 
