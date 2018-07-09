@@ -44,7 +44,18 @@ class PhoneRates():
                 
         self._groups = self.load_groups()
         self._rates = self.load_rates()
-        self._rate_groups = get_groups([val for key, val in self._rates.items()])
+#        self._rate_groups = get_groups([val for key, val in self._rates.items()])
+        self._rate_groups = [
+            (0, 0.1), # Added manually
+            (0.1, 0.2), # Added manually
+            (0.2, 0.3), # Added manually
+            (0.3, 1.041936936936937),
+            (1.041936936936937, 1.9127207207207209),
+            (1.9127207207207209, 3.223900900900901),
+            (3.223900900900901, 5.045540540540541),
+            (5.045540540540541, 5.806225225225226),
+            (5.806225225225226, 8.128315315315316),
+            (8.128315315315316, 1.7976931348623157e+308)]
 
     def load_rates(self):
         rates = {}
