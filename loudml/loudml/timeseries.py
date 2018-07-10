@@ -2,6 +2,7 @@
 LoudML time-series module
 """
 
+import copy
 import datetime
 import json
 import logging
@@ -196,6 +197,21 @@ def _load_keras_model(model_b64, weights_b64, loss_fct, optimizer):
     graph = tf.get_default_graph()
 
     return keras_model, graph
+
+class DateRange:
+    def __init__(self, from_date, to_date):
+        self.from_ts = make_ts(from_date)
+        self.to_ts = make_ts(to_date)
+
+        if self.to_ts < self.from_ts:
+            raise errors.Invalid("invalid date range: %s".format(self))
+
+    def __str__(self):
+        return "{}-{}".format(
+            ts_to_str(self.from_ts),
+            ts_to_str(self.to_ts),
+        )
+
 
 class TimeSeriesPrediction:
     """
@@ -421,6 +437,21 @@ class TimeSeriesModel(Model):
         Compute the number of bucket between `from_ts` and `to_ts`
         """
         return int((to_ts - from_ts) / self.bucket_interval) + 2
+
+    def build_date_range(self, from_date, to_date):
+        """
+        Fixup date range to be sure that is a multiple of bucket_interval
+
+        return timestamps
+        """
+
+        from_ts = make_ts(from_date)
+        to_ts = make_ts(to_date)
+
+        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
+        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
+
+        return DateRange(from_ts, to_ts)
 
     def apply_defaults(self, x):
         """
@@ -752,28 +783,18 @@ class TimeSeriesModel(Model):
         self.mins, self.maxs = None, None
         self.means, self.stds = None, None
 
-        from_ts = make_ts(from_date)
-        to_ts = make_ts(to_date)
-
-        # Fixup range to be sure that it is a multiple of bucket_interval
-        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
-        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
-
-        from_str = ts_to_str(from_ts)
-        to_str = ts_to_str(to_ts)
-
+        period =  self.build_date_range(from_date, to_date)
         logging.info(
-            "train(%s) range=[%s, %s] train_size=%f batch_size=%d epochs=%d)",
+            "train(%s) range=%s train_size=%f batch_size=%d epochs=%d)",
             self.name,
-            from_str,
-            to_str,
+            period,
             train_size,
             batch_size,
             num_epochs,
         )
 
         # Prepare dataset
-        nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
+        nb_buckets = self._compute_nb_buckets(period.from_ts, period.to_ts)
         nb_features = len(self.features)
         dataset = np.zeros((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
@@ -781,7 +802,7 @@ class TimeSeriesModel(Model):
         weekday = np.zeros((nb_buckets, 1), dtype=float)
 
         # Fill dataset
-        data = datasource.get_times_data(self, from_ts, to_ts)
+        data = datasource.get_times_data(self, period.from_ts, period.to_ts)
 
         i = None
         for i, (_, val, timeval) in enumerate(data):
@@ -792,10 +813,7 @@ class TimeSeriesModel(Model):
             weekday[i] = np.array(dt_get_weekday(dt))
 
         if i is None:
-            raise errors.NoData("no data found for time range {}-{}".format(
-                from_str,
-                to_str,
-            ))
+            raise errors.NoData("no data found for time range %s".format(period))
 
         self.apply_defaults(dataset)
 
@@ -980,33 +998,24 @@ class TimeSeriesModel(Model):
     ):
         global _keras_model
 
-        from_ts = make_ts(from_date)
-        to_ts = make_ts(to_date)
-
-        # Fixup range to be sure that it is a multiple of bucket_interval
-        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
-        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
-
-        from_str = ts_to_str(from_ts)
-        to_str = ts_to_str(to_ts)
+        period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
-        predict_len = int((to_ts - from_ts) / self.bucket_interval)
+        predict_len = int((period.to_ts - period.from_ts) / self.bucket_interval)
 
-        logging.info("predict(%s) range=[%s, %s]",
-                     self.name, from_str, to_str)
+        logging.info("predict(%s) range=%s", self.name, period)
 
         self.load()
 
         # Build history time range
         # Extra data are required to predict first buckets
-        hist_from_ts = from_ts - self._span * self.bucket_interval
-        hist_to_ts = to_ts
-        hist_from_str = ts_to_str(hist_from_ts)
-        hist_to_str = ts_to_str(hist_to_ts)
+        hist = DateRange(
+            period.from_ts - self._span * self.bucket_interval,
+            period.to_ts,
+        )
 
         # Prepare dataset
-        nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
+        nb_buckets = int((hist.to_ts - hist.from_ts) / self.bucket_interval)
         nb_features = len(self.features)
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
@@ -1016,9 +1025,8 @@ class TimeSeriesModel(Model):
         X = []
 
         # Fill dataset
-        logging.info("extracting data for range=[%s, %s]",
-                     hist_from_str, hist_to_str)
-        data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
+        logging.info("extracting data for range=%s", hist)
+        data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
 
         # Only a subset of history will be used for computing the prediction
         X_until = None # right bound for prediction
@@ -1032,17 +1040,14 @@ class TimeSeriesModel(Model):
             weekday[i] = np.array(dt_get_weekday(dt))
 
             ts = dt.timestamp()
-            if ts < to_ts - self.bucket_interval:
+            if ts < period.to_ts - self.bucket_interval:
                 X.append(make_ts(timeval))
                 X_until = i + 1
 
         self.apply_defaults(dataset)
 
         if i is None:
-            raise errors.NoData("no data found for time range {}-{}".format(
-                hist_from_str,
-                hist_to_str,
-            ))
+            raise errors.NoData("no data found for time range {}".format(hist))
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
@@ -1143,33 +1148,24 @@ class TimeSeriesModel(Model):
             if feature.is_input and not feature.is_output:
                 raise Invalid("model has pure input feature(s), unable to forecast")
 
-        from_ts = make_ts(from_date)
-        to_ts = make_ts(to_date)
-
-        # Fixup range to be sure that it is a multiple of bucket_interval
-        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
-        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
-
-        from_str = ts_to_str(from_ts)
-        to_str = ts_to_str(to_ts)
+        period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
-        forecast_len = int((to_ts - from_ts) / self.bucket_interval)
+        forecast_len = int((period.to_ts - period.from_ts) / self.bucket_interval)
 
-        logging.info("forecast(%s) range=[%s, %s]",
-                     self.name, from_str, to_str)
+        logging.info("forecast(%s) range=%s", self.name, period)
 
         self.load()
 
         # Build history time range
         # Extra data are required to forecast first buckets
-        hist_from_ts = from_ts - self._span * self.bucket_interval
-        hist_to_ts = from_ts
-        hist_from_str = ts_to_str(hist_from_ts)
-        hist_to_str = ts_to_str(hist_to_ts)
+        hist = DateRange(
+            period.from_ts - self._span * self.bucket_interval,
+            period.from_ts,
+        )
 
         # Prepare dataset
-        nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
+        nb_buckets = int((hist.to_ts - hist.from_ts) / self.bucket_interval)
         nb_features = len(self.features)
         y_indexes = self._y_indexes()
         nb_outputs = len(y_indexes)
@@ -1179,9 +1175,8 @@ class TimeSeriesModel(Model):
         weekday = np.zeros((nb_buckets, 1), dtype=float)
 
         # Fill dataset
-        logging.info("extracting data for range=[%s, %s]",
-                     hist_from_str, hist_to_str)
-        data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
+        logging.info("extracting data for range=%s", hist)
+        data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
 
         i = None
         for i, (_, val, timeval) in enumerate(data):
@@ -1191,10 +1186,7 @@ class TimeSeriesModel(Model):
             weekday[i] = np.array(dt_get_weekday(dt))
 
         if i is None:
-            raise errors.NoData("no data found for time range {}-{}".format(
-                hist_from_str,
-                hist_to_str,
-            ))
+            raise errors.NoData("no data found for time range %s".format(hist))
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
@@ -1238,11 +1230,11 @@ class TimeSeriesModel(Model):
 
         logging.info("generating forecast")
         timestamps=[]
-        bucket_start = from_ts
+        bucket_start = period.from_ts
         bucket = 0
         xy_indexes = np.array(self._xy_indexes())
 
-        while bucket_start < to_ts:
+        while bucket_start < period.to_ts:
             Y_ = _keras_model.predict(X).reshape((self._forecast, nb_outputs))
 
             if len(xy_indexes) > 0:
@@ -1278,7 +1270,7 @@ class TimeSeriesModel(Model):
                     Y[:,j] = _revert_transform(feature, Y[:,j], y0[j])
 
             for j in range(self._forecast):
-                if bucket_start < to_ts:
+                if bucket_start < period.to_ts:
                     timestamps.append(bucket_start)
                     predicted[bucket] = Y[j][:]
                 bucket_start += self.bucket_interval
