@@ -242,3 +242,23 @@ def load_hook(hook_name, hook_data):
         raise errors.NotFound("unknown hook type '{}'".format(hook_type))
 
     return hook_cls(hook_name, hook_data.get('config'))
+
+def parse_constraint(constraint):
+    try:
+        feature, _type, threshold = constraint.split(':')
+    except ValueError:
+        raise errors.Invalid("invalid format for 'constraint' parameter")
+
+    if _type not in ('low', 'high'):
+        raise errors.Invalid("invalid threshold type for 'constraint' parameter")
+
+    try:
+        threshold = float(threshold)
+    except ValueError:
+        raise errors.Invalid("invalid threshold for 'constraint' parameter")
+
+    return {
+        'feature': feature,
+        'type': _type,
+        'threshold': threshold,
+    }

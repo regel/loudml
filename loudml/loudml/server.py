@@ -49,6 +49,7 @@ from .filestorage import (
 from .misc import (
     make_bool,
     load_entry_point,
+    parse_constraint,
 )
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
@@ -289,31 +290,6 @@ def get_date_arg(param, default=None, is_mandatory=False):
         return default
 
     return schemas.validate(schemas.Timestamp(), value, name=param)
-
-
-def get_constraint():
-    value = request.args.get('constraint')
-    if value is None:
-        return None
-
-    try:
-        feature, _type, threshold = value.split(':')
-    except ValueError:
-        raise errors.Invalid("invalid format for 'constraint' parameter")
-
-    if _type not in ('low', 'high'):
-        raise errors.Invalid("invalid threshold type for 'constraint' parameter")
-
-    try:
-        threshold = float(threshold)
-    except ValueError:
-        raise errors.Invalid("invalid threshold for 'constraint' parameter")
-
-    return {
-        'feature': feature,
-        'type': _type,
-        'threshold': threshold,
-    }
 
 def get_model_info(name):
     global g_storage
@@ -735,7 +711,10 @@ def model_forecast(model_name):
     params['from_date'] = get_date_arg('from', default='now')
     params['to_date'] = get_date_arg('to', is_mandatory=True)
 
-    params['constraint'] = get_constraint()
+    constraint = request.args.get('constraint')
+    if constraint:
+        params['constraint'] = parse_constraint(constraint)
+
     job = ForecastJob(model.name, **params)
     job.start()
 

@@ -25,6 +25,7 @@ from .errors import (
 )
 from .misc import (
     make_bool,
+    parse_constraint,
 )
 from .filestorage import (
     FileStorage,
@@ -361,26 +362,8 @@ class ForecastCommand(Command):
             if not args.to_date:
                 raise LoudMLException("'to' argument is required for time-series")
 
-            constraint = None
-            if args.constraint:
-                try:
-                    feature, _type, threshold = args.constraint.split(':')
-                except ValueError:
-                    raise errors.Invalid("invalid format for 'constraint' parameter")
-            
-                if _type not in ('low', 'high'):
-                    raise errors.Invalid("invalid threshold type for 'constraint' parameter")
-            
-                try:
-                    threshold = float(threshold)
-                except ValueError:
-                    raise errors.Invalid("invalid threshold for 'constraint' parameter")
-            
-                constraint = {
-                    'feature': feature,
-                    'type': _type,
-                    'threshold': threshold,
-                }
+            constraint = parse_constraint(args.constraint) if args.constraint \
+                         else None
 
             prediction = model.forecast(
                 source,
