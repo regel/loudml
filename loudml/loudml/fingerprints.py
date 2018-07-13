@@ -2,6 +2,7 @@
 Loud ML fingerprints module
 """
 
+import operator
 import datetime
 import copy
 import json
@@ -693,24 +694,20 @@ class FingerprintsModel(Model):
             'fingerprints': fingerprints
         }
         counts = np.zeros(shape=(self.h, self.w), dtype=int)
+        locations = {}
         for fingerprint in fingerprints:
             x, y = fingerprint['location']
             counts[x,y] += 1
+            l = locations.get((x,y)) or []
+            l.append(fingerprint['key'])
+            locations[x,y] = l
 
         if show_summary == True:
-            return '\n'.join([''.join(['{:3}'.format(cnt) for cnt in row]) for row in counts])
+            l = [ [x, y, locs] for (x, y), locs in locations.items() ]
+            detail = '\n'.join('{},{}: {}'.format(x, y, loc) for x, y, loc in sorted(l, key = operator.itemgetter(0, 1)))
+            grid = '\n'.join([''.join(['{:3}'.format(cnt) for cnt in row]) for row in counts])
+            return grid + '\n' + detail
 
-        grid = []
-        for x in range(self.h):
-            for y in range(self.w):
-                cnt = counts[x,y]
-                grid.append({
-                    'location': (x, y),
-                    'count': cnt,
-                    '_fingerprint': centroids[som_model.location(x,y)].tolist(),
-                })
-
-        result['grid'] = grid
         return result
 
     def generate_fake_prediction(self):
