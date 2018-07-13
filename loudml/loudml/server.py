@@ -489,13 +489,18 @@ def hook_test(model_name, hook_name):
 class DataSourcesResource(Resource):
     @catch_loudml_error
     def get(self):
-        return jsonify(list(g_config.datasources.values()))
+        res = []
+        for datasource in g_config.datasources.values():
+            datasource.pop('password', None)
+            res.append(datasource)
+        return jsonify(res)
 
 
 class DataSourceResource(Resource):
     @catch_loudml_error
     def get(self, datasource_name):
         datasource = g_config.get_datasource(datasource_name)
+        datasource.pop('password', None)
         return jsonify(datasource)
 
 

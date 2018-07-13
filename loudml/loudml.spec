@@ -15,6 +15,7 @@ Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
 Requires: python34
+Requires: python34-setuptools
 Requires: curl
 Requires: loudml-api
 Requires: loudml-base
@@ -40,6 +41,13 @@ if ! getent passwd loudml; then
   useradd --comment "LoudML" --gid loudml --no-create-home --system --shell /sbin/nologin loudml
 fi
 
+# Remove old trailing files. Required for users who have installed <=1.3.2
+find %{python3_sitelib} \
+  -name '*loudml-1.2.*.egg-info' -o \
+  -name '*loudml-1.3.0.*.egg-info' -o \
+  -name '*loudml-1.3.1.*.egg-info' -o \
+  -name '*loudml-1.3.2.*.egg-info' \
+  | xargs rm -rf
 
 %install
 cd loudml
@@ -89,9 +97,9 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 %exclude %{python3_sitelib}/loudml-*.egg-info/requires.txt
 %{_bindir}/*
 %license %{_datarootdir}/loudml/LICENSE
-%{python3_sitelib}/rmn_common/*
+%dir %{python3_sitelib}/rmn_common
 %{python3_sitelib}/loudml/*
-%{python3_sitelib}/loudml-*.egg-info/*
+%dir %{python3_sitelib}/loudml-*.egg-info
 
 # LoudML daemon configuration
 %attr(2777,root,loudml) %dir %{_sysconfdir}/loudml

@@ -2,6 +2,7 @@
 LoudML configuration
 """
 
+import copy
 import os
 import pkg_resources
 import multiprocessing
@@ -41,22 +42,26 @@ class Config:
 
     @property
     def datasources(self):
-        return self._datasources
+        # XXX: return a copy to prevent modification by the caller
+        return copy.deepcopy(self._datasources)
 
     @property
     def storage(self):
-        return self._storage
+        # XXX: return a copy to prevent modification by the caller
+        return copy.deepcopy(self._storage)
 
     @property
     def server(self):
-        return self._server
+        # XXX: return a copy to prevent modification by the caller
+        return copy.deepcopy(self._server)
 
     def get_datasource(self, name):
         """
         Get data source configuration by name
         """
         try:
-            return self.datasources[name]
+            # XXX: return a copy to prevent modification by the caller
+            return copy.deepcopy(self.datasources[name])
         except KeyError:
             raise errors.DataSourceNotFound(name)
 
