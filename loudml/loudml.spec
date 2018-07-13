@@ -23,7 +23,16 @@ Requires: loudml-base
 # Disable debug package
 %define debug_package %{nil}
 
+%package enterprise
+Group:   Applications/System
+Summary: LoudML Enterprise exclusive features
+
 %description
+
+
+%description enterprise
+
+Additional model: fingerprints.
 
 
 %prep
@@ -109,6 +118,10 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 %config(noreplace) %{_sysconfdir}/loudml/config.yml
 %{_unitdir}/loudmld.service
 %attr(2775,loudml,loudml) %{_sharedstatedir}/loudml
+
+
+%files enterprise
+%{python3_sitelib}/loudml/fingerprints.pyc
 
 %doc
 
