@@ -32,6 +32,8 @@ setup(
     install_requires=[
         'loudml',
         'elasticsearch',
+        'boto3',
+        'requests-aws4auth',
     ],
 
     include_package_data=True,
@@ -40,6 +42,7 @@ setup(
     entry_points={
         'loudml.datasources': [
             'elasticsearch=loudml.elastic:ElasticsearchDataSource',
+            'elasticsearch_aws=loudml.elastic_aws:ElasticsearchAWSDataSource',
         ],
     },
 )
