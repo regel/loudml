@@ -40,6 +40,7 @@ make install DESTDIR=%{buildroot}
 %defattr(-,root,root,-)
 %{python3_sitelib}/loudml/*
 %dir %{python3_sitelib}/loudml_api-*.egg-info
+%{python3_sitelib}/loudml_api-*.egg-info/*
 %{python3_sitelib}/loudml_api-*.pth
 
 %doc
