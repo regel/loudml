@@ -43,11 +43,11 @@ class Command:
         self._config_path = None
         self._config = None
 
-    def set_config(self, path):
+    def set_config(self, config_path):
         """
         Set path to the configuration file
         """
-        self._config_path = path
+        self._config_path = config_path
 
     @property
     def config(self):
@@ -117,9 +117,15 @@ class CreateModelCommand(Command):
 
     def exec(self, args):
         model_settings = self.load_model_file(args.model_file)
+        model_settings['allowed'] = self.config.server['allowed_models']
         model = loudml.model.load_model(settings=model_settings)
 
         storage = FileStorage(self.config.storage['path'])
+
+        if len(storage.list_models()) >= self.config.server['maxrunningmodels']:
+            raise errors.LimitReached(
+                "maximum number of running models is reached",
+            )
 
         if args.force and storage.model_exists(model.name):
             storage.delete_model(model.name)

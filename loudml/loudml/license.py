@@ -1,94 +1,65 @@
-from base64 import b64encode, b64decode
-import gzip
+import datetime
+import json
 
-from Crypto.PublicKey import RSA
-from Crypto.Hash import SHA256
-from Crypto.Signature import PKCS1_v1_5
+from loudml.license_base import License as LicenseBase
 
-LICENSE_VERSION = 1
+# Current LoudML major version
+# TODO integrate with setuptools
+LOUDML_MAJOR_VERSION=1
 
-def compute_digest(data, certificate, key):
+class License(LicenseBase):
     """
-    Compute signature using data and private key
-
-    :param data:
-        Data
-
-    :param key:
-        Private key
-
-    :param certificate:
-        Certificate
-
-    :return:
-        Signature
+    Handle the 'payload' field in the license. It contains details about the
+    features that are not described in the general license format.
     """
-    rsakey = RSA.importKey(key)
-    h = SHA256.new(data)
-    h.update(certificate)
-
-    return PKCS1_v1_5.new(rsakey).sign(h)
-
-
-class License:
-    """
-    License
-    """
-    version = LICENSE_VERSION
-    private_key = None
-    public_key = None
-    certificate = b''
-    data = None
-    digest = None
-
-    def save(self, path):
-        """
-        Save license to file
-
-        :param path:
-            Path to file
-        """
-        self.digest = compute_digest(self.data, self.certificate,
-                                     self.private_key)
-
-        lines = "{0}\n{1}\n{2}\n{3}\n{4}".format(
-            self.version,
-            b64encode(self.public_key).decode('ascii'),
-            b64encode(self.certificate).decode('ascii'),
-            b64encode(self.digest).decode('ascii'),
-            b64encode(self.data).decode('ascii'))
-
-        with gzip.open(path, 'wt') as f:
-            f.write(lines)
-
 
     def load(self, path):
+        super().load(path)
+        self.limits = json.loads(self.data.decode('ascii'))
+        self.serial_num = self.limits.get('serial_num', 0)
+
+    def has_expired(self):
         """
-        Load license from file
+        Check whether system clock is beyond license expiration date.
 
-        :param path:
-            Path to file
+        If expiration date is not present, it is interpreted as being a
+        perpetual license that does not expire.
+        """
+        date = self.limits.get('exp_date', None)
+        if date is None:
+            return False
+
+        exp_date = datetime.datetime.strptime(date, "%Y-%m-%d")
+
+        return datetime.datetime.now() > exp_date
+
+    def version_allowed(self):
+        """
+        Check whether major version number is allowed.
+
+        Older major versions are also allowed.
+        """
+        version = self.limits.get('version', LOUDML_MAJOR_VERSION)
+
+        return LOUDML_MAJOR_VERSION >= version
+
+    def host_allowed(self):
+        """
+        Check whether current host is allowed to run the software.
+        """
+        host_id = self.limits.get('hostid', 'any')
+
+        if host_id == 'any' or host_id == self.my_host_id():
+            return True
+
+    def my_host_id(self):
+        """
+        Compute host identifier.
+
+        On physical devices, it is the MAC address of the first network
+        device. On virtual machines, it is the UUID of the root storage
+        device.
         """
 
-        with gzip.open(path, 'r') as f: 
-            lines = f.readlines()
-
-        self.version = int(lines[0])
-        self.public_key = b64decode(lines[1])
-        self.certificate = b64decode(lines[2])
-        self.digest = b64decode(lines[3])
-        self.data = b64decode(lines[4])
-
-
-    def validate(self):
-        """
-        Validate license
-
-        :return bool:
-            Whether signature is authentic
-        """
-        h = SHA256.new(self.data)
-        h.update(self.certificate)
-        rsakey = RSA.importKey(self.public_key)
-
-        return PKCS1_v1_5.new(rsakey).verify(h, self.digest)
+        # TODO: implement computation
+        return "TBD"

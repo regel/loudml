@@ -53,7 +53,7 @@ def build_tag_dict(tags=None):
     return tag_dict
 
 def init_datasource(arg, tags=None):
-    config = load_config(arg.config)
+    config = load_config(arg.config, arg.license)
     src_settings = config.get_datasource(arg.output)
     datasource = load_datasource(src_settings)
 
@@ -119,6 +119,11 @@ def main():
         type=str,
         default="/etc/loudml/config.yml",
         help="Path to LoudML configuration",
+    )
+    parser.add_argument(
+        '-l', '--license',
+        help="Path to license file",
+        type=str
     )
     parser.add_argument(
         '-o', '--output',

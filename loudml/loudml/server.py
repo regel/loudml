@@ -24,8 +24,6 @@ import loudml.config
 import loudml.model
 import loudml.worker
 
-from loudml.license import License
-
 from threading import (
     Timer,
 )
@@ -327,9 +325,18 @@ class ModelsResource(Resource):
 
     @catch_loudml_error
     def put(self):
+        global g_config
         global g_storage
 
-        model = loudml.model.load_model(settings=request.json)
+        settings = request.json
+        settings['allowed'] = g_config.server['allowed_models']
+        model = loudml.model.load_model(settings=settings)
+
+        if len(g_storage.list_models()) >= g_config.server['maxrunningmodels']:
+            raise errors.LimitReached(
+                "maximum number of running models is reached",
+            )
+
         g_storage.create_model(model)
 
         return "success", 201
@@ -350,6 +357,7 @@ class ModelResource(Resource):
 
     @catch_loudml_error
     def post(self, model_name):
+        global g_config
         global g_storage
 
         settings = request.json
@@ -358,12 +366,18 @@ class ModelResource(Resource):
             return "model description is missing", 400
 
         settings['name'] = model_name
+        settings['allowed'] = g_config.server['allowed_models']
         model = loudml.model.load_model(settings=settings)
 
         try:
             g_storage.delete_model(model_name)
         except errors.ModelNotFound:
             pass
+
+        if len(g_storage.list_models()) >= g_config.server['maxrunningmodels']:
+            raise errors.LimitReached(
+                "maximum number of running models is reached",
+            )
 
         g_storage.create_model(model)
         logging.info("model '%s' updated", model_name)
@@ -826,41 +840,6 @@ def restart_predict_jobs():
             logging.error("cannot restart job for model '%s'", model.name)
 
 
-def set_limits(license_file):
-    """
-    Enforce limitations described in license file
-
-    :param license_file: path to license file
-    :type  license_file: str
-
-    :raise Exception: when unable to validate license
-
-    If no license file is provided, defaults are used.
-    """
-
-    global g_config
-
-    # Keep defaults
-    if license_file is None:
-        return
-
-    l = License()
-    l.load(license_file)
-    if not l.validate():
-        raise Exception("unable to validate license")
-
-    print("Contents: \n" + l.data.decode('ascii'))
-
-    try:
-        data = json.loads(l.data.decode('ascii'))
-    except Exception as e:
-        logging.error(e)
-        raise
-
-    limits = data['limits']
-    g_config.server['maxrunningmodels'] = limits['models']
-
-
 def main():
     """
     LoudML server
@@ -881,11 +860,6 @@ def main():
         type=str,
         default="/etc/loudml/config.yml",
     )
-    parser.add_argument(
-        '-l', '--license',
-        help="Path to license file",
-        type=str
-    )
 
     args = parser.parse_args()
 
@@ -902,16 +876,6 @@ def main():
         loudml.config.load_plugins(args.config)
     except errors.LoudMLException as exn:
         logging.error(exn)
-        sys.exit(1)
-
-    try:
-        set_limits(args.license)
-    except FileNotFoundError:
-        logging.error("Unable to read license file %s", args.license)
-        sys.exit(1)
-    except Exception as e:
-        logging.error(e)
-        logging.error("Unable to validate license file %s", args.license)
         sys.exit(1)
 
     g_queue = multiprocessing.Queue()
