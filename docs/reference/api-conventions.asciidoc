@@ -32,30 +32,33 @@ in <<timeseries-dsl,queries>> `range` queries -- understand date maths.
 
 The accepted formats are:
 
-  * UNIX timestamp in second
-  * ISO 8601 date
-  * Relative date
+* UNIX timestamp in second
+* ISO 8601 date
+* Relative date
  
+[float]
 ==== UNIX timestamp
  
 The UNIX timestamp must be in second (integer or float).
 
 Examples:
 
-  * `1523635200`
-  * `1523635200.123`
+* `1523635200`
+* `1523635200.123`
 
+[float]
 ==== ISO 8601 date
 
 This is the standard date and time format. See https://en.wikipedia.org/wiki/ISO_8601 for further information.
 
 Examples:
 
-  * `2018-05-13T18:00:00Z`
-  * `2018-05-13T18:00:00.123Z`
-  * `2018-05-13T20:00:00+02:00`
-  * `2018-04-13T18:00:00.123+0200`
+* `2018-05-13T18:00:00Z`
+* `2018-05-13T18:00:00.123Z`
+* `2018-05-13T20:00:00+02:00`
+* `2018-04-13T18:00:00.123+0200`
 
+[float]
 ==== Relative date
 
 The relative date are expressions that contain the current date and time `now` followed by an optional expression representing the positive or negative delta.
