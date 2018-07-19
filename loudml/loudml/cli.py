@@ -626,7 +626,7 @@ class RunCommand(Command):
         parser.add_argument(
             '-k', '--key',
             help="Filter with the given key only",
-            type=float,
+            type=str,
         )
         parser.add_argument(
             '-a', '--anomalies',
