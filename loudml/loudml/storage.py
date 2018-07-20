@@ -15,6 +15,9 @@ from .misc import (
 from .model import (
     load_model,
 )
+from . import (
+    errors,
+)
 
 class Storage(metaclass=ABCMeta):
     """
