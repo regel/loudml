@@ -6,15 +6,13 @@ import json
 import logging
 import numpy as np
 
+import warp10client
+
 from voluptuous import (
     Optional,
     Required,
     Url,
 )
-from warp10client import (
-    Warp10Client,
-)
-
 from . import (
     errors,
     schemas,
@@ -39,6 +37,14 @@ def metric_to_bucketizer(metric):
         bucketizer = metric
     return "bucketizer.{}".format(bucketizer)
 
+def catch_query_error(func):
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except warp10client.client.CallException as exn:
+            raise errors.DataSourceError(self.name, str(exn))
+    return wrapper
+
 class Warp10DataSource(DataSource):
     """
     Warp10 datasource
@@ -55,12 +61,13 @@ class Warp10DataSource(DataSource):
         super().__init__(cfg)
         self.read_token = cfg['read_token']
         self.write_token = cfg['write_token']
-        self.warp10 = Warp10Client(
+        self.warp10 = warp10client.Warp10Client(
             warp10_api_url=cfg['url'],
             read_token=self.read_token,
             write_token=self.write_token,
         )
 
+    @catch_query_error
     def drop(self, tags=None, **kwargs):
         """
         Delete database
@@ -101,6 +108,7 @@ class Warp10DataSource(DataSource):
             }
             self.enqueue(metric)
 
+    @catch_query_error
     def send_bulk(self, metrics):
         """
         Send data to Warp10
@@ -139,6 +147,7 @@ class Warp10DataSource(DataSource):
         ]
         return "[\n{}\n]".format("\n".join(scripts))
 
+    @catch_query_error
     def get_times_data(
         self,
         model,
