@@ -510,7 +510,7 @@ class TimeSeriesModel(Model):
     def get_run_state(self):
         return self._state.get('run') or {}
 
-    def _compute_nb_buckets(self, from_ts, to_ts):
+    def compute_nb_buckets(self, from_ts, to_ts):
         """
         Compute the number of bucket between `from_ts` and `to_ts`
         """
@@ -906,7 +906,7 @@ class TimeSeriesModel(Model):
         )
 
         # Prepare dataset
-        nb_buckets = self._compute_nb_buckets(period.from_ts, period.to_ts)
+        nb_buckets = self.compute_nb_buckets(period.from_ts, period.to_ts)
         nb_features = len(self.features)
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
