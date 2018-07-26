@@ -233,10 +233,18 @@ class DateRange:
         if self.to_ts < self.from_ts:
             raise errors.Invalid("invalid date range: {}".format(self))
 
+    @property
+    def from_str(self):
+        return ts_to_str(self.from_ts)
+
+    @property
+    def to_str(self):
+        return ts_to_str(self.to_ts)
+
     def __str__(self):
         return "{}-{}".format(
-            ts_to_str(self.from_ts),
-            ts_to_str(self.to_ts),
+            self.from_str,
+            self.to_str,
         )
 
 class TimeSeriesPrediction:

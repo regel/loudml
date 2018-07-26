@@ -9,6 +9,7 @@ clean:
 	$(MAKE) -C loudml-elastic-aws clean
 	$(MAKE) -C loudml-influx clean
 	$(MAKE) -C loudml-import clean
+	$(MAKE) -C loudml-warp10 clean
 	rm -rf build
 
 install:
@@ -18,8 +19,10 @@ install:
 	$(MAKE) -C loudml-elastic-aws install
 	$(MAKE) -C loudml-influx install
 	$(MAKE) -C loudml-import install
+	$(MAKE) -C loudml-warp10 install
 
 uninstall:
+	$(MAKE) -C loudml-warp10 uninstall
 	$(MAKE) -C loudml-influx uninstall
 	$(MAKE) -C loudml-import uninstall
 	$(MAKE) -C loudml-elastic-aws uninstall
@@ -32,6 +35,7 @@ dev:
 	$(MAKE) -C loudml-import dev
 	$(MAKE) -C loudml-elastic dev
 	$(MAKE) -C loudml-elastic-aws dev
+	$(MAKE) -C loudml-warp10 dev
 	$(MAKE) -C loudml dev
 	$(MAKE) -C public/api dev
 
@@ -41,6 +45,7 @@ test:
 	$(MAKE) -C loudml-elastic-aws test
 	$(MAKE) -C loudml-influx test
 	$(MAKE) -C loudml-import test
+	$(MAKE) -C loudml-warp10 test
 
 rpm:
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C public/api rpm
