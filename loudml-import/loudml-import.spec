@@ -44,6 +44,7 @@ make -C loudml-import install DESTDIR=%{buildroot}
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml_import*.pth
 %dir %{python3_sitelib}/loudml_import*.egg-info
+%{python3_sitelib}/loudml_import*.egg-info/*
 
 %doc
 

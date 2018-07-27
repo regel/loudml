@@ -58,6 +58,7 @@ done
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml_elastic*.pth
 %dir %{python3_sitelib}/loudml_elastic*.egg-info
+%{python3_sitelib}/loudml_elastic*.egg-info/*
 
 %doc
 

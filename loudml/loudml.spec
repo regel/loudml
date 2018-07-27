@@ -98,8 +98,10 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 %{_bindir}/*
 %license %{_datarootdir}/loudml/LICENSE
 %dir %{python3_sitelib}/rmn_common
+%{python3_sitelib}/rmn_common/*
 %{python3_sitelib}/loudml/*
 %dir %{python3_sitelib}/loudml-*.egg-info
+%{python3_sitelib}/loudml-*.egg-info/*
 
 # LoudML daemon configuration
 %attr(2777,root,loudml) %dir %{_sysconfdir}/loudml
