@@ -680,7 +680,7 @@ def _model_start(model, params):
     if len(g_running_models) >= MAX_RUNNING_MODELS:
         g_lock.release()
         raise errors.LimitReached(
-            "maximum number of running models is reached",
+            "You've reached the maximum count allowed in your license",
         )
 
     def create_job(from_date=None):
