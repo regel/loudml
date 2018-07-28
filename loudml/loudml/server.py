@@ -58,6 +58,7 @@ from .license import (
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 api = Api(app)
 
+g_lock = multiprocessing.Lock()
 g_config = None
 g_jobs = {}
 g_training = {}
@@ -636,13 +637,14 @@ def _model_start(model, params):
     """
     Start periodic prediction
     """
-
+    g_lock.acquire()
     if model.name in g_running_models:
-        raise errors.Conflict(
-            "real-time prediction is already active for this model",
-        )
+        g_lock.release()
+        # nothing to do; the job will load the model file
+        return
 
     if len(g_running_models) >= MAX_RUNNING_MODELS:
+        g_lock.release()
         raise errors.LimitReached(
             "maximum number of running models is reached",
         )
@@ -675,6 +677,7 @@ def _model_start(model, params):
 
     timer = RepeatingTimer(model.interval, create_job)
     g_running_models[model.name] = timer
+    g_lock.release()
     timer.start()
 
 
@@ -714,7 +717,12 @@ def model_start(model_name):
     g_storage.save_model(model)
 
     params['from'] = get_date_arg('from')
-    _model_start(model, params)
+    try:
+        _model_start(model, params)
+    except errors.LoudMLException as exn:
+        model.set_run_params(None)
+        g_storage.save_model(model)
+        raise(exn)
 
     return "real-time prediction started", 200
 
@@ -725,12 +733,15 @@ def model_stop(model_name):
     global g_running_models
     global g_storage
 
+    g_lock.acquire()
     timer = g_running_models.get(model_name)
     if timer is None:
+        g_lock.release()
         return "model is not active", 404
 
     timer.cancel()
     del g_running_models[model_name]
+    g_lock.release()
     logging.info("model '%s' deactivated", model_name)
 
     model = g_storage.load_model(model_name)
