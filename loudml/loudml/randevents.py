@@ -11,27 +11,27 @@ from abc import (
     abstractmethod,
 )
 
-def day_saw_variate(ts):
+def periodic_saw_variate(ts, period):
     """
-    Sawtooth variate function with 24h-period
-    """
-    t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
-    return (ts - t0) / (24 * 3600)
-
-def day_sin_variate(ts):
-    """
-    Sinusoid variate function with 24h-period
+    Sawtooth variate function with user defined period
     """
     t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
-    return math.sin(2 * math.pi * (ts - t0) / (24 * 3600))
+    return (ts - t0) / period
 
-def day_triangle_variate(ts):
+def periodic_sin_variate(ts, period):
     """
-    Triangle variate function with 24h-period
+    Sinusoid variate function with user defined period
+    """
+    t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
+    return math.sin(2 * math.pi * (ts - t0) / float(period))
+
+def periodic_triangle_variate(ts, period):
+    """
+    Triangle variate function with user defined period
     """
     t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
 
-    x = (ts - t0) / (24 * 3600)
+    x = (ts - t0) / period
     return 2 * x if x < 0.5 else 2 * (1 - x)
 
 def randfloat(lo, hi):
@@ -45,11 +45,12 @@ class EventGenerator(metaclass=ABCMeta):
     Random event generator
     """
 
-    def __init__(self, base=1, amplitude=1, sigma=1, trend=0):
+    def __init__(self, base=1, amplitude=1, sigma=1, trend=0, period=24*3600):
         self.base = base
         self.amplitude = amplitude
         self.sigma = sigma
         self.trend = trend
+        self.period = period
 
     @abstractmethod
     def variate(self, ts):
@@ -57,16 +58,15 @@ class EventGenerator(metaclass=ABCMeta):
         Return average rate for this timestamp
         """
 
-    def generate_ts(self, from_ts, to_ts, step=0.001):
+    def generate_ts(self, from_ts, to_ts, step_ms=1000):
         """
         Generate timestamps between `from_ts` and `to_ts`.
         """
 
         from_ms = int(from_ts * 1000)
         to_ms = int(to_ts * 1000)
-        step_ms = int(step * 1000)
 
-        increase = step * self.trend / 3600
+        increase = (float(step_ms) / 1000) * (self.trend / 3600.0)
 
         for ts_ms in range(from_ms, to_ms, step_ms):
             ts = ts_ms / 1000
@@ -78,12 +78,10 @@ class EventGenerator(metaclass=ABCMeta):
             if nb_events <= 0:
                 continue
 
-            p = nb_events - int(nb_events)
-            extra = 1 if random.random() <= p else 0
-            nb_events = int(nb_events) + extra
+            nb_events = int(nb_events)
 
             for i in range(nb_events):
-                yield ts + i * step / nb_events
+                yield ts + i / float(nb_events)
 
 
 class FlatEventGenerator(EventGenerator):
@@ -97,7 +95,7 @@ class SawEventGenerator(EventGenerator):
     """
 
     def variate(self, ts):
-        return self.base + self.amplitude * day_saw_variate(ts)
+        return self.base + self.amplitude * periodic_saw_variate(ts, self.period)
 
 
 class SinEventGenerator(EventGenerator):
@@ -106,7 +104,7 @@ class SinEventGenerator(EventGenerator):
     """
 
     def variate(self, ts):
-        return self.base + self.amplitude * day_sin_variate(ts)
+        return self.base + self.amplitude * periodic_sin_variate(ts, self.period)
 
 
 class TriangleEventGenerator(EventGenerator):
@@ -115,7 +113,7 @@ class TriangleEventGenerator(EventGenerator):
     """
 
     def variate(self, ts):
-        return self.base + self.amplitude * day_triangle_variate(ts)
+        return self.base + self.amplitude * periodic_triangle_variate(ts, self.period)
 
 
 class PatternGenerator(EventGenerator):
@@ -133,12 +131,13 @@ class PatternGenerator(EventGenerator):
 d       r s
 """
 
-    def __init__(self, base=1, amplitude=8, sigma=1, trend=0):
+    def __init__(self, base=1, amplitude=8, sigma=1, trend=0, period=24*3600):
         super().__init__(
             base=base,
             amplitude=amplitude,
             sigma=sigma,
             trend=trend,
+            period=period,
         )
 
         PATTERN = self.PATTERN.rstrip().splitlines()

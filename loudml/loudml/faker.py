@@ -26,9 +26,12 @@ from .randevents import (
     TriangleEventGenerator,
 )
 
-
-def generate_data(ts_generator, from_date, to_date):
-    for ts in ts_generator.generate_ts(from_date, to_date, step=60):
+def generate_data(ts_generator, from_date, to_date, step_ms):
+    for ts in ts_generator.generate_ts(
+        from_date,
+        to_date,
+        step_ms=step_ms,
+    ):
         yield ts, {
             'foo': random.lognormvariate(10, 1),
         }
@@ -188,6 +191,24 @@ def main():
         default=0,
     )
     parser.add_argument(
+        '--period',
+        help="Period in seconds",
+        type=float,
+        default=24 * 3600,
+    )
+    parser.add_argument(
+        '--noise',
+        help="Noise",
+        type=float,
+        default=2,
+    )
+    parser.add_argument(
+        '--step-ms',
+        help="Milliseconds elapsed in each step fo generating samples",
+        type=int,
+        default=60000,
+    )
+    parser.add_argument(
         '--clear',
         help="Clear database or index before insertion "
              "(risk of data loss! Use with caution!)",
@@ -236,16 +257,21 @@ def main():
             base=arg.base,
             amplitude=arg.amplitude,
             trend=arg.trend,
-            sigma=2,
-        )
+            period=arg.period,
+            noise=arg.noise,
+    )
 
     from_date = make_datetime(arg.from_date)
     to_date = make_datetime(arg.to_date)
 
     logging.info("generating data from %s to %s", from_date, to_date)
 
-    generator = generate_data(ts_generator, from_date.timestamp(),
-                              to_date.timestamp())
+    generator = generate_data(
+        ts_generator,
+        from_date.timestamp(),
+        to_date.timestamp(),
+        arg.step_ms,
+    )
 
     if arg.output is None:
         dump_to_json(generator)
