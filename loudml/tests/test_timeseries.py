@@ -116,40 +116,13 @@ class TestTimes(unittest.TestCase):
             })
 
     def test_min_max(self):
-        model = TimeSeriesModel(dict(
-            name='test',
-            offset=30,
-            span=8,
-            bucket_interval=3600,
-            interval=60,
-            seasonality={
-                'daytime': True,
-                'weekday': True,
-            },
-            features={
-                'i': [{
-                   'name': 'foo',
-                   'metric': 'avg',
-                   'field': 'foo',
-                   'default': 0,
-                }],
-                'o': [{
-                   'name': 'bar',
-                   'metric': 'avg',
-                   'field': 'bar',
-                   'default': 0,
-                }],
-                'io': [{
-                   'name': 'baz',
-                   'metric': 'avg',
-                   'field': 'baz',
-                   'default': 0,
-                }],
-            },
-            max_threshold=30,
-            min_threshold=25,
-            max_evals=10,
-        ))
+        feature = Feature(
+            name='foo',
+            metric='count',
+            field='bar',
+            default=0,
+            scores='min_max',
+        )
         dataset = np.random.random_sample((500,))
         _mins = np.min(np.nan_to_num(dataset), axis=0)
         _maxs = np.max(np.nan_to_num(dataset), axis=0)
@@ -184,7 +157,7 @@ class TestTimes(unittest.TestCase):
             default=0,
             scores='min_max',
         )
-        dataset = [5] * 500
+        dataset = np.full((500, 1), 5.0)
         _mins = np.min(np.nan_to_num(dataset), axis=0)
         _maxs = np.max(np.nan_to_num(dataset), axis=0)
         _means = np.nanmean(dataset, axis=0)
