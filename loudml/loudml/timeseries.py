@@ -215,6 +215,17 @@ class DateRange:
             ts_to_str(self.to_ts),
         )
 
+def _nan_to_none(x):
+    """
+    Convert value to None if its NaN
+    """
+    return None if x is np.nan or np.isnan(x) else x
+
+def _list_from_np(array):
+    """
+    Convert numpy array into a jsonifiable list
+    """
+    return [_nan_to_none(x) for x in array]
 
 class TimeSeriesPrediction:
     """
@@ -239,19 +250,6 @@ class TimeSeriesPrediction:
             raise errors.NotFound("anomaly detection has not been performed yet")
         return [self._format_bucket(i) for i in self.anomaly_indices]
 
-    def apply_default(self, feature_idx, value):
-        """
-        Apply default feature value
-        """
-        if value is None or value is np.nan or np.isnan(value):
-            value = self.model.defaults[feature_idx]
-            if value is None or value is np.nan or np.isnan(value):
-                return None
-            else:
-                return value
-
-        return value
-
     def format_series(self):
         """
         Return prediction data as a time-series
@@ -262,9 +260,9 @@ class TimeSeriesPrediction:
 
         for i, feature in enumerate(self.model.features):
             if feature.is_input:
-                observed[feature.name] = [self.apply_default(i, x) for x in self.observed[:,i]]
+                observed[feature.name] = _list_from_np(self.observed[:,i])
             if feature.is_output:
-                predicted[feature.name] = [self.apply_default(i, x) for x in self.predicted[:,i]]
+                predicted[feature.name] = _list_from_np(self.predicted[:,i])
 
         result = {
             'timestamps': self.timestamps,
@@ -284,12 +282,12 @@ class TimeSeriesPrediction:
         features = self.model.features
         return {
             'observed': {
-                feature.name: self.apply_default(j, self.observed[i][j])
-                for j, feature in enumerate(features) if feature.is_input==True
+                feature.name: _nan_to_none(self.observed[i][j])
+                for j, feature in enumerate(features) if feature.is_input
             },
             'predicted': {
-                feature.name: self.apply_default(j, self.predicted[i][j])
-                for j, feature in enumerate(features) if feature.is_output==True
+                feature.name: _nan_to_none(self.predicted[i][j])
+                for j, feature in enumerate(features) if feature.is_output
             },
         }
 
@@ -393,12 +391,6 @@ class TimeSeriesModel(Model):
             self.max_forecast = self.forecast_val
 
         self.sequential = None
-
-        self.defaults = [
-            np.nan if feature.default is np.nan else feature.default
-            for feature in self.features
-        ]
-
         self.current_eval = None
 
     def enum_features(self, is_input=None, is_output=None):
@@ -456,12 +448,35 @@ class TimeSeriesModel(Model):
 
         return DateRange(from_ts, to_ts)
 
+    def _value_apply_default(self, value, default=None, previous=None):
+        """
+        Apply default feature value
+        """
+
+        if value is None or value is np.nan or np.isnan(value):
+            if default == "previous":
+                value = previous
+            elif default is None or default is np.nan or np.isnan(default):
+                value = np.nan
+            else:
+                value = default
+
+        return value
+
     def apply_defaults(self, x):
         """
         Apply default feature value to np array
         """
         for i, feature in enumerate(self.features):
-            x[np.isnan(x[:,i])] = self.defaults[i]
+            if feature.default == "previous":
+                previous = None
+                for j, value in enumerate(x[:,i]):
+                    if np.isnan(value):
+                        x[j][i] = previous
+                    else:
+                        previous = x[j][i]
+            elif not np.isnan(feature.default):
+                x[np.isnan(x[:,i]),i] = feature.default
 
     def canonicalize_dataset(
         self,
@@ -1110,13 +1125,19 @@ class TimeSeriesModel(Model):
         last_ts = make_ts(X[-1])
         timestamps.append(last_ts + self.bucket_interval)
 
-        observed = np.array([self.defaults] * predict_len)
-        predicted = np.array([self.defaults] * predict_len)
+        shape = (predict_len, len(self.features))
+        observed = np.full(shape, np.nan, dtype=float)
+        predicted = np.full(shape, np.nan, dtype=float)
 
         for i, j, feature in self.enum_features(is_input=True):
             observed[:,i] = real[self._span:][:,i]
+
+        self.apply_defaults(observed)
+
         for i, j, feature in self.enum_features(is_output=True):
             predicted[data_indexes - self._span,i] = Y[:][:,j]
+
+        self.apply_defaults(predicted)
 
         return TimeSeriesPrediction(
             self,
@@ -1235,9 +1256,8 @@ class TimeSeriesModel(Model):
             raise errors.LoudMLException("not enough data for forecast")
 
         shape = (forecast_len, nb_features)
-        predicted = np.array([self.defaults] * forecast_len)
-        observed = np.empty(shape)
-        observed[:] = np.nan
+        predicted = np.full(shape, np.nan, dtype=float)
+        observed = np.full(shape, np.nan, dtype=float)
 
         logging.info("generating forecast")
         timestamps=[]
@@ -1293,6 +1313,9 @@ class TimeSeriesModel(Model):
                 bucket += 1
 
             y0[:] = Y[-1]
+
+        self.apply_defaults(observed)
+        self.apply_defaults(predicted)
 
         return TimeSeriesPrediction(
             self,

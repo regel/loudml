@@ -115,6 +115,54 @@ class TestTimes(unittest.TestCase):
                 'foo': random.normalvariate(10, 1)
             })
 
+    def test_apply_defaults(self):
+        model = TimeSeriesModel(dict(
+            name='test_default',
+            bucket_interval="30m",
+            span=5,
+            offset=30,
+            interval=60,
+            features=[
+                {
+                    'name': 'foo',
+                    'metric': 'count',
+                    'field': 'foo',
+                    'default': 0,
+                },
+                {
+                    'name': 'bar',
+                    'metric': 'avg',
+                    'field': 'bar',
+                    'default': 10,
+                },
+                {
+                    'name': 'baz',
+                    'metric': 'avg',
+                    'field': 'baz',
+                    'default': 'previous',
+                },
+            ]
+        ))
+
+        x = np.array([
+            [np.nan, np.nan, np.nan],
+            [1.0, 2.0, 3.0],
+            [np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan],
+        ], dtype=float)
+
+        model.apply_defaults(x)
+
+        np.testing.assert_allclose(
+            x,
+            np.array([
+                [0.0, 10.0, np.nan],
+                [1.0, 2.0, 3.0],
+                [0.0, 10.0, 3.0],
+                [0.0, 10.0, 3.0],
+            ])
+        )
+
     def test_min_max(self):
         feature = Feature(
             name='foo',
@@ -555,7 +603,13 @@ class TestTimes(unittest.TestCase):
             forecast=7,
             bucket_interval=20 * 60,
             interval=60,
-            features=FEATURES[:1],
+            features=[
+                {
+                    'name': 'count_foo',
+                    'metric': 'count',
+                    'field': 'foo',
+                }
+            ],
             threshold=30,
             max_evals=10,
         ))
@@ -596,15 +650,15 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(forecast.observed.shape, (expected, 1))
         self.assertEqual(forecast.predicted.shape, (expected, 1))
 
-        all_nans = np.empty((expected, 1), dtype=float)
-        all_nans[:] = np.nan
+        all_nans = np.full((expected, 1), np.nan, dtype=float)
         self.assertEqual(nan_equal(forecast.observed, all_nans), True)
 
         forecast_head = np.array([[9.15], [9.64], [10.06], [10.44], [10.71]])
         forecast_tail = np.array([[8.20], [8.83], [9.30], [9.71], [10.10]])
 
+
 #        print(forecast.predicted)
-        delta = 2.8
+        delta = 3.0
         forecast_good = np.abs(forecast.predicted[:len(forecast_head)] - forecast_head) <= delta
         # print(forecast_head)
         # print(forecast.predicted[:len(forecast_head)])
@@ -664,7 +718,7 @@ class TestTimes(unittest.TestCase):
                 delta=5,
             )
 
-        from_date = to_date - model.bucket_interval 
+        from_date = to_date - model.bucket_interval
         to_date = from_date + 48 * 3600
         forecast = model.forecast(source, from_date, to_date)
         expected = math.ceil(
@@ -684,9 +738,15 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(forecast.observed.shape, (expected, 2))
         self.assertEqual(forecast.predicted.shape, (expected, 2))
 
-        all_nans = np.empty((expected, 2), dtype=float)
-        all_nans[:] = np.nan
-        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+        all_default = np.full(
+            (expected, len(model.features)),
+            [feature.default for feature in model.features],
+            dtype=float,
+        )
+        np.testing.assert_allclose(
+            forecast.observed,
+            all_default,
+        )
 
         forecast_head = np.array([9.15, 9.64, 10.06, 10.44, 10.71])
         forecast_tail = np.array([8.20, 8.83, 9.30, 9.71, 10.10])
@@ -786,9 +846,15 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(forecast.observed.shape, (expected, 1))
         self.assertEqual(forecast.predicted.shape, (expected, 1))
 
-        all_nans = np.empty((expected, 1), dtype=float)
-        all_nans[:] = np.nan
-        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+        all_default = np.full(
+            (expected, len(model.features)),
+            [feature.default for feature in model.features],
+            dtype=float,
+        )
+        np.testing.assert_allclose(
+            forecast.observed,
+            all_default,
+        )
 
         #import matplotlib.pylab as plt
         #plt.rcParams["figure.figsize"] = (17, 9)
@@ -886,9 +952,15 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(forecast.observed.shape, (expected, len(model.features)))
         self.assertEqual(forecast.predicted.shape, (expected, len(model.features)))
 
-        all_nans = np.empty((expected, len(model.features)), dtype=float)
-        all_nans[:] = np.nan
-        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+        all_default = np.full(
+            (expected, len(model.features)),
+            [feature.default for feature in model.features],
+            dtype=float,
+        )
+        np.testing.assert_allclose(
+            forecast.observed,
+            all_default,
+        )
 
         # FIXME: Due to noise at y0, forecast may be inaccurate that's why
         # we use a +3/-3 tolerance here
@@ -1076,8 +1148,8 @@ class TestTimes(unittest.TestCase):
         prediction = TimeSeriesPrediction(
             model=model,
             timestamps=timestamps,
-            observed=np.array([[1, 0.1], [np.nan, np.nan], [3, 0.3]]),
-            predicted=np.array([[4, 0.4], [5, 0.5], [np.nan, np.nan]]),
+            observed=np.array([[1, 0.1], [0.0, np.nan], [3, 0.3]]),
+            predicted=np.array([[4, 0.4], [5, 0.5], [0.0, np.nan]]),
         )
 
         self.assertEqual(

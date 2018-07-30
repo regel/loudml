@@ -42,7 +42,7 @@ class Feature:
                 All(str, Length(max=256)),
             )},
         ])),
-        'default': Any(None, int, float),
+        'default': Any(None, int, float, 'previous'),
         'script': Any(None, str),
         Optional('anomaly_type', default='low_high'): Any('low', 'high', 'low_high'),
         'transform': Any(None, "diff"),
@@ -68,7 +68,7 @@ class Feature:
         self.metric = metric
         self.measurement = measurement
         self.field = field
-        self.default = np.nan if default is None else float(default)
+        self.default = np.nan if default is None else default
         self.script = script
         self.match_all = match_all
         self.anomaly_type = anomaly_type
