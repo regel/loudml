@@ -26,16 +26,36 @@ from .randevents import (
     TriangleEventGenerator,
 )
 
-def generate_data(ts_generator, from_date, to_date, step_ms):
+def generate_data(
+    ts_generator,
+    from_date,
+    to_date,
+    step_ms,
+    errors,
+    burst_ms,
+):
+    ano = False
+    previous_ts = None
     for ts in ts_generator.generate_ts(
         from_date,
         to_date,
         step_ms=step_ms,
     ):
-        yield ts, {
-            'foo': random.lognormvariate(10, 1),
-        }
+        if ano == False and errors > 0:
+            val = random.random()
+            if val < errors:
+                ano = True
+                total_burst_ms = 0
+                previous_ts = ts
 
+        if ano == True and total_burst_ms < burst_ms:
+            total_burst_ms += (ts - previous_ts) * 1000.0
+            previous_ts = ts
+        else:
+            ano = False
+            yield ts, {
+                'foo': random.lognormvariate(10, 1),
+            }
 
 def dump_to_json(generator):
     import json
@@ -209,6 +229,18 @@ def main():
         default=60000,
     )
     parser.add_argument(
+        '-e', '--errors',
+        help="Output anomalies with the given error rate",
+        type=float,
+        default=0.0,
+    )
+    parser.add_argument(
+        '-b', '--burst-ms',
+        help="Burst duration, for anomalies",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
         '--clear',
         help="Clear database or index before insertion "
              "(risk of data loss! Use with caution!)",
@@ -271,6 +303,8 @@ def main():
         from_date.timestamp(),
         to_date.timestamp(),
         arg.step_ms,
+        arg.errors,
+        arg.burst_ms,
     )
 
     if arg.output is None:
