@@ -1,3 +1,5 @@
+import loudml.vendor
+
 import datetime
 import logging
 import math
@@ -116,7 +118,7 @@ class TestTimes(unittest.TestCase):
         self.to_date = math.floor(to_date / self.model.bucket_interval) * self.model.bucket_interval
         self.from_date = self.to_date - 3600 * 24 * 7 * 3
 
-        for ts in self.generator.generate_ts(self.from_date, self.to_date, step=600):
+        for ts in self.generator.generate_ts(self.from_date, self.to_date, step_ms=600000):
             self.source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -339,7 +341,7 @@ class TestTimes(unittest.TestCase):
         to_date = datetime.datetime.now().timestamp()
         to_date = math.floor(to_date / (3600*24)) * (3600*24)
         from_date = to_date - 3600 * 24 * 7 * 3
-        for ts in generator.generate_ts(from_date, to_date, step=600):
+        for ts in generator.generate_ts(from_date, to_date, step_ms=600000):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -426,7 +428,7 @@ class TestTimes(unittest.TestCase):
         to_date = datetime.datetime.now().timestamp()
         to_date = math.floor(to_date / (3600*24)) * (3600*24)
         from_date = to_date - 3600 * 24 * 7 * 3
-        for ts in generator.generate_ts(from_date, to_date, step=600):
+        for ts in generator.generate_ts(from_date, to_date, step_ms=600000):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -627,7 +629,7 @@ class TestTimes(unittest.TestCase):
         to_date = datetime.datetime.now().timestamp()
         to_date = math.floor(to_date / (3600*24)) * (3600*24)
         from_date = to_date - 3600 * 24 * 7 * 3
-        for ts in generator.generate_ts(from_date, to_date, step=600):
+        for ts in generator.generate_ts(from_date, to_date, step_ms=600000):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -695,7 +697,7 @@ class TestTimes(unittest.TestCase):
         to_date = datetime.datetime.now().timestamp()
         to_date = math.floor(to_date / (3600*24)) * (3600*24)
         from_date = to_date - 3600 * 24 * 7 * 3
-        for ts in generator.generate_ts(from_date, to_date, step=600):
+        for ts in generator.generate_ts(from_date, to_date, step_ms=600000):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -795,7 +797,7 @@ class TestTimes(unittest.TestCase):
         to_date = math.floor(to_date / (3600*24)) * (3600*24)
         from_date = to_date - 3600 * 24 * 7 * 3
 
-        for i, ts in enumerate(generator.generate_ts(from_date, to_date, step=600)):
+        for i, ts in enumerate(generator.generate_ts(from_date, to_date, step_ms=600000)):
             dt = make_datetime(ts)
             val = random.normalvariate(10, 1)
             if dt_get_daytime(dt) < 6 or dt_get_daytime(dt) > 22:
@@ -929,7 +931,7 @@ class TestTimes(unittest.TestCase):
         ).timestamp()
         from_date = to_date - 3600 * 24 * 7 * 3
 
-        for ts in generator.generate_ts(from_date, to_date, step=600):
+        for ts in generator.generate_ts(from_date, to_date, step_ms=600000):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -1220,7 +1222,7 @@ class TestTimes(unittest.TestCase):
         from_date = self.to_date
         to_date = from_date + 2 * self.model.bucket_interval
 
-        for ts in self.generator.generate_ts(from_date, to_date, step=600):
+        for ts in self.generator.generate_ts(from_date, to_date, step_ms=600000):
             self.source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -1231,7 +1233,7 @@ class TestTimes(unittest.TestCase):
         ano_to = to_date
         generator = FlatEventGenerator(base=4, sigma=0.01)
 
-        for ts in generator.generate_ts(ano_from, ano_to, step=600):
+        for ts in generator.generate_ts(ano_from, ano_to, step_ms=600000):
             self.source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -1306,7 +1308,7 @@ class TestTimes(unittest.TestCase):
         generator = SinEventGenerator(base=3, amplitude=3, sigma=0.01)
 
         # Regular data
-        for ts in self.generator.generate_ts(from_date, to_date, step=60):
+        for ts in self.generator.generate_ts(from_date, to_date, step_ms=60000):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
@@ -1318,7 +1320,7 @@ class TestTimes(unittest.TestCase):
 
         generator = FlatEventGenerator(base=4, sigma=0.01)
 
-        for ts in generator.generate_ts(ano_from, ano_to, step=60):
+        for ts in generator.generate_ts(ano_from, ano_to, step_ms=60000):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
