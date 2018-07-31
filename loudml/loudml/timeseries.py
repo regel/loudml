@@ -448,21 +448,6 @@ class TimeSeriesModel(Model):
 
         return DateRange(from_ts, to_ts)
 
-    def _value_apply_default(self, value, default=None, previous=None):
-        """
-        Apply default feature value
-        """
-
-        if value is None or value is np.nan or np.isnan(value):
-            if default == "previous":
-                value = previous
-            elif default is None or default is np.nan or np.isnan(default):
-                value = np.nan
-            else:
-                value = default
-
-        return value
-
     def apply_defaults(self, x):
         """
         Apply default feature value to np array
