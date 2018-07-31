@@ -89,6 +89,7 @@ class Worker:
         self,
         model_name,
         save_prediction=False,
+        save_scores=False,
         detect_anomalies=False,
         **kwargs
     ):
@@ -110,6 +111,18 @@ class Worker:
                 hooks = self.storage.load_model_hooks(model_name)
                 model.detect_anomalies(prediction, hooks)
                 self.storage.save_model(model)
+
+                if save_scores:
+                    for bucket in prediction.format_buckets():
+                        stats = bucket.get('stats')
+                        score = stats.get('score')
+                        is_anomaly = stats.get('anomaly')
+                        source.insert_times_data(
+                            ts=bucket['timestamp'],
+                            data={ 'score': score },
+                            tags={ 'anomaly': is_anomaly },
+                            measurement='scores_{}'.format(model.name),
+                        )
 
                 # TODO .detect_anomalies() produces warning messages
                 # and store anomalies into 'prediction'.
@@ -146,11 +159,22 @@ class Worker:
         model = self.storage.load_model(model_name)
         src_settings = self.config.get_datasource(model.default_datasource)
         source = loudml.datasource.load_datasource(src_settings)
+
+        constraint = kwargs.pop('constraint')
+
         forecast = model.forecast(source, **kwargs)
 
         if model.type == 'timeseries':
             logging.info("job[%s] forecasted values for %d time buckets",
                          self.job_id, len(forecast.timestamps))
+            if constraint:
+                model.test_constraint(
+                    forecast,
+                    constraint['feature'],
+                    constraint['type'],
+                    constraint['threshold'],
+                )
+
             if save_prediction:
                 source.save_timeseries_prediction(forecast, model)
 

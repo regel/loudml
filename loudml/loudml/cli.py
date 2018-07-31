@@ -25,6 +25,7 @@ from .errors import (
 )
 from .misc import (
     make_bool,
+    parse_constraint,
 )
 from .filestorage import (
     FileStorage,
@@ -309,6 +310,11 @@ class ForecastCommand(Command):
             type=str,
         )
         parser.add_argument(
+            '-c', '--constraint',
+            help="Test constraint, using format: feature:low|high:threshold",
+            type=str,
+        )
+        parser.add_argument(
             '-f', '--from',
             help="From date",
             type=str,
@@ -356,11 +362,21 @@ class ForecastCommand(Command):
             if not args.to_date:
                 raise LoudMLException("'to' argument is required for time-series")
 
+            constraint = parse_constraint(args.constraint) if args.constraint \
+                         else None
+
             prediction = model.forecast(
                 source,
                 args.from_date,
                 args.to_date,
             )
+            if constraint:
+                model.test_constraint(
+                    prediction,
+                    constraint['feature'],
+                    constraint['type'],
+                    constraint['threshold'],
+                )
 
             if args.save:
                 source.save_timeseries_prediction(prediction, model)
@@ -449,6 +465,17 @@ class PredictCommand(Command):
 
             if args.anomalies:
                 model.detect_anomalies(prediction)
+                if args.save:
+                    for bucket in prediction.format_buckets():
+                        stats = bucket.get('stats')
+                        score = stats.get('score')
+                        is_anomaly = stats.get('anomaly')
+                        source.insert_times_data(
+                            ts=bucket['timestamp'],
+                            data={ 'score': score },
+                            tags={ 'anomaly': is_anomaly },
+                            measurement='scores_{}'.format(model.name),
+                        )
 
             if args.save:
                 source.save_timeseries_prediction(prediction, model)

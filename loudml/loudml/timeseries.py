@@ -2,6 +2,7 @@
 LoudML time-series module
 """
 
+import copy
 import datetime
 import json
 import logging
@@ -9,6 +10,7 @@ import math
 import os
 import sys
 import numpy as np
+from scipy.stats import norm
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
@@ -68,7 +70,6 @@ np.set_printoptions(formatter={'float_kind':float_formatter})
 # global vars for easy reusability
 # This UNIX process is handling a unique model
 _keras_model, _graph = None, None
-_mins, _maxs = None, None
 _verbose = 0
 
 # _hp_forecast_min=1 Backward compat with 1.2
@@ -76,6 +77,55 @@ _hp_forecast_min = 1
 _hp_forecast_max = 5
 _hp_span_min = 5
 _hp_span_max = 20
+
+def _transform(feature, y):
+    if feature.transform == "diff":
+        return np.concatenate(([np.nan], np.diff(y, axis=0)))
+
+def _revert_transform(feature, y, y0):
+    if feature.transform == "diff":
+        return np.cumsum(np.concatenate(([y0], y[1:])))
+
+def canonicalize_min_max(value, _min, _max):
+    # XXX: division by zero is evil
+    rng = max(_max - _min, 0.0001)
+    return 1.0 - (_max - value) / rng
+
+def uncanonicalize_min_max(value, _min, _max):
+    return _max - (_max - _min) * (1.0 - value)
+
+def canonicalize_daytime(value):
+    return canonicalize_min_max(value, 0, 23)
+
+def uncanonicalize_daytime(value):
+    return uncanonicalize_min_max(value, 0, 23)
+
+def canonicalize_weekday(value):
+    return canonicalize_min_max(value, 0, 6)
+
+def uncanonicalize_weekday(value):
+    return uncanonicalize_min_max(value, 0, 6)
+
+def _get_scores(feature, y, _min, _max, _mean, _std):
+    if feature.scores == "min_max":
+        y = canonicalize_min_max(y, _min, _max)
+    elif feature.scores == "normalize":
+        y0 = y[~np.isnan(y)][0]
+        y = (y / y0) - 1.0
+    elif feature.scores == "standardize":
+        y = (y - _mean) / _std
+    return y
+
+def _revert_scores(feature, y, _data, _min, _max, _mean, _std):
+    if feature.scores == "min_max":
+        y = uncanonicalize_min_max(y, _min, _max)
+    elif feature.scores == "normalize":
+        p0 = _data[~np.isnan(_data)][0]
+        y = p0 * (y + 1.0)
+    elif feature.scores == "standardize":
+        y = (y * _std) + _mean
+    return y
+
 
 class HyperParameters:
     """Hyperparameters"""
@@ -151,6 +201,32 @@ def _load_keras_model(model_b64, weights_b64, loss_fct, optimizer):
 
     return keras_model, graph
 
+class DateRange:
+    def __init__(self, from_date, to_date):
+        self.from_ts = make_ts(from_date)
+        self.to_ts = make_ts(to_date)
+
+        if self.to_ts < self.from_ts:
+            raise errors.Invalid("invalid date range: %s".format(self))
+
+    def __str__(self):
+        return "{}-{}".format(
+            ts_to_str(self.from_ts),
+            ts_to_str(self.to_ts),
+        )
+
+def _nan_to_none(x):
+    """
+    Convert value to None if its NaN
+    """
+    return None if x is np.nan or np.isnan(x) else x
+
+def _list_from_np(array):
+    """
+    Convert numpy array into a jsonifiable list
+    """
+    return [_nan_to_none(x) for x in array]
+
 class TimeSeriesPrediction:
     """
     Time-series prediction
@@ -163,6 +239,7 @@ class TimeSeriesPrediction:
         self.predicted = predicted
         self.anomaly_indices = None
         self.stats = None
+        self.constraint = None
 
     def get_anomalies(self):
         """
@@ -172,19 +249,6 @@ class TimeSeriesPrediction:
         if self.anomaly_indices is None:
             raise errors.NotFound("anomaly detection has not been performed yet")
         return [self._format_bucket(i) for i in self.anomaly_indices]
-
-    def apply_default(self, feature_idx, value):
-        """
-        Apply default feature value
-        """
-        if value is None or value is np.nan or np.isnan(value):
-            value = self.model.defaults[feature_idx]
-            if value is None or value is np.nan or np.isnan(value):
-                return None
-            else:
-                return value
-
-        return value
 
     def format_series(self):
         """
@@ -196,9 +260,9 @@ class TimeSeriesPrediction:
 
         for i, feature in enumerate(self.model.features):
             if feature.is_input:
-                observed[feature.name] = [self.apply_default(i, x) for x in self.observed[:,i]]
+                observed[feature.name] = _list_from_np(self.observed[:,i])
             if feature.is_output:
-                predicted[feature.name] = [self.apply_default(i, x) for x in self.predicted[:,i]]
+                predicted[feature.name] = _list_from_np(self.predicted[:,i])
 
         result = {
             'timestamps': self.timestamps,
@@ -206,7 +270,9 @@ class TimeSeriesPrediction:
             'predicted': predicted,
         }
         if self.stats is not None:
-            result['stats'] = self.stats,
+            result['stats'] = self.stats
+        if self.constraint is not None:
+            result['constraint'] = self.constraint
         return result
 
     def format_bucket_data(self, i):
@@ -216,12 +282,12 @@ class TimeSeriesPrediction:
         features = self.model.features
         return {
             'observed': {
-                feature.name: self.apply_default(j, self.observed[i][j])
-                for j, feature in enumerate(features) if feature.is_input==True
+                feature.name: _nan_to_none(self.observed[i][j])
+                for j, feature in enumerate(features) if feature.is_input
             },
             'predicted': {
-                feature.name: self.apply_default(j, self.predicted[i][j])
-                for j, feature in enumerate(features) if feature.is_output==True
+                feature.name: _nan_to_none(self.predicted[i][j])
+                for j, feature in enumerate(features) if feature.is_output
             },
         }
 
@@ -304,6 +370,11 @@ class TimeSeriesModel(Model):
 
         self.span = settings.get('span')
 
+        self.mins = None
+        self.maxs = None
+        self.means = None
+        self.stds = None
+
         if self.span is None or self.span == "auto":
             self.min_span = settings.get('min_span') or _hp_span_min
             self.max_span = settings.get('max_span') or _hp_span_max
@@ -320,13 +391,14 @@ class TimeSeriesModel(Model):
             self.max_forecast = self.forecast_val
 
         self.sequential = None
-
-        self.defaults = [
-            np.nan if feature.default is np.nan else feature.default
-            for feature in self.features
-        ]
-
         self.current_eval = None
+
+    def enum_features(self, is_input=None, is_output=None):
+        j = 0
+        for i, feature in enumerate(self.features):
+            if feature.is_input == is_input or feature.is_output == is_output:
+                yield i, j, feature
+                j += 1
 
     @property
     def type(self):
@@ -361,12 +433,143 @@ class TimeSeriesModel(Model):
         """
         return int((to_ts - from_ts) / self.bucket_interval) + 2
 
+    def build_date_range(self, from_date, to_date):
+        """
+        Fixup date range to be sure that is a multiple of bucket_interval
+
+        return timestamps
+        """
+
+        from_ts = make_ts(from_date)
+        to_ts = make_ts(to_date)
+
+        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
+        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
+
+        return DateRange(from_ts, to_ts)
+
+    def _value_apply_default(self, value, default=None, previous=None):
+        """
+        Apply default feature value
+        """
+
+        if value is None or value is np.nan or np.isnan(value):
+            if default == "previous":
+                value = previous
+            elif default is None or default is np.nan or np.isnan(default):
+                value = np.nan
+            else:
+                value = default
+
+        return value
+
     def apply_defaults(self, x):
         """
         Apply default feature value to np array
         """
         for i, feature in enumerate(self.features):
-            x[np.isnan(x[:,i])] = self.defaults[i]
+            if feature.default == "previous":
+                previous = None
+                for j, value in enumerate(x[:,i]):
+                    if np.isnan(value):
+                        x[j][i] = previous
+                    else:
+                        previous = x[j][i]
+            elif not np.isnan(feature.default):
+                x[np.isnan(x[:,i]),i] = feature.default
+
+    def canonicalize_dataset(
+        self,
+        dataset,
+        only_outputs=False,
+        out=None,
+    ):
+        """
+        Canonicalize dataset values
+        """
+
+        if out is None:
+            out = np.empty_like(dataset)
+
+        for i, j, feature in self.enum_features(
+            is_input=not only_outputs,
+            is_output=True,
+        ):
+            out[:,j] = _get_scores(
+                feature,
+                dataset[:,i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
+
+        if only_outputs:
+            return out
+
+        if self.seasonality.get('daytime'):
+            i += 1
+            j += 1
+            out[:,j] = canonicalize_daytime(dataset[:,i])
+
+        if self.seasonality.get('weekday'):
+            i += 1
+            j += 1
+            out[:,j] = canonicalize_weekday(dataset[:,i])
+
+        return out
+
+    def uncanonicalize_dataset(
+        self,
+        dataset,
+        only_outputs=False,
+        out=None,
+    ):
+        """
+        Uncanonicalize dataset values
+        """
+
+        if out is None:
+            out = np.empty_like(dataset)
+
+        for i, j, feature in self.enum_features(
+            is_input=not only_outputs,
+            is_output=True,
+        ):
+            out[:,j] = _revert_scores(
+                feature,
+                dataset[:,i],
+                _data=dataset[self._span:,i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
+
+        if only_outputs:
+            return out
+
+        if self.seasonality.get('daytime'):
+            i += 1
+            j += 1
+            out[:,j] = uncanonicalize_daytime(dataset[:,i])
+
+        if self.seasonality.get('weekday'):
+            i += 1
+            j += 1
+            out[:,j] = uncanonicalize_weekday(dataset[:,i])
+
+        return out
+
+    def stat_dataset(self, dataset):
+        """
+        Compute dataset sets and keep them as reference for canonicalization
+        """
+        self.mins = np.min(np.nan_to_num(dataset), axis=0)
+        self.maxs = np.max(np.nan_to_num(dataset), axis=0)
+        self.means = np.nanmean(dataset, axis=0)
+        self.stds = np.nanstd(dataset, axis=0)
+        self.stds[self.stds == 0] = 1.0
 
     def _train_on_dataset(
         self,
@@ -377,24 +580,20 @@ class TimeSeriesModel(Model):
         max_evals=None,
         progress_cb=None,
     ):
-        global _mins, _maxs
-
         if max_evals is None:
             max_evals = self.settings.get('max_evals', 10)
 
         self.current_eval = 0
 
-        # Min-max preprocessing to bring data in interval (0,1)
-        # FIXME: support other normalization techniques
-        # Preprocess each column (axis=0)
-        _mins = np.min(np.nan_to_num(dataset), axis=0)
-        _maxs = np.max(np.nan_to_num(dataset), axis=0)
-        rng = _maxs - _mins
-        dataset = 1.0 - (_maxs - dataset) / rng
+        self.stat_dataset(dataset)
+
+        # Canonicalize dataset in-place
+        self.canonicalize_dataset(dataset, out=dataset)
+
         input_features = len(self._x_indexes())
 
         logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
-                     _mins, _maxs, rng)
+                     self.mins, self.maxs, self.maxs - self.mins)
 
         def cross_val_model(params):
             global _keras_model, _graph
@@ -483,7 +682,7 @@ class TimeSeriesModel(Model):
               'span': self.get_hp_span('d1_span'),
               'forecast': self.get_hp_forecast('d1_forecast'),
               'l1': 1+hp.randint('d1_l1', 100),
-              'activation': hp.choice('d1_activation', ['tanh']),
+              'activation': hp.choice('d1_activation', ['linear', 'tanh']),
               'loss_fct': hp.choice('d1_loss_fct', ['mean_squared_error']),
               'optimizer': hp.choice('d1_optimizer', ['adam']),
             },
@@ -493,7 +692,7 @@ class TimeSeriesModel(Model):
               'forecast': self.get_hp_forecast('d2_forecast'),
               'l1': 1+hp.randint('d2_l1', 100),
               'l2': 1+hp.randint('d2_l2', 100),
-              'activation': hp.choice('d2_activation', ['tanh']),
+              'activation': hp.choice('d2_activation', ['linear', 'tanh']),
               'loss_fct': hp.choice('d2_loss_fct', ['mean_squared_error']),
               'optimizer': hp.choice('d2_optimizer', ['adam']),
             }
@@ -595,36 +794,33 @@ class TimeSeriesModel(Model):
         """
         Train model
         """
-        global _keras_model, _graph, _mins, _maxs
+        global _keras_model, _graph
+
         _keras_model, _graph = None, None
-        _mins, _maxs = None, None
 
-        from_ts = make_ts(from_date)
-        to_ts = make_ts(to_date)
+        self.mins, self.maxs = None, None
+        self.means, self.stds = None, None
 
-        from_str = ts_to_str(from_ts)
-        to_str = ts_to_str(to_ts)
-
+        period =  self.build_date_range(from_date, to_date)
         logging.info(
-            "train(%s) range=[%s, %s] train_size=%f batch_size=%d epochs=%d)",
+            "train(%s) range=%s train_size=%f batch_size=%d epochs=%d)",
             self.name,
-            from_str,
-            to_str,
+            period,
             train_size,
             batch_size,
             num_epochs,
         )
 
         # Prepare dataset
-        nb_buckets = self._compute_nb_buckets(from_ts, to_ts)
+        nb_buckets = self._compute_nb_buckets(period.from_ts, period.to_ts)
         nb_features = len(self.features)
-        dataset = np.zeros((nb_buckets, nb_features), dtype=float)
+        dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
-        daytime = np.zeros((nb_buckets, 1), dtype=float)
-        weekday = np.zeros((nb_buckets, 1), dtype=float)
+        daytime = np.empty((nb_buckets, 1), dtype=float)
+        weekday = np.empty((nb_buckets, 1), dtype=float)
 
         # Fill dataset
-        data = datasource.get_times_data(self, from_ts, to_ts)
+        data = datasource.get_times_data(self, period.from_ts, period.to_ts)
 
         i = None
         for i, (_, val, timeval) in enumerate(data):
@@ -634,15 +830,22 @@ class TimeSeriesModel(Model):
             daytime[i] = np.array(dt_get_daytime(dt))
             weekday[i] = np.array(dt_get_weekday(dt))
 
+        if i is None:
+            raise errors.NoData("no data found for time range %s".format(period))
+
         self.apply_defaults(dataset)
 
-        if i is None:
-            raise errors.NoData("no data found for time range {}-{}".format(
-                from_str,
-                to_str,
-            ))
+        nb_buckets_found = i + 1
+        if nb_buckets_found < nb_buckets:
+            dataset = np.resize(dataset, (nb_buckets_found, nb_features))
+            daytime = np.resize(daytime, (nb_buckets_found, 1))
+            weekday = np.resize(weekday, (nb_buckets_found, 1))
 
-        logging.info("found %d time periods", i + 1)
+        logging.info("found %d time periods", nb_buckets_found)
+
+        for j, feature in enumerate(self.features):
+            if feature.transform is not None:
+                dataset[:,j] = _transform(feature, dataset[:,j])
 
         if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)
@@ -673,8 +876,10 @@ class TimeSeriesModel(Model):
             'loss_fct': best_params['loss_fct'],
             'optimizer': best_params['optimizer'],
             'best_params': best_params,
-            'mins': _mins.tolist(),
-            'maxs': _maxs.tolist(),
+            'mins': self.mins.tolist(),
+            'maxs': self.maxs.tolist(),
+            'means': self.means.tolist(),
+            'stds': self.stds.tolist(),
             'loss': score[0],
 
         }
@@ -687,7 +892,7 @@ class TimeSeriesModel(Model):
         """
         Load current model
         """
-        global _keras_model, _graph, _mins, _maxs
+        global _keras_model, _graph
 
         if not self.is_trained:
             raise errors.ModelNotTrained()
@@ -699,8 +904,13 @@ class TimeSeriesModel(Model):
             self._state['optimizer'],
         )
 
-        _mins = np.array(self._state['mins'])
-        _maxs = np.array(self._state['maxs'])
+        self.mins = np.array(self._state['mins'])
+        self.maxs = np.array(self._state['maxs'])
+
+        if 'means' in self._state:
+            self.means = np.array(self._state['means'])
+        if 'stds' in self._state:
+            self.stds = np.array(self._state['stds'])
 
     @property
     def is_trained(self):
@@ -711,7 +921,7 @@ class TimeSeriesModel(Model):
 
     @property
     def _span(self):
-        if 'span' in self._state['best_params']:
+        if self._state and 'span' in self._state['best_params']:
             return self._state['best_params']['span']
         else:
             return self.span
@@ -806,46 +1016,35 @@ class TimeSeriesModel(Model):
     ):
         global _keras_model
 
-        from_ts = make_ts(from_date)
-        to_ts = make_ts(to_date)
-
-        # Fixup range to be sure that it is a multiple of bucket_interval
-        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
-        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
-
-        from_str = ts_to_str(from_ts)
-        to_str = ts_to_str(to_ts)
+        period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
-        predict_len = int((to_ts - from_ts) / self.bucket_interval)
+        predict_len = int((period.to_ts - period.from_ts) / self.bucket_interval)
 
-        logging.info("predict(%s) range=[%s, %s]",
-                     self.name, from_str, to_str)
+        logging.info("predict(%s) range=%s", self.name, period)
 
         self.load()
 
         # Build history time range
         # Extra data are required to predict first buckets
-        hist_from_ts = from_ts - self._span * self.bucket_interval
-        hist_to_ts = to_ts
-        hist_from_str = ts_to_str(hist_from_ts)
-        hist_to_str = ts_to_str(hist_to_ts)
+        hist = DateRange(
+            period.from_ts - self._span * self.bucket_interval,
+            period.to_ts,
+        )
 
         # Prepare dataset
-        nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
+        nb_buckets = int((hist.to_ts - hist.from_ts) / self.bucket_interval)
         nb_features = len(self.features)
-        nb_outputs = len(self._y_indexes())
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
-        daytime = np.zeros((nb_buckets, 1), dtype=float)
-        weekday = np.zeros((nb_buckets, 1), dtype=float)
+        daytime = np.empty((nb_buckets, 1), dtype=float)
+        weekday = np.empty((nb_buckets, 1), dtype=float)
 
         X = []
 
         # Fill dataset
-        logging.info("extracting data for range=[%s, %s]",
-                     hist_from_str, hist_to_str)
-        data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
+        logging.info("extracting data for range=%s", hist)
+        data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
 
         # Only a subset of history will be used for computing the prediction
         X_until = None # right bound for prediction
@@ -859,17 +1058,14 @@ class TimeSeriesModel(Model):
             weekday[i] = np.array(dt_get_weekday(dt))
 
             ts = dt.timestamp()
-            if ts < to_ts - self.bucket_interval:
+            if ts < period.to_ts - self.bucket_interval:
                 X.append(make_ts(timeval))
                 X_until = i + 1
 
         self.apply_defaults(dataset)
 
         if i is None:
-            raise errors.NoData("no data found for time range {}-{}".format(
-                hist_from_str,
-                hist_to_str,
-            ))
+            raise errors.NoData("no data found for time range {}".format(hist))
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
@@ -879,42 +1075,69 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
+        real = np.copy(dataset)
+        for j, feature in enumerate(self.features):
+            if feature.transform is not None:
+                dataset[:,j] = _transform(feature, dataset[:,j])
+
         if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        rng = _maxs - _mins
-        norm_dataset = 1.0 - (_maxs - dataset) / rng
+        # XXX For backward compatibility
+        if self.means is None:
+            logging.warning("model state has no mean values, new training needed")
+            self.means = np.nanmean(dataset, axis=0)
+        if self.stds is None:
+            logging.warning("model state has no std values, new training needed")
+            self.stds = np.nanstd(dataset, axis=0)
+            self.stds[self.stds == 0] = 1.0
 
-        j_sel, X_test = self._format_dataset_predict(norm_dataset[:X_until])
+        norm_dataset = self.canonicalize_dataset(dataset)
+
+        data_indexes, X_test = self._format_dataset_predict(norm_dataset[:X_until])
 
         if len(X_test) == 0:
             raise errors.LoudMLException("not enough data for prediction")
 
         logging.info("generating prediction")
-        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, nb_outputs))[:,0,:]
+        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, len(self._y_indexes())))[:,0,:]
 
-        # XXX: Sometime keras predict negative values, this is unexpected
-        Y_[Y_ < 0] = 0
+        for _, j, feature in self.enum_features(is_output=True):
+            if feature.scores == "standardize":
+                Y_[:,j] = np.clip(Y_[:,j], -3, 3)
+            elif feature.scores == "min_max":
+                Y_[:,j] = np.clip(Y_[:,j], 0, 1)
 
-        # min/max inverse operation
-        Z_ = _maxs[:nb_outputs] - rng[:nb_outputs] * (1.0 - Y_)
+        Y = self.uncanonicalize_dataset(Y_, only_outputs=True)
+
+        for i, j, feature in self.enum_features(is_output=True):
+            if feature.transform is not None:
+                Y[:,j] = _revert_transform(
+                    feature,
+                    Y[:,j],
+                    real[self._span,j],
+                )
 
         # Build final result
         timestamps = X[self._span:]
         last_ts = make_ts(X[-1])
         timestamps.append(last_ts + self.bucket_interval)
 
-        shape = (predict_len, nb_outputs)
-        observed = np.array([self.defaults] * predict_len)
-        predicted = np.array([self.defaults] * predict_len)
+        shape = (predict_len, len(self.features))
+        observed = np.full(shape, np.nan, dtype=float)
+        predicted = np.full(shape, np.nan, dtype=float)
 
-        for i, feature in enumerate(self.features):
-            if feature.is_input == True:
-                observed[:,i] = dataset[self._span:][:,i]
-            if feature.is_output == True:
-                predicted[j_sel - self._span,i] = Z_[:][:,i]
+        for i, j, feature in self.enum_features(is_input=True):
+            observed[:,i] = real[self._span:][:,i]
+
+        self.apply_defaults(observed)
+
+        for i, j, feature in self.enum_features(is_output=True):
+            predicted[data_indexes - self._span,i] = Y[:][:,j]
+
+        self.apply_defaults(predicted)
 
         return TimeSeriesPrediction(
             self,
@@ -948,45 +1171,44 @@ class TimeSeriesModel(Model):
     ):
         global _keras_model
 
-        from_ts = make_ts(from_date)
-        to_ts = make_ts(to_date)
+        for feature in self.features:
+            if feature.is_input and not feature.is_output:
+                raise Invalid("model has pure input feature(s), unable to forecast")
 
-        # Fixup range to be sure that it is a multiple of bucket_interval
-        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
-        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
-
-        from_str = ts_to_str(from_ts)
-        to_str = ts_to_str(to_ts)
+        period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
-        forecast_len = int((to_ts - from_ts) / self.bucket_interval)
+        forecast_len = int((period.to_ts - period.from_ts) / self.bucket_interval)
 
-        logging.info("forecast(%s) range=[%s, %s]",
-                     self.name, from_str, to_str)
+        logging.info("forecast(%s) range=%s", self.name, period)
 
         self.load()
 
         # Build history time range
         # Extra data are required to forecast first buckets
-        hist_from_ts = from_ts - self._span * self.bucket_interval
-        hist_to_ts = from_ts
-        hist_from_str = ts_to_str(hist_from_ts)
-        hist_to_str = ts_to_str(hist_to_ts)
+        hist = DateRange(
+            period.from_ts - self._span * self.bucket_interval,
+            period.from_ts,
+        )
+
+        for j, feature in enumerate(self.features):
+            if feature.transform == "diff":
+                hist.from_ts -= self.bucket_interval
+                break
 
         # Prepare dataset
-        nb_buckets = int((hist_to_ts - hist_from_ts) / self.bucket_interval)
+        nb_buckets = int((hist.to_ts - hist.from_ts) / self.bucket_interval)
         nb_features = len(self.features)
         y_indexes = self._y_indexes()
         nb_outputs = len(y_indexes)
         dataset = np.empty((nb_buckets, nb_features), dtype=float)
         dataset[:] = np.nan
-        daytime = np.zeros((nb_buckets, 1), dtype=float)
-        weekday = np.zeros((nb_buckets, 1), dtype=float)
+        daytime = np.empty((nb_buckets, 1), dtype=float)
+        weekday = np.empty((nb_buckets, 1), dtype=float)
 
         # Fill dataset
-        logging.info("extracting data for range=[%s, %s]",
-                     hist_from_str, hist_to_str)
-        data = datasource.get_times_data(self, hist_from_ts, hist_to_ts)
+        logging.info("extracting data for range=%s", hist)
+        data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
 
         i = None
         for i, (_, val, timeval) in enumerate(data):
@@ -996,10 +1218,7 @@ class TimeSeriesModel(Model):
             weekday[i] = np.array(dt_get_weekday(dt))
 
         if i is None:
-            raise errors.NoData("no data found for time range {}-{}".format(
-                hist_from_str,
-                hist_to_str,
-            ))
+            raise errors.NoData("no data found for time range %s".format(hist))
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
@@ -1009,69 +1228,94 @@ class TimeSeriesModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
+        y0 = np.empty(len(self._y_indexes()), dtype=float)
+        y0[:] = dataset[-1]
+
+        for j, feature in enumerate(self.features):
+            if feature.transform is not None:
+                dataset[:,j] = _transform(feature, dataset[:,j])
+
         if self.seasonality.get('daytime'):
             dataset = np.append(dataset, daytime, axis=1)
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        rng = _maxs - _mins
-        norm_dataset = 1.0 - (_maxs - dataset) / rng
-        _, X = self._format_dataset_predict(norm_dataset)
+        # XXX For backward compatibility
+        if self.means is None:
+            logging.warning("model state has no mean values, new training needed")
+            self.means = np.nanmean(dataset, axis=0)
+        if self.stds is None:
+            logging.warning("model state has no std values, new training needed")
+            self.stds = np.nanstd(dataset, axis=0)
+            self.stds[self.stds == 0] = 1.0
+
+        self.canonicalize_dataset(dataset, out=dataset)
+        data_indexes, X = self._format_dataset_predict(dataset)
 
         if len(X) == 0:
             raise errors.LoudMLException("not enough data for forecast")
 
         shape = (forecast_len, nb_features)
-        predicted = np.array([self.defaults] * forecast_len)
-        observed = np.empty(shape)
-        observed[:] = np.nan
+        predicted = np.full(shape, np.nan, dtype=float)
+        observed = np.full(shape, np.nan, dtype=float)
 
         logging.info("generating forecast")
         timestamps=[]
-        bucket_start = from_ts
-        j = 0
+        bucket_start = period.from_ts
+        bucket = 0
         xy_indexes = np.array(self._xy_indexes())
-        while bucket_start < to_ts:
+
+        while bucket_start < period.to_ts:
             Y_ = _keras_model.predict(X).reshape((self._forecast, nb_outputs))
+            for _, j, feature in self.enum_features(is_output=True):
+                if feature.scores == "standardize":
+                    Y_[:,j] = np.clip(Y_[:,j], -3, 3)
+                elif feature.scores == "min_max":
+                    Y_[:,j] = np.clip(Y_[:,j], 0, 1)
+
             if len(xy_indexes) > 0:
+                # Keep I/O feature only
                 _xy_indexes = xy_indexes - np.min(xy_indexes)
                 X[:, 0:self._forecast, xy_indexes] = Y_[:, _xy_indexes]
-            if self.seasonality.get('daytime'):
-                if self.seasonality.get('weekday'):
-                    dt_pos = -2
-                else:
-                    dt_pos = -1
 
-                dt_next = np.empty(shape=(self._forecast), dtype=float)
-                dt_next[:] = np.nan
-                for forecast_pos in range(self._forecast):
-                    timeval = bucket_start + forecast_pos * self.bucket_interval
-                    dt = make_datetime(timeval)
-                    dt_next[forecast_pos] = dt_get_daytime(dt)
+            has_daytime = self.seasonality.get('daytime')
+            has_weekday = self.seasonality.get('weekday')
 
-                norm_dt = 1.0 - (_maxs[dt_pos] - dt_next) / (_maxs[dt_pos] - _mins[dt_pos])
-                X[:, 0:self._forecast, dt_pos] = norm_dt
+            if has_daytime or has_weekday:
+                # Compute seasonality values for current forecast
 
-            if self.seasonality.get('weekday'):
-                dt_pos = -1
-                dt_next = np.empty(shape=(self._forecast), dtype=float)
-                dt_next[:] = np.nan
-                for forecast_pos in range(self._forecast):
-                    timeval = bucket_start + forecast_pos * self.bucket_interval
-                    dt = make_datetime(timeval)
-                    dt_next[forecast_pos] = dt_get_weekday(dt)
+                for i in range(self._forecast):
+                    dt = make_datetime(bucket_start + i * self.bucket_interval)
+                    col_pos = len(xy_indexes)
 
-                norm_dt = 1.0 - (_maxs[dt_pos] - dt_next) / (_maxs[dt_pos] - _mins[dt_pos])
-                X[:, 0:self._forecast, dt_pos] = norm_dt
+                    if has_daytime:
+                        val = canonicalize_daytime(dt_get_daytime(dt))
+                        X[:, 0:self._forecast, col_pos] = val
+                        col_pos += 1
 
-            X = np.roll(X,-self._forecast,axis=1)
-            Z_ = _maxs[y_indexes] - rng[y_indexes] * (1.0 - Y_)
-            for z in range(self._forecast):
-                if bucket_start < to_ts:
+                    if has_weekday:
+                        val = canonicalize_weekday(dt_get_weekday(dt)),
+                        X[:, 0:self._forecast, col_pos] = val
+                        col_pos += 1
+
+            X = np.roll(X, -self._forecast, axis=1)
+            Y = self.uncanonicalize_dataset(Y_, only_outputs=True)
+
+            for i, j, feature in self.enum_features(is_output=True):
+                if feature.transform:
+                    Y[:,j] = _revert_transform(feature, Y[:,j], y0[j])
+
+            for j in range(self._forecast):
+                if bucket_start < period.to_ts:
                     timestamps.append(bucket_start)
-                    predicted[j] = Z_[z][:]
+                    predicted[bucket] = Y[j][:]
                 bucket_start += self.bucket_interval
-                j += 1
+                bucket += 1
+
+            y0[:] = Y[-1]
+
+        self.apply_defaults(observed)
+        self.apply_defaults(predicted)
 
         return TimeSeriesPrediction(
             self,
@@ -1080,40 +1324,68 @@ class TimeSeriesModel(Model):
             predicted=predicted,
         )
 
-    def get_scores(self, predicted, observed):
+    def scoring(self, predicted, observed):
         """
         Compute scores and mean squared error
         """
 
-        global _mins, _maxs
+        _norm = norm()
+        x = np.empty((len(self._y_indexes()),), dtype=float)
+        y = np.empty((len(self._y_indexes()),), dtype=float)
+        scores = np.zeros((len(self._y_indexes()),), dtype=float)
 
-        outputs = [feature for feature in self.features if feature.is_output]
+        for i, j, feature in self.enum_features(
+            is_input=False,
+            is_output=True,
+        ):
+            x[j] = _get_scores(
+                feature,
+                observed[i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
+            y[j] = _get_scores(
+                feature,
+                predicted[i],
+                _min=self.mins[i],
+                _max=self.maxs[i],
+                _mean=self.means[i],
+                _std=self.stds[i],
+            )
 
-        nb_output = len(self._y_indexes())
-
-        rng = _maxs - _mins
-
-        X = observed
-        Y = predicted
-
-        X = 1.0 - (_maxs[:nb_output] - X) / rng[:nb_output]
-        Y = 1.0 - (_maxs[:nb_output] - Y) / rng[:nb_output]
-
-        diff = X - Y
-
-        for i, feature in enumerate(outputs):
+        diff = x - y
+        for i, j, feature in self.enum_features(
+            is_input=False,
+            is_output=True,
+        ):
             ano_type = feature.anomaly_type
+            if feature.scores == "standardize":
+                scores[j] = 2 * _norm.cdf(abs(x - y)) - 1
+                # Required to handle the 'low' condition
+                if diff[j] < 0:
+                    scores[j] *= -1
 
-            if ano_type == 'low':
-                diff[i] = -min(diff[i], 0)
-            elif ano_type == 'high':
-                diff[i] = max(diff[i], 0)
+                if ano_type == 'low':
+                    scores[j] = -min(scores[j], 0)
+                elif ano_type == 'high':
+                    scores[j] = max(scores[j], 0)
+                else:
+                    scores[j] = abs(scores[j])
+
+                scores[j] = 100 * max(0, min(1, scores[j]))
             else:
-                diff[i] = abs(diff[i])
+                if ano_type == 'low':
+                    diff[j] = -min(diff[j], 0)
+                elif ano_type == 'high':
+                    diff[j] = max(diff[j], 0)
+                else:
+                    diff[j] = abs(diff[j])
+
+                scores[j] = 100 * max(0, min(1, diff[j]))
 
         mse = (diff ** 2).mean(axis=None)
-        scores = np.clip(100 * diff, 0, 100)
-
         return scores, mse
 
     def detect_anomalies(self, prediction, hooks=[]):
@@ -1134,7 +1406,7 @@ class TimeSeriesModel(Model):
             predicted = prediction.predicted[i]
             observed = prediction.observed[i]
 
-            scores, mse = self.get_scores(
+            scores, mse = self.scoring(
                 predicted,
                 observed,
             )
@@ -1221,3 +1493,31 @@ class TimeSeriesModel(Model):
 
         prediction.stats = stats
         prediction.anomaly_indices = anomaly_indices
+
+    def test_constraint(self, prediction, feature_name, _type, threshold):
+        if _type == 'low':
+            exceeds = lambda x: x <= threshold
+        else:
+            exceeds = lambda x: x >= threshold
+
+        exceed_ts = None
+
+        for i, feature in enumerate(self.features):
+            if feature.name != feature_name:
+                continue
+
+            for j, ts in enumerate(prediction.timestamps):
+                value = prediction.predicted[j][i]
+
+                if exceeds(value):
+                    exceed_ts = ts
+                    break
+
+
+        prediction.constraint = {
+            'feature': feature_name,
+            'type': _type,
+            'threshold': threshold,
+            'date': ts_to_str(exceed_ts) if exceed_ts else None,
+        }
+        return exceed_ts

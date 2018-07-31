@@ -49,6 +49,7 @@ from .filestorage import (
 from .misc import (
     make_bool,
     load_entry_point,
+    parse_constraint,
 )
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
@@ -644,14 +645,6 @@ def _model_start(model, params):
     g_running_models[model.name] = timer
     timer.start()
 
-def _model_forecast(model, params):
-    """
-    Run forecast (one-shot)
-    """
-    job = ForecastJob(model.name, **params)
-    job.start()
-    return str(job.id)
-
 @app.route("/models/<model_name>/_predict", methods=['POST'])
 def model_predict(model_name):
     global g_storage
@@ -662,6 +655,7 @@ def model_predict(model_name):
         from_date=get_date_arg('from', is_mandatory=True),
         to_date=get_date_arg('to', is_mandatory=True),
         save_prediction=request.args.get('save_prediction', default=False),
+        save_scores=request.args.get('save_scores', default=False),
         detect_anomalies=request.args.get('detect_anomalies', default=False),
     )
     job.start()
@@ -677,6 +671,7 @@ def model_start(model_name):
 
     params = {
         'save_prediction': get_bool_arg('save_prediction'),
+        'save_scores': get_bool_arg('save_scores'),
         'detect_anomalies': get_bool_arg('detect_anomalies'),
     }
 
@@ -722,9 +717,18 @@ def model_forecast(model_name):
 
     params['from_date'] = get_date_arg('from', default='now')
     params['to_date'] = get_date_arg('to', is_mandatory=True)
-    job_id = _model_forecast(model, params)
 
-    return job_id, 200
+    constraint = request.args.get('constraint')
+    if constraint:
+        params['constraint'] = parse_constraint(constraint)
+
+    job = ForecastJob(model.name, **params)
+    job.start()
+
+    if get_bool_arg('bg', default=False):
+        return str(job.id)
+
+    return jsonify(job.result())
 
 #
 # Example of job
