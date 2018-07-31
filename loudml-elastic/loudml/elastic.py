@@ -640,12 +640,10 @@ class ElasticsearchDataSource(DataSource):
         agg_val = bucket[feature.name].get(feature.metric)
 
         if agg_val is None:
-            if feature.default is np.nan:
-                logging.info(
-                    "missing data: field '%s', metric: '%s', bucket: %s",
-                    feature.field, feature.metric, bucket['key'],
-                )
-            agg_val = feature.default
+            logging.info(
+                "missing data: field '%s', metric: '%s', bucket: %s",
+                feature.field, feature.metric, bucket['key'],
+            )
 
         return agg_val
 
@@ -685,7 +683,7 @@ class ElasticsearchDataSource(DataSource):
         t0 = None
 
         for bucket in es_res['aggregations']['histogram']['buckets']:
-            X = np.zeros(model.nb_features, dtype=float)
+            X = np.full(model.nb_features, np.nan, dtype=float)
             timestamp = int(bucket['key'])
             timeval = bucket['key_as_string']
 

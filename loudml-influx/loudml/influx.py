@@ -619,22 +619,19 @@ class InfluxDataSource(DataSource):
         result = []
 
         for bucket in buckets:
-            X = np.zeros(nb_features, dtype=float)
+            X = np.full(nb_features, np.nan, dtype=float)
             timeval = bucket['time']
             ts = str_to_ts(timeval)
 
             for i, feature in enumerate(features):
                 agg_val = bucket['values'].get(feature.name)
-
                 if agg_val is None:
-                    if feature.default is np.nan:
-                        logging.info(
-                            "missing data: field '%s', metric '%s', bucket: %s",
-                            feature.field, feature.metric, timeval,
-                        )
-                    agg_val = feature.default
-
-                X[i] = agg_val
+                    logging.info(
+                        "missing data: field '%s', metric '%s', bucket: %s",
+                        feature.field, feature.metric, timeval,
+                    )
+                else:
+                    X[i] = agg_val
 
             if t0 is None:
                 t0 = ts
