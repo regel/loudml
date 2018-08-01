@@ -10,7 +10,7 @@ import math
 import os
 import sys
 import numpy as np
-from scipy.stats import norm
+from scipy.stats import norm, halfnorm, normaltest
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
@@ -77,6 +77,25 @@ _hp_forecast_min = 1
 _hp_forecast_max = 5
 _hp_span_min = 5
 _hp_span_max = 20
+
+def is_normal(x):
+    k2, p = normaltest(x)
+    alpha = 1e-3
+    # print("p = {:g}".format(p))
+
+    if p < alpha:  # null hypothesis: x comes from a normal distribution
+        # print("The null hypothesis can be rejected")
+        return False
+    else:
+        # print("The null hypothesis cannot be rejected")
+        return True
+
+#def debug_dist(x):
+#    import matplotlib.pylab as plt
+#    import seaborn as sns
+#    sns.set()
+#    sns.distplot(x)
+#    plt.show()
 
 def _transform(feature, y):
     if feature.transform == "diff":
@@ -241,6 +260,29 @@ class TimeSeriesPrediction:
         self.stats = None
         self.constraint = None
 
+    def get_mse(self):
+        """
+        calculate mean square error(observed, predicted)
+        """
+        y_indexes = self.model._y_indexes()
+        diff = self.observed[:, y_indexes] - self.predicted[:, y_indexes]
+        mse = (diff ** 2).mean(axis=None)
+        return mse
+
+    def get_scores_list(self):
+        """
+        calculate min-max range for scores
+        """
+        scores = np.full(len(self.observed), np.nan, dtype=float)
+        j = 0
+        for observed, predicted in zip(self.observed, self.predicted):
+            scores[j], _ = self.model.scoring(
+                predicted,
+                observed,
+            )
+            j += 1
+        return scores.flatten()
+
     def get_anomalies(self):
         """
         Return anomalies
@@ -374,6 +416,7 @@ class TimeSeriesModel(Model):
         self.maxs = None
         self.means = None
         self.stds = None
+        self.scores = None
 
         if self.span is None or self.span == "auto":
             self.min_span = settings.get('min_span') or _hp_span_min
@@ -556,6 +599,23 @@ class TimeSeriesModel(Model):
         self.stds = np.nanstd(dataset, axis=0)
         self.stds[self.stds == 0] = 1.0
 
+    def set_auto_thresold(self):
+        """
+        Compute best threshold values automatically
+        """
+        scores = self.scores
+        hist, bins = np.histogram(scores, bins=np.arange(100, step=0.1), density=True)
+        if is_normal(scores):
+            mu, sigma = norm.fit(scores)
+            _range = (max(0, mu - 3 * sigma), min(100, mu + 3 * sigma))
+        else:
+#            debug_dist(scores)
+            mu, sigma = halfnorm.fit(scores)
+            _range = (0, min(100, mu + 3 * sigma))
+
+        self.min_threshold = (_range[1] - _range[0]) * 0.66
+        self.max_threshold = min(100.0, _range[1] * 1.05)
+
     def _train_on_dataset(
         self,
         dataset,
@@ -700,13 +760,7 @@ class TimeSeriesModel(Model):
         score = cross_val_model(HyperParameters(best_params))
         self.span = best_params['span']
         self.forecast_val = best_params['forecast']
-        (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
-            dataset,
-            train_size=train_size,
-        )
-
-        predicted = _keras_model.predict(X_test)
-        return (best_params, score, y_test[:], predicted[:])
+        return (best_params, score)
 
     def _format_dataset(self, dataset):
         """
@@ -785,6 +839,7 @@ class TimeSeriesModel(Model):
 
         self.mins, self.maxs = None, None
         self.means, self.stds = None, None
+        self.scores = None
 
         period =  self.build_date_range(from_date, to_date)
         logging.info(
@@ -837,7 +892,7 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        best_params, score, _, _ = self._train_on_dataset(
+        best_params, score = self._train_on_dataset(
             dataset,
             train_size,
             batch_size,
@@ -866,11 +921,18 @@ class TimeSeriesModel(Model):
             'means': self.means.tolist(),
             'stds': self.stds.tolist(),
             'loss': score[0],
-
         }
+        prediction = self.predict(datasource, from_date, to_date)
+        mse = prediction.get_mse()
+        self.scores = prediction.get_scores_list()
+        self._state.update({
+            'mse': mse,
+            'scores': self.scores.tolist(),
+        })
 
         return {
             'loss': score[0],
+            'mse': mse,
         }
 
     def load(self):
@@ -896,6 +958,16 @@ class TimeSeriesModel(Model):
             self.means = np.array(self._state['means'])
         if 'stds' in self._state:
             self.stds = np.array(self._state['stds'])
+        if 'scores' in self._state:
+            self.scores = np.array(self._state['scores'])
+            if self.min_threshold == 0 and self.max_threshold == 0:
+                self.set_auto_threshold()
+                logging.info(
+                    "setting threshold range min=%f max=%f",
+                    self.min_threshold,
+                    self.max_threshold,
+                )
+
 
     @property
     def is_trained(self):
