@@ -154,13 +154,13 @@ class Model:
         self.max_threshold = self.settings.get('max_threshold')
         if self.max_threshold is None:
             # Backward compatibility
-            self.max_threshold = self.settings.get('threshold', 75)
+            self.max_threshold = self.settings.get('threshold', 0)
             self.settings['max_threshold'] = self.max_threshold
 
         self.min_threshold = self.settings.get('min_threshold')
         if self.min_threshold is None:
             # Backward compatibility
-            self.min_threshold = self.settings.get('threshold', 75)
+            self.min_threshold = self.settings.get('threshold', 0)
             self.settings['min_threshold'] = self.min_threshold
 
     @classmethod
