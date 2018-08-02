@@ -871,7 +871,7 @@ class TimeSeriesModel(Model):
             weekday[i] = np.array(dt_get_weekday(dt))
 
         if i is None:
-            raise errors.NoData("no data found for time range %s".format(period))
+            raise errors.NoData("no data found for time range {}".format(period))
 
         self.apply_defaults(dataset)
 
@@ -1275,7 +1275,7 @@ class TimeSeriesModel(Model):
             weekday[i] = np.array(dt_get_weekday(dt))
 
         if i is None:
-            raise errors.NoData("no data found for time range %s".format(hist))
+            raise errors.NoData("no data found for time range {}".format(hist))
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
