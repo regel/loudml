@@ -78,7 +78,11 @@ class EventGenerator(metaclass=ABCMeta):
             if nb_events <= 0:
                 continue
 
-            nb_events = int(nb_events)
+            # If nb_event is not an integer, use decimal part as
+            # the probability to get an extra event.
+            p = nb_events - int(nb_events)
+            extra = 1 if random.random() <= p else 0
+            nb_events = int(nb_events) + extra
 
             for i in range(nb_events):
                 yield ts + i / float(nb_events)
