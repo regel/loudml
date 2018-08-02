@@ -266,7 +266,7 @@ class TimeSeriesPrediction:
         """
         y_indexes = self.model._y_indexes()
         diff = self.observed[:, y_indexes] - self.predicted[:, y_indexes]
-        mse = (diff ** 2).mean(axis=None)
+        mse = np.nanmean((diff ** 2), axis=None)
         return mse
 
     def get_scores_list(self):
