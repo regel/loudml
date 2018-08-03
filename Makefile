@@ -55,6 +55,7 @@ rpm:
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic-aws rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-influx rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-import rpm
+	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-warp10 rpm
 	@echo -e "\nRPM packages:"
 	@find $(BUILD_DIR) -name '*.rpm'
 
@@ -67,6 +68,7 @@ deb:
 	$(MAKE) -C loudml-elastic-aws deb
 	$(MAKE) -C loudml-influx deb
 	$(MAKE) -C loudml-import deb
+	$(MAKE) -C loudml-warp10 deb
 	@echo -e "\nDEB packages:"
 	@find -name '*.deb'
 

@@ -17,4 +17,17 @@ test:
 	# WARP10_READ_TOKEN and WARP10_WRITE_TOKEN environment variables must be set
 	nosetests-3.4 -v tests/
 
+rpm: $(NAME).rpm
+
+$(NAME).rpm: $(NAME).spec
+	$(call rpmsrc,$(FULLNAME))
+	$(call rpmbuild,$(FULLNAME),$(NAME))
+
+deb: $(NAME).deb
+
+$(NAME).deb: debian/changelog
+	$(call debbuild,$(FULLNAME))
+
+.PHONY: rpm deb debian/changelog debian/control
+
 include ../build.mk

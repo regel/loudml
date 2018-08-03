@@ -21,13 +21,16 @@ from loudml.warp10 import (
     Warp10DataSource,
 )
 
+SCW_READ_TOKEN = "RpOCNdxiepotjQzfGub95Te42z5E8XbjfzCe.Q_heDurpC6qVdn4JLiCO_VDJq20SCOG3AtwvvxVqxBWcQnsLEkIRUtYWHplcaI80QGaUBre9aBIyxD7TGAF0a55QTiGapNm7G3KU0BfBYKwUYwp3vkHe7WVo0Zx"
+SCW_WRITE_TOKEN = "q3pnfOmr7NG5Rp1W1jXEDkzSwN9BFRL67Kl9yBGgq64va8H6tmUqwWDt5Yv_iSYwdy5rTJ2I9YToEc.4XUKDXPJtk_EMW7w_pvOcYLpqzQvzP8eJd7ZHf.cesGjmEFzB"
+
 class TestWarp10(unittest.TestCase):
     def setUp(self):
         self.source = Warp10DataSource({
             'name': 'test',
-            'url': os.environ.get('url', 'http://localhost:8080/api/v0'),
-            'read_token': os.environ['WARP10_READ_TOKEN'],
-            'write_token': os.environ['WARP10_WRITE_TOKEN'],
+            'url': os.environ.get('url', 'http://test-warp10.loudml.io:8080/api/v0'),
+            'read_token': os.environ.get('WARP10_READ_TOKEN', SCW_READ_TOKEN),
+            'write_token': os.environ.get('WARP10_WRITE_TOKEN', SCW_WRITE_TOKEN),
         })
 
         self.tag = {'test': str(datetime.datetime.now().timestamp())}
