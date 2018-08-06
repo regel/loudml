@@ -58,6 +58,7 @@ done
 %{python3_sitelib}/loudml/*
 %{python3_sitelib}/loudml_influx*.pth
 %dir %{python3_sitelib}/loudml_influx*.egg-info
+%{python3_sitelib}/loudml_influx*.egg-info/*
 
 %doc
 
