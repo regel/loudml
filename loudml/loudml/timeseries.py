@@ -262,6 +262,14 @@ class TimeSeriesPrediction:
         self.scores = None
         self.mse = None
 
+    def truncate(self, n):
+        if len(self.timestamps) > n:
+            self.scores = None
+            self.mse = None
+            self.timestamps = self.timestamps[-n:]
+            self.observed = self.observed[-n:,:]
+            self.predicted = self.predicted[-n:,:]
+
     def get_anomalies(self):
         """
         Return anomalies
