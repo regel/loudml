@@ -934,6 +934,8 @@ class TimeSeriesModel(Model):
 
         if not self.is_trained:
             raise errors.ModelNotTrained()
+        if _keras_model is not None:
+            return
 
         _keras_model, _graph = _load_keras_model(
             self._state['graph'],
