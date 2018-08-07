@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import random
 import unittest
 
 logging.getLogger('tensorflow').disabled = True
@@ -13,6 +14,8 @@ from loudml.misc import (
     list_from_np,
     ts_to_str,
 )
+
+from loudml.randevents import SinEventGenerator
 
 from loudml.timeseries import (
     TimeSeriesModel,
@@ -32,6 +35,8 @@ class TestWarp10(unittest.TestCase):
             'read_token': os.environ.get('WARP10_READ_TOKEN', SCW_READ_TOKEN),
             'write_token': os.environ.get('WARP10_WRITE_TOKEN', SCW_WRITE_TOKEN),
         })
+        logger = logging.getLogger('warp10client.client')
+        logger.setLevel(logging.INFO)
 
         self.tag = {'test': str(datetime.datetime.now().timestamp())}
 
@@ -169,3 +174,58 @@ BUCKETIZE
                 "2017-01-01T00:00:00Z",
                 "2017-01-31T00:00:00Z",
             )
+
+    def test_train(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=5,
+            bucket_interval=60 * 60,
+            interval=60,
+            features=[
+                {
+                    'name': 'count_foo',
+                    'metric': 'count',
+                    'measurement': 'measure1',
+                    'field': 'foo',
+                    'default': 0,
+                },
+                {
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'measurement': 'measure1',
+                    'field': 'foo',
+                    'default': 5,
+                },
+            ],
+            threshold=30,
+            max_evals=1,
+        ))
+
+        generator = SinEventGenerator(base=3, sigma=0.05)
+
+        to_date = datetime.datetime.now(datetime.timezone.utc).replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        ).timestamp()
+        from_date = to_date - 3600 * 24
+
+        for ts in generator.generate_ts(from_date, to_date, step_ms=60000):
+            self.source.insert_times_data(
+                measurement='measure1',
+                ts=ts,
+                tags=self.tag,
+                data={
+                    'foo': random.lognormvariate(10, 1)
+                },
+            )
+
+        self.source.commit()
+
+        # Train
+        model.train(self.source, from_date=from_date, to_date=to_date)
+
+        # Check
+        self.assertTrue(model.is_trained)
