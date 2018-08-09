@@ -251,11 +251,13 @@ class TimeSeriesPrediction:
     Time-series prediction
     """
 
-    def __init__(self, model, timestamps, observed, predicted):
+    def __init__(self, model, timestamps, observed, predicted, upper=None, lower=None):
         self.model = model
         self.timestamps = timestamps
         self.observed = observed
         self.predicted = predicted
+        self.upper = upper
+        self.lower = lower
         self.anomaly_indices = None
         self.stats = None
         self.constraint = None
@@ -269,6 +271,8 @@ class TimeSeriesPrediction:
             self.timestamps = self.timestamps[-n:]
             self.observed = self.observed[-n:,:]
             self.predicted = self.predicted[-n:,:]
+            self.lower = self.lower[-n:,:]
+            self.upper = self.upper[-n:,:]
 
     def get_anomalies(self):
         """
@@ -292,6 +296,11 @@ class TimeSeriesPrediction:
                 observed[feature.name] = _list_from_np(self.observed[:,i])
             if feature.is_output:
                 predicted[feature.name] = _list_from_np(self.predicted[:,i])
+                if self.lower is not None:
+                    predicted['lower_{}'.format(feature.name)] = _list_from_np(self.lower[:,i])
+                if self.upper is not None:
+                    predicted['upper_{}'.format(feature.name)] = _list_from_np(self.upper[:,i])
+
 
         result = {
             'timestamps': self.timestamps,
@@ -309,15 +318,26 @@ class TimeSeriesPrediction:
         Format observation and prediction for one bucket
         """
         features = self.model.features
+        predicted = {
+            feature.name: _nan_to_none(self.predicted[i][j])
+            for j, feature in enumerate(features) if feature.is_output
+        }
+        if self.lower is not None:
+            predicted.update({
+                'lower_{}'.format(feature.name): _nan_to_none(self.lower[i][j])
+                for j, feature in enumerate(features) if feature.is_output
+            })
+        if self.upper is not None:
+            predicted.update({
+                'upper_{}'.format(feature.name): _nan_to_none(self.upper[i][j])
+                for j, feature in enumerate(features) if feature.is_output
+            })
         return {
             'observed': {
                 feature.name: _nan_to_none(self.observed[i][j])
                 for j, feature in enumerate(features) if feature.is_input
             },
-            'predicted': {
-                feature.name: _nan_to_none(self.predicted[i][j])
-                for j, feature in enumerate(features) if feature.is_output
-            },
+            'predicted': predicted
         }
 
     def _format_bucket(self, i):
@@ -1225,6 +1245,23 @@ class TimeSeriesModel(Model):
             predicted=np.array([normal, normal, normal]),
         )
 
+    def clip(self, X):
+        X_ = self.canonicalize_dataset(X, only_outputs=True)
+        for _, j, feature in self.enum_features(is_output=True):
+            if feature.scores == "standardize":
+                X_[:,j] = np.clip(X_[:,j], -3, 3)
+            elif feature.scores == "min_max":
+                X_[:,j] = np.clip(X_[:,j], 0, 1)
+
+        X = self.uncanonicalize_dataset(X_, only_outputs=True)
+        return X
+
+    def build_lower_upper(self, predicted):
+        root_mse = math.sqrt(self._state['mse'])
+        lower = self.clip(predicted - root_mse)
+        upper = self.clip(predicted + root_mse)
+        return lower, upper
+
     def forecast(
         self,
         datasource,
@@ -1388,11 +1425,15 @@ class TimeSeriesModel(Model):
         self.apply_defaults(observed)
         self.apply_defaults(predicted)
 
+        lower, upper = self.build_lower_upper(predicted)
+
         return TimeSeriesPrediction(
             self,
             timestamps=timestamps,
             observed=observed,
             predicted=predicted,
+            lower=lower,
+            upper=upper,
         )
 
     def compute_bucket_scores(self, predicted, observed):
