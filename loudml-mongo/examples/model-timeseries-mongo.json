@@ -1,0 +1,37 @@
+{
+  "bucket_interval": "20m",
+  "default_datasource": "mongo",
+  "features": [
+    {
+      "field": "foo",
+      "measurement": "mydata",
+      "metric": "avg",
+      "name": "avg_foo"
+    },
+    {
+      "default": 0,
+      "field": "foo",
+      "measurement": "mydata",
+      "metric": "count",
+      "name": "count_foo"
+    },
+    {
+      "default": 0,
+      "field": "bar",
+      "measurement": "mydata",
+      "metric": "avg",
+      "name": "avg_bar",
+      "match_all": [
+        {"tag": "mytag1", "value": "myvalue1"},
+        {"tag": "mytag2", "value": "myvalue2"}
+      ]
+    }
+  ],
+  "interval": 60,
+  "max_evals": 100,
+  "name": "timeseries-mongo",
+  "offset": 30,
+  "span": 5,
+  "threshold": 30,
+  "type": "timeseries"
+}

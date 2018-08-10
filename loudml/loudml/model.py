@@ -34,6 +34,7 @@ class Feature:
         Required('metric'): All(schemas.key, Length(max=256)),
         Required('field'): All(schemas.key, Length(max=256)),
         'measurement': Any(None, schemas.key),
+        'collection': Any(None, schemas.key),
         'match_all': Any(None, Schema([
             {Required(schemas.key): Any(
                 int,
@@ -55,6 +56,7 @@ class Feature:
         metric=None,
         field=None,
         measurement=None,
+        collection=None,
         match_all=None,
         default=None,
         script=None,
@@ -67,6 +69,7 @@ class Feature:
         self.name = name
         self.metric = metric
         self.measurement = measurement
+        self.collection = collection
         self.field = field
         self.default = np.nan if default is None else default
         self.script = script
