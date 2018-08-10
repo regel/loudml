@@ -60,22 +60,30 @@ class DataSource(metaclass=ABCMeta):
     def drop(self):
         pass
 
+    def nb_pending(self):
+        return len(self._pending)
+
+    def clear_pending(self):
+        del self._pending[:]
+
     def commit(self):
         """
         Send data
         """
-        if len(self._pending) > 0:
+        if self.nb_pending() > 0:
             self.send_bulk(self._pending)
-            del self._pending[:]
+            self.clear_pending()
         self._last_commit = datetime.datetime.now()
 
-    def _must_commit(self):
+    def must_commit(self):
         """
-        Tell if pending data must be sent to Elasticsearch
+        Tell if pending data must be sent to the datasource
         """
-        if len(self._pending) == 0:
+        nb_pending = self.nb_pending()
+
+        if nb_pending == 0:
             return False
-        if len(self._pending) >= 1000:
+        if nb_pending >= 1000:
             return True
         if (datetime.datetime.now() - self._last_commit).seconds >= 1:
             return True
@@ -87,7 +95,7 @@ class DataSource(metaclass=ABCMeta):
         """
         self._pending.append(req)
 
-        if self._must_commit():
+        if self.must_commit():
             self.commit()
 
     @abstractmethod
