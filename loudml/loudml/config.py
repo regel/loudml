@@ -17,7 +17,6 @@ from . import (
 
 from loudml.license import License
 
-DEFAULT_MAX_RUNNING_MODELS = 3
 DEFAULT_LICENSE_PATH = '/etc/loudml/license.lic'
 
 class Config:
@@ -52,18 +51,12 @@ class Config:
             self._server['workers'] = multiprocessing.cpu_count()
         if 'maxtasksperchild' not in self._server:
             self._server['maxtasksperchild'] = 1
-        self._server['maxrunningmodels'] = DEFAULT_MAX_RUNNING_MODELS
-        self._server['allowed_models'] = ['timeseries']
 
 
     @property
     def datasources(self):
         # XXX: return a copy to prevent modification by the caller
         return copy.deepcopy(self._datasources)
-
-    @property
-    def license(self):
-        return self._license
 
     @property
     def storage(self):
@@ -86,49 +79,38 @@ class Config:
             raise errors.DataSourceNotFound(name)
 
 
-    def set_limits(self, license_file):
+    def load_limits(self):
         """
         Enforce limitations described in license file
-
-        :param license_file: path to license file
-        :type  license_file: str
 
         :raise Exception: when unable to validate license
 
         If no license file is provided, defaults are used.
         """
-
-        # Keep defaults
-        if license_file is None:
-            return
-
+        path = self._license['path']
         l = License()
-        l.load(license_file)
-        if not l.validate():
-            raise Exception("unable to validate license")
 
-        if l.has_expired():
-            logging.warning("license has expired")
+        try:
+            if path is None:
+                self.limits = l.default_payload()['features']
+            else:
+                l.load(path)
+                l.global_check()
+                self.limits = l.payload['features']
+        except FileNotFoundError as e:
+            raise errors.LoudMLException("Unable to read license file " + path + str(e))
+        except Exception as e:
+            raise errors.LoudMLException("License error " + path + ": " + str(e))
 
-        if not l.version_allowed():
-            raise Exception("software version not allowed")
-
-        if not l.host_allowed():
-            raise Exception("host_id not allowed")
-
-        data = json.loads(l.data.decode('ascii'))
-        limits = data['features']
-        self.server['maxrunningmodels'] = limits['nrmodels']
-        if limits['fingerprints']:
-            self.server['allowed_models'].append('fingerprints')
+        self.license_payload = l.payload
 
 
-def load_config(config_path):
+def load_config(path):
     """
     Load configuration file
     """
     try:
-        with open(config_path) as config_file:
+        with open(path) as config_file:
             config_data = yaml.load(config_file)
     except OSError as exn:
         raise errors.LoudMLException(exn)
@@ -136,14 +118,7 @@ def load_config(config_path):
         raise errors.LoudMLException(exn)
 
     config = Config(config_data)
-
-    license_path = config.license['path']
-    try:
-        config.set_limits(license_path)
-    except FileNotFoundError as e:
-        raise errors.LoudMLException("Unable to read license file " + license_path + str(e))
-    except Exception as e:
-        raise errors.LoudMLException("License error " + license_path + ": " + str(e))
+    config.load_limits()
 
     return config
 

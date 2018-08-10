@@ -36,6 +36,7 @@ def get_datasource(config, src_name):
     Get and load data source by name
     """
     settings = config.get_datasource(src_name)
+    settings['allowed'] = config.limits['datasources']
     return loudml.datasource.load_datasource(settings)
 
 class Command:
@@ -43,11 +44,11 @@ class Command:
         self._config_path = None
         self._config = None
 
-    def set_config(self, config_path):
+    def set_config(self, path):
         """
         Set path to the configuration file
         """
-        self._config_path = config_path
+        self._config_path = path
 
     @property
     def config(self):
@@ -117,20 +118,15 @@ class CreateModelCommand(Command):
 
     def exec(self, args):
         model_settings = self.load_model_file(args.model_file)
-        model_settings['allowed'] = self.config.server['allowed_models']
+        model_settings['allowed'] = self.config.limits['models']
         model = loudml.model.load_model(settings=model_settings)
 
         storage = FileStorage(self.config.storage['path'])
 
-        if len(storage.list_models()) >= self.config.server['maxrunningmodels']:
-            raise errors.LimitReached(
-                "maximum number of running models is reached",
-            )
-
         if args.force and storage.model_exists(model.name):
             storage.delete_model(model.name)
 
-        storage.create_model(model)
+        storage.create_model(model, self.config.limits)
         logging.info("model '%s' created", model.name)
 
 

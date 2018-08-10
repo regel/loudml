@@ -1,0 +1,11 @@
+{
+    "features": {
+        "nrmodels": 10,
+        "datasources": [ "elasticsearch", "influxdb" ],
+        "models": [ "timeseries" ]
+    },
+    "version": 1,
+    "exp_date": "2019-01-01",
+    "hostid": "any",
+    "serial_num": "0"
+}

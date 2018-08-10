@@ -101,7 +101,11 @@ class FileStorage(Storage):
         self._write_model_settings(path, settings)
         self._write_model_state(path, state)
 
-    def create_model(self, model):
+    def create_model(self, model, limits=None):
+        if limits and len(_self.list_models()) >= limits['nrmodels']:
+            raise errors.Forbidden(
+                    "You've reached the maximum count allowed in your license")
+
         model_path = self.model_path(model.name)
 
         if os.path.exists(model_path):

@@ -26,5 +26,7 @@ loudml/debian/loudml.postrm.debhelper
 loudml/debian/loudml.prerm.debhelper
 loudml/debian/loudml.substvars
 loudml/debian/loudml-enterprise.substvars
+loudml/debian/loudml-internal.substvars
 loudml/debian/loudml/
 loudml/debian/loudml-enterprise/
+loudml/debian/loudml-internal/

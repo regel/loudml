@@ -63,6 +63,7 @@ setup(
             'loudmld=loudml.server:main',
             'loudml-faker=loudml.faker:main',
             'loudml=loudml.cli:main',
+            'loudml-lic=loudml.license_mgmnt:main',
         ],
         'loudml.commands': [
             'create-model=loudml.cli:CreateModelCommand',

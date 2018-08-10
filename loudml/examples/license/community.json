@@ -1,0 +1,8 @@
+{
+    "features": {
+        "nrmodels": 3,
+        "datasources": [ "elasticsearch", "influxdb" ],
+        "models": [ "timeseries" ]
+    },
+    "hostid": "any",
+}

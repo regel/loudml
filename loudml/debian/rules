@@ -40,8 +40,13 @@ override_dh_install:
 	done
 	find ${_pydir} -name requires.txt | xargs rm -f
 
+	# loudml-enterprise subpackage
 	mkdir -p ${_enterprise_pydir}/loudml
 	mv ${_pydir}/loudml/fingerprints.* ${_enterprise_pydir}/loudml
+
+	# loudml-internal subpackage
+	mkdir -p debian/loudml-internal/usr/bin
+	mv debian/loudml/usr/bin/loudml-lic debian/loudml-internal/usr/bin/
 
 override_dh_installinit:
 	dh_installinit --no-start --name=loudmld

@@ -1,0 +1,11 @@
+{
+    "features": {
+        "nrmodels": 50,
+        "datasources": [ "elasticsearch", "elasticsearch_aws", "influxdb", "mongodb", "warp10"],
+        "models": [ "timeseries", "fingerprints" ]
+    },
+    "version": 1,
+    "exp_date": "2019-01-01",
+    "hostid": "any",
+    "serial_num": "0"
+}

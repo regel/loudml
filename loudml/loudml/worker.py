@@ -65,6 +65,7 @@ class Worker:
 
         src_name = datasource or model.default_datasource
         src_settings = self.config.get_datasource(src_name)
+        src_settings['allowed'] = self.config.limits['datasources']
         source = loudml.datasource.load_datasource(src_settings)
 
         def progress_cb(current_eval, max_evals):
@@ -99,6 +100,7 @@ class Worker:
 
         model = self.storage.load_model(model_name)
         src_settings = self.config.get_datasource(model.default_datasource)
+        src_settings['allowed'] = self.config.limits['datasources']
         source = loudml.datasource.load_datasource(src_settings)
         prediction = model.predict(source, **kwargs)
 
@@ -158,6 +160,7 @@ class Worker:
 
         model = self.storage.load_model(model_name)
         src_settings = self.config.get_datasource(model.default_datasource)
+        src_settings['allowed'] = self.config.limits['datasources']
         source = loudml.datasource.load_datasource(src_settings)
 
         constraint = kwargs.pop('constraint')

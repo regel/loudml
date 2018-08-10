@@ -229,10 +229,10 @@ def load_model(settings, state=None):
     """
 
     model_type = settings['type']
-    allowed_models = settings['allowed']
 
-    if model_type not in allowed_models:
-        raise errors.UnsupportedModel(model_type)
+    if 'allowed' in settings and model_type not in settings['allowed']:
+        raise errors.Forbidden("Not allowed by license: " + model_type)
+
     model_cls = misc.load_entry_point('loudml.models', model_type)
 
     if model_cls is None:

@@ -52,6 +52,9 @@ from .misc import (
     load_entry_point,
     parse_constraint,
 )
+from .license import (
+    License,
+)
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 api = Api(app)
@@ -63,6 +66,8 @@ g_storage = None
 g_pool = None
 g_queue = None
 g_running_models = {}
+
+MAX_RUNNING_MODELS = 3
 
 # Do not change: pid file to ensure we're running single instance
 APP_INSTALL_PATHS = [
@@ -329,15 +334,10 @@ class ModelsResource(Resource):
         global g_storage
 
         settings = request.json
-        settings['allowed'] = g_config.server['allowed_models']
+        settings['allowed'] = g_config.limits['models']
         model = loudml.model.load_model(settings=settings)
 
-        if len(g_storage.list_models()) >= g_config.server['maxrunningmodels']:
-            raise errors.LimitReached(
-                "maximum number of running models is reached",
-            )
-
-        g_storage.create_model(model)
+        g_storage.create_model(model, g_config.limits)
 
         return "success", 201
 
@@ -366,7 +366,7 @@ class ModelResource(Resource):
             return "model description is missing", 400
 
         settings['name'] = model_name
-        settings['allowed'] = g_config.server['allowed_models']
+        settings['allowed'] = g_config.limits['models']
         model = loudml.model.load_model(settings=settings)
 
         try:
@@ -374,12 +374,7 @@ class ModelResource(Resource):
         except errors.ModelNotFound:
             pass
 
-        if len(g_storage.list_models()) >= g_config.server['maxrunningmodels']:
-            raise errors.LimitReached(
-                "maximum number of running models is reached",
-            )
-
-        g_storage.create_model(model)
+        g_storage.create_model(model, limits)
         logging.info("model '%s' updated", model_name)
         return "success"
 
@@ -625,7 +620,7 @@ def _model_start(model, params):
             "real-time prediction is already active for this model",
         )
 
-    if len(g_running_models) >= g_config.server['maxrunningmodels']:
+    if len(g_running_models) >= MAX_RUNNING_MODELS:
         raise errors.LimitReached(
             "maximum number of running models is reached",
         )
@@ -767,12 +762,17 @@ def model_forecast(model_name):
 #    job.start()
 #    return str(job.id)
 
+@app.route("/license")
+def license():
+    return jsonify(g_config.license_payload)
+
 @app.route("/")
 def slash():
     version = pkg_resources.get_distribution("loudml").version
     return jsonify({
         'version': version,
         'tagline': "The Disruptive Machine Learning API",
+        'host_id': License.my_host_id(),
     })
 
 @app.errorhandler(403)

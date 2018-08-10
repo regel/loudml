@@ -24,8 +24,14 @@ Requires: loudml-base
 %define debug_package %{nil}
 
 %package enterprise
-Group:   Applications/System
-Summary: LoudML Enterprise exclusive features
+Group:    Applications/System
+Summary:  LoudML Enterprise exclusive features
+Requires: loudml == %{version}
+
+%package internal
+Group:    Applications/System
+Summary:  LoudML tools for internal usage
+Requires: loudml == %{version}
 
 %description
 
@@ -33,6 +39,12 @@ Summary: LoudML Enterprise exclusive features
 %description enterprise
 
 Additional model: fingerprints.
+
+
+%description internal
+
+Internal tools:
+- license management
 
 
 %prep
@@ -104,6 +116,7 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 # Skip dependencies management by pkg_resources (does not work well with our
 # vendor system)
 %exclude %{python3_sitelib}/loudml-*.egg-info/requires.txt
+%exclude %{_bindir}/loudml-lic
 %{_bindir}/*
 %license %{_datarootdir}/loudml/LICENSE
 %dir %{python3_sitelib}/rmn_common
@@ -122,6 +135,11 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 
 %files enterprise
 %{python3_sitelib}/loudml/fingerprints.pyc
+
+
+%files internal
+%{_bindir}/loudml-lic
+
 
 %doc
 

@@ -34,7 +34,7 @@ class Storage(metaclass=ABCMeta):
         """List models"""
 
     @abstractmethod
-    def create_model(self, model):
+    def create_model(self, model, limits):
         """Create model"""
 
     @abstractmethod

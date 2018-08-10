@@ -107,6 +107,11 @@ class UnsupportedModel(LoudMLException):
         return "{} (type = '{}')".format(self.error, self.model_type)
 
 
+class Forbidden(LoudMLException):
+    """Forbidden"""
+    code = 403
+
+
 class NotFound(LoudMLException):
     """Not found"""
     code = 404

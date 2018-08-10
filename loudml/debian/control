@@ -31,3 +31,11 @@ Depends:
   loudml (= ${binary:Version}),
 Description: LoudML Enterprise exclusive features
  Additional model: fingerprints.
+
+Package: loudml-internal
+Architecture: all
+Depends:
+  loudml (= ${binary:Version}),
+Description: LoudML tools for internal usag
+ Internal tools:
+ - license management
