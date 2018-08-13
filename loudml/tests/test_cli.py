@@ -26,6 +26,7 @@ server:
   listen: localhost:8077
 """
 
+
 def execute(cmd):
     out = StringIO()
 
@@ -37,6 +38,7 @@ def execute(cmd):
             raise exn
 
     return out.getvalue().strip()
+
 
 class TestCli(unittest.TestCase):
     def setUp(self):
@@ -57,6 +59,9 @@ class TestCli(unittest.TestCase):
             "model-timeseries-influx.yml",
         )
 
+    def tearDown(self):
+        os.unlink(self.config)
+
     def test_commands(self):
         commands = set([name for name, _ in loudml.cli.get_commands()])
 
@@ -70,7 +75,7 @@ class TestCli(unittest.TestCase):
                 "forecast",
                 "train",
                 "show-model",
-            ]),
+                ]),
         )
 
     def test_create_list_delete(self):

@@ -34,8 +34,16 @@ class Storage(metaclass=ABCMeta):
         """List models"""
 
     @abstractmethod
-    def create_model(self, model, limits):
-        """Create model"""
+    def create_model(self, model, config):
+        """
+        Create a model
+
+        :param model: model
+        :type  model: loudml.Model
+
+        :param config: running configuration
+        :type  config: loudml.Config
+        """
 
     @abstractmethod
     def delete_model(self, name):

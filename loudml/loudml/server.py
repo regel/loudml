@@ -7,7 +7,6 @@ import loudml.vendor
 import argparse
 import concurrent.futures
 import datetime
-import json
 import logging
 import multiprocessing
 import pebble
@@ -72,9 +71,10 @@ MAX_RUNNING_MODELS = 3
 # Do not change: pid file to ensure we're running single instance
 APP_INSTALL_PATHS = [
     "/usr/bin/loudmld",
-    "/bin/loudmld", # With RPM, binaries are also installed here
+    "/bin/loudmld",  # With RPM, binaries are also installed here
 ]
 LOCK_FILE = "/var/tmp/loudmld.lock"
+
 
 class RepeatingTimer(object):
     def __init__(self, interval, cb, *args, **kwargs):
@@ -206,6 +206,7 @@ def job_stop(job_id):
     job.cancel()
     return "job canceled"
 
+
 def set_job_state(job_id, state, progress=None):
     """
     Set job state
@@ -224,6 +225,7 @@ def set_job_state(job_id, state, progress=None):
 
     job.state = state
     job.progress = progress
+
 
 def read_messages():
     """
@@ -244,6 +246,7 @@ def read_messages():
         except queue.Empty:
             break
 
+
 @app.errorhandler(errors.LoudMLException)
 def handle_loudml_error(exn):
     response = jsonify({
@@ -251,6 +254,7 @@ def handle_loudml_error(exn):
     })
     response.status_code = exn.code
     return response
+
 
 def catch_loudml_error(func):
     def wrapper(*args, **kwargs):
@@ -262,6 +266,7 @@ def catch_loudml_error(func):
     wrapper.__name__ = '{}_wrapper'.format(func.__name__)
     return wrapper
 
+
 def get_bool_arg(param, default=False):
     """
     Read boolean URL parameter
@@ -270,6 +275,7 @@ def get_bool_arg(param, default=False):
         return make_bool(request.args.get(param, default))
     except ValueError:
         raise errors.Invalid("invalid value for parameter '{}'".format(param))
+
 
 def get_int_arg(param, default=None):
     """
@@ -281,6 +287,7 @@ def get_int_arg(param, default=None):
         return default
     except ValueError:
         raise errors.Invalid("invalid value for parameter '{}'".format(param))
+
 
 def get_date_arg(param, default=None, is_mandatory=False):
     """
@@ -294,6 +301,7 @@ def get_date_arg(param, default=None, is_mandatory=False):
         return default
 
     return schemas.validate(schemas.Timestamp(), value, name=param)
+
 
 def get_model_info(name):
     global g_storage
@@ -318,6 +326,7 @@ def get_model_info(name):
 
     return info
 
+
 class ModelsResource(Resource):
     @catch_loudml_error
     def get(self):
@@ -334,10 +343,9 @@ class ModelsResource(Resource):
         global g_storage
 
         settings = request.json
-        settings['allowed'] = g_config.limits['models']
-        model = loudml.model.load_model(settings=settings)
+        model = loudml.model.load_model(settings=settings, config=g_config)
 
-        g_storage.create_model(model, g_config.limits)
+        g_storage.create_model(model, g_config)
 
         return "success", 201
 
@@ -366,21 +374,21 @@ class ModelResource(Resource):
             return "model description is missing", 400
 
         settings['name'] = model_name
-        settings['allowed'] = g_config.limits['models']
-        model = loudml.model.load_model(settings=settings)
+        model = loudml.model.load_model(settings=settings, config=g_config)
 
         try:
             g_storage.delete_model(model_name)
         except errors.ModelNotFound:
             pass
 
-        g_storage.create_model(model, limits)
+        g_storage.create_model(model)
         logging.info("model '%s' updated", model_name)
         return "success"
 
 
 api.add_resource(ModelsResource, "/models")
 api.add_resource(ModelResource, "/models/<model_name>")
+
 
 @app.route("/models/<model_name>/_train", methods=['POST'])
 def model_train(model_name):
@@ -407,6 +415,7 @@ def model_train(model_name):
     g_training[model_name] = job
 
     return jsonify(job.id)
+
 
 class HooksResource(Resource):
     @catch_loudml_error
@@ -483,6 +492,7 @@ class HookResource(Resource):
 api.add_resource(HooksResource, "/models/<model_name>/hooks")
 api.add_resource(HookResource, "/models/<model_name>/hooks/<hook_name>")
 
+
 @app.route("/models/<model_name>/hooks/<hook_name>/_test", methods=['POST'])
 @catch_loudml_error
 def hook_test(model_name, hook_name):
@@ -496,6 +506,7 @@ def hook_test(model_name, hook_name):
     model.detect_anomalies(prediction, [hook])
 
     return "ok", 200
+
 
 class DataSourcesResource(Resource):
     @catch_loudml_error
@@ -517,6 +528,7 @@ class DataSourceResource(Resource):
 
 api.add_resource(DataSourcesResource, "/datasources")
 api.add_resource(DataSourceResource, "/datasources/<datasource_name>")
+
 
 class JobsResource(Resource):
     @catch_loudml_error
@@ -540,6 +552,7 @@ class JobResource(Resource):
 api.add_resource(JobsResource, "/jobs")
 api.add_resource(JobResource, "/jobs/<job_id>")
 
+
 class TrainingJob(Job):
     """
     Model training job
@@ -560,6 +573,7 @@ class TrainingJob(Job):
     def kwargs(self):
         return self._kwargs
 
+
 @app.route("/models/<model_name>/training")
 def model_training_job(model_name):
     global g_training
@@ -569,6 +583,7 @@ def model_training_job(model_name):
         return "training job not found", 404
 
     return jsonify(job.desc)
+
 
 class PredictionJob(Job):
     """
@@ -590,6 +605,7 @@ class PredictionJob(Job):
     def kwargs(self):
         return self._kwargs
 
+
 class ForecastJob(Job):
     """
     Forecast job
@@ -609,6 +625,7 @@ class ForecastJob(Job):
     @property
     def kwargs(self):
         return self._kwargs
+
 
 def _model_start(model, params):
     """
@@ -655,6 +672,7 @@ def _model_start(model, params):
     g_running_models[model.name] = timer
     timer.start()
 
+
 @app.route("/models/<model_name>/_predict", methods=['POST'])
 def model_predict(model_name):
     global g_storage
@@ -675,6 +693,7 @@ def model_predict(model_name):
 
     return jsonify(job.result())
 
+
 @app.route("/models/<model_name>/_start", methods=['POST'])
 def model_start(model_name):
     global g_storage
@@ -693,6 +712,7 @@ def model_start(model_name):
     _model_start(model, params)
 
     return "real-time prediction started", 200
+
 
 @app.route("/models/<model_name>/_stop", methods=['POST'])
 @catch_loudml_error
@@ -713,6 +733,7 @@ def model_stop(model_name):
     g_storage.save_model(model)
 
     return "model deactivated"
+
 
 @app.route("/models/<model_name>/_forecast", methods=['POST'])
 @catch_loudml_error
@@ -762,9 +783,11 @@ def model_forecast(model_name):
 #    job.start()
 #    return str(job.id)
 
+
 @app.route("/license")
 def license():
     return jsonify(g_config.license_payload)
+
 
 @app.route("/")
 def slash():
@@ -775,25 +798,31 @@ def slash():
         'host_id': License.my_host_id(),
     })
 
+
 @app.errorhandler(403)
 def not_found(e):
     return "forbidden", 403
+
 
 @app.errorhandler(404)
 def not_found(e):
     return "unknown endpoint", 404
 
+
 @app.errorhandler(405)
 def not_found(e):
     return "method not allowed", 405
+
 
 @app.errorhandler(410)
 def not_found(e):
     return "gone", 410
 
+
 @app.errorhandler(500)
 def not_found(e):
     return "internal server error", 500
+
 
 def check_instance():
     stack_data = inspect.stack()
@@ -815,9 +844,10 @@ def check_instance():
             logging.error("Another instance running")
             sys.exit(1)
 
-    except IOError as exn:
+    except IOError:
         logging.error("Another instance running")
         sys.exit(1)
+
 
 def restart_predict_jobs():
     """
@@ -836,7 +866,7 @@ def restart_predict_jobs():
         try:
             logging.info("restarting job for model '%s'", model.name)
             _model_start(model, params)
-        except errors.LoudMLException as exn:
+        except errors.LoudMLException:
             logging.error("cannot restart job for model '%s'", model.name)
 
 

@@ -1,7 +1,6 @@
 import loudml.vendor
 
 import argparse
-import datetime
 import logging
 import random
 import time
@@ -27,11 +26,13 @@ from .randevents import (
     TriangleEventGenerator,
 )
 
+
 def generate_data(ts_generator, from_date, to_date):
     for ts in ts_generator.generate_ts(from_date, to_date, step=60):
         yield ts, {
             'foo': random.lognormvariate(10, 1),
         }
+
 
 def dump_to_json(generator):
     import json
@@ -42,7 +43,8 @@ def dump_to_json(generator):
         entry['timestamp'] = ts
         data.append(entry)
 
-    print(json.dumps(data,indent=4))
+    print(json.dumps(data, indent=4))
+
 
 def build_tag_dict(tags=None):
     tag_dict = {}
@@ -52,10 +54,10 @@ def build_tag_dict(tags=None):
             tag_dict[k] = v
     return tag_dict
 
+
 def init_datasource(arg, tags=None):
     config = load_config(arg.config)
     src_settings = config.get_datasource(arg.output)
-    src_settings['allowed'] = config.limits['datasources']
     datasource = load_datasource(src_settings)
 
     if arg.clear:
@@ -93,6 +95,7 @@ def init_datasource(arg, tags=None):
     datasource.init(**kwargs)
     return datasource
 
+
 def dump_to_datasource(generator, datasource, tags=None, **kwargs):
     for ts, data in generator:
         now = time.time()
@@ -105,6 +108,7 @@ def dump_to_datasource(generator, datasource, tags=None, **kwargs):
             tags=tags,
             **kwargs
         )
+
 
 def main():
     """
@@ -185,7 +189,7 @@ def main():
     )
     parser.add_argument(
         '--clear',
-        help="Clear database or index before insertion "\
+        help="Clear database or index before insertion "
              "(risk of data loss! Use with caution!)",
         action='store_true',
     )
@@ -240,7 +244,8 @@ def main():
 
     logging.info("generating data from %s to %s", from_date, to_date)
 
-    generator = generate_data(ts_generator, from_date.timestamp(), to_date.timestamp())
+    generator = generate_data(ts_generator, from_date.timestamp(),
+                              to_date.timestamp())
 
     if arg.output is None:
         dump_to_json(generator)

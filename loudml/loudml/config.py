@@ -3,8 +3,6 @@ LoudML configuration
 """
 
 import copy
-import json
-import logging
 import os
 import pkg_resources
 import multiprocessing
@@ -18,6 +16,7 @@ from . import (
 from loudml.license import License
 
 DEFAULT_LICENSE_PATH = '/etc/loudml/license.lic'
+
 
 class Config:
     """
@@ -37,7 +36,8 @@ class Config:
         self._license = data.get('license', {})
         if 'path' not in self._license:
             self._license['path'] = None
-        if self._license['path'] is None and os.path.isfile(DEFAULT_LICENSE_PATH):
+        if (self._license['path'] is None and
+                os.path.isfile(DEFAULT_LICENSE_PATH)):
             self._license['path'] = DEFAULT_LICENSE_PATH
 
         self._storage = data.get('storage', {})
@@ -51,7 +51,6 @@ class Config:
             self._server['workers'] = multiprocessing.cpu_count()
         if 'maxtasksperchild' not in self._server:
             self._server['maxtasksperchild'] = 1
-
 
     @property
     def datasources(self):
@@ -74,10 +73,11 @@ class Config:
         """
         try:
             # XXX: return a copy to prevent modification by the caller
-            return copy.deepcopy(self.datasources[name])
+            datasource = copy.deepcopy(self.datasources[name])
+            datasource['allowed'] = copy.deepcopy(self.limits['datasources'])
+            return datasource
         except KeyError:
             raise errors.DataSourceNotFound(name)
-
 
     def load_limits(self):
         """
@@ -90,19 +90,21 @@ class Config:
         path = self._license['path']
         l = License()
 
-        try:
-            if path is None:
-                self.limits = l.default_payload()['features']
-            else:
+        if path is None:
+            self.license_payload = l.default_payload()
+            self.limits = self.license_payload['features']
+        else:
+            try:
                 l.load(path)
                 l.global_check()
                 self.limits = l.payload['features']
-        except FileNotFoundError as e:
-            raise errors.LoudMLException("Unable to read license file " + path + str(e))
-        except Exception as e:
-            raise errors.LoudMLException("License error " + path + ": " + str(e))
-
-        self.license_payload = l.payload
+                self.license_payload = l.payload
+            except FileNotFoundError as e:
+                raise errors.LoudMLException(
+                    "Unable to read license file " + path + str(e))
+            except Exception as e:
+                raise errors.LoudMLException(
+                    "License error " + path + ": " + str(e))
 
 
 def load_config(path):

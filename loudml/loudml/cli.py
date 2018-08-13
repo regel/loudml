@@ -31,13 +31,14 @@ from .filestorage import (
     FileStorage,
 )
 
+
 def get_datasource(config, src_name):
     """
     Get and load data source by name
     """
     settings = config.get_datasource(src_name)
-    settings['allowed'] = config.limits['datasources']
     return loudml.datasource.load_datasource(settings)
+
 
 class Command:
     def __init__(self):
@@ -118,7 +119,6 @@ class CreateModelCommand(Command):
 
     def exec(self, args):
         model_settings = self.load_model_file(args.model_file)
-        model_settings['allowed'] = self.config.limits['models']
         model = loudml.model.load_model(settings=model_settings)
 
         storage = FileStorage(self.config.storage['path'])
@@ -126,7 +126,7 @@ class CreateModelCommand(Command):
         if args.force and storage.model_exists(model.name):
             storage.delete_model(model.name)
 
-        storage.create_model(model, self.config.limits)
+        storage.create_model(model, self.config)
         logging.info("model '%s' created", model.name)
 
 
@@ -256,7 +256,8 @@ class TrainCommand(Command):
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         model = storage.load_model(args.model_name)
-        source = get_datasource(self.config, args.datasource or model.default_datasource)
+        source = get_datasource(self.config, args.datasource or
+                                model.default_datasource)
 
         if model.type == 'timeseries':
             if not args.from_date:
@@ -294,6 +295,7 @@ class TrainCommand(Command):
             raise errors.UnsupportedModel(model.type)
 
         storage.save_model(model)
+
 
 class ForecastCommand(Command):
     """
@@ -360,12 +362,14 @@ class ForecastCommand(Command):
 
         if model.type == 'timeseries':
             if not args.from_date:
-                raise LoudMLException("'from' argument is required for time-series")
+                raise LoudMLException(
+                    "'from' argument is required for time-series")
             if not args.to_date:
-                raise LoudMLException("'to' argument is required for time-series")
+                raise LoudMLException(
+                    "'to' argument is required for time-series")
 
             constraint = parse_constraint(args.constraint) if args.constraint \
-                         else None
+                else None
 
             prediction = model.forecast(
                 source,
@@ -455,9 +459,11 @@ class PredictCommand(Command):
 
         if model.type == 'timeseries':
             if not args.from_date:
-                raise LoudMLException("'from' argument is required for time-series")
+                raise LoudMLException(
+                    "'from' argument is required for time-series")
             if not args.to_date:
-                raise LoudMLException("'to' argument is required for time-series")
+                raise LoudMLException(
+                    "'to' argument is required for time-series")
 
             prediction = model.predict(
                 source,
@@ -474,8 +480,8 @@ class PredictCommand(Command):
                         is_anomaly = stats.get('anomaly')
                         source.insert_times_data(
                             ts=bucket['timestamp'],
-                            data={ 'score': score },
-                            tags={ 'anomaly': is_anomaly },
+                            data={'score': score},
+                            tags={'anomaly': is_anomaly},
                             measurement='scores_{}'.format(model.name),
                         )
 
@@ -489,9 +495,11 @@ class PredictCommand(Command):
                 self._dump(data)
         elif model.type == 'fingerprints':
             if not args.from_date:
-                raise LoudMLException("'from' argument is required for fingerprints")
+                raise LoudMLException(
+                    "'from' argument is required for fingerprints")
             if not args.to_date:
-                raise LoudMLException("'to' argument is required for fingerprints")
+                raise LoudMLException(
+                    "'to' argument is required for fingerprints")
 
             prediction = model.predict(
                 source,

@@ -19,6 +19,7 @@ from .storage import (
     Storage,
 )
 
+
 class FileStorage(Storage):
     """
     File storage
@@ -87,7 +88,7 @@ class FileStorage(Storage):
         if state is None:
             try:
                 os.unlink(state_path)
-            except FileNotFoundError as exn:
+            except FileNotFoundError:
                 pass
         else:
             self._write_json(state_path, state)
@@ -101,10 +102,10 @@ class FileStorage(Storage):
         self._write_model_settings(path, settings)
         self._write_model_state(path, state)
 
-    def create_model(self, model, limits=None):
-        if limits and len(_self.list_models()) >= limits['nrmodels']:
+    def create_model(self, model, config=None):
+        if config and len(self.list_models()) >= config.limits['nrmodels']:
             raise errors.Forbidden(
-                    "You've reached the maximum count allowed in your license")
+                "You've reached the maximum count allowed in your license")
 
         model_path = self.model_path(model.name)
 
@@ -114,7 +115,8 @@ class FileStorage(Storage):
         self._write_model(model_path, model.settings, model.state)
 
     def save_model(self, model):
-        self._write_model(self.model_path(model.name), model.settings, model.state)
+        self._write_model(self.model_path(model.name), model.settings,
+                          model.state)
 
     def delete_model(self, name):
         try:
@@ -161,11 +163,12 @@ class FileStorage(Storage):
 
     def list_models(self):
         return [
-             os.path.splitext(os.path.basename(path))[0]
-             for path in glob.glob(self.model_path('*', validate=False))
+            os.path.splitext(os.path.basename(path))[0]
+            for path in glob.glob(self.model_path('*', validate=False))
         ]
 
     def _write_model_hook(self, model_name, settings):
+        model_path = self.model_path(model_name)
         settings = copy.deepcopy(settings)
         settings.pop('name', None)
         self._write_json(os.path.join(model_path, "settings.json"), settings)
@@ -187,8 +190,9 @@ class FileStorage(Storage):
         hooks_dir = self.model_hooks_dir(model_name)
 
         return [
-             os.path.splitext(os.path.basename(path))[0]
-             for path in glob.glob(self._hook_path(hooks_dir, '*', validate=False))
+            os.path.splitext(os.path.basename(path))[0]
+            for path in glob.glob(self._hook_path(hooks_dir, '*',
+                                                  validate=False))
         ]
 
     def get_model_hook(self, model_name, hook_name):

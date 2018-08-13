@@ -19,6 +19,7 @@ from loudml.filestorage import (
 
 g_worker = None
 
+
 class Worker:
     """
     LoudML worker
@@ -65,7 +66,6 @@ class Worker:
 
         src_name = datasource or model.default_datasource
         src_settings = self.config.get_datasource(src_name)
-        src_settings['allowed'] = self.config.limits['datasources']
         source = loudml.datasource.load_datasource(src_settings)
 
         def progress_cb(current_eval, max_evals):
@@ -100,7 +100,6 @@ class Worker:
 
         model = self.storage.load_model(model_name)
         src_settings = self.config.get_datasource(model.default_datasource)
-        src_settings['allowed'] = self.config.limits['datasources']
         source = loudml.datasource.load_datasource(src_settings)
         prediction = model.predict(source, **kwargs)
 
@@ -121,8 +120,8 @@ class Worker:
                         is_anomaly = stats.get('anomaly')
                         source.insert_times_data(
                             ts=bucket['timestamp'],
-                            data={ 'score': score },
-                            tags={ 'anomaly': is_anomaly },
+                            data={'score': score},
+                            tags={'anomaly': is_anomaly},
                             measurement='scores_{}'.format(model.name),
                         )
 
@@ -160,7 +159,6 @@ class Worker:
 
         model = self.storage.load_model(model_name)
         src_settings = self.config.get_datasource(model.default_datasource)
-        src_settings['allowed'] = self.config.limits['datasources']
         source = loudml.datasource.load_datasource(src_settings)
 
         constraint = kwargs.pop('constraint')
@@ -202,6 +200,7 @@ class Worker:
 def init_worker(config_path, msg_queue):
     global g_worker
     g_worker = Worker(config_path, msg_queue)
+
 
 def run(job_id, func_name, *args, **kwargs):
     global g_worker

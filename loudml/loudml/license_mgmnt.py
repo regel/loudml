@@ -2,6 +2,7 @@ import argparse
 
 from loudml.license import License
 
+
 def generate(output, pub, priv, data):
     l = License()
     with open(pub, 'rb') as f:
@@ -12,6 +13,7 @@ def generate(output, pub, priv, data):
         l.payload_raw = f.read()
 
     l.save(output)
+
 
 def inspect(license):
     l = License()
@@ -36,7 +38,7 @@ def main(argv=None):
     parser.add_argument('--data', help="data file")
 
     parser.add_argument('-i', '--inspect', type=str,
-            help="inspect license")
+                        help="inspect license")
 
     args = parser.parse_args()
     if args.generate:

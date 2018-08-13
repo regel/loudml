@@ -223,14 +223,23 @@ class Model:
         """
         return NotImplemented()
 
-def load_model(settings, state=None):
+def load_model(settings, state=None, config=None):
     """
     Load model
+
+    :param settings: model settings
+    :type  settings: dict
+
+    :param state: model state
+    :type  state: opaque type
+
+    :param config: running configuration
+    :type  config: loudml.Config
     """
 
     model_type = settings['type']
 
-    if 'allowed' in settings and model_type not in settings['allowed']:
+    if config and and model_type not in config.limits['models']:
         raise errors.Forbidden("Not allowed by license: " + model_type)
 
     model_cls = misc.load_entry_point('loudml.models', model_type)

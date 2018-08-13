@@ -1,9 +1,12 @@
 import datetime
 import json
 import gzip
+import hashlib
 import logging
 
 from base64 import b64encode, b64decode
+
+from uuid import getnode
 
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256
@@ -14,33 +17,33 @@ LICENSE_VERSION = 1
 
 # Current LoudML major version
 # TODO integrate with setuptools
-LOUDML_MAJOR_VERSION=1
+LOUDML_MAJOR_VERSION = 1
 
 # Use Community Edition restrictions as default
 DEFAULT_PAYLOAD = {
     'features': {
-        'datasources': [ "elasticsearch", "influxdb" ],
-        'models': [ "timeseries" ],
+        'datasources': ["elasticsearch", "influxdb"],
+        'models': ["timeseries"],
         'nrmodels': 3,
     },
     'hostid': "any",
 }
 
+
 def compute_digest(data, certificate, key):
     """
     Compute signature using data and private key
 
-    :param data:
-        Data
+    :param data: data
+    :type  data: bytes-like object
 
-    :param key:
-        Private key
+    :param key: private key
+    :type  key: bytes-like object
 
-    :param certificate:
-        Certificate
+    :param certificate: certificate
+    :type  certificate: bytes-like object
 
-    :return:
-        Signature
+    :return: signature
     """
     rsakey = RSA.importKey(key)
     h = SHA256.new(data)
@@ -128,13 +131,12 @@ class License:
     def default_payload():
         return DEFAULT_PAYLOAD
 
-
     def load(self, path):
         """
         Load license from file
 
-        :param path:
-            Path to file
+        :param path: path to file
+        :type  path: str
         """
 
         with gzip.open(path, 'r') as f:
@@ -147,13 +149,12 @@ class License:
         self.payload_raw = b64decode(lines[4])
         self.payload = json.loads(self.payload_raw.decode('ascii'))
 
-
     def save(self, path):
         """
         Save license to file
 
-        :param path:
-            Path to file
+        :param path: path to file
+        :type  path: str
         """
         self.digest = compute_digest(self.payload_raw, self.certificate,
                                      self.private_key)
@@ -168,20 +169,17 @@ class License:
         with gzip.open(path, 'wt') as f:
             f.write(lines)
 
-
     def validate(self):
         """
         Validate license
 
-        :return bool:
-            Whether signature is authentic
+        :return bool: whether signature is authentic
         """
         h = SHA256.new(self.payload_raw)
         h.update(self.certificate)
         rsakey = RSA.importKey(self.public_key)
 
         return PKCS1_v1_5.new(rsakey).verify(h, self.digest)
-
 
     def has_expired(self):
         """
@@ -198,7 +196,6 @@ class License:
 
         return datetime.datetime.now() > exp_date
 
-
     def version_allowed(self):
         """
         Check whether major version number is allowed.
@@ -209,7 +206,6 @@ class License:
 
         return LOUDML_MAJOR_VERSION <= version
 
-
     def host_allowed(self):
         """
         Check whether current host is allowed to run the software.
@@ -219,20 +215,28 @@ class License:
         if host_id == 'any' or host_id == self.my_host_id():
             return True
 
-
     @staticmethod
     def my_host_id():
         """
         Compute host identifier.
 
-        On physical devices, it is the MAC address of the first network
-        device. On virtual machines, it is the UUID of the root storage
-        device.
+        Identifier is based on:
+        - identifier computed by Python uuid library (usually MAC address)
+        - MD5 hashing (to make computation less obvious)
+
+        It is NOT based on:
+        - system UUID in DMI entries (requires root privileges and may not be
+          avalaible)
+        - root filesystem UUID (requires root privileges)
+
+        Obviously, changing the algorithm breaks all the current licenses.
+        Consequently changes will require issuing licences for every customer.
         """
 
-        # TODO: implement computation
-        return "TBD"
+        m = hashlib.md5()
+        m.update(str(getnode()).encode('ascii'))
 
+        return m.hexdigest()
 
     def global_check(self):
         """
@@ -243,7 +247,8 @@ class License:
             raise Exception("license integrity check failure")
 
         if self.has_expired():
-            logging.warning("license expired since " + self.payload['exp_date'])
+            logging.warning("license expired since " +
+                            self.payload['exp_date'])
 
         if not self.version_allowed():
             raise Exception("software version not allowed")
