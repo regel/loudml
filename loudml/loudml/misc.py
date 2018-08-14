@@ -234,14 +234,20 @@ def load_entry_point(namespace, name):
             return ep.load()
     return None
 
-def load_hook(hook_name, hook_data):
+def load_hook(hook_name, hook_data, model_name, storage, source):
     hook_type = hook_data.get('type')
     hook_cls = load_entry_point('loudml.hooks', hook_type)
 
     if hook_cls is None:
         raise errors.NotFound("unknown hook type '{}'".format(hook_type))
 
-    return hook_cls(hook_name, hook_data.get('config'))
+    return hook_cls(
+        hook_name,
+        hook_data.get('config'),
+        model_name,
+        storage,
+        source,
+    )
 
 def parse_constraint(constraint):
     try:

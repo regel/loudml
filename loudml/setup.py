@@ -29,6 +29,7 @@ setup(
     test_suite='nose.collector',
 
     install_requires=[
+        'uuid',
         "dateutils>=0.6.6",
         "Flask>=0.12.1",
         "Flask-restful>=0.3.5",
@@ -77,6 +78,9 @@ setup(
         'loudml.models': [
             'fingerprints=loudml.fingerprints:FingerprintsModel',
             'timeseries=loudml.timeseries:TimeSeriesModel',
+        ],
+        'loudml.hooks': [
+            'annotations=loudml.annotations:AnnotationHook',
         ],
     },
 )

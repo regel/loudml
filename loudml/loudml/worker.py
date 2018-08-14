@@ -109,7 +109,7 @@ class Worker:
             if save_prediction:
                 source.save_timeseries_prediction(prediction, model)
             if detect_anomalies:
-                hooks = self.storage.load_model_hooks(model_name)
+                hooks = self.storage.load_model_hooks(model_name, source)
                 model.detect_anomalies(prediction, hooks)
                 self.storage.save_model(model)
 

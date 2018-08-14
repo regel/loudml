@@ -10,6 +10,12 @@ import os
 import shutil
 import tempfile
 
+from voluptuous import (
+    All,
+    Length,
+    Match,
+)
+
 from . import (
     errors,
     schemas,
@@ -19,6 +25,11 @@ from .storage import (
     Storage,
 )
 
+OBJECT_KEY_SCHEMA = schemas.All(
+   str,
+   Length(min=1),
+   Match("^[a-zA-Z0-9-_@.]+$"),
+)
 
 class FileStorage(Storage):
     """
@@ -235,6 +246,48 @@ class FileStorage(Storage):
             os.unlink(hook_path)
         except FileNotFoundError:
             raise errors.NotFound("hook not found")
+
+    def _build_object_path(self, model_name, key):
+        """Build the path of a model object"""
+
+        model_path = self.model_path(model_name)
+        schemas.validate(OBJECT_KEY_SCHEMA, key)
+        return os.path.join(model_path, "objects", key + ".json")
+
+
+    def set_model_object(self, model_name, key, data):
+        """Save model object"""
+
+        path = self._build_object_path(model_name, key)
+
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+        except OSError as exn:
+            raise KeyError("model object not found")
+
+        self._write_json(path, data)
+
+    def get_model_object(self, model_name, key):
+        """Get model object"""
+
+        path = self._build_object_path(model_name, key)
+
+        try:
+            return self._load_json(path)
+        except ValueError as exn:
+            raise errors.Invalid("invalid object: file: %s", str(exn))
+        except FileNotFoundError:
+            raise KeyError("model object not found")
+
+    def delete_model_object(self, model_name, key):
+        """Delete model object"""
+
+        path = self._build_object_path(model_name, key)
+
+        try:
+            os.unlink(path)
+        except FileNotFoundError:
+            raise KeyError("model object not found")
 
 
 class TempStorage(FileStorage):
