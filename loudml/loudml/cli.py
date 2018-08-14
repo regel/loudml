@@ -472,6 +472,7 @@ class PredictCommand(Command):
             )
 
             if args.anomalies:
+                prediction.stat()
                 model.detect_anomalies(prediction)
                 if args.save:
                     for bucket in prediction.format_buckets():

@@ -259,29 +259,8 @@ class TimeSeriesPrediction:
         self.anomaly_indices = None
         self.stats = None
         self.constraint = None
-
-    def get_mse(self):
-        """
-        calculate mean square error(observed, predicted)
-        """
-        y_indexes = self.model._y_indexes()
-        diff = self.observed[:, y_indexes] - self.predicted[:, y_indexes]
-        mse = np.nanmean((diff ** 2), axis=None)
-        return mse
-
-    def get_scores_list(self):
-        """
-        calculate min-max range for scores
-        """
-        scores = np.full(len(self.observed), np.nan, dtype=float)
-        j = 0
-        for observed, predicted in zip(self.observed, self.predicted):
-            scores[j], _ = self.model.scoring(
-                predicted,
-                observed,
-            )
-            j += 1
-        return scores.flatten()
+        self.scores = None
+        self.mse = None
 
     def get_anomalies(self):
         """
@@ -356,6 +335,9 @@ class TimeSeriesPrediction:
 
     def __str__(self):
         return json.dumps(self.format_buckets(), indent=4)
+
+    def stat(self):
+        self.scores, self.mse = self.model.compute_scores(self.predicted, self.observed)
 
     def plot(self, feature_name):
         """
@@ -923,8 +905,9 @@ class TimeSeriesModel(Model):
             'loss': score[0],
         }
         prediction = self.predict(datasource, from_date, to_date)
-        mse = prediction.get_mse()
-        self.scores = prediction.get_scores_list()
+        prediction.stat()
+        mse = prediction.mse
+        self.scores = prediction.scores.flatten()
         self._state.update({
             'mse': mse,
             'scores': self.scores.tolist(),
@@ -1092,8 +1075,7 @@ class TimeSeriesModel(Model):
         # Prepare dataset
         nb_buckets = int((hist.to_ts - hist.from_ts) / self.bucket_interval)
         nb_features = len(self.features)
-        dataset = np.empty((nb_buckets, nb_features), dtype=float)
-        dataset[:] = np.nan
+        dataset = np.full((nb_buckets, nb_features), np.nan, dtype=float)
         daytime = np.empty((nb_buckets, 1), dtype=float)
         weekday = np.empty((nb_buckets, 1), dtype=float)
 
@@ -1133,6 +1115,7 @@ class TimeSeriesModel(Model):
         logging.info("found %d time periods", nb_buckets_found)
 
         real = np.copy(dataset)
+
         for j, feature in enumerate(self.features):
             if feature.transform is not None:
                 dataset[:,j] = _transform(feature, dataset[:,j])
@@ -1390,7 +1373,7 @@ class TimeSeriesModel(Model):
             predicted=predicted,
         )
 
-    def scoring(self, predicted, observed):
+    def compute_bucket_scores(self, predicted, observed):
         """
         Compute scores and mean squared error
         """
@@ -1428,7 +1411,7 @@ class TimeSeriesModel(Model):
         ):
             ano_type = feature.anomaly_type
             if feature.scores == "standardize":
-                scores[j] = 2 * _norm.cdf(abs(x - y)) - 1
+                scores[j] = 2 * _norm.cdf(abs(x[j] - y[j])) - 1
                 # Required to handle the 'low' condition
                 if diff[j] < 0:
                     scores[j] *= -1
@@ -1451,8 +1434,26 @@ class TimeSeriesModel(Model):
 
                 scores[j] = 100 * max(0, min(1, diff[j]))
 
-        mse = (diff ** 2).mean(axis=None)
+        diff = predicted - observed
+        mse = np.nanmean((diff ** 2), axis=None)
         return scores, mse
+
+    def compute_scores(self, predicted, observed):
+        """
+        Compute timeseries scores and MSE
+        """
+
+        nb_buckets = len(predicted)
+        scores = np.empty((nb_buckets, len(self._y_indexes())), dtype=float)
+        mse = np.empty((nb_buckets), dtype=float)
+
+        for i in range(nb_buckets):
+            scores[i,:], mse[i] = self.compute_bucket_scores(
+                predicted[i],
+                observed[i],
+            )
+
+        return scores, np.nanmean(mse, axis=None)
 
     def detect_anomalies(self, prediction, hooks=[]):
         """
@@ -1472,10 +1473,8 @@ class TimeSeriesModel(Model):
             predicted = prediction.predicted[i]
             observed = prediction.observed[i]
 
-            scores, mse = self.scoring(
-                predicted,
-                observed,
-            )
+            scores = prediction.scores[i]
+            mse = prediction.mse
 
             max_score = 0
 

@@ -226,7 +226,7 @@ class MemDataSource(DataSource):
         t0 = None
 
         for bucket in buckets:
-            X = np.zeros(len(features), dtype=float)
+            X = np.full(len(features), np.nan, dtype=float)
             timestamp = bucket.key
             timeval = ts_to_str(timestamp)
 
