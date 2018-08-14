@@ -137,6 +137,30 @@ class DataSource(metaclass=ABCMeta):
         Save time-series prediction to the datasource
         """
 
+    def insert_annotation(
+        self,
+        dt,
+        desc,
+        _type,
+        _id,
+        measurement='annotations',
+        tags=None,
+    ):
+        """
+        Insert annotation and return data points saved to the TSDB
+        """
+        return None
+
+    def update_annotation(
+        self,
+        dt,
+        points,
+    ):
+        """
+        Update annotation in the TSDB
+        """
+        return None
+
 def load_datasource(settings):
     """
     Load datasource
