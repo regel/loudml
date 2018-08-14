@@ -4,6 +4,7 @@ LoudML worker
 
 import logging
 import signal
+import math
 
 import loudml.config
 import loudml.datasource
@@ -11,6 +12,9 @@ import loudml.model
 
 from loudml import (
     errors,
+)
+from loudml.misc import (
+    make_ts,
 )
 
 from loudml.filestorage import (
@@ -89,6 +93,7 @@ class Worker:
     def predict(
         self,
         model_name,
+        save_run_state=True,
         save_prediction=False,
         save_scores=False,
         detect_anomalies=False,
@@ -101,34 +106,26 @@ class Worker:
         model = self.storage.load_model(model_name)
         src_settings = self.config.get_datasource(model.default_datasource)
         source = loudml.datasource.load_datasource(src_settings)
-        prediction = model.predict(source, **kwargs)
 
         if model.type == 'timeseries':
+            mse_rtol = self.config.server['mse_rtol']
+            _state = model.get_run_state()
+            prediction = model.predict2(
+                source,
+                mse_rtol=mse_rtol,
+                _state=_state,
+                **kwargs
+            )
             logging.info("job[%s] predicted values for %d time buckets",
                          self.job_id, len(prediction.timestamps))
-            if save_prediction:
-                source.save_timeseries_prediction(prediction, model)
+            if save_run_state:
+                model.set_run_state(_state)
+                self.storage.save_state(model)
             if detect_anomalies:
                 hooks = self.storage.load_model_hooks(model_name, source)
                 model.detect_anomalies(prediction, hooks)
-                self.storage.save_model(model)
-
-                if save_scores:
-                    for bucket in prediction.format_buckets():
-                        stats = bucket.get('stats')
-                        score = stats.get('score')
-                        is_anomaly = stats.get('anomaly')
-                        source.insert_times_data(
-                            ts=bucket['timestamp'],
-                            data={'score': score},
-                            tags={'anomaly': is_anomaly},
-                            measurement='scores_{}'.format(model.name),
-                        )
-
-                # TODO .detect_anomalies() produces warning messages
-                # and store anomalies into 'prediction'.
-                # Now, we can get them using 'prediction.get_anomalies()'
-                # and store them anywhere
+            if save_prediction:
+                source.save_timeseries_prediction(prediction, model)
 
             fmt = kwargs.get('format', 'series')
 

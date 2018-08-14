@@ -460,6 +460,18 @@ class TimeSeriesModel(Model):
         else:
             self._settings['run'] = params
 
+    def set_run_state(self, params=None):
+        """
+        Set running forecast parameters to make them persistent
+        """
+        if params is None:
+            self._state.pop('run', None)
+        else:
+            self._state['run'] = params
+
+    def get_run_state(self):
+        return self._state.get('run') or {}
+
     def _compute_nb_buckets(self, from_ts, to_ts):
         """
         Compute the number of bucket between `from_ts` and `to_ts`
@@ -1471,6 +1483,7 @@ class TimeSeriesModel(Model):
         predicted by the model
         """
 
+        prediction.stat()
         stats = []
         anomaly_indices = []
 
@@ -1596,3 +1609,94 @@ class TimeSeriesModel(Model):
             'date': ts_to_str(exceed_ts) if exceed_ts else None,
         }
         return exceed_ts
+
+
+    def _predict2(
+        self,
+        datasource,
+        from_ts,
+        to_ts,
+        mse_rtol,
+        _state={},
+    ):
+        global _keras_model
+        good_date = _state.get('good_date', None)
+        good_mse = _state.get('good_mse', 0)
+
+        _from_normal = from_ts
+        if good_date is not None:
+            _from = good_date
+        else:
+            _from = _from_normal
+
+        expected = math.ceil(
+            (to_ts - _from) / self.bucket_interval
+        )
+        prediction = self.forecast(datasource, _from, to_ts)
+        prediction.truncate(self._span)
+        prediction.stat()
+        mse = prediction.mse
+        prediction.truncate(1)
+        prediction.stat()
+        if mse < (mse_rtol * self._state['mse']):
+            good_mse += 1
+            if good_mse > self._span:
+                good_date = _from_normal
+        else:
+            good_mse = 0
+            if expected > (self._span * 10):
+                good_date = None
+
+        _state['good_date'] = good_date
+        _state['good_mse'] = good_mse
+
+        return prediction
+
+    def predict2(
+        self,
+        datasource,
+        from_date,
+        to_date,
+        mse_rtol,
+        _state={},
+    ):
+        self.load()
+
+        period = self.build_date_range(from_date, to_date)
+
+        # This is the number of buckets that the function MUST return
+        forecast_len = int((period.to_ts - period.from_ts) / self.bucket_interval)
+        nb_features = len(self.features)
+
+        shape = (forecast_len, nb_features)
+        predicted = np.full(shape, np.nan, dtype=float)
+        observed = np.full(shape, np.nan, dtype=float)
+        timestamps = []
+
+        for j in range(forecast_len):
+            from_ts = period.from_ts + j * self.bucket_interval
+            to_ts = from_ts + self.bucket_interval
+            timestamps.append(from_ts)
+
+            try:
+                prediction = self._predict2(
+                    datasource=datasource,
+                    from_ts=from_ts,
+                    to_ts=to_ts,
+                    mse_rtol=mse_rtol,
+                    _state=_state,
+                )
+                observed[j] = prediction.observed[0]
+                predicted[j] = prediction.predicted[0]
+            except errors.NoData as exn:
+                continue
+
+        self.apply_defaults(observed)
+        self.apply_defaults(predicted)
+
+        return TimeSeriesPrediction(
+            self,
+            timestamps=timestamps,
+            observed=observed,
+            predicted=predicted,
+        )

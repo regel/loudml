@@ -465,26 +465,21 @@ class PredictCommand(Command):
                 raise LoudMLException(
                     "'to' argument is required for time-series")
 
-            prediction = model.predict(
-                source,
-                args.from_date,
-                args.to_date,
-            )
-
             if args.anomalies:
+                prediction = model.predict2(
+                    source,
+                    args.from_date,
+                    args.to_date,
+                    mse_rtol=self.config.server['mse_rtol'],
+                )
                 prediction.stat()
                 model.detect_anomalies(prediction)
-                if args.save:
-                    for bucket in prediction.format_buckets():
-                        stats = bucket.get('stats')
-                        score = stats.get('score')
-                        is_anomaly = stats.get('anomaly')
-                        source.insert_times_data(
-                            ts=bucket['timestamp'],
-                            data={'score': score},
-                            tags={'anomaly': is_anomaly},
-                            measurement='scores_{}'.format(model.name),
-                        )
+            else:
+                prediction = model.predict(
+                    source,
+                    args.from_date,
+                    args.to_date,
+                )
 
             if args.save:
                 source.save_timeseries_prediction(prediction, model)

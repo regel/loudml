@@ -683,31 +683,28 @@ def _model_start(model, params):
             "You've reached the maximum count allowed in your license",
         )
 
-    def create_job(from_date=None):
+    def create_job(from_date=None, save_run_state=True):
         kwargs = params.copy()
 
+        to_date = datetime.datetime.now().timestamp() - model.offset
+
         if model.type == 'timeseries':
-            to_date = datetime.datetime.now().timestamp() - model.offset
-
             if from_date is None:
-                from_date = to_date - model.bucket_interval
-
-            kwargs['from_date'] = from_date
-            kwargs['to_date'] = to_date
+                from_date = to_date - model.interval
         elif model.type.endswith('fingerprints'):
-            to_date = datetime.datetime.now().timestamp() - model.offset
-
             if from_date is None:
                 from_date = to_date - model.span
 
-            kwargs['from_date'] = from_date
-            kwargs['to_date'] = to_date
+        job = PredictionJob(
+            model.name,
+            save_run_state=save_run_state,
+            **kwargs
+        )
 
-        job = PredictionJob(model.name, **kwargs)
         job.start()
 
     from_date = params.pop('from_date', None)
-    create_job(from_date)
+    create_job(from_date, save_run_state=False)
 
     timer = RepeatingTimer(model.interval, create_job)
     g_running_models[model.name] = timer
@@ -722,6 +719,7 @@ def model_predict(model_name):
 
     job = PredictionJob(
         model_name,
+        save_run_state=False,
         from_date=get_date_arg('from', is_mandatory=True),
         to_date=get_date_arg('to', is_mandatory=True),
         save_prediction=request.args.get('save_prediction', default=False),
@@ -748,6 +746,7 @@ def model_start(model_name):
 
     model = g_storage.load_model(model_name)
     model.set_run_params(params)
+    model.set_run_state(None)
     g_storage.save_model(model)
 
     params['from_date'] = get_date_arg('from')
@@ -780,6 +779,7 @@ def model_stop(model_name):
 
     model = g_storage.load_model(model_name)
     model.set_run_params(None)
+    model.set_run_state(None)
     g_storage.save_model(model)
 
     return "model deactivated"
