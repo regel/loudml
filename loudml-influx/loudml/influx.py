@@ -1,8 +1,9 @@
 """
 InfluxDB module for LoudML
 """
-
 import logging
+import json
+import os
 import itertools
 
 import influxdb.exceptions
@@ -339,12 +340,14 @@ class InfluxDataSource(DataSource):
         Optional('dbuser_password'): str,
         Optional('use_ssl', default=False): Boolean(),
         Optional('verify_ssl', default=False): Boolean(),
+        Optional('annotation_db', default='chronograf'): str,
     })
 
     def __init__(self, cfg):
         cfg['type'] = 'influxdb'
         super().__init__(cfg)
         self._influxdb = None
+        self._annotationdb = None
 
     @property
     def addr(self):
@@ -391,6 +394,29 @@ class InfluxDataSource(DataSource):
             )
 
         return self._influxdb
+
+    @property
+    def annotationdb(self):
+        if self._annotationdb is None:
+            addr = parse_addr(self.addr, default_port=8086)
+            db = self.cfg['annotation_db']
+            logging.info(
+                "connecting to influxdb on %s:%d, using database '%s'",
+                addr['host'],
+                addr['port'],
+                db,
+            )
+            self._annotationdb = InfluxDBClient(
+                host=addr['host'],
+                port=addr['port'],
+                database=db,
+                username=self.dbuser,
+                password=self.dbuser_password,
+                ssl=self.use_ssl,
+                verify_ssl=self.verify_ssl,
+            )
+
+        return self._annotationdb
 
     @catch_query_error
     def init(self, db=None, *args, **kwargs):
@@ -627,3 +653,53 @@ class InfluxDataSource(DataSource):
                 data=bucket['predicted'],
             )
         self.commit()
+
+
+# Using database chronograf
+#> select * from annotations
+#name: annotations
+#time  deleted  id  modified_time_ns  start_time  text  type
+
+    def insert_annotation(
+        self,
+        dt,
+        desc,
+        _type,
+        _id,
+        measurement='annotations',
+        tags=None,
+    ):
+        ts = make_ts(dt.timestamp())
+        data = {
+            'deleted': False,
+            'modified_time_ns': ts_to_ns(ts),
+            'start_time': ts_to_ns(ts),
+            'text': desc,
+            'type': _type,
+        }
+        _tags = { 'id': _id }
+        if tags is not None:
+            _tags.update(tags)
+        points = [{
+            'measurement': measurement,
+            'time': ts_to_ns(ts),
+            'fields': data,
+            'tags': _tags,
+        }]
+        self.annotationdb.write_points(points)
+        return points
+
+    def update_annotation(
+        self,
+        dt,
+        points,
+    ):
+        ts = make_ts(dt.timestamp())
+        points[0]['fields']['deleted'] = True
+        self.annotationdb.write_points(points)
+
+        points[0]['time'] = ts_to_ns(ts)
+        points[0]['fields']['deleted'] = False
+        self.annotationdb.write_points(points)
+        return points
+

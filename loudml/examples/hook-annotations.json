@@ -1,0 +1,8 @@
+{
+    "type": "annotations",
+    "name": "annotations",
+    "config": {
+        "type": "type-example",
+        "text": "text example"
+    }
+}
