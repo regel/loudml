@@ -1245,7 +1245,7 @@ class TimeSeriesModel(Model):
         # Extra data are required to forecast first buckets
         hist = DateRange(
             period.from_ts - self._span * self.bucket_interval,
-            period.from_ts,
+            period.to_ts,
         )
 
         for j, feature in enumerate(self.features):
@@ -1258,8 +1258,7 @@ class TimeSeriesModel(Model):
         nb_features = len(self.features)
         y_indexes = self._y_indexes()
         nb_outputs = len(y_indexes)
-        dataset = np.empty((nb_buckets, nb_features), dtype=float)
-        dataset[:] = np.nan
+        dataset = np.full((nb_buckets, nb_features), np.nan, dtype=float)
         daytime = np.empty((nb_buckets, 1), dtype=float)
         weekday = np.empty((nb_buckets, 1), dtype=float)
 
@@ -1284,6 +1283,13 @@ class TimeSeriesModel(Model):
             weekday = np.resize(weekday, (nb_buckets_found, 1))
 
         logging.info("found %d time periods", nb_buckets_found)
+
+        real = np.copy(dataset)
+
+        # XXX: Do not take real data into account for the forecast period
+        dataset = np.resize(dataset, (self._span, nb_features))
+        daytime = np.resize(daytime, (self._span, 1))
+        weekday = np.resize(weekday, (self._span, 1))
 
         y0 = np.empty(len(self._y_indexes()), dtype=float)
         y0[:] = dataset[-1]
@@ -1317,7 +1323,7 @@ class TimeSeriesModel(Model):
         observed = np.full(shape, np.nan, dtype=float)
 
         logging.info("generating forecast")
-        timestamps=[]
+        timestamps = []
         bucket_start = period.from_ts
         bucket = 0
         xy_indexes = np.array(self._xy_indexes())
@@ -1370,6 +1376,9 @@ class TimeSeriesModel(Model):
                 bucket += 1
 
             y0[:] = Y[-1]
+
+        for i, j, feature in self.enum_features(is_input=True):
+            observed[:,i] = real[self._span:][:,i]
 
         self.apply_defaults(observed)
         self.apply_defaults(predicted)
