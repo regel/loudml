@@ -51,19 +51,23 @@ from loudml import (
 
 from loudml.api import Hook
 
+FEATURE_COUNT_FOO = {
+    'name': 'count_foo',
+    'metric': 'count',
+    'field': 'foo',
+    'default': 0,
+}
+
+FEATURE_AVG_FOO = {
+    'name': 'avg_foo',
+    'metric': 'avg',
+    'field': 'foo',
+    'default': 10,
+}
+
 FEATURES = [
-    {
-        'name': 'count_foo',
-        'metric': 'count',
-        'field': 'foo',
-        'default': 0,
-    },
-    {
-        'name': 'avg_foo',
-        'metric': 'avg',
-        'field': 'foo',
-        'default': 10,
-    },
+    FEATURE_COUNT_FOO,
+    FEATURE_AVG_FOO,
 ]
 
 class TestHook(Hook):
@@ -581,7 +585,9 @@ class TestTimes(unittest.TestCase):
             span=3,
             bucket_interval=20 * 60,
             interval=60,
-            features=FEATURES[:1],
+            features=[
+                FEATURE_COUNT_FOO,
+            ],
             max_threshold=30,
             min_threshold=25,
             max_evals=1,
@@ -603,7 +609,6 @@ class TestTimes(unittest.TestCase):
         self._require_training()
         self.assertTrue(self.model.is_trained)
 
-
     def test_forecast(self):
         model = TimeSeriesModel(dict(
             name='test',
@@ -613,11 +618,7 @@ class TestTimes(unittest.TestCase):
             bucket_interval=20 * 60,
             interval=60,
             features=[
-                {
-                    'name': 'count_foo',
-                    'metric': 'count',
-                    'field': 'foo',
-                }
+                FEATURE_COUNT_FOO,
             ],
             threshold=30,
             max_evals=10,
@@ -823,7 +824,9 @@ class TestTimes(unittest.TestCase):
             },
             bucket_interval=20 * 60,
             interval=60,
-            features=FEATURES[:1],
+            features=[
+                FEATURE_COUNT_FOO,
+            ],
             threshold=30,
             max_evals=10,
         ))
@@ -1213,6 +1216,29 @@ class TestTimes(unittest.TestCase):
                     },
                 },
             ]
+        )
+
+        model.stat_dataset([
+            [0.0, 0.0],
+            [1.0, 0.2],
+            [2.0, 0.5],
+            [6.0, 0.9],
+        ])
+        prediction.stat()
+
+        np.testing.assert_allclose(
+            prediction.mse,
+            [0.18, 0.69, 0.25],
+            0.01,
+        )
+        np.testing.assert_allclose(
+            prediction.scores,
+            [
+                [50.0, 33.33],
+                [83.33, 100.0],
+                [50.0, 100.0],
+            ],
+            0.01,
         )
 
     def test_detect_anomalies(self):
