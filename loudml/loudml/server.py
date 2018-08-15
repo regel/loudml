@@ -468,12 +468,12 @@ class HookResource(Resource):
         return "success"
 
     @catch_loudml_error
-    def post(self, model_name):
+    def post(self, model_name, hook_name):
         global g_storage
 
         config = request.json
 
-        if settings is None:
+        if model_name is None:
             return "model description is missing", 400
 
         data = request.json
