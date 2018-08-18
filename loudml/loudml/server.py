@@ -362,8 +362,19 @@ class ModelResource(Resource):
     @catch_loudml_error
     def delete(self, model_name):
         global g_storage
+        global g_running_models
 
-        g_storage.delete_model(model_name)
+        g_lock.acquire()
+
+        try:
+            timer = g_running_models.pop(model_name, None)
+            if timer:
+                timer.cancel()
+
+            g_storage.delete_model(model_name)
+        finally:
+            g_lock.release()
+
         logging.info("model '%s' deleted", model_name)
         return "success"
 
