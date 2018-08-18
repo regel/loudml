@@ -391,12 +391,7 @@ class ModelResource(Resource):
         settings['name'] = model_name
         model = loudml.model.load_model(settings=settings, config=g_config)
 
-        try:
-            g_storage.delete_model(model_name)
-        except errors.ModelNotFound:
-            pass
-
-        g_storage.create_model(model)
+        g_storage.save_model(model, save_state=False)
         logging.info("model '%s' updated", model_name)
         return "success"
 

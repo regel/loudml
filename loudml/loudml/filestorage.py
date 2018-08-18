@@ -104,14 +104,15 @@ class FileStorage(Storage):
         else:
             self._write_json(state_path, state)
 
-    def _write_model(self, path, settings, state=None):
+    def _write_model(self, path, settings, state=None, save_state=True):
         try:
             os.makedirs(path, exist_ok=True)
         except OSError as exn:
             raise errors.LoudMLException(str(exn))
 
         self._write_model_settings(path, settings)
-        self._write_model_state(path, state)
+        if save_state:
+            self._write_model_state(path, state)
 
     def create_model(self, model, config=None):
         if (config and config.limits['nrmodels'] != "unlimited"
@@ -126,9 +127,13 @@ class FileStorage(Storage):
 
         self._write_model(model_path, model.settings, model.state)
 
-    def save_model(self, model):
-        self._write_model(self.model_path(model.name), model.settings,
-                          model.state)
+    def save_model(self, model, save_state=True):
+        self._write_model(
+            self.model_path(model.name),
+            model.settings,
+            model.state,
+            save_state,
+        )
 
     def save_state(self, model):
         self._write_model_state(self.model_path(model.name), model.state)

@@ -53,7 +53,7 @@ class Storage(metaclass=ABCMeta):
         """Delete model"""
 
     @abstractmethod
-    def save_model(self, model):
+    def save_model(self, model, save_state=True):
         """Save model"""
 
     @abstractmethod
