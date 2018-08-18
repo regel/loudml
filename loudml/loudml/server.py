@@ -49,6 +49,7 @@ from .filestorage import (
 from .misc import (
     make_bool,
     load_entry_point,
+    parse_timedelta,
     parse_constraint,
 )
 from .license import (
@@ -382,6 +383,7 @@ class ModelResource(Resource):
     def post(self, model_name):
         global g_config
         global g_storage
+        global g_running_models
 
         settings = request.json
 
@@ -391,7 +393,19 @@ class ModelResource(Resource):
         settings['name'] = model_name
         model = loudml.model.load_model(settings=settings, config=g_config)
 
-        g_storage.save_model(model, save_state=False)
+        changes = g_storage.save_model(model, save_state=False)
+        for change, param, desc in changes: 
+            logging.info("model '%s' %s %s %s", model_name, change, param, desc)
+            if change == 'change' and param == 'interval':
+                previous_val, next_val = desc
+                g_lock.acquire() 
+                timer = g_running_models.get(model_name)
+                if timer is not None:
+                    timer.cancel()
+                    timer.interval = parse_timedelta(next_val).total_seconds()
+                    timer.start()
+                g_lock.release() 
+
         logging.info("model '%s' updated", model_name)
         return "success"
 

@@ -29,6 +29,7 @@ setup(
     test_suite='nose.collector',
 
     install_requires=[
+        "dictdiffer>=0.7.1",
         'uuid',
         "dateutils>=0.6.6",
         "Flask>=0.12.1",

@@ -2,6 +2,8 @@
 LoudML file storage
 """
 
+import loudml.vendor
+
 import copy
 import glob
 import json
@@ -24,6 +26,8 @@ from . import (
 from .storage import (
     Storage,
 )
+
+from dictdiffer import diff
 
 OBJECT_KEY_SCHEMA = schemas.All(
    str,
@@ -128,12 +132,21 @@ class FileStorage(Storage):
         self._write_model(model_path, model.settings, model.state)
 
     def save_model(self, model, save_state=True):
+        model_path = self.model_path(model.name)
+        try:
+            old_settings = self._get_model_settings(model_path)
+        except errors.LoudMLException as exn:
+            old_settings = {}
+
+        old_settings['name'] = model.name
+
         self._write_model(
-            self.model_path(model.name),
+            model_path,
             model.settings,
             model.state,
             save_state,
         )
+        return diff(old_settings, model.settings, expand=True)
 
     def save_state(self, model):
         self._write_model_state(self.model_path(model.name), model.state)
