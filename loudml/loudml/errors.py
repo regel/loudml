@@ -67,6 +67,13 @@ class ModelNotFound(LoudMLException):
     """Model not found"""
     code = 404
 
+    def __init__(self, name=None):
+        self.name = name
+
+    def __str__(self):
+        name = "" if self.name is None else " ({})".format(self.name)
+        return "Model{} not found".format(name)
+
 class ModelNotTrained(LoudMLException):
     """Model not trained"""
     code = 412

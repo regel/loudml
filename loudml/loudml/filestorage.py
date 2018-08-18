@@ -137,7 +137,7 @@ class FileStorage(Storage):
         try:
             shutil.rmtree(self.model_path(name))
         except FileNotFoundError:
-            raise errors.ModelNotFound()
+            raise errors.ModelNotFound(name=name)
 
     def model_exists(self, name):
         return os.path.exists(self.model_path(name))
@@ -149,7 +149,7 @@ class FileStorage(Storage):
         except ValueError as exn:
             raise errors.Invalid("invalid model setting file: %s", str(exn))
         except FileNotFoundError:
-            raise errors.ModelNotFound()
+            raise errors.ModelNotFound(name=name)
 
     def _get_model_state(self, model_path):
         state_path = os.path.join(model_path, "state.json")
@@ -227,7 +227,7 @@ class FileStorage(Storage):
         """Set model hook"""
 
         if not self.model_exists(model_name):
-            raise errors.ModelNotFound()
+            raise errors.ModelNotFound(name=name)
 
         hooks_dir = self.model_hooks_dir(model_name)
         try:
