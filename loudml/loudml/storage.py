@@ -56,6 +56,10 @@ class Storage(metaclass=ABCMeta):
     def save_model(self, model):
         """Save model"""
 
+    @abstractmethod
+    def save_state(self, model):
+        """Save model state"""
+
     def load_model(self, name):
         """Load model"""
         model_data = self.get_model_data(name)

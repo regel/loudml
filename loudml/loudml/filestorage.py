@@ -130,6 +130,9 @@ class FileStorage(Storage):
         self._write_model(self.model_path(model.name), model.settings,
                           model.state)
 
+    def save_state(self, model):
+        self._write_model_state(self.model_path(model.name), model.state)
+
     def delete_model(self, name):
         try:
             shutil.rmtree(self.model_path(name))
