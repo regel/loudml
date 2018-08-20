@@ -95,7 +95,6 @@ class Worker:
         model_name,
         save_run_state=True,
         save_prediction=False,
-        save_scores=False,
         detect_anomalies=False,
         **kwargs
     ):
