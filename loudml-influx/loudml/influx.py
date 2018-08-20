@@ -644,10 +644,18 @@ class InfluxDataSource(DataSource):
         logging.info("saving '%s' prediction to '%s'", model.name, self.name)
 
         for bucket in prediction.format_buckets():
+            data = bucket['predicted']
+            tags = {}
+            stats = bucket.get('stats', None)
+            if stats is not None:
+                data['score'] = float(stats.get('score'))
+                tags['is_anomaly'] = stats.get('anomaly', False)
+
             self.insert_times_data(
                 measurement='prediction_{}'.format(model.name), # Add id? timestamp?
                 ts=bucket['timestamp'],
-                data=bucket['predicted'],
+                tags=tags,
+                data=data,
             )
         self.commit()
 
