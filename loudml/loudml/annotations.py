@@ -6,6 +6,7 @@ from loudml.api import (
 )
 
 from voluptuous import (
+    ALLOW_EXTRA,
     All,
     Any,
     Optional,
@@ -18,7 +19,7 @@ class AnnotationHook(Hook):
         Required('type'): str,
         Optional('text'): str,
 # TODO: Add tags
-    })
+    }, extra=ALLOW_EXTRA)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
