@@ -1270,10 +1270,6 @@ class TimeSeriesModel(Model):
     ):
         global _keras_model
 
-        for feature in self.features:
-            if feature.is_input and not feature.is_output:
-                raise Invalid("model has pure input feature(s), unable to forecast")
-
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
