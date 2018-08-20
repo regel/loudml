@@ -334,7 +334,10 @@ class ModelsResource(Resource):
         models = []
 
         for name in g_storage.list_models():
-            models.append(get_model_info(name))
+            try:
+                models.append(get_model_info(name))
+            except errors.UnsupportedModel:
+                continue
 
         return jsonify(models)
 
