@@ -927,7 +927,11 @@ def restart_predict_jobs():
     global g_storage
 
     for name in g_storage.list_models():
-        model = g_storage.load_model(name)
+        try:
+            model = g_storage.load_model(name)
+        except errors.UnsupportedModel as exn:
+            logging.error("exception loading model '%s':%s", name, exn)
+            continue
 
         params = model.settings.get('run')
         if params is None:

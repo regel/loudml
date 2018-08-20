@@ -242,7 +242,10 @@ def load_model(settings, state=None, config=None):
     if config and model_type not in config.limits['models']:
         raise errors.Forbidden("Not allowed by license: " + model_type)
 
-    model_cls = misc.load_entry_point('loudml.models', model_type)
+    try:
+        model_cls = misc.load_entry_point('loudml.models', model_type)
+    except ImportError:
+        raise errors.UnsupportedModel(model_type)
 
     if model_cls is None:
         raise errors.UnsupportedModel(model_type)
