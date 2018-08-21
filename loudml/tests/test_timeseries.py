@@ -660,8 +660,15 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(forecast.observed.shape, (expected, 1))
         self.assertEqual(forecast.predicted.shape, (expected, 1))
 
-        all_nans = np.full((expected, 1), np.nan, dtype=float)
-        self.assertEqual(nan_equal(forecast.observed, all_nans), True)
+        all_default = np.full(
+            (expected, len(model.features)),
+            [feature.default for feature in model.features],
+            dtype=float,
+        )
+        np.testing.assert_allclose(
+            forecast.observed,
+            all_default,
+        )
 
         forecast_head = np.array([[9.15], [9.64], [10.06], [10.44], [10.71]])
         forecast_tail = np.array([[8.20], [8.83], [9.30], [9.71], [10.10]])
