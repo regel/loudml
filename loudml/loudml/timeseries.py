@@ -1143,10 +1143,10 @@ class TimeSeriesModel(Model):
                 X.append(make_ts(timeval))
                 X_until = i + 1
 
-        self.apply_defaults(dataset)
-
         if i is None:
             raise errors.NoData("no data found for time range {}".format(hist))
+
+        self.apply_defaults(dataset)
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
@@ -1313,6 +1313,8 @@ class TimeSeriesModel(Model):
 
         if i is None:
             raise errors.NoData("no data found for time range {}".format(hist))
+
+        self.apply_defaults(dataset)
 
         nb_buckets_found = i + 1
         if nb_buckets_found < nb_buckets:
