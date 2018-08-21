@@ -735,7 +735,7 @@ class TestTimes(unittest.TestCase):
                 delta=5,
             )
 
-        from_date = to_date - model.bucket_interval
+        from_date = to_date
         to_date = from_date + 48 * 3600
         forecast = model.forecast(source, from_date, to_date)
         expected = math.ceil(
@@ -851,7 +851,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(prediction.observed.shape, (expected, 1))
         self.assertEqual(prediction.predicted.shape, (expected, 1))
 
-        from_date = to_date - model.bucket_interval 
+        from_date = to_date
         to_date = from_date + 48 * 3600
         forecast = model.forecast(source, from_date, to_date)
 
@@ -950,7 +950,7 @@ class TestTimes(unittest.TestCase):
         model.train(source, from_date, to_date)
         prediction = model.predict(source, from_date, to_date)
 
-        from_date = to_date - model.bucket_interval
+        from_date = to_date
         to_date = from_date + 48 * 3600
         forecast = model.forecast(source, from_date, to_date)
         predicted = forecast.predicted[:,0]
