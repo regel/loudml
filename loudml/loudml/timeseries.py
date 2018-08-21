@@ -1281,15 +1281,16 @@ class TimeSeriesModel(Model):
 
         # Build history time range
         # Extra data are required to forecast first buckets
-        hist = DateRange(
-            period.from_ts - self._span * self.bucket_interval,
-            period.to_ts,
-        )
-
+        _span = self._span
         for j, feature in enumerate(self.features):
             if feature.transform == "diff":
-                hist.from_ts -= self.bucket_interval
+                _span += 1
                 break
+
+        hist = DateRange(
+            period.from_ts - _span * self.bucket_interval,
+            period.to_ts,
+        )
 
         # Prepare dataset
         nb_buckets = int((hist.to_ts - hist.from_ts) / self.bucket_interval)
@@ -1327,9 +1328,9 @@ class TimeSeriesModel(Model):
         real = np.copy(dataset)
 
         # XXX: Do not take real data into account for the forecast period
-        dataset = np.resize(dataset, (self._span, nb_features))
-        daytime = np.resize(daytime, (self._span, 1))
-        weekday = np.resize(weekday, (self._span, 1))
+        dataset = np.resize(dataset, (_span, nb_features))
+        daytime = np.resize(daytime, (_span, 1))
+        weekday = np.resize(weekday, (_span, 1))
 
         y0 = np.empty(len(self._y_indexes()), dtype=float)
         y0[:] = dataset[-1]
@@ -1418,7 +1419,7 @@ class TimeSeriesModel(Model):
             y0[:] = Y[-1]
 
         for i, j, feature in self.enum_features(is_input=True):
-            observed[:,i] = real[self._span:][:,i]
+            observed[:,i] = real[_span:][:,i]
 
         self.apply_defaults(observed)
         self.apply_defaults(predicted)
