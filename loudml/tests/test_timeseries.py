@@ -639,7 +639,7 @@ class TestTimes(unittest.TestCase):
         model.train(source, from_date, to_date)
         prediction = model.predict(source, from_date, to_date)
 
-        from_date = to_date - model.bucket_interval 
+        from_date = to_date
         to_date = from_date + 48 * 3600
         forecast = model.forecast(source, from_date, to_date)
 
