@@ -13,6 +13,9 @@ deb: $(NAME).deb
 $(NAME).deb: debian/changelog
 	$(call debbuild,$(FULLNAME))
 
+clean:
+	rm -rf build
+
 .PHONY: rpm deb debian/changelog debian/control
 
 include ../build.mk

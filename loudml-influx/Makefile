@@ -8,7 +8,7 @@ uninstall:
 
 clean:
 	./setup.py clean
-	rm -rf build
+	rm -rf build dist
 
 dev:
 	./setup.py develop --no-deps
