@@ -1,0 +1,20 @@
+Source: loudml-elastic-aws
+Section: unknown
+Priority: optional
+Maintainer: Red Mint Network <packaging@redmintnetwork.com>
+Build-Depends:
+  debhelper (>= 9),
+  dh-python,
+  python3-all,
+  python3-setuptools
+Standards-Version: 3.9.5
+Homepage: http://www.loudml.io/
+
+Package: loudml-elastic-aws
+Architecture: all
+Depends:
+  ${misc:Depends},
+  ${python3:Depends},
+  loudml,
+  loudml-elastic,
+Description: Elasticsearch AWS module for LoudML

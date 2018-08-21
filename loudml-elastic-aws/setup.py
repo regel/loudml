@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 
 """
-Setup Elasticsearch module for LoudML
+Setup Elasticsearch AWS module for LoudML
 """
 
 import os
 from setuptools import setup
 
 setup(
-    name='loudml-elastic',
+    name='loudml-elastic-aws',
 
     version=os.getenv('LOUDML_VERSION', '1.3'),
 
-    description="Elasticsearch module for LoudML",
-
-    py_modules=[
-    ],
+    description="Elasticsearch AWS module for LoudML",
 
     namespace_packages=['loudml'],
 
@@ -31,7 +28,9 @@ setup(
 
     install_requires=[
         'loudml',
-        'elasticsearch',
+        'loudml-elastic',
+        'boto3',
+        'requests-aws4auth',
     ],
 
     include_package_data=True,
@@ -39,7 +38,7 @@ setup(
 
     entry_points={
         'loudml.datasources': [
-            'elasticsearch=loudml.elastic:ElasticsearchDataSource',
+            'elasticsearch_aws=loudml.elastic_aws:ElasticsearchAWSDataSource',
         ],
     },
 )
