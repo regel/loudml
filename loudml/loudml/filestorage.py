@@ -103,7 +103,8 @@ class FileStorage(Storage):
         self._write_model_state(path, state)
 
     def create_model(self, model, config=None):
-        if config and len(self.list_models()) >= config.limits['nrmodels']:
+        if (config and config.limits['nrmodels'] != "unlimited"
+                and len(self.list_models()) >= config.limits['nrmodels']):
             raise errors.Forbidden(
                 "You've reached the maximum count allowed in your license")
 

@@ -109,6 +109,7 @@ class License:
     the models are the same as the entry points `loudml.models` in `setup.py`.
 
     `features:nrmodels` is the maximum number of models that can be stored.
+    The special value 'unlimited' disables the number check.
 
     `version` is the major version number for LoudML. It is defined in this
     file.

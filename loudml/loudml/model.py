@@ -239,7 +239,7 @@ def load_model(settings, state=None, config=None):
 
     model_type = settings['type']
 
-    if config and and model_type not in config.limits['models']:
+    if config and model_type not in config.limits['models']:
         raise errors.Forbidden("Not allowed by license: " + model_type)
 
     model_cls = misc.load_entry_point('loudml.models', model_type)

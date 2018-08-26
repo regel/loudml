@@ -119,7 +119,7 @@ class CreateModelCommand(Command):
 
     def exec(self, args):
         model_settings = self.load_model_file(args.model_file)
-        model = loudml.model.load_model(settings=model_settings)
+        model = loudml.model.load_model(settings=model_settings, config=self.config)
 
         storage = FileStorage(self.config.storage['path'])
 

@@ -3,7 +3,10 @@ import unittest
 
 import loudml
 
+from loudml import errors
+from loudml.config import Config
 from loudml.license import License
+from loudml.model import load_model
 
 
 class TestLicense(unittest.TestCase):
@@ -29,6 +32,13 @@ class TestLicense(unittest.TestCase):
 
     def test_expired(self):
         self.assertTrue(self.license1.has_expired())
+
+    def test_model_not_allowed(self):
+        config = Config({})
+        settings = {'type': 'unauthorized_type'}
+        config.limits['models'] = ['authorized_type']
+        self.assertRaises(errors.Forbidden, load_model, settings,
+                          config=config)
 
     def test_version_allowed(self):
         self.assertTrue(self.license1.version_allowed())
