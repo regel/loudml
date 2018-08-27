@@ -34,16 +34,14 @@ class DataSource(metaclass=ABCMeta):
     }, extra=ALLOW_EXTRA)
 
     def __init__(self, cfg):
-        self.validate(cfg)
-
-        self._cfg = cfg
+        self._cfg = self.validate(cfg)
         self._pending = []
         self._last_commit = datetime.datetime.now()
 
     @classmethod
     def validate(cls, cfg):
         """Validate configuration against the schema"""
-        schemas.validate(cls.SCHEMA, cfg)
+        return schemas.validate(cls.SCHEMA, cfg)
 
     @property
     def cfg(self):
