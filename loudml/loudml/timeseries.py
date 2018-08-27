@@ -1734,9 +1734,13 @@ class TimeSeriesModel(Model):
         self.apply_defaults(observed)
         self.apply_defaults(predicted)
 
+        lower, upper = self.build_lower_upper(predicted)
+
         return TimeSeriesPrediction(
             self,
             timestamps=timestamps,
             observed=observed,
             predicted=predicted,
+            lower=lower,
+            upper=upper,
         )
