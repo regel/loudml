@@ -453,6 +453,17 @@ class TimeSeriesModel(Model):
                 yield i, j, feature
                 j += 1
 
+    def get_tags(self):
+        tags = {}
+        for feature in self.features:
+            if feature.match_all:
+                for condition in feature.match_all:
+                    tag = condition['tag']
+                    val = condition['value']
+                    tags[tag] = val
+
+        return tags
+
     @property
     def type(self):
         return self.TYPE

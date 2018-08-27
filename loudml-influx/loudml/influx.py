@@ -645,7 +645,7 @@ class InfluxDataSource(DataSource):
 
         for bucket in prediction.format_buckets():
             data = bucket['predicted']
-            tags = {}
+            tags = model.get_tags()
             stats = bucket.get('stats', None)
             if stats is not None:
                 data['score'] = float(stats.get('score'))
