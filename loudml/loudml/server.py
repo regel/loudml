@@ -471,19 +471,24 @@ class HookResource(Resource):
     def post(self, model_name, hook_name):
         global g_storage
 
-        config = request.json
-
         if model_name is None:
             return "model description is missing", 400
 
         data = request.json
-        hook_type = request.args.get('type')
+        if data is None:
+            return "hook description is missing", 400
+
+        hook_type = data.get('type')
         if hook_type is None:
             return "type is missing", 400
 
-        hook = load_entry_point('loudml.hook', hook_type)
-        hook.validate(data.get('config'))
-        g_storage.set_model_hook(hook_name, hook_type, config)
+        hook = load_entry_point('loudml.hooks', hook_type)
+        if hook is None:
+            return "unknown hook type", 404
+
+        config = data.get('config')
+        hook.validate(config)
+        g_storage.set_model_hook(model_name, hook_name, hook_type, config)
 
         logging.info("hook '%s/%s' updated", model_name, hook_name)
         return "success"
