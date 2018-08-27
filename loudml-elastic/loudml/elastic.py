@@ -716,11 +716,19 @@ class ElasticsearchDataSource(DataSource):
         index=None,
     ):
         for bucket in prediction.format_buckets():
+            data = bucket['predicted']
+            tags = model.get_tags()
+            stats = bucket.get('stats', None)
+            if stats is not None:
+                data['score'] = float(stats.get('score'))
+                tags['is_anomaly'] = stats.get('anomaly', False)
+
             self.insert_times_data(
                 index=index,
                 doc_type='prediction_{}'.format(model.name),
                 ts=bucket['timestamp'],
-                data=bucket['predicted'],
+                tags=tags,
+                data=data,
                 timestamp_field=model.timestamp_field,
             )
         self.commit()
