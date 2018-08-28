@@ -167,7 +167,9 @@ class FileStorage(Storage):
         except ValueError as exn:
             raise errors.Invalid("invalid model setting file: %s", str(exn))
         except FileNotFoundError:
-            raise errors.ModelNotFound(name=name)
+            raise errors.ModelNotFound(
+                name=os.path.basename(model_path).rstrip(".json")
+            )
 
     def _get_model_state(self, model_path):
         state_path = os.path.join(model_path, "state.json")
