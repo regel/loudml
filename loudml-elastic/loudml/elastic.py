@@ -34,6 +34,7 @@ from . import (
 
 from loudml.datasource import DataSource
 from loudml.misc import (
+    escape_quotes,
     deepsizeof,
     make_ts,
     parse_addr,
@@ -64,12 +65,11 @@ def _date_range_to_ms(from_date=None, to_date=None):
         None if to_date is None else int(make_ts(to_date) * 1000),
     )
 
-def _build_match_all(aggregation):
+def _build_match_all(match_all=None):
     """
     Build filters for search query
     """
 
-    match_all = aggregation.match_all
     if match_all is None:
         return
     for condition in match_all:
@@ -528,7 +528,7 @@ class ElasticsearchDataSource(DataSource):
         if key is not None:
             must.append({"match": {model.key: key}})
 
-        match_all = _build_match_all(aggregation)
+        match_all = _build_match_all(aggregation.match_all)
         for condition in match_all:
             must.append(condition)
 
@@ -617,6 +617,11 @@ class ElasticsearchDataSource(DataSource):
         date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
         if date_range is not None:
             must.append(date_range)
+
+        for feature in model.features:
+            match_all = _build_match_all(feature.match_all)
+            for condition in match_all:
+                must.append(condition)
 
         if len(must) > 0:
             body['query'] = {
