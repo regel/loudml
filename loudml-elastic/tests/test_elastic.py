@@ -1,3 +1,5 @@
+import loudml.vendor
+
 import datetime
 import logging
 import numpy as np
@@ -8,7 +10,11 @@ import unittest
 logging.getLogger('tensorflow').disabled = True
 
 import loudml.errors as errors
-import loudml.test
+try:
+    import loudml.test
+except ImportError as exn:
+    # ignore fingerprint import error
+    print("warning:", exn)
 
 from loudml.elastic import ElasticsearchDataSource
 
