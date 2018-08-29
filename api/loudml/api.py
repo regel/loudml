@@ -17,6 +17,7 @@
 LoudML public API
 """
 
+import json
 import os
 import yaml
 
@@ -67,8 +68,20 @@ class Hook:
     """
     CONFIG_SCHEMA = None
 
-    def __init__(self, name, config=None):
+    def __init__(
+        self,
+        name,
+        config,
+        model,
+        storage,
+        source=None,
+        *args,
+        **kargs
+    ):
         self.name = name
+        self.model = model
+        self.storage = storage
+        self.source = source
         self.config = self.validate(config)
 
     @classmethod
@@ -111,3 +124,33 @@ class Hook:
         score -- Computed anomaly score [0-100]
         """
         pass
+
+    def set_object(self, key, data):
+        """
+        Save a persistent object
+
+        Useful to keep persistent data accross hook calls.
+
+        key -- object identifier
+        data -- jsonifiable data
+        """
+
+        self.storage.set_model_object(self.model, key, data)
+
+    def get_object(self, key):
+        """
+        Get a persistent object
+
+        key -- object identifier
+        """
+
+        return self.storage.get_model_object(self.model, key)
+
+    def delete_object(self, key):
+        """
+        Delete a persistent object
+
+        key -- object identifier
+        """
+
+        return self.storage.delete_model_object(self.model, key)
