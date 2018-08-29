@@ -116,10 +116,17 @@ future feature values using the forecast API.
 
 [source,js]
 --------------------------------------------------
-POST /models/pricing_model/_forecast?from=now&to=now+1h
+POST /models/pricing_model/_forecast?from=now&to=now+1h&bg=true
 --------------------------------------------------
 
-On success, it will return a job identifier.
+Accepted parameters for the _forecast API are:
+
+[horizontal]
+`from`:: generate the requested data from this date
+`to`:: generate the requested data until this date
+`bg`:: `true` to run an asynchronous job in the background, `false` (default) to run in the foreground
+
+On success it will return a job identifier if `bg`=`true`, or data points if `bg`=`false` or option is missing.
 
 [source,js]
 --------------------------------------------------
