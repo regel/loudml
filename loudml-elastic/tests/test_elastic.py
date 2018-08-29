@@ -31,7 +31,7 @@ TEMPLATE = {
         "codec":"best_compression"
     },
     "mappings": {
-        "generic": {
+        "doc": {
             "include_in_all": True,
             "properties": {
                 "timestamp": {
@@ -39,6 +39,21 @@ TEMPLATE = {
                 },
                 "foo": {
                     "type": "integer"
+                },
+                "bar": {
+                    "type": "integer"
+                },
+                "baz": {
+                    "type": "integer"
+                },
+                "tag_kw": {
+                    "type": "keyword"
+                },
+                "tag_int": {
+                    "type": "integer"
+                },
+                "tag_bool": {
+                    "type": "boolean"
                 },
             },
         },
@@ -51,6 +66,28 @@ FEATURES = [
         'metric': 'avg',
         'field': 'foo',
         'default': 0,
+    },
+]
+
+FEATURES_MATCH_ALL_TAG1 = [
+    {
+        'name': 'avg_baz',
+        'metric': 'avg',
+        'field': 'baz',
+        'match_all': [
+            {'tag': 'tag_kw', 'value': 'tag1'},
+        ],
+    },
+]
+FEATURES_MATCH_ALL_TAG2 = [
+    {
+        'name': 'avg_baz',
+        'metric': 'avg',
+        'field': 'baz',
+        'match_all': [
+            {'tag': 'tag_int', 'value': 7},
+            {'tag': 'tag_bool', 'value': True},
+        ],
     },
 ]
 
@@ -73,7 +110,7 @@ class TestElasticDataSource(unittest.TestCase):
         self.source.init(template_name="test", template=TEMPLATE)
 
         self.model = TimeSeriesModel(dict(
-            name='test',
+            name='times-model', # not test-model due to TEMPLATE
             offset=30,
             span=300,
             bucket_interval=bucket_interval,
@@ -83,20 +120,49 @@ class TestElasticDataSource(unittest.TestCase):
         ))
 
         data = [
-            # (foo, timestamp)
-            (1, t0 - 1), # excluded
-            (2, t0), (3, t0 + 1),
+            # (foo, bar|baz, timestamp)
+            (1, 33, t0 - 1), # excluded
+            (2, 120, t0), (3, 312, t0 + 1),
             # empty
-            (4, t0 + 7),
-            (5, t0 + 9), # excluded
+            (4, 18, t0 + 7),
+            (5, 78, t0 + 9), # excluded
         ]
-        for entry in data:
+        for foo, bar, ts in data:
             self.source.insert_times_data(
-                ts=entry[1],
+                ts=ts,
                 data={
-                    'foo': entry[0],
-                },
+                    'foo': foo,
+                }
             )
+            self.source.insert_times_data(
+                ts=ts,
+                data={
+                    'bar': bar,
+                }
+            )
+            self.source.insert_times_data(
+                ts=ts,
+                tags={
+                    'tag_kw': 'tag1',
+                    'tag_int': 9,
+                    'tag_bool': False,
+                },
+                data={
+                    'baz': bar,
+                }
+            )
+            self.source.insert_times_data(
+                ts=ts,
+                tags={
+                    'tag_kw': 'tag2',
+                    'tag_int': 7,
+                    'tag_bool': True,
+                },
+                data={
+                    'baz': -bar,
+                }
+            )
+
         self.source.commit()
 
         # Let elasticsearch indexes the data before querying it
@@ -126,9 +192,15 @@ class TestElasticDataSource(unittest.TestCase):
             to_date=self.t0 + 8,
         )
 
-        self.assertEqual(
-            [line[1] for line in res],
-            [[2.5], [0.0], [4.0]],
+        foo_avg = []
+        for line in res:
+            foo_avg.append(line[1][0])
+
+        np.testing.assert_allclose(
+            np.array(foo_avg),
+            np.array([2.5, np.nan, 4.0]),
+            rtol=0,
+            atol=0,
         )
 
     def test_save_timeseries_prediction(self):
@@ -147,12 +219,12 @@ class TestElasticDataSource(unittest.TestCase):
             observed=np.array([[4.1], [1.9]]),
         )
 
+        self.source.drop(self.model.name)
         self.source.save_timeseries_prediction(prediction, self.model)
         self.source.refresh()
 
         res = self.source.search(
-            index="{}-*".format(self.index),
-            doc_type="prediction_{}".format(self.model.name),
+            index=self.model.name,
             routing=self.model.routing,
             size=100,
             body={}
@@ -161,13 +233,64 @@ class TestElasticDataSource(unittest.TestCase):
         hits = res['hits']['hits']
         self.assertEqual(len(hits), 2)
 
-        for i, hit in enumerate(hits):
+        for i, hit in enumerate(sorted(hits, key=lambda x: x['_source']['timestamp'])):
             source = hit['_source']
             self.assertEqual(source, {
                 'avg_foo': predicted[i][0],
                 'timestamp': int(timestamps[i] * 1000),
             })
 
+    def test_match_all(self):
+        model = TimeSeriesModel(dict(
+            name="times-model",
+            offset=30,
+            span=300,
+            bucket_interval=3,
+            interval=60,
+            features=FEATURES_MATCH_ALL_TAG1,
+            threshold=30,
+        ))
+        res = self.source.get_times_data(
+            model,
+            from_date=self.t0,
+            to_date=self.t0 + 8,
+        )
+        baz_avg = []
+        for line in res:
+            baz_avg.append(line[1][0])
+
+        np.testing.assert_allclose(
+            np.array(baz_avg),
+            np.array([216.0, np.nan, 18.0]),
+            rtol=0,
+            atol=0,
+        )
+
+        model = TimeSeriesModel(dict(
+            name="times-model",
+            offset=30,
+            span=300,
+            bucket_interval=3,
+            interval=60,
+            features=FEATURES_MATCH_ALL_TAG2,
+            threshold=30,
+        ))
+
+        res = self.source.get_times_data(
+            model,
+            from_date=self.t0,
+            to_date=self.t0 + 8,
+        )
+        baz_avg = []
+        for line in res:
+            baz_avg.append(line[1][0])
+
+        np.testing.assert_allclose(
+            np.array(baz_avg),
+            np.array([-216.0, np.nan, -18.0]),
+            rtol=0,
+            atol=0,
+        )
 
 VOIP_TEMPLATE = {
     "template": "test-voip-*",
