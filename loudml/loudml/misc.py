@@ -4,6 +4,7 @@ Miscelaneous Loud ML helpers
 
 import datetime
 import dateutil.parser
+import numpy as np
 import pkg_resources
 import sys
 
@@ -268,3 +269,15 @@ def parse_constraint(constraint):
         'type': _type,
         'threshold': threshold,
     }
+
+def nan_to_none(x):
+    """
+    Convert value to None if its NaN
+    """
+    return None if x is np.nan or np.isnan(x) else x
+
+def list_from_np(array):
+    """
+    Convert numpy array into a jsonifiable list
+    """
+    return [nan_to_none(x) for x in array]

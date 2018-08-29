@@ -19,6 +19,7 @@ import loudml.test
 from loudml.misc import (
     escape_quotes,
     escape_doublequotes,
+    nan_to_none,
 )
 
 from loudml.influx import (

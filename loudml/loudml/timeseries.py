@@ -49,8 +49,10 @@ from .misc import (
     datetime_to_str,
     dt_get_weekday,
     dt_get_daytime,
+    list_from_np,
     make_datetime,
     make_ts,
+    nan_to_none,
     parse_timedelta,
     ts_to_str,
     ts_to_datetime,
@@ -234,18 +236,6 @@ class DateRange:
             ts_to_str(self.to_ts),
         )
 
-def _nan_to_none(x):
-    """
-    Convert value to None if its NaN
-    """
-    return None if x is np.nan or np.isnan(x) else x
-
-def _list_from_np(array):
-    """
-    Convert numpy array into a jsonifiable list
-    """
-    return [_nan_to_none(x) for x in array]
-
 class TimeSeriesPrediction:
     """
     Time-series prediction
@@ -293,13 +283,13 @@ class TimeSeriesPrediction:
 
         for i, feature in enumerate(self.model.features):
             if feature.is_input:
-                observed[feature.name] = _list_from_np(self.observed[:,i])
+                observed[feature.name] = list_from_np(self.observed[:,i])
             if feature.is_output:
-                predicted[feature.name] = _list_from_np(self.predicted[:,i])
+                predicted[feature.name] = list_from_np(self.predicted[:,i])
                 if self.lower is not None:
-                    predicted['lower_{}'.format(feature.name)] = _list_from_np(self.lower[:,i])
+                    predicted['lower_{}'.format(feature.name)] = list_from_np(self.lower[:,i])
                 if self.upper is not None:
-                    predicted['upper_{}'.format(feature.name)] = _list_from_np(self.upper[:,i])
+                    predicted['upper_{}'.format(feature.name)] = list_from_np(self.upper[:,i])
 
 
         result = {
@@ -319,22 +309,22 @@ class TimeSeriesPrediction:
         """
         features = self.model.features
         predicted = {
-            feature.name: _nan_to_none(self.predicted[i][j])
+            feature.name: nan_to_none(self.predicted[i][j])
             for j, feature in enumerate(features) if feature.is_output
         }
         if self.lower is not None:
             predicted.update({
-                'lower_{}'.format(feature.name): _nan_to_none(self.lower[i][j])
+                'lower_{}'.format(feature.name): nan_to_none(self.lower[i][j])
                 for j, feature in enumerate(features) if feature.is_output
             })
         if self.upper is not None:
             predicted.update({
-                'upper_{}'.format(feature.name): _nan_to_none(self.upper[i][j])
+                'upper_{}'.format(feature.name): nan_to_none(self.upper[i][j])
                 for j, feature in enumerate(features) if feature.is_output
             })
         return {
             'observed': {
-                feature.name: _nan_to_none(self.observed[i][j])
+                feature.name: nan_to_none(self.observed[i][j])
                 for j, feature in enumerate(features) if feature.is_input
             },
             'predicted': predicted
