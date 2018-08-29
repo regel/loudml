@@ -9,6 +9,8 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
+import loudml.config
+import loudml.datasource
 import loudml.errors as errors
 try:
     import loudml.test
@@ -101,11 +103,20 @@ class TestElasticDataSource(unittest.TestCase):
 
         self.index = 'test-%d' % t0
         logging.info("creating index %s", self.index)
-        self.source = ElasticsearchDataSource({
-            'name': 'test',
-            'addr': os.environ['ELASTICSEARCH_ADDR'],
-            'index': self.index,
-        })
+        if os.environ.get('ELASTICSEARCH_ADDR', None) is None:
+            # tip: useful tool to query ES AWS remotely:
+            # npm install aws-es-curl -g
+            config = loudml.config.load_config('/etc/loudml/config.yml')
+            settings = config.get_datasource('aws')
+            settings['index'] = self.index
+            self.source = loudml.datasource.load_datasource(settings)
+        else:
+            self.source = ElasticsearchDataSource({
+                'name': 'test',
+                'addr': os.environ['ELASTICSEARCH_ADDR'],
+                'index': self.index,
+            })
+
         self.source.drop()
         self.source.init(template_name="test", template=TEMPLATE)
 
