@@ -303,6 +303,16 @@ class TimeSeriesPrediction:
             result['constraint'] = self.constraint
         return result
 
+    def get_field_names(self):
+        features = self.model.features
+        names = []
+        for feature in features:
+            names.append(feature.name)
+            names.append("lower_{}".format(feature.name))
+            names.append("upper_{}".format(feature.name))
+
+        return names
+
     def format_bucket_data(self, i):
         """
         Format observation and prediction for one bucket

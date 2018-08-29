@@ -219,16 +219,18 @@ class ElasticsearchDataSource(DataSource):
 
         if template is not None:
             self.es.indices.put_template(
-                name='{}-template'.format(template_name),
+                name=template_name,
                 body=template,
                 ignore=400,
             )
 
-    def drop(self):
+    def drop(self, index=None):
         """
         Delete index
         """
-        self.es.indices.delete(index=self.index, ignore=404)
+        if index is None:
+            index = self.index
+        self.es.indices.delete(index, ignore=404)
 
     def send_bulk(self, requests):
         """
@@ -285,7 +287,7 @@ class ElasticsearchDataSource(DataSource):
         self,
         data,
         index=None,
-        doc_type='generic',
+        doc_type='doc',
         doc_id=None,
         timestamp=None,
     ):
@@ -313,7 +315,7 @@ class ElasticsearchDataSource(DataSource):
         data,
         tags=None,
         index=None,
-        doc_type='generic',
+        doc_type='doc',
         doc_id=None,
         timestamp_field='timestamp',
         *args,
@@ -338,7 +340,7 @@ class ElasticsearchDataSource(DataSource):
             timestamp=int(ts),
         )
 
-    def search(self, body, index=None, routing=None, doc_type=None, size=0):
+    def search(self, body, index=None, routing=None, doc_type='doc', size=0):
         """
         Send search query to Elasticsearch
         """
@@ -714,12 +716,47 @@ class ElasticsearchDataSource(DataSource):
 
             yield (timestamp - t0) / 1000, X, timeval
 
+    def gen_template(
+        self,
+        model,
+        prediction,
+    ):
+        template = {
+          "template": model.name,
+          "mappings": {
+            "doc": {
+              "properties": {
+                "timestamp": {"type": "date", "format": "epoch_millis"},
+                "score": {"type": "float"},
+                "is_anomaly": {"type": "boolean"},
+              }
+            }
+          }
+        }
+        properties = {}
+        for tag in model.get_tags():
+            properties[tag] = {"type": "keyword"}
+
+        for field in prediction.get_field_names():
+            properties[field] = {"type": "float"}
+
+        if model.timestamp_field is not None:
+            properties[model.timestamp_field] = {
+                "type": "date",
+                "format": "epoch_millis",
+            }
+        template['mappings']['doc']['properties'].update(properties)
+        return template
+
     def save_timeseries_prediction(
         self,
         prediction,
         model,
         index=None,
     ):
+        template = self.gen_template(model, prediction)
+        self.init(template_name=model.name, template=template)
+
         for bucket in prediction.format_buckets():
             data = bucket['predicted']
             tags = model.get_tags()
@@ -729,8 +766,7 @@ class ElasticsearchDataSource(DataSource):
                 tags['is_anomaly'] = stats.get('anomaly', False)
 
             self.insert_times_data(
-                index=index,
-                doc_type='prediction_{}'.format(model.name),
+                index=model.name,
                 ts=bucket['timestamp'],
                 tags=tags,
                 data=data,
