@@ -196,12 +196,10 @@ class TestInfluxQuick(unittest.TestCase):
         bar_count = []
 
         for line in res:
-            foo_avg.append(line[1][0])
-            bar_count.append(line[1][1])
+            foo_avg.append(nan_to_none(line[1][0]))
+            bar_count.append(nan_to_none(line[1][1]))
 
-        # TODO: rework bucket handling to have the same behavior than in memdatasource
-
-        self.assertEqual(foo_avg, [2.5, 0, 4.0])
+        self.assertEqual(foo_avg, [2.5, None, 4.0])
         self.assertEqual(bar_count, [2.0, 0, 1.0])
 
 
@@ -218,12 +216,16 @@ class TestInfluxLong(unittest.TestCase):
         self.source.init()
         self.storage = TempStorage()
 
-        generator = SinEventGenerator(avg=3, sigma=0.05)
+        generator = SinEventGenerator(base=3, sigma=0.05)
 
         self.to_date = datetime.datetime.now().timestamp()
         self.from_date = self.to_date - 3600 * 24 * 7
 
-        for ts in generator.generate_ts(self.from_date, self.to_date, step=60):
+        for ts in generator.generate_ts(
+            self.from_date,
+            self.to_date,
+            step_ms=60000,
+        ):
             self.source.insert_times_data(
                 measurement='measure1',
                 ts=ts,
