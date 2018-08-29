@@ -281,3 +281,4 @@ def list_from_np(array):
     Convert numpy array into a jsonifiable list
     """
     return [nan_to_none(x) for x in array]
+

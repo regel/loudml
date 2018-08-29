@@ -134,7 +134,7 @@ class FileStorage(Storage):
     def save_model(self, model, save_state=True):
         model_path = self.model_path(model.name)
         try:
-            old_settings = self._get_model_settings(model_path)
+            old_settings = self._get_model_settings(model_path, model.name)
         except errors.LoudMLException as exn:
             old_settings = {}
 
@@ -160,16 +160,14 @@ class FileStorage(Storage):
     def model_exists(self, name):
         return os.path.exists(self.model_path(name))
 
-    def _get_model_settings(self, model_path):
+    def _get_model_settings(self, model_path, model_name):
         settings_path = os.path.join(model_path, "settings.json")
         try:
             return self._load_json(settings_path)
         except ValueError as exn:
             raise errors.Invalid("invalid model setting file: %s", str(exn))
         except FileNotFoundError:
-            raise errors.ModelNotFound(
-                name=os.path.basename(model_path).rstrip(".json")
-            )
+            raise errors.ModelNotFound(name=model_name)
 
     def _get_model_state(self, model_path):
         state_path = os.path.join(model_path, "state.json")
@@ -183,7 +181,7 @@ class FileStorage(Storage):
 
     def get_model_data(self, name):
         model_path = self.model_path(name)
-        settings = self._get_model_settings(model_path)
+        settings = self._get_model_settings(model_path, name)
         settings['name'] = name
 
         data = {
@@ -247,7 +245,7 @@ class FileStorage(Storage):
         """Set model hook"""
 
         if not self.model_exists(model_name):
-            raise errors.ModelNotFound(name=name)
+            raise errors.ModelNotFound(name=model_name)
 
         hooks_dir = self.model_hooks_dir(model_name)
         try:
