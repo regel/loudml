@@ -1235,7 +1235,7 @@ class TestTimes(unittest.TestCase):
 
         np.testing.assert_allclose(
             prediction.mse,
-            [0.18, 0.69, 0.25],
+            12.85,
             0.01,
         )
         np.testing.assert_allclose(
