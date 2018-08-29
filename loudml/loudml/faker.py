@@ -54,7 +54,7 @@ def generate_data(
         else:
             ano = False
             yield ts, {
-                'foo': random.lognormvariate(10, 1),
+                'value': random.lognormvariate(10, 1),
             }
 
 def dump_to_json(generator):
@@ -93,7 +93,7 @@ def init_datasource(arg, tags=None):
             "timestamp": {
                 "type": "date"
             },
-            "foo": {
+            "value": {
                 "type": "float",
             },
         }
