@@ -7,8 +7,21 @@ for learning and inference.
 Features define how to aggregate numerical data from a `measurement`
 A `measurement` defines an object type in the data source:
 
-* For Elasticsearch data source, the `measurement` is the object `_type` field value
+* For Elasticsearch data source, the `measurement` is the object `_type` field value, or `doc` if not set
 * For InfluxDB data source, the `measurement` is the series measurement name
+
+Accepted parameters to define model features are:
+
+[horizontal]
+`name`:: Name given to this feature
+`field`:: TSDB column name
+`measurement`:: TSDB table to fetch data
+`match_all`:: list of TSDB tag names and values that must be matched when fetching the data
+`metric`:: An aggregation operator supported by the TSDB
+`default`:: A default float value to replace NaN values returned by the TSDB, or `previous` in order to fill the series with previous non-NaN value
+`transform`:: `null`, or `diff` additional processing to apply to TSDB data in order to generate the feature
+`scores`:: `min_max`, or `standardize` additional processing to apply to TSDB data in order to generate the feature
+`anomaly_type`:: `low_high`, `low`, or `high` according to the type of abnormal values to detect
 
 The list below defines the aggregation operators can be used to
 define features. These values can be extracted by using numeric
@@ -22,7 +35,7 @@ nor extracting features from categories ie, non numeric fields.
 
 ==================================================
 
-The operators that are supported consist of: `count`, `min`, `max`, `sum`,
+The `metric` operators that are supported consist of: `count`, `min`, `max`, `sum`,
 `avg`, `sum_of_squares`, `variance`, and `std_deviation`.
 
 [NOTE]

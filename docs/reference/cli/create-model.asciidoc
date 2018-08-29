@@ -85,3 +85,14 @@ and features across distinct data-sources: https://github.com/regel/loudml/issue
 
 ==================================================
 
+[NOTE]
+==================================================
+
+The `offset` parameter is equivalent to Elasticsearch https://www.elastic.co/guide/en/elasticsearch/reference/6.x/indices-update-settings.html[index.refresh_interval] parameter.
+
+This parameter takes into account the fact that all data will not hit the TSDB in real time and cannot be consumed immediately.
+
+Loud ML automatically applies a negative time offset to all TSDB queries, eg if you set `offset`=30s and your query ranges from `now-2d` to `now`, then loudml will query the TSDB between `now-2d` and `now-30s`
+
+==================================================
+
