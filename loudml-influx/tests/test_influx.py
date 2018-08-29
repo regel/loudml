@@ -65,6 +65,31 @@ FEATURES = [
     },
 ]
 
+FEATURES_MATCH_ALL_TAG1 = [
+    {
+        'name': 'avg_baz',
+        'metric': 'avg',
+        'measurement': 'measure3',
+        'field': 'baz',
+        'match_all': [
+            {'tag': 'tag_kw', 'value': 'tag1'},
+        ],
+    },
+]
+FEATURES_MATCH_ALL_TAG2 = [
+    {
+        'name': 'avg_baz',
+        'metric': 'avg',
+        'measurement': 'measure3',
+        'field': 'baz',
+        'match_all': [
+            {'tag': 'tag_kw', 'value': 'tag2'},
+            {'tag': 'tag_int', 'value': 7},
+            {'tag': 'tag_bool', 'value': True},
+        ],
+    },
+]
+
 if 'INFLUXDB_ADDR' in os.environ:
     ADDR = os.environ['INFLUXDB_ADDR']
 else:
@@ -123,6 +148,30 @@ class TestInfluxQuick(unittest.TestCase):
                 ts=ts,
                 data={
                     'bar': bar,
+                }
+            )
+            self.source.insert_times_data(
+                measurement='measure3',
+                ts=ts,
+                tags={
+                    'tag_kw': 'tag1',
+                    'tag_int': 9,
+                    'tag_bool': False,
+                },
+                data={
+                    'baz': bar,
+                }
+            )
+            self.source.insert_times_data(
+                measurement='measure3',
+                ts=ts,
+                tags={
+                    'tag_kw': 'tag2',
+                    'tag_int': 7,
+                    'tag_bool': True,
+                },
+                data={
+                    'baz': -bar,
                 }
             )
 
@@ -206,6 +255,57 @@ class TestInfluxQuick(unittest.TestCase):
         self.assertEqual(foo_avg, [2.5, None, 4.0])
         self.assertEqual(bar_count, [2.0, 0, 1.0])
 
+    def test_match_all(self):
+        model = TimeSeriesModel(dict(
+            name="test-model",
+            offset=30,
+            span=300,
+            bucket_interval=3,
+            interval=60,
+            features=FEATURES_MATCH_ALL_TAG1,
+            threshold=30,
+        ))
+        res = self.source.get_times_data(
+            model,
+            from_date=self.t0,
+            to_date=self.t0 + 8,
+        )
+        baz_avg = []
+        for line in res:
+            baz_avg.append(line[1][0])
+
+        np.testing.assert_allclose(
+            np.array(baz_avg),
+            np.array([216.0, np.nan, 18.0]),
+            rtol=0,
+            atol=0,
+        )
+
+        model = TimeSeriesModel(dict(
+            name="test-model",
+            offset=30,
+            span=300,
+            bucket_interval=3,
+            interval=60,
+            features=FEATURES_MATCH_ALL_TAG2,
+            threshold=30,
+        ))
+
+        res = self.source.get_times_data(
+            model,
+            from_date=self.t0,
+            to_date=self.t0 + 8,
+        )
+        baz_avg = []
+        for line in res:
+            baz_avg.append(line[1][0])
+
+        np.testing.assert_allclose(
+            np.array(baz_avg),
+            np.array([-216.0, np.nan, -18.0]),
+            rtol=0,
+            atol=0,
+        )
 
 class TestInfluxLong(unittest.TestCase):
     def setUp(self):
