@@ -364,6 +364,7 @@ class ModelResource(Resource):
     def delete(self, model_name):
         global g_storage
         global g_running_models
+        global g_training
 
         g_lock.acquire()
 
@@ -371,6 +372,10 @@ class ModelResource(Resource):
             timer = g_running_models.pop(model_name, None)
             if timer:
                 timer.cancel()
+
+            job = g_training.get(model_name)
+            if job:
+                job.cancel()
 
             g_storage.delete_model(model_name)
         finally:
