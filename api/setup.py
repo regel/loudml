@@ -24,7 +24,7 @@ from setuptools import setup
 setup(
     name='loudml-api',
 
-    version='1.3.0',
+    version='1.4.0',
 
     description="Package providing the Python LoudML plug-in API",
 
