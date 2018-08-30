@@ -158,7 +158,7 @@ d       r s
 
     def variate(self, ts):
         t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
-        x = int(len(self._values) * (ts - t0) / (24 * 3600)) % len(self._values)
+        x = int(len(self._values) * (ts - t0) / (self.period)) % len(self._values)
 
         return self.base + self.amplitude * self._values[x]
 

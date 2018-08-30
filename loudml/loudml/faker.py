@@ -217,8 +217,8 @@ def main():
         default=24 * 3600,
     )
     parser.add_argument(
-        '--noise',
-        help="Noise",
+        '--sigma',
+        help="Sigma",
         type=float,
         default=2,
     )
@@ -271,18 +271,28 @@ def main():
     elif arg.shape == 'loudml':
         ts_generator = LoudMLEventGenerator(base=arg.base, trend=arg.trend)
     elif arg.shape == 'camel':
-        ts_generator = CamelEventGenerator(base=arg.base, trend=arg.trend)
+        ts_generator = CamelEventGenerator(
+            base=arg.base,
+            amplitude=arg.amplitude,
+            period=arg.period,
+            trend=arg.trend,
+            sigma=arg.sigma,
+        )
     elif arg.shape == 'saw':
         ts_generator = SawEventGenerator(
             base=arg.base,
             amplitude=arg.amplitude,
+            period=arg.period,
             trend=arg.trend,
+            sigma=arg.sigma,
         )
     elif arg.shape == 'triangle':
         ts_generator = TriangleEventGenerator(
             base=arg.base,
             amplitude=arg.amplitude,
+            period=arg.period,
             trend=arg.trend,
+            sigma=arg.sigma,
         )
     else:
         ts_generator = SinEventGenerator(
@@ -290,7 +300,7 @@ def main():
             amplitude=arg.amplitude,
             trend=arg.trend,
             period=arg.period,
-            noise=arg.noise,
+            sigma=arg.sigma,
     )
 
     from_date = make_datetime(arg.from_date)
