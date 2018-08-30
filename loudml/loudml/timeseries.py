@@ -80,6 +80,9 @@ _hp_forecast_max = 5
 _hp_span_min = 5
 _hp_span_max = 20
 
+def atol_rtol_test(a, b, atol=0, rtol=0):
+    return abs(a - b) <= (atol + rtol * abs(b))
+
 def is_normal(x):
     k2, p = normaltest(x)
     alpha = 1e-3
@@ -1689,7 +1692,8 @@ class TimeSeriesModel(Model):
         mse = prediction.mse
         prediction.truncate(1)
         prediction.stat()
-        if mse < (mse_rtol * self._state['mse']):
+
+        if atol_rtol_test(mse, self._state['mse'], atol=0, rtol=mse_rtol):
             good_mse += 1
             if good_mse > self._span:
                 good_date = _from_normal
