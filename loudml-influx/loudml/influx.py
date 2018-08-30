@@ -374,6 +374,10 @@ class InfluxDataSource(DataSource):
         return self.cfg.get('verify_ssl') or False
 
     @property
+    def annotation_db_name(self):
+        return self.cfg.get('annotation_db') or 'chronograf'
+
+    @property
     def influxdb(self):
         if self._influxdb is None:
             addr = parse_addr(self.addr, default_port=8086)
@@ -399,7 +403,7 @@ class InfluxDataSource(DataSource):
     def annotationdb(self):
         if self._annotationdb is None:
             addr = parse_addr(self.addr, default_port=8086)
-            db = self.cfg['annotation_db']
+            db = self.annotation_db_name
             logging.info(
                 "connecting to influxdb on %s:%d, using database '%s'",
                 addr['host'],
