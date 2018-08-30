@@ -15,9 +15,11 @@ set -ex
 export DOCKER_ID_USER
 
 declare -r tag="community:latest"
-declare -r dir="community"
+declare -r dir="remote"
 
-docker build -t "$tag" "$dir"
+echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/ stretch main" \
+    > "$dir/loudml-1.x.list"
+docker build --no-cache -t "$tag" "$dir"
 docker login --username "$DOCKER_ID_USER"
 docker tag "$tag" "$DOCKER_ID_USER/$tag"
 docker push "$DOCKER_ID_USER/$tag"
