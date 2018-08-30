@@ -632,7 +632,7 @@ class TimeSeriesModel(Model):
         self.stds = np.nanstd(dataset, axis=0)
         self.stds[self.stds == 0] = 1.0
 
-    def set_auto_thresold(self):
+    def set_auto_threshold(self):
         """
         Compute best threshold values automatically
         """
