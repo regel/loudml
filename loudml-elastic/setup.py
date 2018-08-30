@@ -10,7 +10,7 @@ from setuptools import setup
 setup(
     name='loudml-elastic',
 
-    version=os.getenv('LOUDML_VERSION', '1.3'),
+    version=os.getenv('LOUDML_VERSION', '1.4'),
 
     description="Elasticsearch module for LoudML",
 

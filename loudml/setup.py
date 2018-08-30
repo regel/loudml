@@ -10,7 +10,7 @@ from setuptools import setup
 setup(
     name='loudml',
 
-    version=os.getenv('LOUDML_VERSION', '1.3'),
+    version=os.getenv('LOUDML_VERSION', '1.4'),
 
     description="Machine Learning application",
 
