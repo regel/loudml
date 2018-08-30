@@ -646,7 +646,7 @@ class TimeSeriesModel(Model):
             mu, sigma = halfnorm.fit(scores)
             _range = (0, min(100, mu + 3 * sigma))
 
-        self.min_threshold = (_range[1] - _range[0]) * 0.66
+        self.min_threshold = _range[0] + (_range[1] - _range[0]) * 0.66
         self.max_threshold = min(100.0, _range[1] * 1.05)
 
     def _train_on_dataset(
