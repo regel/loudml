@@ -703,8 +703,10 @@ def _model_start(model, params):
             "You've reached the maximum count allowed in your license",
         )
 
-    def create_job(from_date=None, save_run_state=True):
+    def create_job(from_date=None, save_run_state=True, detect_anomalies=None):
         kwargs = params.copy()
+        if detect_anomalies is not None:
+            kwargs['detect_anomalies'] = detect_anomalies
 
         to_date = datetime.datetime.now().timestamp() - model.offset
 
@@ -730,7 +732,7 @@ def _model_start(model, params):
         job.start()
 
     from_date = params.pop('from_date', None)
-    create_job(from_date, save_run_state=False)
+    create_job(from_date, save_run_state=False, detect_anomalies=False)
 
     timer = RepeatingTimer(model.interval, create_job)
     g_running_models[model.name] = timer

@@ -117,12 +117,12 @@ class Worker:
             )
             logging.info("job[%s] predicted values for %d time buckets",
                          self.job_id, len(prediction.timestamps))
-            if save_run_state:
-                model.set_run_state(_state)
-                self.storage.save_state(model)
             if detect_anomalies:
                 hooks = self.storage.load_model_hooks(model_name, source)
                 model.detect_anomalies(prediction, hooks)
+            if save_run_state:
+                model.set_run_state(_state)
+                self.storage.save_state(model)
             if save_prediction:
                 source.save_timeseries_prediction(prediction, model)
 
