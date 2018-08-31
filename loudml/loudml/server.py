@@ -374,7 +374,7 @@ class ModelResource(Resource):
                 timer.cancel()
 
             job = g_training.get(model_name)
-            if job:
+            if job and job.is_stopped() == False:
                 job.cancel()
 
             g_storage.delete_model(model_name)
