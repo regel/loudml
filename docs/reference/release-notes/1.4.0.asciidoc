@@ -43,6 +43,10 @@ Data model improvements:
 * You can now use `default`: `previous` in your data model definition. This tells Loud ML to fill missing values with previous values when the values don`t exist in the TSDB for a given time interval.
 * You can now use `transform`: `diff` in your data model definition. This allows Loud ML to forecast non-stationary data; ie, data that isn`t centered around its mean.
 
+New configuration options:
+
+* `server.mse_rtol` option was added to `config.yml` file. The relative tolerance is used to compare MSE values during anomaly detection. The error tolerance function is similar to https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.allclose.html[NumPy function]: `absolute(a - b) <= (atol + rtol * absolute(b))`
+
 [[fixes-1.4.0]]
 [float]
 === Bug fixes
