@@ -306,7 +306,7 @@ class TestElasticDataSource(unittest.TestCase):
 VOIP_TEMPLATE = {
     "template": "test-voip-*",
     "mappings": {
-        "session": {
+        "doc": {
             "properties": {
                 "@timestamp": {
                     "type": "date"
@@ -346,7 +346,7 @@ class TestElasticFingerprints(loudml.test.TestFingerprints):
             'index': self.index,
         })
         self.source.drop()
-        self.source.init(template_name="test", template=TEMPLATE)
+        self.source.init(template_name="test", template=VOIP_TEMPLATE)
 
     def __del__(self):
         self.source.drop()
