@@ -70,7 +70,9 @@ Few breaking changes have been made:
 
 Thanks to our community for downloading the packages, and for their excellent feedback!
 
-Thank you to the hard-working and dedicated team who delivered this awesome release, and to our technology partner InfluxData, Inc.
+Thanks also to Anais Dotis-Georgiou from InfluxData for her well-written https://www.influxdata.com/blog/applying-machine-learning-models-to-influxdb-with-loud-ml-docker-for-time-series-predictions/[tutorial] on how to implement Loud ML with InfluxDB.
+
+As always, thanks to the hard-working and dedicated team who have made Loud ML a success.
 
 Please let us know on Github about the new features you'd like to see in the next releases!
 
