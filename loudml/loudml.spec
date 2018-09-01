@@ -17,8 +17,8 @@ Requires(postun): systemd
 Requires: python34
 Requires: python34-setuptools
 Requires: curl
-Requires: loudml-api
-Requires: loudml-base
+Requires: loudml-api >= 1.4.0
+Requires: loudml-base == %{version}
 
 # Disable debug package
 %define debug_package %{nil}
