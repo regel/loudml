@@ -109,8 +109,9 @@ class TestTimes(unittest.TestCase):
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES,
-            max_threshold=30,
-            min_threshold=25,
+            grace_period="100m",
+            max_threshold=35,
+            min_threshold=30,
             max_evals=5,
         ))
 
@@ -1251,53 +1252,79 @@ class TestTimes(unittest.TestCase):
     def test_detect_anomalies(self):
         self._require_training()
 
-        # Insert 2 buckets of normal data
-        from_date = self.to_date
-        to_date = from_date + 2 * self.model.bucket_interval
+        source = MemDataSource()
+
+        bucket_interval = self.model.bucket_interval
+
+        # Insert 20 buckets of normal data
+        to_date = datetime.datetime.now().replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        ).timestamp()
+        from_date = to_date - 20 * bucket_interval
 
         for ts in self.generator.generate_ts(from_date, to_date, step_ms=600000):
-            self.source.insert_times_data({
+            source.insert_times_data({
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
             })
 
-        # Add abnormal data in the last bucket
-        ano_from = from_date + self.model.bucket_interval
-        ano_to = to_date
-        generator = FlatEventGenerator(base=4, sigma=0.01)
+        # Add abnormal data
+        generator = FlatEventGenerator(base=5, sigma=0.01)
 
-        for ts in generator.generate_ts(ano_from, ano_to, step_ms=600000):
-            self.source.insert_times_data({
-                'timestamp': ts,
-                'foo': random.normalvariate(10, 1)
-            })
+        for i in [12, 15, 18]:
+            ano_from = from_date + i * bucket_interval
+            ano_to = ano_from + 1 * bucket_interval
+            for ts in generator.generate_ts(ano_from, ano_to, step_ms=600000):
+                source.insert_times_data({
+                    'timestamp': ts,
+                    'foo': random.normalvariate(10, 1)
+                })
 
-        # Detect anomalies
-        pred_to = to_date
-        pred_from = pred_to - 3 * self.model.bucket_interval
-        prediction = self.model.predict(self.source, pred_from, pred_to)
+        # Make prediction on buckets [5-20[
+        prediction = self.model.predict2(
+            source,
+            from_date + 5 * bucket_interval,
+            to_date,
+            mse_rtol=4,
+        )
 
         self.model.detect_anomalies(prediction)
 
         buckets = prediction.format_buckets()
-        for bucket in buckets:
-            stats = bucket.get('stats')
-            self.assertIsNotNone(stats)
-            self.assertIsNotNone(stats.get('mse'))
-            self.assertIsNotNone(stats.get('score'))
-            self.assertIsNotNone(stats.get('anomaly'))
 
-        #print(prediction)
+        assert len(buckets) == 15
+
+        #import json
+        #print(json.dumps(buckets, indent=4))
         #prediction.plot('count_foo')
 
-        # First bucket is normal
-        self.assertFalse(buckets[-2]['stats']['anomaly'])
+        # Buckets [5-11] are normal
+        for i in range(0, 7):
+            self.assertFalse(buckets[i]['stats']['anomaly'])
 
-        # Anomaly detected in second bucket
-        self.assertTrue(buckets[-1]['stats']['anomaly'])
+        # Bucket 12 is abnormal
+        self.assertTrue(buckets[7]['stats']['anomaly'])
+
+        # Bucket 13 is normal
+        self.assertFalse(buckets[8]['stats']['anomaly'])
+
+        # Buckets [14-17] are in grace period, anomaly ignored
+        self.assertFalse(buckets[9]['stats']['anomaly'])
+        self.assertFalse(buckets[10]['stats']['anomaly'])
+        self.assertFalse(buckets[11]['stats']['anomaly'])
+        self.assertFalse(buckets[12]['stats']['anomaly'])
+
+        # Bucket 18 is abnormal
+        self.assertTrue(buckets[13]['stats']['anomaly'])
 
         anomalies = prediction.get_anomalies()
-        self.assertEqual(anomalies, [buckets[-1]])
+        self.assertEqual(
+            anomalies[0:2],
+            [buckets[i] for i in [7, 13]],
+        )
 
     def test_span_auto(self):
         model = TimeSeriesModel(dict(
