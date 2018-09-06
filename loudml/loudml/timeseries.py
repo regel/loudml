@@ -419,6 +419,7 @@ class TimeSeriesModel(Model):
         global _hp_forecast_min, _hp_forecast_max
         super().__init__(settings, state)
 
+        settings = self.validate(settings)
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
         self.bucket_interval = parse_timedelta(settings.get('bucket_interval')).total_seconds()
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
