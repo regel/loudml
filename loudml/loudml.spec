@@ -19,6 +19,7 @@ Requires: python34-setuptools
 Requires: curl
 Requires: loudml-api >= 1.4.0
 Requires: loudml-base == %{version}
+%{?systemd_requires}
 
 # Disable debug package
 %define debug_package %{nil}
@@ -69,6 +70,15 @@ find %{python3_sitelib} \
   -name '*loudml-1.3.1.*.egg-info' -o \
   -name '*loudml-1.3.2.*.egg-info' \
   | xargs rm -rf
+
+%post
+%systemd_post loudmld.service
+
+%preun
+%systemd_preun loudmld.service
+
+%postun
+%systemd_postun_with_restart loudmld.service
 
 %install
 cd loudml
