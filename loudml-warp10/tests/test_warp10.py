@@ -2,6 +2,8 @@ import datetime
 import logging
 import os
 import random
+import numpy as np
+import time
 import unittest
 
 logging.getLogger('tensorflow').disabled = True
@@ -64,6 +66,13 @@ class TestWarp10(unittest.TestCase):
             threshold=30,
         ))
 
+        self.t0 = datetime.datetime.now(datetime.timezone.utc).replace(
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        ).timestamp()
+
     def tearDown(self):
         self.source.drop(tags=self.tag)
 
@@ -113,12 +122,7 @@ BUCKETIZE
         )
 
     def test_write_read(self):
-        t0 = datetime.datetime.now(datetime.timezone.utc).replace(
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0,
-        ).timestamp()
+        t0 = self.t0
 
         self.source.insert_times_data(
             ts=t0 - 7000,
@@ -175,32 +179,120 @@ BUCKETIZE
                 "2017-01-31T00:00:00Z",
             )
 
-    def test_train(self):
+    def test_match_all(self):
         model = TimeSeriesModel(dict(
-            name='test',
+            name="test-model",
             offset=30,
-            span=5,
-            bucket_interval=60 * 60,
+            span=300,
+            bucket_interval=3,
             interval=60,
             features=[
                 {
-                    'name': 'count_foo',
-                    'metric': 'count',
-                    'measurement': 'measure1',
-                    'field': 'foo',
-                    'default': 0,
-                },
-                {
                     'name': 'avg_foo',
                     'metric': 'avg',
-                    'measurement': 'measure1',
+                    'measurement': 'measure3',
                     'field': 'foo',
-                    'default': 5,
+                    'match_all': [
+                        {'tag': 'tag_1', 'value': 'tag_A'},
+                    ],
                 },
             ],
             threshold=30,
-            max_evals=1,
         ))
+
+        t0 = self.t0
+
+        data = [
+            # (foo, timestamp)
+            (33, t0 - 1), # excluded
+            # empty
+            (120, t0 + 1), (312, t0 + 2),
+            (18, t0 + 7),
+            (78, t0 + 10), # excluded
+        ]
+        for foo, ts in data:
+            self.source.insert_times_data(
+                ts=ts,
+                data={
+                    'foo': foo,
+                }
+            )
+            self.source.insert_times_data(
+                ts=ts,
+                tags={
+                    'tag_1': 'tag_A',
+                    'tag_2': 'tag_B',
+                },
+                data={
+                    'foo': foo,
+                }
+            )
+            self.source.insert_times_data(
+                ts=ts,
+                tags={
+                    'tag_1': 'tag_B',
+                    'tag_2': 'tag_C',
+                },
+                data={
+                    'foo': -foo,
+                }
+            )
+
+        self.source.commit()
+        time.sleep(5)
+
+        res = self.source.get_times_data(
+            model,
+            from_date=t0,
+            to_date=t0 + 3 * model.bucket_interval,
+        )
+        foo_avg = []
+        for line in res:
+            foo_avg.append(line[1][0])
+
+        np.testing.assert_allclose(
+            np.array(foo_avg),
+            np.array([216.0, np.nan, 18.0]),
+            rtol=0,
+            atol=0,
+        )
+
+        model = TimeSeriesModel(dict(
+            name="test-model",
+            offset=30,
+            span=300,
+            bucket_interval=3,
+            interval=60,
+            features=[
+                {
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': 'foo',
+                    'match_all': [
+                        {'tag': 'tag_1', 'value': 'tag_B'},
+                    ],
+                },
+            ],
+            threshold=30,
+        ))
+
+        res = self.source.get_times_data(
+            model,
+            from_date=self.t0,
+            to_date=t0 + 3 * model.bucket_interval,
+        )
+        avg_foo = []
+        for line in res:
+            avg_foo.append(line[1][0])
+
+        np.testing.assert_allclose(
+            np.array(avg_foo),
+            np.array([-216.0, np.nan, -18.0]),
+            rtol=0,
+            atol=0,
+        )
+
+    def test_train(self):
 
         generator = SinEventGenerator(base=3, sigma=0.05)
 
@@ -223,6 +315,7 @@ BUCKETIZE
             )
 
         self.source.commit()
+        time.sleep(5)
 
         # Train
         model.train(self.source, from_date=from_date, to_date=to_date)

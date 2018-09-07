@@ -24,6 +24,14 @@ from .misc import (
     make_ts,
 )
 
+def check_tag(k, v):
+    if type(k) is not str or type(v) is not str:
+        raise errors.Invalid("warp10: tags key/value must be strings")
+
+def check_tags(tags):
+    for k, v in tags.items():
+        check_tag(k, v)
+
 def build_tags(tags=None):
     lst = ["'{}' '{}'".format(*item) for item in tags.items()] if tags \
           else []
@@ -94,6 +102,9 @@ class Warp10DataSource(DataSource):
 
         ts_us = make_ts(ts) * 1e6
 
+        if tags:
+            check_tags(tags)
+
         for key, value in data.items():
             metric = {
                 'name': key,
@@ -118,7 +129,17 @@ class Warp10DataSource(DataSource):
     def get_quadrant_data(self, **kwargs):
         raise NotImplemented()
 
-    def build_fetch(self, feature, from_str, to_str, tags_str="{}"):
+    def build_fetch(self, feature, from_str, to_str):
+        tags = {}
+
+        if feature.match_all:
+            for tag in feature.match_all:
+                k, v = tag['tag'], tag['value']
+                check_tag(k, v)
+                tags[k] = v
+
+        tags_str = build_tags(tags)
+
         return "[\n'{}'\n'{}'\n{}\n'{}'\n'{}'\n]\nFETCH".format(
             self.read_token,
             feature.field,
@@ -127,9 +148,7 @@ class Warp10DataSource(DataSource):
             to_str,
         )
 
-    def build_multi_fetch(self, model, from_str, to_str, tags=None):
-        tags_str = build_tags(tags)
-
+    def build_multi_fetch(self, model, from_str, to_str):
         bucket_span = int(model.bucket_interval * 1e6)
 
         scripts = [
@@ -138,7 +157,6 @@ class Warp10DataSource(DataSource):
                     feature,
                     from_str,
                     to_str,
-                    tags_str=tags_str,
                 ),
                 metric_to_bucketizer(feature.metric),
                 bucket_span,
@@ -167,7 +185,6 @@ class Warp10DataSource(DataSource):
             model,
             period.from_str,
             period.to_str,
-            tags=tags,
         )
         raw = self.warp10.exec(script)
         data = json.loads(raw)
