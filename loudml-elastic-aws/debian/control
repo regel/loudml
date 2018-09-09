@@ -15,6 +15,6 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${python3:Depends},
-  loudml,
-  loudml-elastic,
+  loudml (= ${binary:Version}),
+  loudml-elastic (= ${binary:Version}),
 Description: Elasticsearch AWS module for LoudML

@@ -20,5 +20,5 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${python3:Depends},
-  loudml,
+  loudml (= ${binary:Version}),
 Description: InfluxDB module for LoudML

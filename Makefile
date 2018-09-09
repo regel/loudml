@@ -1,5 +1,6 @@
 BUILD_DIR = $(CURDIR)/build
 RPMREPO_DIR := $(BUILD_DIR)/rpmrepo
+DEBREPO_DIR := $(BUILD_DIR)/debrepo/stretch
 
 clean:
 	$(MAKE) -C public/api clean
@@ -79,6 +80,15 @@ rpmrepo-archive: $(BUILD_DIR)/rpmrepo-$(VERSION).tar
 
 $(BUILD_DIR)/rpmrepo-$(VERSION).tar: rpmrepo
 	tar -C $(BUILD_DIR) -cvf "$@" rpmrepo
+
+$(DEBREPO_DIR)/Packages.gz:
+	mkdir -p $(dir $@)
+	cp *.deb $(dir $@)
+	cd $(dir $@)/.. \
+	&& dpkg-scanpackages `basename $(dir $@)` | gzip > $@
+
+.PHONY: debrepo
+debrepo: $(DEBREPO_DIR)/Packages.gz
 
 repo: rpmrepo
 

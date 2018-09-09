@@ -20,8 +20,8 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${python3:Depends},
-  loudml-base,
-  loudml-api,
+  loudml-base (= ${binary:Version}),
+  loudml-api (>= 1.4.0),
 Description: LoudML core package
  LoudML core package.
 
