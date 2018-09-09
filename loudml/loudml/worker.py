@@ -109,12 +109,19 @@ class Worker:
         if model.type == 'timeseries':
             mse_rtol = self.config.server['mse_rtol']
             _state = model.get_run_state()
-            prediction = model.predict2(
-                source,
-                mse_rtol=mse_rtol,
-                _state=_state,
-                **kwargs
-            )
+            if detect_anomalies:
+                prediction = model.predict2(
+                    source,
+                    mse_rtol=mse_rtol,
+                    _state=_state,
+                    **kwargs
+                )
+            else:
+                prediction = model.predict(
+                    source,
+                    **kwargs
+                )
+
             logging.info("job[%s] predicted values for %d time buckets",
                          self.job_id, len(prediction.timestamps))
             if detect_anomalies:
