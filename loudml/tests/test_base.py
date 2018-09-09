@@ -19,7 +19,7 @@ class TestBase(unittest.TestCase):
 
     def test_numpy(self):
         import numpy as np
-        self.assertEqual(np.version.version, "1.14.3")
+        self.assertEqual(np.version.version, "1.15.1")
 
     def test_scipy(self):
         import scipy
