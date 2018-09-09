@@ -981,6 +981,20 @@ class TestTimes(unittest.TestCase):
             all_default,
         )
 
+        series = forecast.format_series()
+        np.testing.assert_allclose(
+            np.array(series['predicted']['lower_count_foo']),
+            predicted,
+            rtol=0,
+            atol=8,
+        )
+        np.testing.assert_allclose(
+            np.array(series['predicted']['upper_count_foo']),
+            predicted,
+            rtol=0,
+            atol=8,
+        )
+
         # FIXME: Due to noise at y0, forecast may be inaccurate that's why
         # we use a +5/-5 tolerance here
         delta = 5.0
