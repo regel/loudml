@@ -972,6 +972,14 @@ class TimeSeriesModel(Model):
             'mse': mse,
         }
 
+    def unload(self):
+        """
+        Unload current model
+        """
+        global _keras_model, _graph
+        _keras_model = None
+        _graph = None
+
     def load(self):
         """
         Load current model
@@ -1123,8 +1131,14 @@ class TimeSeriesModel(Model):
 
         # Build history time range
         # Extra data are required to predict first buckets
+        _span = self._span
+        for j, feature in enumerate(self.features):
+            if feature.transform == "diff":
+                _span += 1
+                break
+
         hist = DateRange(
-            period.from_ts - self._span * self.bucket_interval,
+            period.from_ts - _span * self.bucket_interval,
             period.to_ts,
         )
 
@@ -1208,16 +1222,8 @@ class TimeSeriesModel(Model):
 
         Y = self.uncanonicalize_dataset(Y_, only_outputs=True)
 
-        for i, j, feature in self.enum_features(is_output=True):
-            if feature.transform is not None:
-                Y[:,j] = _revert_transform(
-                    feature,
-                    Y[:,j],
-                    real[self._span,j],
-                )
-
         # Build final result
-        timestamps = X[self._span:]
+        timestamps = X[_span:]
         last_ts = make_ts(X[-1])
         timestamps.append(last_ts + self.bucket_interval)
 
@@ -1226,12 +1232,16 @@ class TimeSeriesModel(Model):
         predicted = np.full(shape, np.nan, dtype=float)
 
         for i, j, feature in self.enum_features(is_input=True):
-            observed[:,i] = real[self._span:][:,i]
+            observed[:,i] = real[_span:][:,i]
 
         self.apply_defaults(observed)
 
         for i, j, feature in self.enum_features(is_output=True):
-            predicted[data_indexes - self._span,i] = Y[:][:,j]
+            if feature.transform == 'diff':
+                for y, z in enumerate(data_indexes):
+                    predicted[z - _span,i] = Y[y,j] + real[z-1,i]
+            else:
+                 predicted[data_indexes - _span,i] = Y[:][:,j]
 
         self.apply_defaults(predicted)
 
@@ -1259,7 +1269,13 @@ class TimeSeriesModel(Model):
             predicted=np.array([normal, normal, normal]),
         )
 
-    def clip(self, X):
+    def clip(self, dataset):
+        X = dataset.copy()
+        y0 = dataset[0,:]
+        for _, j, feature in self.enum_features(is_output=True):
+            if feature.transform is not None:
+                X[:,j] = _transform(feature, dataset[:,j])
+
         X_ = self.canonicalize_dataset(X, only_outputs=True)
         for _, j, feature in self.enum_features(is_output=True):
             if feature.scores == "standardize":
@@ -1268,6 +1284,15 @@ class TimeSeriesModel(Model):
                 X_[:,j] = np.clip(X_[:,j], 0, 1)
 
         X = self.uncanonicalize_dataset(X_, only_outputs=True)
+
+        for _, j, feature in self.enum_features(is_output=True):
+            if feature.transform is not None:
+                X[:,j] = _revert_transform(
+                    feature,
+                    X[:,j],
+                    y0[j],
+                )
+
         return X
 
     def build_lower_upper(self, predicted):
