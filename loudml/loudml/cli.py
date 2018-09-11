@@ -24,7 +24,6 @@ from .errors import (
     ModelNotTrained,
 )
 from .misc import (
-    make_bool,
     parse_constraint,
 )
 from .filestorage import (
@@ -119,7 +118,8 @@ class CreateModelCommand(Command):
 
     def exec(self, args):
         model_settings = self.load_model_file(args.model_file)
-        model = loudml.model.load_model(settings=model_settings, config=self.config)
+        model = loudml.model.load_model(settings=model_settings,
+                                        config=self.config)
 
         storage = FileStorage(self.config.storage['path'])
 
@@ -273,6 +273,7 @@ class TrainCommand(Command):
                 args.from_date,
                 args.to_date,
                 max_evals=args.max_evals,
+                license=self.config.license,
             )
             print("loss: %f" % result['loss'])
         elif model.type == 'fingerprints':

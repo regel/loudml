@@ -527,6 +527,18 @@ class TimeSeriesModel(Model):
 
         return DateRange(from_ts, to_ts)
 
+    def check_allowed_date_range(self, from_date, to_date, license=None):
+        """
+        Check that date range is allowed by license.
+
+        Throw exception if unauthorized.
+        """
+        if license is None:
+            return
+
+        if not license.data_range_allowed(from_date, to_date):
+            raise errors.Forbidden("Data range not allowed by license")
+
     def apply_defaults(self, x):
         """
         Apply default feature value to np array
@@ -865,6 +877,7 @@ class TimeSeriesModel(Model):
         num_epochs=100,
         max_evals=None,
         progress_cb=None,
+        license=None,
     ):
         """
         Train model
@@ -877,6 +890,7 @@ class TimeSeriesModel(Model):
         self.means, self.stds = None, None
         self.scores = None
 
+        self.check_allowed_date_range(from_date, to_date, license)
         period =  self.build_date_range(from_date, to_date)
         logging.info(
             "train(%s) range=%s train_size=%f batch_size=%d epochs=%d)",

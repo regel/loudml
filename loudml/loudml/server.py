@@ -444,6 +444,8 @@ def model_train(model_name):
     if max_evals is not None:
         kwargs['max_evals'] = max_evals
 
+    kwargs['license'] = g_config.license
+
     job = TrainingJob(model_name, **kwargs)
     job.start()
 

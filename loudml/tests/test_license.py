@@ -22,13 +22,13 @@ class TestLicense(unittest.TestCase):
     #      "serial_num": "0"
     #    }
     def setUp(self):
-        l = License()
-        l.load(os.path.join(
+        lic = License()
+        lic.load(os.path.join(
             os.path.dirname(__file__),
             'resources',
             'license1.lic'
         ))
-        self.license1 = l
+        self.license1 = lic
 
     def test_expired(self):
         self.assertTrue(self.license1.has_expired())
@@ -58,8 +58,20 @@ class TestLicense(unittest.TestCase):
         self.assertEqual(self.license1.payload['serial_num'], "0")
 
     def test_default_payload(self):
-        l = License()
-        payload = l.default_payload()
+        lic = License()
+        payload = lic.default_payload()
         self.assertIn('features', payload)
         self.assertIn('datasources', payload['features'])
         self.assertIn('elasticsearch', payload['features']['datasources'])
+
+    def test_data_range_allowed(self):
+        from_date = '2018-01-01'
+        to_date = '2018-01-31'
+        self.license1.payload['features']['data_range'] = ['2018-01-01', '2018-03-31']
+        self.assertTrue(self.license1.data_range_allowed(from_date, to_date))
+
+    def test_data_range_not_allowed(self):
+        from_date = '2018-01-01'
+        to_date = '2018-01-31'
+        self.license1.payload['features']['data_range'] = ['2017-12-31', '2018-01-15']
+        self.assertFalse(self.license1.data_range_allowed(from_date, to_date))

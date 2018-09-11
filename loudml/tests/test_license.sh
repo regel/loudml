@@ -32,7 +32,10 @@ die() {
 # Stop running processes and remove temporary files
 finish() {
     loudmld_stop
-    rm -rf "$tmpdir"
+
+    if [ keep_tmpdir = 0 ]; then
+        rm -rf "$tmpdir"
+    fi
 }
 
 # usage
@@ -105,11 +108,12 @@ config="$tmpdir/config.yml"
 license="$tmpdir/license.lic"
 cat > "$config" <<EOF
 ---
-datasources: []
-# - name: influx
-#   type: influxdb
-#   addr: localhost
-#   database: mydatabase
+#datasources: []
+datasources:
+ - name: influx
+   type: influxdb
+   addr: localhost
+   database: mydatabase
 
 # - name: elastic
 #   type: elasticsearch
@@ -139,7 +143,8 @@ cat >"$data" <<EOF
     "features": {
         "nrmodels": 1,
         "datasources": [ "elasticsearch", "influxdb" ],
-        "models": [ "timeseries" ]
+        "models": [ "timeseries" ],
+        "data_range": [ "2018-01-01", "2018-01-31" ]
     },
     "hostid": "any"
 }
@@ -290,6 +295,11 @@ cat >"$data" <<EOF
     "hostid": "any"
 }
 EOF
+
+echo "Test: training failure because data out of authorized date range"
+if loudml -c "$config" train -d influx -f 2017-12-01 -t 2018-01-31 "avg_temp1-model"; then
+    die "Expected failure"
+fi
 
 echo "New license"
 loudml-lic -g "$license" --pub "$key_pub" --priv "$key_priv" --data "$data"
