@@ -1,10 +1,15 @@
 import datetime
 import logging
+import numpy as np
 import os
 import random
 import unittest
 
 logging.getLogger('tensorflow').disabled = True
+
+from loudml import (
+    errors,
+)
 
 from loudml.misc import (
     ts_to_str,
@@ -103,6 +108,14 @@ class TestMongo(unittest.TestCase):
         bucket = res[1][1]
         self.assertAlmostEqual(bucket[0], 0.6)
         self.assertEqual(bucket[1], 2.0)
+
+    def test_no_data(self):
+        with self.assertRaises(errors.NoData):
+            self.source.get_times_data(
+                self.model,
+                "2017-01-01T00:00:00Z",
+                "2017-01-31T00:00:00Z",
+            )
 
     def test_train(self):
         model = TimeSeriesModel(dict(

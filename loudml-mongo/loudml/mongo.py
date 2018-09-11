@@ -66,8 +66,6 @@ def catch_query_error(func):
         except (
             pymongo.errors.PyMongoError
         ) as exn:
-            print("EXN")
-            print(type(exn))
             raise errors.DataSourceError(self.name, str(exn))
     return wrapper
 
@@ -208,7 +206,7 @@ class MongoDataSource(DataSource):
         nb_buckets = len(boundaries)
         buckets = np.full((nb_buckets, len(model.features)), np.nan, dtype=float)
 
-        nb_buckets_found = -1
+        nb_buckets_found = 0
 
         for i, feature in enumerate(model.features):
             metric = feature.metric
@@ -219,13 +217,19 @@ class MongoDataSource(DataSource):
 
             for entry in resp:
                 ts = entry['_id']
+
+                if ts is None:
+                    continue
+
                 value = entry[feature.name]
                 j = int((ts - from_ts) / bucket_interval)
                 buckets[j][i] = value
-                if j > nb_buckets_found:
-                    nb_buckets_found = j
+                if j >= nb_buckets_found:
+                    nb_buckets_found = j + 1
 
-        nb_buckets_found += 1
+        if nb_buckets_found == 0:
+            raise errors.NoData()
+
         result = []
         ts = from_ts
 
