@@ -34,8 +34,19 @@ def _build_query(feature, timestamp_field, boundaries):
 
     group_by = _tk(timestamp_field)
 
+    query = []
+
+    if feature.match_all:
+        match = []
+
+        for tag in feature.match_all:
+            k, v = tag['tag'], tag['value']
+            match.append({k: v})
+
+        query.append({'$match': {'$or': match}})
+
     if metric == "count":
-        return [
+        return query + [
             {'$match': {field: {'$exists': True}}},
             {'$bucket': {
                 'groupBy': group_by,
@@ -48,7 +59,7 @@ def _build_query(feature, timestamp_field, boundaries):
     if metric == "mean":
         metric = "avg"
 
-    return [
+    return query + [
         {'$bucket': {
             'groupBy': group_by,
             'boundaries': boundaries,
