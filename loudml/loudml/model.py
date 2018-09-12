@@ -86,6 +86,8 @@ class Feature:
         ])),
         'default': Any(None, int, float, 'previous'),
         Optional('io', default='io'): Any('io', 'o', 'i'),
+        'low_watermark': Any(None, int, float),
+        'high_watermark': Any(None, int, float),
         'script': Any(None, str),
         Optional('anomaly_type', default='low_high'): Any('low', 'high', 'low_high'),
         'transform': Any(None, "diff"),
@@ -106,6 +108,8 @@ class Feature:
         transform=None,
         scores=None,
         io='io',
+        low_watermark=None,
+        high_watermark=None,
     ):
         self.validate(locals())
 
@@ -115,6 +119,8 @@ class Feature:
         self.collection = collection
         self.field = field
         self.default = np.nan if default is None else default
+        self.low_watermark = low_watermark
+        self.high_watermark = high_watermark
         self.script = script
         self.match_all = match_all
         self.anomaly_type = anomaly_type

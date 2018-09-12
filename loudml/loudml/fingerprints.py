@@ -347,33 +347,8 @@ class FingerprintsModel(Model):
     def _norm_features(
         self,
         x,
-        from_ts,
-        to_ts,
     ):
-        if self.is_trained:
-            training_from_ts = make_ts(self._state['from_date'])
-            training_to_ts = make_ts(self._state['to_date'])
-        else:
-            training_from_ts = from_ts
-            training_to_ts = to_ts
-
-        training_time_range = training_to_ts - training_from_ts
-        time_range = to_ts - from_ts
-        norm_time_range = np.empty(shape=(self.nb_quadrants, self.nb_features), dtype=float)
-        norm_time_range[:] = np.nan
-
-        for quad_num in range(self.nb_quadrants):
-            for i, feature in enumerate(self.features):
-                if feature.metric == 'count':
-                    norm_time_range[quad_num, i] = training_time_range / time_range
-                elif feature.metric == 'sum':
-                    norm_time_range[quad_num, i] = training_time_range / time_range
-                else:
-                    norm_time_range[quad_num, i] = 1.0
-
-        norm_time_range = np.ravel(norm_time_range)
-        norm_x = np.nan_to_num((x*norm_time_range - self._means) / self._stds) 
-        return norm_x 
+        return np.nan_to_num((x - self._means) / self._stds)
 
     def _build_fingerprints(
         self,
@@ -387,7 +362,7 @@ class FingerprintsModel(Model):
 
         for i, x in enumerate(mapped):
             key = keys[i]
-            _fingerprint = self._norm_features(dataset[i], from_ts, to_ts)
+            _fingerprint = self._norm_features(dataset[i])
             fingerprints.append({
                 'key': key,
                 'time_range': (int(from_ts), int(to_ts)),
@@ -398,7 +373,44 @@ class FingerprintsModel(Model):
 
         return fingerprints
 
-    def _make_dataset(self, dicts):
+    def _get_norm_mul(self, from_ts, to_ts):
+        if self.is_trained:
+            training_from_ts = make_ts(self._state['from_date'])
+            training_to_ts = make_ts(self._state['to_date'])
+        else:
+            training_from_ts = from_ts
+            training_to_ts = to_ts
+
+        training_time_range = training_to_ts - training_from_ts
+        time_range = to_ts - from_ts
+        norm_mul = np.full((self.nb_quadrants, self.nb_features), np.nan, dtype=float)
+        for quad_num in range(self.nb_quadrants):
+            for i, feature in enumerate(self.features):
+                if feature.metric == 'count':
+                    norm_mul[quad_num, i] = training_time_range / time_range
+                elif feature.metric == 'sum':
+                    norm_mul[quad_num, i] = training_time_range / time_range
+                else:
+                    norm_mul[quad_num, i] = 1.0
+
+        return np.ravel(norm_mul)
+
+    def _get_low_high(self):
+        dimens = self.nb_dimensions
+        low = np.full((dimens,), np.nan, dtype=float)
+        high = np.full((dimens,), np.nan, dtype=float)
+        for quad_num in range(self.nb_quadrants):
+            for feat_num, feature in enumerate(self.features):
+                quad_pos = quad_num * len(self.features)
+                _pos = quad_pos + feat_num
+                if feature.low_watermark is not None:
+                    low[_pos] = feature.low_watermark
+                if feature.high_watermark is not None:
+                    high[_pos] = feature.high_watermark
+
+        return low, high
+
+    def _make_dataset(self, dicts, from_ts, to_ts):
         keys = set()
         for d in dicts:
             keys = keys.union(d.keys())
@@ -407,9 +419,13 @@ class FingerprintsModel(Model):
         dimens = self.nb_dimensions
         dataset = np.zeros((nb_keys, dimens), dtype=float)
 
+        low, high = self._get_low_high()
+        mul = self._get_norm_mul(from_ts, to_ts)
+
         for i, key in enumerate(keys):
             col = 0
             row = np.zeros((1, dimens), dtype=float)
+
             for agg_num, agg in enumerate(self.aggs):
                 features_len = len(agg.features)
                 if key in dicts[agg_num]:
@@ -419,6 +435,11 @@ class FingerprintsModel(Model):
                         row_pos = quad_num * self.nb_features + col
                         row[0][row_pos:row_pos+features_len] = features[quad_pos:quad_pos+features_len]
                 col = col + features_len
+
+            row[0] *= mul
+            row[0] = np.nanmax([row[0], low], axis=0)
+            row[0] = np.nanmin([row[0], high], axis=0)
+
             dataset[i] = row
 
         return list(keys), dataset
@@ -459,7 +480,7 @@ class FingerprintsModel(Model):
                 features[key] = self.format_quadrants(val, agg)
             features_dicts.append(features)
 
-        keys, dataset = self._make_dataset(features_dicts)
+        keys, dataset = self._make_dataset(features_dicts, from_ts, to_ts)
 
         if len(keys) == 0:
             raise errors.NoData("no data found for time range {}-{}".format(
@@ -528,7 +549,7 @@ class FingerprintsModel(Model):
         }
 
     def _map_dataset(self, dataset, from_ts, to_ts):
-        zY = self._norm_features(dataset, from_ts, to_ts)
+        zY = self._norm_features(dataset)
         mapped = self._som_model.map_vects(zY)
         return mapped
 
@@ -563,7 +584,7 @@ class FingerprintsModel(Model):
                 features[key] = self.format_quadrants(val, agg)
             features_dicts.append(features)
 
-        keys, dataset = self._make_dataset(features_dicts)
+        keys, dataset = self._make_dataset(features_dicts, from_ts, to_ts)
 
         if len(keys) == 0:
             raise errors.NoData("no data found for time range {}-{}".format(
@@ -627,7 +648,7 @@ class FingerprintsModel(Model):
                     features[key] = self.format_quadrants(val, agg)
                 features_dicts.append(features)
     
-            keys, dataset = self._make_dataset(features_dicts)
+            keys, dataset = self._make_dataset(features_dicts, from_ts, to_ts)
             if len(keys) == 0:
                 logging.warning(errors.NoData("no data found for time range {}-{}".format(
                     from_str,
