@@ -152,6 +152,9 @@ class MongoDataSource(DataSource):
         collection='generic',
         tags=None,
     ):
+        if collection is None:
+            raise errors.Invalid("cannot insert data: no collection given")
+
         if tags is not None:
             for tag, tag_val in tags.items():
                 data[tag] = tag_val
@@ -251,12 +254,23 @@ class MongoDataSource(DataSource):
         return result
 
     def save_timeseries_prediction(self, prediction, model):
-        logging.info("saving '%s' prediction to '%s'", model.name, self.name)
+        collection = "prediction_" + model.name
+
+        logging.info("saving '%s' prediction to '%s.%s'",
+                     model.name, self.cfg['db'], collection)
 
         for bucket in prediction.format_buckets():
+            data = bucket['predicted']
+            tags = model.get_tags()
+            stats = bucket.get('stats', None)
+            if stats is not None:
+                data['score'] = float(stats.get('score'))
+                tags['is_anomaly'] = stats.get('anomaly', False)
+
             self.insert_times_data(
-                measurement='prediction_{}'.format(model.name), # Add id? timestamp?
+                collection=collection,
                 ts=bucket['timestamp'],
-                data=bucket['predicted'],
+                tags=tags,
+                data=data,
             )
         self.commit()

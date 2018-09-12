@@ -227,7 +227,7 @@ class TestMongo(unittest.TestCase):
             atol=0,
         )
 
-    def test_train(self):
+    def test_train_predict(self):
         model = TimeSeriesModel(dict(
             name='test',
             offset=30,
@@ -280,3 +280,36 @@ class TestMongo(unittest.TestCase):
 
         # Check
         self.assertTrue(model.is_trained)
+
+        # Predict
+        pred_from = to_date - 3 * model.bucket_interval
+        pred_to = to_date
+        prediction = model.predict(
+            datasource=self.source,
+            from_date=pred_from,
+            to_date=pred_to,
+        )
+        self.source.save_timeseries_prediction(prediction, model)
+
+        boundaries = list(range(
+            int(pred_from),
+            int(pred_to + model.bucket_interval),
+            int(model.bucket_interval),
+        ))
+
+        res = self.source.db['prediction_test'].aggregate([
+            {'$bucket': {
+                'groupBy': '$timestamp',
+                'boundaries': boundaries,
+                'default': None,
+                'output': {
+                    'count_foo': {'$avg': '$count_foo'},
+                    'avg_foo': {'$avg': '$avg_foo'},
+                }
+            }}
+        ])
+        pred_buckets = prediction.format_buckets()
+        for i, entry in enumerate(res):
+            predicted = pred_buckets[i]['predicted']
+            self.assertEqual(predicted['count_foo'], entry['count_foo'])
+            self.assertEqual(predicted['avg_foo'], entry['avg_foo'])
