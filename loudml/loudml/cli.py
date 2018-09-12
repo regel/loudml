@@ -483,6 +483,11 @@ class PredictCommand(Command):
             dest='to_date',
         )
         parser.add_argument(
+            '-k', '--key',
+            help="Filter with the given key only",
+            type=str,
+        )
+        parser.add_argument(
             '-a', '--anomalies',
             help="Detect anomalies",
             action='store_true',
@@ -576,6 +581,7 @@ class PredictCommand(Command):
                 source,
                 args.from_date,
                 args.to_date,
+                key_val=args.key,
             )
             if args.anomalies:
                 model.detect_anomalies(prediction)
