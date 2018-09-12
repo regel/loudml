@@ -646,19 +646,19 @@ class RunCommand(Command):
             raise ModelNotTrained()
         
         if args.min_threshold is None:
-            min_threshold = model.threshold
+            min_threshold = model.min_threshold
         else:
             min_threshold = args.min_threshold
 
         if args.max_threshold is None:
-            max_threshold = 100
+            max_threshold = model.max_threshold
         else:
             max_threshold = args.max_threshold
 
         model.min_threshold = min_threshold
         model.max_threshold = max_threshold
         if args.anomalies:
-            hooks = storage.load_model_hooks(args.model_name)
+            hooks = storage.load_model_hooks(args.model_name, source)
         else:
             hooks = []
 
