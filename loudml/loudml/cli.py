@@ -10,6 +10,7 @@ import logging
 import pkg_resources
 import os
 import yaml
+import json
 
 import loudml.config
 import loudml.datasource
@@ -639,6 +640,11 @@ class RunCommand(Command):
             help="Detect anomalies",
             action='store_true',
         )
+        parser.add_argument(
+            '-s', '--save',
+            action='store_true',
+            help="Save prediction into the data source",
+        )
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
@@ -683,7 +689,7 @@ class RunCommand(Command):
                 args.key,
             )
 
-            for prediction in predictions:
+            for cnt, prediction in enumerate(predictions):
                 if args.anomalies:
                     model.detect_anomalies(prediction, hooks)
                 
@@ -697,6 +703,9 @@ class RunCommand(Command):
                         tags={ model.key: key },
                         measurement='scores_{}'.format(model.name),
                     )
+                if args.save:
+                    with open('data{0:04d}'.format(cnt), 'w') as outfile:
+                        json.dump(prediction.format(), outfile)
 
                 del prediction
         
