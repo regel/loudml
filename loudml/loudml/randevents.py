@@ -81,7 +81,7 @@ class EventGenerator(metaclass=ABCMeta):
             # If nb_event is not an integer, use decimal part as
             # the probability to get an extra event.
             p = nb_events - int(nb_events)
-            extra = 1 if random.random() <= p else 0
+            extra = 1 if (random.random() <= p and self.sigma > 0) else 0
             nb_events = int(nb_events) + extra
 
             for i in range(nb_events):
