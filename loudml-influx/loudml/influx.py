@@ -495,7 +495,7 @@ class InfluxDataSource(DataSource):
                 sum_of_squares.append(feature)
 
         if len(sum_of_squares) > 0:
-            yield "select {} from ( select \"{}\"*\"{}\" as \"squares_{}\" from \"{}\"{} ) where {} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
+            yield "select {} from ( select \"{}\"*\"{}\" as \"squares_{}\" from \"{}\"{} ) where {} group by \"{}\",time({}ms) fill(0) slimit {} soffset {};".format(
                 ','.join(list(set([_sum_of_squares(feature) for feature in sum_of_squares]))),
                 escape_doublequotes(feature.field),
                 escape_doublequotes(feature.field),
@@ -503,7 +503,7 @@ class InfluxDataSource(DataSource):
                 escape_doublequotes(agg.measurement),
                 where,
                 " and ".join(time_pred),
-                model.key,
+                escape_doublequotes(model.key),
                 int(model.daytime_interval * 1000),
                 limit,
                 offset,
