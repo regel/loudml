@@ -182,7 +182,7 @@ class Worker:
             logging.info("job[%s]: calculated fingerprints for model '%s'",
                          self.job_id, self.model.name)
             if detect_anomalies:
-                hooks = self.storage.load_model_hooks(model_name)
+                hooks = self.storage.load_model_hooks(model_name, source)
                 model.detect_anomalies(prediction, hooks)
 
                 for fp in prediction.fingerprints:
