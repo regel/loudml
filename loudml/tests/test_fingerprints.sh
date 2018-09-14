@@ -137,7 +137,9 @@ die() {
 # Stop running processes and remove temporary files
 finish() {
     loudmld_stop
-    rm -rf "$tmpdir"
+    if [ $keep_tmpdir = 0 ]; then
+        rm -rf "$tmpdir"
+    fi
     influx -database $database -execute "DROP DATABASE \"$database\""
 }
 
