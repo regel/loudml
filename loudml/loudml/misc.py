@@ -133,8 +133,11 @@ def make_datetime(mixed):
 
     try:
         return ts_to_datetime(float(mixed))
-    except ValueError:
-        return str_to_datetime(mixed)
+    except ValueError as exn:
+        if isinstance(mixed, str):
+            return str_to_datetime(mixed)
+        else:
+            raise exn
 
 def make_ts(mixed):
     """

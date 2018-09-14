@@ -81,6 +81,9 @@ class TestMisc(unittest.TestCase):
             1515404366.123,
         )
 
+        with self.assertRaises(ValueError):
+            make_datetime(253536624000.0)
+
     def test_parse_addr(self):
         self.assertEqual(
             parse_addr("localhost", default_port=80),
