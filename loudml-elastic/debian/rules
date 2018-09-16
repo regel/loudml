@@ -14,13 +14,15 @@ export PYBUILD_DISABLE_python2 = 1
 # Because cleaning done by dh_python3 is not configurable, the function
 # /usr/share/dh-python/dhpython/fs.py:is_unwanted_file() has to be edited to
 # always return False.
-_pydir := debian/loudml-elastic/usr/lib/python3.5/dist-packages
+_pyver := $(shell python3 --version | cut -d ' ' -f 2 | cut -d '.' -f -2)
+_pyvernum := $(shell echo $(_pyver) | sed 's/\.//')
+_pydir := debian/loudml-elastic/usr/lib/python$(_pyver)/dist-packages
 override_dh_install:
 	dh_install
 	rm -f ${_pydir}/loudml/*.py
-	for src in $$(find ${_pydir}/loudml/__pycache__/ -name "*.cpython-35.pyc"); \
+	for src in $$(find ${_pydir}/loudml/__pycache__/ -name "*.cpython-$(_pyvernum).pyc"); \
 	do \
-		dst=$$(basename $$src .cpython-35.pyc).pyc; \
+		dst=$$(basename $$src .cpython-$(_pyvernum).pyc).pyc; \
 		cp $$src ${_pydir}/loudml/$$dst; \
 	done
 	find ${_pydir} -name requires.txt | xargs rm -f
