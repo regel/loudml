@@ -231,7 +231,7 @@ class DateRange:
         self.to_ts = make_ts(to_date)
 
         if self.to_ts < self.from_ts:
-            raise errors.Invalid("invalid date range: %s".format(self))
+            raise errors.Invalid("invalid date range: {}".format(self))
 
     def __str__(self):
         return "{}-{}".format(
