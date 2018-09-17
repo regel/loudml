@@ -10,6 +10,7 @@ from voluptuous import (
     All,
     Any,
     Length,
+    Match,
     Range,
     Required,
     Optional,
@@ -23,6 +24,11 @@ from . import (
     schemas,
 )
 
+FIELD_SCHEMA = All(
+   str,
+   Length(min=1),
+   Match("^[a-zA-Z0-9-_@.]+$"),
+)
 
 class Feature:
     """
@@ -32,7 +38,7 @@ class Feature:
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('metric'): All(schemas.key, Length(max=256)),
-        Required('field'): All(schemas.key, Length(max=256)),
+        Required('field'): All(FIELD_SCHEMA, Length(max=256)),
         'measurement': Any(None, schemas.key),
         'collection': Any(None, schemas.key),
         'match_all': Any(None, Schema([
