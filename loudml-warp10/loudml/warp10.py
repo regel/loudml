@@ -9,6 +9,7 @@ import numpy as np
 import warp10client
 
 from voluptuous import (
+    Any,
     Optional,
     Required,
     Url,
@@ -62,6 +63,7 @@ class Warp10DataSource(DataSource):
         Optional('url', default='http://localhost:8080'): Url(),
         Required('read_token'): str,
         Required('write_token'): str,
+        Optional('global_prefix', default=None): Any(None, str),
     })
 
     def __init__(self, cfg):
@@ -69,11 +71,22 @@ class Warp10DataSource(DataSource):
         super().__init__(cfg)
         self.read_token = cfg['read_token']
         self.write_token = cfg['write_token']
+        self.global_prefix = cfg.get('global_prefix')
         self.warp10 = warp10client.Warp10Client(
             warp10_api_url=cfg['url'],
             read_token=self.read_token,
             write_token=self.write_token,
         )
+
+    def build_name(self, name):
+        return "{}.{}".format(self.global_prefix, name) if self.global_prefix \
+               else name
+
+    def build_selector(self, selector, is_regexp=False):
+        selector = self.build_name(selector)
+        if is_regexp:
+            selector = "~" + selector
+        return selector
 
     @catch_query_error
     def drop(self, tags=None, **kwargs):
@@ -81,7 +94,7 @@ class Warp10DataSource(DataSource):
         Delete database
         """
         self.warp10.delete({
-            'name': '~.*',
+            'name': self.build_selector(".*", is_regexp=True),
             'tags': tags or {},
         })
 
@@ -107,7 +120,7 @@ class Warp10DataSource(DataSource):
 
         for key, value in data.items():
             metric = {
-                'name': key,
+                'name': self.build_selector(key),
                 'value': value,
                 'position': {
                     'longitude': None,
@@ -129,8 +142,8 @@ class Warp10DataSource(DataSource):
     def get_quadrant_data(self, **kwargs):
         raise NotImplemented()
 
-    def build_fetch(self, feature, from_str, to_str):
-        tags = {}
+    def build_fetch(self, feature, from_str, to_str, tags=None):
+        tags = {} if tags is None else dict(tags)
 
         if feature.match_all:
             for tag in feature.match_all:
@@ -142,13 +155,13 @@ class Warp10DataSource(DataSource):
 
         return "[\n'{}'\n'{}'\n{}\n'{}'\n'{}'\n]\nFETCH".format(
             self.read_token,
-            feature.field,
+            self.build_selector(feature.field),
             tags_str,
             from_str,
             to_str,
         )
 
-    def build_multi_fetch(self, model, from_str, to_str):
+    def build_multi_fetch(self, model, from_str, to_str, tags=None):
         bucket_span = int(model.bucket_interval * 1e6)
 
         scripts = [
@@ -157,6 +170,7 @@ class Warp10DataSource(DataSource):
                     feature,
                     from_str,
                     to_str,
+                    tags,
                 ),
                 metric_to_bucketizer(feature.metric),
                 bucket_span,
@@ -185,6 +199,7 @@ class Warp10DataSource(DataSource):
             model,
             period.from_str,
             period.to_str,
+            tags=tags,
         )
         raw = self.warp10.exec(script)
         data = json.loads(raw)

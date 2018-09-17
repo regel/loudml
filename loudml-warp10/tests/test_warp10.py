@@ -31,16 +31,18 @@ SCW_WRITE_TOKEN = "q3pnfOmr7NG5Rp1W1jXEDkzSwN9BFRL67Kl9yBGgq64va8H6tmUqwWDt5Yv_i
 
 class TestWarp10(unittest.TestCase):
     def setUp(self):
+        self.prefix = "test-{}".format(datetime.datetime.now().timestamp())
         self.source = Warp10DataSource({
             'name': 'test',
             'url': os.environ.get('url', 'http://test-warp10.loudml.io:8080/api/v0'),
             'read_token': os.environ.get('WARP10_READ_TOKEN', SCW_READ_TOKEN),
             'write_token': os.environ.get('WARP10_WRITE_TOKEN', SCW_WRITE_TOKEN),
+            'global_prefix': self.prefix,
         })
         logger = logging.getLogger('warp10client.client')
         logger.setLevel(logging.INFO)
 
-        self.tag = {'test': str(datetime.datetime.now().timestamp())}
+        self.tag = {'test': self.prefix}
 
         self.model = TimeSeriesModel(dict(
             name="test-model",
@@ -52,13 +54,11 @@ class TestWarp10(unittest.TestCase):
                 {
                     'name': 'avg_foo',
                     'metric': 'avg',
-                    'measurement': 'measure1',
                     'field': 'foo',
                 },
                 {
                     'name': 'count_bar',
                     'metric': 'count',
-                    'measurement': 'measure2',
                     'field': 'bar',
                     'default': 0,
                 },
@@ -77,11 +77,34 @@ class TestWarp10(unittest.TestCase):
         self.source.drop(tags=self.tag)
 
     def test_multi_fetch(self):
+        model = TimeSeriesModel(dict(
+            name="test-model",
+            offset=30,
+            span=3,
+            bucket_interval=3600,
+            interval=60,
+            features=[
+                {
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': 'foo',
+                    'match_all': [
+                        {'tag': 'a', 'value': 'b'},
+                    ],
+                },
+                {
+                    'name': 'count_bar',
+                    'metric': 'count',
+                    'field': 'bar',
+                    'default': 0,
+                },
+            ],
+            threshold=30,
+        ))
         res = self.source.build_multi_fetch(
-            self.model,
+            model,
             "2018-07-21T00:00:00Z",
             "2018-07-22T00:00:00Z",
-            tags={'key': 'value'},
         )
         self.assertEqual(
             res,
@@ -90,8 +113,8 @@ class TestWarp10(unittest.TestCase):
 [
 [
 '{}'
-'foo'
-{{ 'key' 'value' }}
+'{}.foo'
+{{ 'a' 'b' }}
 '2018-07-21T00:00:00Z'
 '2018-07-22T00:00:00Z'
 ]
@@ -105,8 +128,8 @@ BUCKETIZE
 [
 [
 '{}'
-'bar'
-{{ 'key' 'value' }}
+'{}.bar'
+{{  }}
 '2018-07-21T00:00:00Z'
 '2018-07-22T00:00:00Z'
 ]
@@ -190,7 +213,6 @@ BUCKETIZE
                 {
                     'name': 'avg_foo',
                     'metric': 'avg',
-                    'measurement': 'measure3',
                     'field': 'foo',
                     'match_all': [
                         {'tag': 'tag_1', 'value': 'tag_A'},
@@ -302,11 +324,27 @@ BUCKETIZE
             second=0,
             microsecond=0,
         ).timestamp()
-        from_date = to_date - 3600 * 24
+        from_date = to_date - 3600 * 24 * 3
+
+        model = TimeSeriesModel(dict(
+            name="test-model",
+            offset=30,
+            span=3,
+            bucket_interval=3600,
+            interval=60,
+            features=[
+                {
+                    'name': 'count_foo',
+                    'metric': 'count',
+                    'field': 'foo',
+                    'default': 0,
+                },
+            ],
+            threshold=30,
+        ))
 
         for ts in generator.generate_ts(from_date, to_date, step_ms=60000):
             self.source.insert_times_data(
-                measurement='measure1',
                 ts=ts,
                 tags=self.tag,
                 data={
