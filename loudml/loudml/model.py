@@ -126,7 +126,6 @@ class Model:
         settings = self.validate(settings)
         self._settings = settings
         self.name = settings.get('name')
-        self._settings = settings
         self.routing = settings.get('routing')
         self._state = state
 
