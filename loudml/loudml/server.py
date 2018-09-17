@@ -759,6 +759,7 @@ def model_predict(model_name):
         to_date=get_date_arg('to', is_mandatory=True),
         save_prediction=request.args.get('save_prediction', default=False),
         detect_anomalies=request.args.get('detect_anomalies', default=False),
+        license= g_config.license
     )
     job.start()
 
@@ -835,6 +836,8 @@ def model_forecast(model_name):
     constraint = request.args.get('constraint')
     if constraint:
         params['constraint'] = parse_constraint(constraint)
+
+    params['license'] = g_config.license
 
     job = ForecastJob(model.name, **params)
     job.start()

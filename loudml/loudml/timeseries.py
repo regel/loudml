@@ -1131,9 +1131,11 @@ class TimeSeriesModel(Model):
         datasource,
         from_date,
         to_date,
+        license=None,
     ):
         global _keras_model
 
+        self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
@@ -1320,9 +1322,11 @@ class TimeSeriesModel(Model):
         datasource,
         from_date,
         to_date,
+        license=None,
     ):
         global _keras_model
 
+        self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
@@ -1753,9 +1757,11 @@ class TimeSeriesModel(Model):
         to_date,
         mse_rtol,
         _state={},
+        license=None,
     ):
         self.load()
 
+        self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return

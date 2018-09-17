@@ -6,6 +6,9 @@
 # - loudml, loudmld and loudml-lic must be in the PATH (eg. source venv)
 # - openssl
 #
+# Optional:
+# - InfluxDB
+#
 # The tests use the program 'loudml' to check license enforcement. The daemon
 # 'loudmld' is not reloaded after a license update, but this is still
 # acceptable because both the CLI and the daemon share the same code to load
@@ -20,6 +23,7 @@ config=""
 keep_tmpdir=0
 loudmld_pid=""
 license=""
+use_influx=0
 
 # die MESSAGE
 # Print message and exit with error code
@@ -33,7 +37,7 @@ die() {
 finish() {
     loudmld_stop
 
-    if [ keep_tmpdir = 0 ]; then
+    if [ $keep_tmpdir = 0 ]; then
         rm -rf "$tmpdir"
     fi
 }
@@ -46,6 +50,7 @@ test_license.sh - Test LoudML licensing limitations
 
 Usage: test_license.sh OPTIONS
 
+-i     use InfluxDB
 -k     keep temporary directory
 EOF
 }
@@ -72,8 +77,11 @@ loudmld_stop() {
     loudmld_pid=""
 }
 
-while getopts ":k" option; do
+while getopts ":ik" option; do
     case "${option}" in
+        i)
+            use_influx=1
+            ;;
         k)
             keep_tmpdir=1
             ;;
@@ -106,19 +114,14 @@ trap finish EXIT
 # Generate configuration file
 config="$tmpdir/config.yml"
 license="$tmpdir/license.lic"
+if [ $use_influx = 1 ]; then
 cat > "$config" <<EOF
 ---
-#datasources: []
 datasources:
  - name: influx
    type: influxdb
    addr: localhost
    database: mydatabase
-
-# - name: elastic
-#   type: elasticsearch
-#   addr: localhost:9200
-#   index: myindex
 
 storage:
   path: $tmpdir/lib
@@ -129,6 +132,21 @@ server:
 license:
   path: $license
 EOF
+else
+cat > "$config" <<EOF
+---
+datasources: []
+
+storage:
+  path: $tmpdir/lib
+
+server:
+  listen: localhost:8077
+
+license:
+  path: $license
+EOF
+fi
 
 # Generate test keys
 key_priv="$tmpdir/private.pem"
@@ -296,9 +314,13 @@ cat >"$data" <<EOF
 }
 EOF
 
-echo "Test: training failure because data out of authorized date range"
-if loudml -c "$config" train -d influx -f 2017-12-01 -t 2018-01-31 "avg_temp1-model"; then
-    die "Expected failure"
+if [ $use_influx = 0 ]; then
+    echo "Skippig test: training failure because data out of authorized date range"
+else
+    echo "Test: training failure because data out of authorized date range"
+    if loudml -c "$config" train -d influx -f 2017-12-01 -t 2018-01-31 "avg_temp1-model"; then
+        die "Expected failure"
+    fi
 fi
 
 echo "New license"

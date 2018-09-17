@@ -376,6 +376,7 @@ class ForecastCommand(Command):
                 source,
                 args.from_date,
                 args.to_date,
+                license=self.config.license,
             )
             if constraint:
                 model.test_constraint(
@@ -472,6 +473,7 @@ class PredictCommand(Command):
                     args.from_date,
                     args.to_date,
                     mse_rtol=self.config.server['mse_rtol'],
+                    license=self.config.license,
                 )
                 prediction.stat()
                 model.detect_anomalies(prediction)
@@ -480,6 +482,7 @@ class PredictCommand(Command):
                     source,
                     args.from_date,
                     args.to_date,
+                    license=self.config.license,
                 )
 
             if args.save:
