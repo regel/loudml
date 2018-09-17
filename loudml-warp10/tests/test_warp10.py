@@ -339,7 +339,31 @@ BUCKETIZE
             atol=0,
         )
 
-    def test_train(self):
+    def test_train_predict(self):
+        model = TimeSeriesModel(dict(
+            name='test',
+            offset=30,
+            span=5,
+            bucket_interval=60 * 60,
+            interval=60,
+            features=[
+                {
+                    'name': 'count_foo',
+                    'metric': 'count',
+                    'field': 'prefix.foo',
+                    'default': 0,
+                },
+                {
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': 'prefix.foo',
+                    'default': 5,
+                },
+            ],
+            threshold=30,
+            max_evals=1,
+        ))
+
         generator = SinEventGenerator(base=3, sigma=0.05)
 
         to_date = datetime.datetime.now(datetime.timezone.utc).replace(
@@ -348,39 +372,68 @@ BUCKETIZE
             second=0,
             microsecond=0,
         ).timestamp()
-        from_date = to_date - 3600 * 24 * 3
-
-        model = TimeSeriesModel(dict(
-            name="test-model",
-            offset=30,
-            span=3,
-            bucket_interval=3600,
-            interval=60,
-            features=[
-                {
-                    'name': 'count_foo',
-                    'metric': 'count',
-                    'field': 'foo',
-                    'default': 0,
-                },
-            ],
-            threshold=30,
-        ))
+        from_date = to_date - 3600 * 24
 
         for ts in generator.generate_ts(from_date, to_date, step_ms=60000):
             self.source.insert_times_data(
                 ts=ts,
-                tags=self.tag,
                 data={
-                    'foo': random.lognormvariate(10, 1)
+                    'prefix.foo': random.lognormvariate(10, 1)
                 },
             )
 
         self.source.commit()
-        time.sleep(5)
 
         # Train
         model.train(self.source, from_date=from_date, to_date=to_date)
 
         # Check
         self.assertTrue(model.is_trained)
+
+        # Predict
+        pred_from = to_date - 3 * model.bucket_interval
+        pred_to = to_date
+        prediction = model.predict(
+            datasource=self.source,
+            from_date=pred_from,
+            to_date=pred_to,
+        )
+        self.source.save_timeseries_prediction(prediction, model, tags=self.tag)
+
+        # Fake model just for extracting saved prediction
+        model2 = TimeSeriesModel(dict(
+            name='test-prediction',
+            offset=30,
+            span=5,
+            bucket_interval=60 * 60,
+            interval=60,
+            features=[
+                {
+                    'name': 'count_foo',
+                    'metric': 'avg',
+                    'field': "prediction.{}.count_foo".format(model.name),
+                },
+                {
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': "prediction.{}.avg_foo".format(model.name),
+                },
+            ],
+            threshold=30,
+            max_evals=1,
+        ))
+
+        res = self.source.get_times_data(
+            model2,
+            pred_from ,
+            pred_to,
+            tags=self.tag,
+        )
+
+        for i, pred_ts in enumerate(prediction.timestamps):
+            values, ts = res[i][1:]
+            self.assertEqual(ts, pred_ts)
+            np.testing.assert_allclose(
+                np.array(values),
+                prediction.predicted[i],
+            )

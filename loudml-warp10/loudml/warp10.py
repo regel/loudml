@@ -244,5 +244,29 @@ class Warp10DataSource(DataSource):
 
         return result
 
-    def save_timeseries_prediction(self, prediction, model):
-        raise NotImplemented()
+    def save_timeseries_prediction(self, prediction, model, tags=None):
+        prefix = "prediction." + model.name
+
+        logging.info("saving '%s' prediction to '%s'",
+                     model.name, self.build_name(prefix))
+
+        for bucket in prediction.format_buckets():
+            data = bucket['predicted']
+            all_tags = model.get_tags()
+            if tags:
+                all_tags.update(tags)
+            stats = bucket.get('stats', None)
+            if stats is not None:
+                data['score'] = float(stats.get('score'))
+                tags['is_anomaly'] = stats.get('anomaly', False)
+
+            # XXX As Warp10 uses the end date to identify buckets, use the same
+            # convention
+            ts = bucket['timestamp'] + model.bucket_interval
+
+            self.insert_times_data(
+                ts=ts,
+                tags=all_tags,
+                data={"{}.{}".format(prefix, k): v for k, v in data.items()},
+            )
+        self.commit()
