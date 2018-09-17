@@ -4,6 +4,8 @@ Warp10 module for LoudML
 
 import json
 import logging
+import loudml.vendor
+import math
 import numpy as np
 
 import warp10client
@@ -218,11 +220,15 @@ class Warp10DataSource(DataSource):
             values = item['v']
 
             for ts_us, value in values:
-                if ts_us <= from_us or ts_us > to_us:
+                # XXX: Warp10 buckets are labeled with the right timestamp but LoudML
+                # use the left one.
+                ts_us -= bucket_interval_us
+
+                if ts_us < from_us or ts_us >= to_us:
                     # XXX Sometimes, Warp10 returns extra buckets, skip them
                     continue
 
-                j = int((ts_us - from_us - 1) / bucket_interval_us)
+                j = math.floor((ts_us - from_us) / bucket_interval_us)
                 buckets[j][i] = value
                 has_data = True
 
@@ -230,11 +236,11 @@ class Warp10DataSource(DataSource):
             raise errors.NoData()
 
         result = []
-        ts_us = from_us
+        from_ts = ts = from_us  / 1e6
 
         for bucket in buckets:
-            result.append(((ts_us - from_us) / 1e6, list(bucket), ts_us / 1e6))
-            ts_us += bucket_interval_us
+            result.append(((ts - from_ts), list(bucket), ts))
+            ts += model.bucket_interval
 
         return result
 

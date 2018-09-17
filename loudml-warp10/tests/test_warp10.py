@@ -47,7 +47,7 @@ class TestWarp10(unittest.TestCase):
         self.model = TimeSeriesModel(dict(
             name="test-model",
             offset=30,
-            span=300,
+            span=3,
             bucket_interval=3600,
             interval=60,
             features=[
@@ -141,11 +141,35 @@ bucketizer.count
 ]
 BUCKETIZE
 ]
-""".strip().format(self.source.read_token, self.source.read_token)
+""".strip().format(
+               self.source.read_token,
+               self.prefix,
+               self.source.read_token,
+               self.prefix,
+            )
         )
+
 
     def test_write_read(self):
         t0 = self.t0
+
+        self.source.insert_times_data(
+            ts=t0 - 4 * self.model.bucket_interval,
+            data={'foo': 0.5},
+            tags=self.tag,
+        )
+        self.source.commit()
+
+        res = self.source.get_times_data(
+            self.model,
+            t0 - 5 * self.model.bucket_interval,
+            t0 - 4 * self.model.bucket_interval,
+            tags=self.tag,
+        )
+
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0][1][0], 0.5)
+        self.assertEqual(res[0][2], t0 - 5 * self.model.bucket_interval)
 
         self.source.insert_times_data(
             ts=t0 - 7000,
@@ -186,7 +210,8 @@ BUCKETIZE
 
         self.assertEqual(len(res), period_len / self.model.bucket_interval)
 
-        bucket = res[0][1]
+        _, bucket, ts = res[0]
+        self.assertEqual(ts, t0 - period_len)
         self.assertEqual(list_from_np(bucket), [None, None])
         bucket = res[1][1]
         self.assertEqual(bucket, [0.7, 1.0])
@@ -206,7 +231,7 @@ BUCKETIZE
         model = TimeSeriesModel(dict(
             name="test-model",
             offset=30,
-            span=300,
+            span=3,
             bucket_interval=3,
             interval=60,
             features=[
@@ -282,7 +307,7 @@ BUCKETIZE
         model = TimeSeriesModel(dict(
             name="test-model",
             offset=30,
-            span=300,
+            span=3,
             bucket_interval=3,
             interval=60,
             features=[
@@ -315,7 +340,6 @@ BUCKETIZE
         )
 
     def test_train(self):
-
         generator = SinEventGenerator(base=3, sigma=0.05)
 
         to_date = datetime.datetime.now(datetime.timezone.utc).replace(
