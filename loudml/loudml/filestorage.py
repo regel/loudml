@@ -165,7 +165,12 @@ class FileStorage(Storage):
         try:
             return self._load_json(settings_path)
         except ValueError as exn:
-            raise errors.Invalid("invalid model setting file: %s", str(exn))
+            raise errors.Invalid(
+                "invalid model setting file: {}: {}".format(
+                    settings_path,
+                    str(exn),
+                )
+            )
         except FileNotFoundError:
             raise errors.ModelNotFound(name=model_name)
 
@@ -174,7 +179,12 @@ class FileStorage(Storage):
         try:
             return self._load_json(state_path)
         except ValueError as exn:
-            raise errors.Invalid("invalid model state file: %s", str(exn))
+            raise errors.Invalid(
+                "invalid model state file: {}: {}".format(
+                    state_path,
+                    str(exn),
+                )
+            )
         except FileNotFoundError:
             # Model is not trained yet
             return None
@@ -188,9 +198,16 @@ class FileStorage(Storage):
             'settings': settings,
         }
 
-        state = self._get_model_state(model_path)
-        if state is not None:
-            data['state'] = state
+        try:
+            state = self._get_model_state(model_path)
+            if state is not None:
+                data['state'] = state
+        except errors.Invalid as exn:
+            logging.error(str(exn))
+
+            # XXX: Keep broken file for troubleshooting
+            state_path = os.path.join(model_path, "state.json")
+            os.rename(state_path, state_path + ".broken")
 
         return data
 
