@@ -81,12 +81,12 @@ class FileStorage(Storage):
         return os.path.join(self.model_dir, model_name)
 
     def _write_json(self, path, data):
-        tmp_path = path + ".tmp"
-
+        tmp_fd, tmp_path = tempfile.mkstemp(prefix=path + ".");
         with open(tmp_path, 'w') as fd:
             json.dump(data, fd)
-
+            os.fsync(fd)
         os.rename(tmp_path, path)
+        os.close(tmp_fd)
 
     def _load_json(self, path):
         with open(path) as fd:
