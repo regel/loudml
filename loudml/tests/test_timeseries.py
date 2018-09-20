@@ -82,7 +82,25 @@ class TestHook(Hook):
         )
         self.events = []
 
-    def on_anomaly_start(self, dt, *args, **kwargs):
+    def on_anomaly_start(
+        self,
+        dt,
+        score,
+        predicted,
+        observed,
+        anomalies,
+        *args,
+        **kwargs
+    ):
+        for feature_name, ano in anomalies.items():
+            logging.error(
+                "feature '{}' is too {} (score = {:.1f})".format(
+                     self.feature_to_str(feature_name),
+                     ano['type'],
+                     ano['score']
+                )
+            )
+
         self.events.append({
             'type': 'start',
             'dt': dt,

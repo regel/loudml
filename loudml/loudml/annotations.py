@@ -39,11 +39,11 @@ class AnnotationHook(Hook):
         # Deal with anomaly notification here
         ano_desc = [
             "feature '{}' is too {} (score = {:.1f})".format(
-                 feature,
+                 self.feature_to_str(feature_name),
                  ano['type'],
                  ano['score']
             )
-            for feature, ano in anomalies.items()
+            for feature_name, ano in anomalies.items()
         ]
         _desc = self.text.format(desc="; ".join(ano_desc))
         _id = str(uuid.uuid4())
