@@ -84,6 +84,36 @@ class Hook:
         self.source = source
         self.config = self.validate(config)
 
+        # Index features by name
+        self.features = {}
+        features = self.model.get('features')
+
+        if isinstance(features, dict):
+            features = features.get('i', []) \
+                     + features.get('o', []) \
+                     + features.get('io', [])
+
+        for feature in features:
+            self.features[feature['name']] = feature
+
+    def feature_to_str(self, name):
+        """
+        Return string describing the feature
+        """
+        feature = self.features.get(name)
+        if not feature:
+            return name
+
+        match_all = feature.get('match_all', [])
+        if len(match_all) == 0:
+            return name
+
+        tags = ",".join([
+            "{}:{}".format(tag['key'], tag['value'])
+            for tag in match_all
+        ])
+        return "{}[{}]".format(name, tags)
+
     @classmethod
     def validate(cls, config):
         """
