@@ -541,7 +541,7 @@ def hook_test(model_name, hook_name):
     global g_storage
 
     model = g_storage.load_model(model_name)
-    hook = g_storage.load_model_hook(model_name, hook_name)
+    hook = g_storage.load_model_hook(model.settings, hook_name)
 
     model.load()
     prediction = model.generate_fake_prediction()

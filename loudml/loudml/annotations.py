@@ -28,7 +28,6 @@ class AnnotationHook(Hook):
 
     def on_anomaly_start(
         self,
-        model,
         dt,
         score,
         predicted,
@@ -58,7 +57,6 @@ class AnnotationHook(Hook):
 
     def on_anomaly_end(
         self,
-        model,
         dt,
         score,
         *args,

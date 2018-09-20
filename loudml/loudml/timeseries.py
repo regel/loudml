@@ -1649,7 +1649,6 @@ class TimeSeriesModel(Model):
 
                         try:
                             hook.on_anomaly_start(
-                                self.name,
                                 dt=dt,
                                 score=max_score,
                                 predicted=data['predicted'],
@@ -1675,7 +1674,7 @@ class TimeSeriesModel(Model):
 
                     for hook in hooks:
                         logging.debug("notifying '%s' hook", hook.name)
-                        hook.on_anomaly_end(self.name, dt, max_score)
+                        hook.on_anomaly_end(dt, max_score)
 
                     self._state['anomaly'] = None
                     self._state['last_anomaly_ts'] = ts

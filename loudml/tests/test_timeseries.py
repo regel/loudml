@@ -82,13 +82,13 @@ class TestHook(Hook):
         )
         self.events = []
 
-    def on_anomaly_start(self, model, dt, *args, **kwargs):
+    def on_anomaly_start(self, dt, *args, **kwargs):
         self.events.append({
             'type': 'start',
             'dt': dt,
         })
 
-    def on_anomaly_end(self, model, dt, *args, **kwargs):
+    def on_anomaly_end(self, dt, *args, **kwargs):
         self.events.append({
             'type': 'end',
             'dt': dt,
@@ -1751,7 +1751,7 @@ class TestTimes(unittest.TestCase):
         prediction = model.predict(source, hist_to, ts)
         self.assertEqual(len(prediction.timestamps), 24)
 
-        hook = TestHook(model, self.storage)
+        hook = TestHook(model.settings, self.storage)
 
         model.detect_anomalies(prediction, hooks=[hook])
 
@@ -1840,7 +1840,7 @@ class TestTimes(unittest.TestCase):
         prediction = model.predict(source, hist_to, ts)
         self.assertEqual(len(prediction.timestamps), 24)
 
-        hook = TestHook(model, self.storage)
+        hook = TestHook(model.settings, self.storage)
 
         model.detect_anomalies(prediction, hooks=[hook])
 

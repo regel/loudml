@@ -125,7 +125,10 @@ class Worker:
             logging.info("job[%s] predicted values for %d time buckets",
                          self.job_id, len(prediction.timestamps))
             if detect_anomalies:
-                hooks = self.storage.load_model_hooks(model_name, source)
+                hooks = self.storage.load_model_hooks(
+                    model.settings,
+                    source,
+                )
                 model.detect_anomalies(prediction, hooks)
             if save_run_state:
                 model.set_run_state(_state)

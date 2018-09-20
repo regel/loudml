@@ -81,20 +81,22 @@ class Storage(metaclass=ABCMeta):
     def delete_model_hook(self, model_name, hook_name):
         """Delete model hook"""
 
-    def load_model_hook(self, model_name, hook_name, source=None):
+    def load_model_hook(self, model, hook_name, source=None):
         """Load one model hook"""
 
-        hook_data = self.get_model_hook(model_name, hook_name)
-        return load_hook(hook_name, hook_data, model_name, self, source)
+        hook_data = self.get_model_hook(model['name'], hook_name)
+        return load_hook(hook_name, hook_data, model, self, source)
 
-    def load_model_hooks(self, model_name, source):
+    def load_model_hooks(self, model, source):
         """Load all model hooks"""
 
         hooks = []
 
+        model_name = model['name']
+
         for hook_name in self.list_model_hooks(model_name):
             try:
-                hook = self.load_model_hook(model_name, hook_name, source)
+                hook = self.load_model_hook(model, hook_name, source)
             except errors.LoudMLException as exn:
                 logging.error("cannot load hook '%s/%s': %s",
                               model_name, hook_name, str(exn))

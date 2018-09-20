@@ -235,7 +235,7 @@ def load_entry_point(namespace, name):
             return ep.load()
     return None
 
-def load_hook(hook_name, hook_data, model_name, storage, source):
+def load_hook(hook_name, hook_data, model, storage, source):
     hook_type = hook_data.get('type')
     hook_cls = load_entry_point('loudml.hooks', hook_type)
 
@@ -245,7 +245,7 @@ def load_hook(hook_name, hook_data, model_name, storage, source):
     return hook_cls(
         hook_name,
         hook_data.get('config'),
-        model_name,
+        model,
         storage,
         source,
     )
