@@ -93,7 +93,6 @@ class Hook:
 
     def on_anomaly_start(
         self,
-        model,
         dt,
         score,
         predicted,
@@ -105,7 +104,6 @@ class Hook:
         """
         Callback function called on anomaly detection
 
-        model -- model name
         dt -- Timestamp of the anomaly as a datetime.datetime object
         score -- Computed anomaly score [0-100]
         predicted -- Predicted values
@@ -115,11 +113,10 @@ class Hook:
         """
         raise NotImplemented()
 
-    def on_anomaly_end(self, model, dt, score, *args, **kwargs):
+    def on_anomaly_end(self, dt, score, *args, **kwargs):
         """
         Callback function called on anomaly detection
 
-        model -- model name
         dt -- Timestamp of the anomaly as a datetime.datetime object
         score -- Computed anomaly score [0-100]
         """
@@ -135,7 +132,7 @@ class Hook:
         data -- jsonifiable data
         """
 
-        self.storage.set_model_object(self.model, key, data)
+        self.storage.set_model_object(self.model['name'], key, data)
 
     def get_object(self, key):
         """
@@ -144,7 +141,7 @@ class Hook:
         key -- object identifier
         """
 
-        return self.storage.get_model_object(self.model, key)
+        return self.storage.get_model_object(self.model['name'], key)
 
     def delete_object(self, key):
         """
@@ -153,4 +150,4 @@ class Hook:
         key -- object identifier
         """
 
-        return self.storage.delete_model_object(self.model, key)
+        return self.storage.delete_model_object(self.model['name'], key)
