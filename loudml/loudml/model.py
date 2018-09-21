@@ -80,7 +80,7 @@ class Feature:
     @classmethod
     def validate(cls, args):
         del args['self']
-        schemas.validate(cls.SCHEMA, args)
+        return schemas.validate(cls.SCHEMA, args)
 
 
 class Model:

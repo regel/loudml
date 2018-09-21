@@ -3,21 +3,21 @@
   "default_datasource": "influx",
   "features": [
     {
-      "field": "foo",
+      "field": "value",
       "measurement": "mydata",
       "metric": "avg",
-      "name": "avg_foo"
+      "name": "avg_value"
     },
     {
       "default": 0,
-      "field": "foo",
+      "field": "value",
       "measurement": "mydata",
       "metric": "count",
-      "name": "count_foo"
+      "name": "count_value"
     }
   ],
   "interval": 60,
-  "max_evals": 100,
+  "max_evals": 10,
   "name": "timeseries-influx",
   "offset": 30,
   "span": 5,

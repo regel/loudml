@@ -231,7 +231,7 @@ class DateRange:
         self.to_ts = make_ts(to_date)
 
         if self.to_ts < self.from_ts:
-            raise errors.Invalid("invalid date range: %s".format(self))
+            raise errors.Invalid("invalid date range: {}".format(self))
 
     def __str__(self):
         return "{}-{}".format(
@@ -410,6 +410,7 @@ class TimeSeriesModel(Model):
         Optional('forecast'): Any(None, "auto", All(int, Range(min=1))),
         Optional('min_forecast'): All(int, Range(min=1)),
         Optional('max_forecast'): All(int, Range(min=1)),
+        Optional('grace_period', default=0): schemas.TimeDelta(min=0, min_included=True),
         'timestamp_field': schemas.key,
     })
 
@@ -418,6 +419,7 @@ class TimeSeriesModel(Model):
         global _hp_forecast_min, _hp_forecast_max
         super().__init__(settings, state)
 
+        settings = self.validate(settings)
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
         self.bucket_interval = parse_timedelta(settings.get('bucket_interval')).total_seconds()
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
@@ -445,6 +447,8 @@ class TimeSeriesModel(Model):
         else:
             self.min_forecast = self.forecast_val
             self.max_forecast = self.forecast_val
+
+        self.grace_period = parse_timedelta(settings['grace_period']).total_seconds()
 
         self.sequential = None
         self.current_eval = None
@@ -1585,6 +1589,10 @@ class TimeSeriesModel(Model):
         anomaly_indices = []
 
         for i, ts in enumerate(prediction.timestamps):
+            last_anomaly_ts = self._state.get('last_anomaly_ts', 0)
+
+            in_grace_period = (ts - last_anomaly_ts) < self.grace_period
+
             dt = ts_to_datetime(ts)
             date_str = datetime_to_str(dt)
             is_anomaly = False
@@ -1606,7 +1614,7 @@ class TimeSeriesModel(Model):
 
                 max_score = max(max_score, score)
 
-                if score < self.max_threshold:
+                if in_grace_period or score < self.max_threshold:
                     continue
 
                 anomalies[feature.name] = {
@@ -1625,8 +1633,10 @@ class TimeSeriesModel(Model):
                     # This is a new anomaly
 
                     # TODO have a Model.logger to prefix all logs with model name
-                    logging.warning("detected anomaly for model '%s' at %s (score = %.1f)",
-                                    self.name, date_str, max_score)
+                    logging.warning(
+                        "detected anomaly for model '%s' at %s (score = %.1f)",
+                        self.name, date_str, max_score,
+                    )
 
                     self._state['anomaly'] = {
                         'start_ts': ts,
@@ -1668,6 +1678,7 @@ class TimeSeriesModel(Model):
                         hook.on_anomaly_end(self.name, dt, max_score)
 
                     self._state['anomaly'] = None
+                    self._state['last_anomaly_ts'] = ts
 
             stats.append({
                 'mse': mse,
