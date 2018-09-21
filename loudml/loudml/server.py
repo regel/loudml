@@ -549,13 +549,18 @@ def hook_test(model_name, hook_name):
 
     return "ok", 200
 
+def _remove_datasource_secrets(datasource):
+    datasource.pop('password', None)
+    datasource.pop('dbuser_password', None)
+    datasource.pop('write_token', None)
+    datasource.pop('read_token', None)
 
 class DataSourcesResource(Resource):
     @catch_loudml_error
     def get(self):
         res = []
         for datasource in g_config.datasources.values():
-            datasource.pop('password', None)
+            _remove_datasource_secrets(datasource)
             res.append(datasource)
         return jsonify(res)
 
@@ -564,7 +569,7 @@ class DataSourceResource(Resource):
     @catch_loudml_error
     def get(self, datasource_name):
         datasource = g_config.get_datasource(datasource_name)
-        datasource.pop('password', None)
+        _remove_datasource_secrets(datasource)
         return jsonify(datasource)
 
 
