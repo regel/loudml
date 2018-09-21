@@ -26,13 +26,27 @@ from loudml.mongo import (
 
 class TestMongo(unittest.TestCase):
     def setUp(self):
-        db = "test-{}".format(int(datetime.datetime.now().timestamp()))
+        db = os.environ.get('MONGODB_DB', db),
+        if not db:
+            db = "test-{}".format(int(datetime.datetime.now().timestamp()))
 
-        self.source = MongoDataSource({
+        settings = {
             'name': 'test',
             'addr': os.environ.get('MONGODB_ADDR', "localhost:27017"),
-            'database': os.environ.get('MONODB_DB', db),
-        })
+            'database': os.environ.get('MONGODB_DB', db),
+        }
+
+        username = os.environ.get('MONGODB_USER')
+
+        if username:
+            settings['username'] = username
+            settings['password'] = os.environ.get('MONGODB_PWD')
+
+            auth_source = os.environ.get('MONGODB_AUTH_SRC')
+            if auth_source:
+                settings['auth_source'] = auth_source
+
+        self.source = MongoDataSource(settings)
 
         self.model = TimeSeriesModel(dict(
             name="test-model",

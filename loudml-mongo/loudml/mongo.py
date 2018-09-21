@@ -90,6 +90,7 @@ class MongoDataSource(DataSource):
         Required('database'): str,
         Optional('username'): All(schemas.key, Length(max=256)),
         Optional('password'): str,
+        Optional('auth_source'): str,
     })
 
     def __init__(self, cfg):
@@ -111,11 +112,21 @@ class MongoDataSource(DataSource):
                 self.cfg['database'],
             )
 
+            kwargs = {}
+
+            username = self.cfg.get('username')
+            if username:
+                kwargs['username'] = username
+                kwargs['password'] = self.cfg.get('password')
+
+                auth_src = self.cfg.get('auth_source')
+                if auth_src:
+                    kwargs['authSource'] = auth_src
+
             self._client = pymongo.MongoClient(
                 host=addr['host'],
                 port=addr['port'],
-                username=self.cfg.get('username'),
-                password=self.cfg.get('password'),
+                **kwargs
             )
 
         return self._client
