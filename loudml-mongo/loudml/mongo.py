@@ -87,9 +87,9 @@ class MongoDataSource(DataSource):
 
     SCHEMA = DataSource.SCHEMA.extend({
         Required('addr'): str,
-        Required('db'): str,
-        Optional('user'): All(schemas.key, Length(max=256)),
-        Optional('user_password'): str,
+        Required('database'): str,
+        Optional('username'): All(schemas.key, Length(max=256)),
+        Optional('password'): str,
     })
 
     def __init__(self, cfg):
@@ -108,7 +108,7 @@ class MongoDataSource(DataSource):
                 "connecting to mongodb on %s:%d, using database '%s'",
                 addr['host'],
                 addr['port'],
-                self.cfg['db'],
+                self.cfg['database'],
             )
 
             self._client = pymongo.MongoClient(
@@ -123,7 +123,7 @@ class MongoDataSource(DataSource):
     @property
     def db(self):
         if self._db is None:
-            self._db = self.client[self.cfg['db']]
+            self._db = self.client[self.cfg['database']]
         return self._db
 
     @catch_query_error
@@ -132,7 +132,7 @@ class MongoDataSource(DataSource):
 
     @catch_query_error
     def drop(self, db=None):
-        self.client.drop_database(db or self.cfg['db'])
+        self.client.drop_database(db or self.cfg['database'])
 
     def nb_pending(self):
         return self._nb_pending
@@ -257,7 +257,7 @@ class MongoDataSource(DataSource):
         collection = "prediction_" + model.name
 
         logging.info("saving '%s' prediction to '%s.%s'",
-                     model.name, self.cfg['db'], collection)
+                     model.name, self.cfg['database'], collection)
 
         for bucket in prediction.format_buckets():
             data = bucket['predicted']

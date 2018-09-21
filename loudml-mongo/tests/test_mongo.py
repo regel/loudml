@@ -31,7 +31,7 @@ class TestMongo(unittest.TestCase):
         self.source = MongoDataSource({
             'name': 'test',
             'addr': os.environ.get('MONGODB_ADDR', "localhost:27017"),
-            'db': os.environ.get('MONODB_DB', db),
+            'database': os.environ.get('MONODB_DB', db),
         })
 
         self.model = TimeSeriesModel(dict(
@@ -67,6 +67,15 @@ class TestMongo(unittest.TestCase):
 
     def tearDown(self):
         self.source.drop()
+
+    def test_validate_config(self):
+        MongoDataSource({
+            'name': 'test',
+            'addr': "localhost:27017",
+            'database': "mydb",
+            'username': 'obelix',
+            'password': 'sangliers',
+        })
 
     def test_write_read(self):
         t0 = self.t0
