@@ -419,6 +419,7 @@ class InfluxDataSource(DataSource):
                 ssl=self.use_ssl,
                 verify_ssl=self.verify_ssl,
             )
+            self._annotationdb.create_database(db)
 
         return self._annotationdb
 
