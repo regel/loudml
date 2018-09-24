@@ -32,34 +32,34 @@ TEMPLATE = {
         "number_of_replicas": 0,
         "codec":"best_compression"
     },
-    "mappings": {
-        "doc": {
-            "include_in_all": True,
-            "properties": {
-                "timestamp": {
-                    "type": "date"
-                },
-                "foo": {
-                    "type": "integer"
-                },
-                "bar": {
-                    "type": "integer"
-                },
-                "baz": {
-                    "type": "integer"
-                },
-                "tag_kw": {
-                    "type": "keyword"
-                },
-                "tag_int": {
-                    "type": "integer"
-                },
-                "tag_bool": {
-                    "type": "boolean"
-                },
-            },
+    "mappings": {},
+}
+
+MAPPING = {
+    "include_in_all": True,
+    "properties": {
+        "timestamp": {
+            "type": "date"
         },
-    },
+        "foo": {
+            "type": "integer"
+        },
+        "bar": {
+            "type": "integer"
+        },
+        "baz": {
+            "type": "integer"
+        },
+        "tag_kw": {
+            "type": "keyword"
+        },
+        "tag_int": {
+            "type": "integer"
+        },
+        "tag_bool": {
+            "type": "boolean"
+        },
+    }
 }
 
 FEATURES = [
@@ -115,10 +115,14 @@ class TestElasticDataSource(unittest.TestCase):
                 'name': 'test',
                 'addr': os.environ['ELASTICSEARCH_ADDR'],
                 'index': self.index,
+                'doc_type': 'custom',
             })
 
+        template = TEMPLATE
+        template['mappings'][self.source.doc_type] = MAPPING
+
         self.source.drop()
-        self.source.init(template_name="test", template=TEMPLATE)
+        self.source.init(template_name="test", template=template)
 
         self.model = TimeSeriesModel(dict(
             name='times-model', # not test-model due to TEMPLATE

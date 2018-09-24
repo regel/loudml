@@ -130,6 +130,7 @@ class ElasticsearchDataSource(DataSource):
     SCHEMA = DataSource.SCHEMA.extend({
         Required('addr'): str,
         Required('index'): str,
+        Optional('doc_type', default='doc'): str,
         'routing': str,
         Optional('dbuser'): All(schemas.key, Length(max=256)),
         Optional('dbuser_password'): str,
@@ -153,6 +154,10 @@ class ElasticsearchDataSource(DataSource):
     @property
     def index(self):
         return self.cfg['index']
+
+    @property
+    def doc_type(self):
+        return self.cfg['doc_type']
 
     @property
     def timeout(self):
@@ -287,7 +292,7 @@ class ElasticsearchDataSource(DataSource):
         self,
         data,
         index=None,
-        doc_type='doc',
+        doc_type=None,
         doc_id=None,
         timestamp=None,
     ):
@@ -299,7 +304,7 @@ class ElasticsearchDataSource(DataSource):
 
         req = {
             '_index': index,
-            '_type': doc_type,
+            '_type': doc_type or self.doc_type,
             '_source': data,
         }
 
@@ -315,7 +320,7 @@ class ElasticsearchDataSource(DataSource):
         data,
         tags=None,
         index=None,
-        doc_type='doc',
+        doc_type=None,
         doc_id=None,
         timestamp_field='timestamp',
         *args,
@@ -335,12 +340,12 @@ class ElasticsearchDataSource(DataSource):
         self.insert_data(
             data,
             index=index,
-            doc_type=doc_type,
+            doc_type=doc_type or self.doc_type,
             doc_id=doc_id,
             timestamp=int(ts),
         )
 
-    def search(self, body, index=None, routing=None, doc_type='doc', size=0):
+    def search(self, body, index=None, routing=None, doc_type=None, size=0):
         """
         Send search query to Elasticsearch
         """
@@ -355,7 +360,7 @@ class ElasticsearchDataSource(DataSource):
         try:
             return self.es.search(
                 index=index,
-                doc_type=doc_type,
+                doc_type=doc_type or self.doc_type,
                 size=size,
                 body=body,
                 params=params,
@@ -724,7 +729,7 @@ class ElasticsearchDataSource(DataSource):
         template = {
           "template": model.name,
           "mappings": {
-            "doc": {
+            self.doc_type: {
               "properties": {
                 "timestamp": {"type": "date", "format": "epoch_millis"},
                 "score": {"type": "float"},
@@ -745,7 +750,7 @@ class ElasticsearchDataSource(DataSource):
                 "type": "date",
                 "format": "epoch_millis",
             }
-        template['mappings']['doc']['properties'].update(properties)
+        template['mappings'][self.doc_type]['properties'].update(properties)
         return template
 
     def save_timeseries_prediction(

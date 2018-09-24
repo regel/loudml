@@ -9,6 +9,7 @@ datasources: []
 #   type: elasticsearch
 #   addr: localhost:9200
 #   index: myindex
+#   doc_type: doc
 
 storage:
   path: /var/lib/loudml
