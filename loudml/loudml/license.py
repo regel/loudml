@@ -131,12 +131,9 @@ class License:
     private_key = None
     public_key = None
     certificate = b''
+    payload = DEFAULT_PAYLOAD
     payload_raw = None
     digest = None
-
-    @staticmethod
-    def default_payload():
-        return DEFAULT_PAYLOAD
 
     def load(self, path):
         """
@@ -267,6 +264,9 @@ class License:
         """
         Check license status.
         """
+
+        if self.payload == DEFAULT_PAYLOAD:
+            return
 
         if not self.validate():
             raise Exception("license integrity check failure")

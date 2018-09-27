@@ -877,7 +877,7 @@ def model_forecast(model_name):
 
 @app.route("/license")
 def license():
-    return jsonify(g_config.license_payload)
+    return jsonify(g_config.license.payload)
 
 
 @app.route("/")

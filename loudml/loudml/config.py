@@ -92,25 +92,21 @@ class Config:
         If no license file is provided, defaults are used.
         """
         path = self._license['path']
-        lic = License()
+        self.license = License()
 
-        if path is None:
-            self.license_payload = lic.default_payload()
-            self.limits = self.license_payload['features']
-        else:
-            try:
-                lic.load(path)
-                lic.global_check()
-                self.limits = lic.payload['features']
-                self.license_payload = lic.payload
-            except FileNotFoundError as e:
-                raise errors.LoudMLException(
-                    "Unable to read license file " + path + str(e))
-            except Exception as e:
-                raise errors.LoudMLException(
-                    "License error " + path + ": " + str(e))
-
-        self.license = lic
+        try:
+            if path is not None:
+                self.license.load(path)
+            self.license.global_check()
+            self.limits = self.license.payload['features']
+        except FileNotFoundError as e:
+            raise errors.LoudMLException(
+                "Unable to read license file '{}': {}".format(path, str(e)))
+        except Exception as e:
+            if path is None:
+                path = ''
+            raise errors.LoudMLException(
+                "License error '{}': {}".format(path, str(e)))
 
 
 def load_config(path):
