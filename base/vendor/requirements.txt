@@ -4,6 +4,7 @@
 #
 #    pip-compile --output-file vendor/requirements.txt vendor/requirements.txt.in
 #
+2to3==1.0
 aniso8601==3.0.2          # via flask-restful
 argparse==1.4.0           # via dateutils
 bleach==1.5.0             # via tensorflow-tensorboard
