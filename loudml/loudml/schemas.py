@@ -29,6 +29,12 @@ key = All(
    Match("^[a-zA-Z0-9-_@]+$"),
 )
 
+dotted_key = All(
+   str,
+   Length(min=1),
+   Match("^[a-zA-Z0-9-_@.]+$"),
+)
+
 seasonality = Schema({
     Optional('daytime', default=False): Boolean(),
     Optional('weekday', default=False): Boolean(),

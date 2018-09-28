@@ -24,12 +24,6 @@ from . import (
     schemas,
 )
 
-FIELD_SCHEMA = All(
-   str,
-   Length(min=1),
-   Match("^[a-zA-Z0-9-_@.]+$"),
-)
-
 class Feature:
     """
     Model feature
@@ -38,8 +32,8 @@ class Feature:
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('metric'): All(schemas.key, Length(max=256)),
-        Required('field'): All(FIELD_SCHEMA, Length(max=256)),
-        'measurement': Any(None, schemas.key),
+        Required('field'): All(schemas.dotted_key, Length(max=256)),
+        'measurement': Any(None, schemas.dotted_key),
         'collection': Any(None, schemas.key),
         'match_all': Any(None, Schema([
             {Required(schemas.key): Any(

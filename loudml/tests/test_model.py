@@ -94,6 +94,21 @@ class TestModel(unittest.TestCase):
                 'routing': 'cux',
             }
         )
+        Model(
+            settings={
+                'name': "foo",
+                'type': "generic",
+                'features': [
+                    {
+                        'name': 'bar',
+                        'measurement': 'prefix.measurement',
+                        'field': 'prefix.baz',
+                        'metric': 'avg',
+                    },
+                ],
+                'routing': 'cux',
+            }
+        )
 
         # Invalid
         self.invalid_model(
