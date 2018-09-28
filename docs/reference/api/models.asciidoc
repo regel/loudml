@@ -102,6 +102,12 @@ automatically be written to your data source.
 POST /models/cpu_and_mem-model/_start
 --------------------------------------------------
 
+The supported options are:
+
+[horizontal]
+`save_prediction`:: Write all predicted values to the default data source for this model
+`detect_anomalies`:: Flag that enables anomaly detection
+
 This task can be stopped using `_stop`:
 
 [source,js]
