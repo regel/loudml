@@ -7,7 +7,7 @@ for learning and inference.
 Features define how to aggregate numerical data from a `measurement`
 A `measurement` defines an object type in the data source:
 
-* For Elasticsearch data source, the `measurement` is the object `_type` field value, or `doc` if not set
+* For Elasticsearch data source, the `measurement` is not used. You can set the `doc_type` in `config.yml` data source settings. Default is `doc` if not set
 * For InfluxDB data source, the `measurement` is the series measurement name
 
 Accepted parameters to define model features are:

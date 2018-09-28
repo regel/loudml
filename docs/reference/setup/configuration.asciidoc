@@ -7,7 +7,7 @@ Most settings can be changed using the Loud ML
 
 The configuration files should contain settings which are specific to 
 your NoSQL databases (such as database name and remote access parameters),
-or settings which Loud ML requires in order to be respond to API calls.
+or settings which Loud ML requires in order to respond to API calls.
 
 [[config-files-location]]
 [float]
@@ -17,7 +17,7 @@ Loud ML has one configuration file:
 
 * `config.yml` for configuring Loud ML
 
-Any change to `config.yml` file requires a restart of the `loudmld` service.
+Any change to the `config.yml` file requires a restart of the `loudmld` service.
 Depending on your Linux distributions, the command may vary.
 
 These files are located in the config directory, whose default location depends
@@ -50,7 +50,7 @@ change the config directory location.
 === Config file format
 
 The configuration format is http://www.yaml.org/[YAML]. Here is an
-example of changing the path of persistent storage directory:
+example of changing the path of the persistent storage directory:
 
 [source,yaml]
 --------------------------------------------------
@@ -88,7 +88,7 @@ Accepted `loudmld` server configuration parameters are:
 `listen`:: TCP server will listen on this address and port number
 `mse_rtol`:: relative tolerance parameter, default equals 4.0 
 
-Finally you can define your data sources, ie how Loud ML will connect to
+Finally, you can define your data sources; ie, how Loud ML will connect to
 your databases and find all information required for machine learning.
 
 [source,yaml]
@@ -117,7 +117,7 @@ The supported settings are:
 `dbuser_password`::      (string) User password, if using HTTP basic authentication to connect to the database
 `use_ssl`::    (boolean) Enable this flag if the SSL protocol must be used to connect to the database
 `verify_ssl`:: (boolean) Enable this flag to authenticate the server's certificate
-`ca_certs`::   (string) File path to trusted CA certificates file. This file will be used to authenticate the server's certificate.
+`ca_certs`::   (string) File path to trusted CA certificates file. This file will be used to authenticate the server's certificate
 `client_cert`:: (string) File path to client certificate file. This file will be sent to the server in order to authenticate Loud ML queries to the database
 `client_key`:: (string) File path to client private key. This property is required if `client_cert` is used, and must point to the private key matching the client certificate
 

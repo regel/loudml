@@ -17,7 +17,7 @@ access to the HTTP API you can run:
  
 [source,sh]
 -------------------------
-docker run -ti -p 8077:8077 -v $VOLUME:/var/lib/loudml/models:rw loudml/community
+docker run -ti -p 8077:8077 -v $VOLUME/etc/loudml/config.yml:/etc/loudml/config.yml:ro  -v $VOLUME/var/lib/loudml:/var/lib/loudml:rw loudml/community
 -------------------------
 
 [NOTE]
