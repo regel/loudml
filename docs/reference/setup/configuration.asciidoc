@@ -74,6 +74,14 @@ server:
     listen: localhost:8077
 --------------------------------------------------
 
+Your license file location can be configured using `license.path` property. This setting is not required if you are running Loud ML Community Edition.
+
+[source,yaml]
+--------------------------------------------------
+license:
+    path: /etc/loudml/license.lic
+--------------------------------------------------
+
 Accepted `loudmld` server configuration parameters are:
 
 [horizontal]
@@ -104,6 +112,7 @@ The supported settings are:
 `addr`::       (string) The network address and port number to connect to the database
 `database`::   (string) The database name. This property is only relevant if `type` equals `influxdb`
 `index`::      (string) The index pattern. This property is only relevant if `type` equals `elasticsearch`
+`doc_type`::      (string) The document `type` expected in Elasticsearch indexes for this data source. This property is only relevant if `type` equals `elasticsearch`
 `dbuser`::     (string) User name, if using HTTP basic authentication to connect to the database
 `dbuser_password`::      (string) User password, if using HTTP basic authentication to connect to the database
 `use_ssl`::    (boolean) Enable this flag if the SSL protocol must be used to connect to the database
