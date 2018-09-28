@@ -23,6 +23,7 @@ The matrix of officially supported operating systems is:
 |Distribution|Version      
 |Linux CentOS 7    | >= 7.3 
 |Linux Debian 9    | stretch
+|Linux Ubuntu      | 18.04
 |Docker            | -
 |======================
 
