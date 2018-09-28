@@ -50,9 +50,10 @@ The supported settings are:
 `seasonality`::   (dictionary) Enables `daytime` or `weekday` patterns detection in the model. Default is disabled.
 `forecast`::   (integer) The forecast horizon, defined as the number of time buckets to forecast when requesting the model to predict future data
 `span`::   (integer) The span interval, defined as the number of past time buckets to use as a proxy to predict future data
-`max_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies start when this threshold is exceeded.
-`min_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies end when the current scores fall behind this threshold
-`type`::   (string) `timeseries`
+`grace_period`::   (duration) A grace period interval to ignore new anomalies immediately after a new anomaly. Default value is zero (disabled)
+`max_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies start when this threshold is exceeded. An optimal value will be set automatically if the threshold is set to zero.
+`min_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies end when the current scores fall behind this threshold. An optimal value will be set automatically if the threshold is set to zero.
+`type`::   (string) `timeseries`, or `fingerprints`
 `timestamp_field`::   (string) Optional. The main timestamp field in your TSDB data source. The default value for this field is `timestamp`. You can set the value to `@timestamp` or the value that fits your TSDB mapping.
 
 This above example defines a unique feature, named `avg_temp_feature` that will

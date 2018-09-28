@@ -1,0 +1,46 @@
+[[release-notes-1.4.2]]
+== 1.4.2 Release Notes
+
+The changes listed below have been released for the first time in Loud ML 1.4.2.
+
+[NOTE]
+==================================================
+Please raise issues on https://github.com/regel/loudml/issues[Github] if you experience compatibility issues on your system.
+==================================================
+
+[[overview-1.4.2]]
+[float]
+=== Overview
+
+Ubuntu lovers, we have now introduced Ubuntu 18.04 support! You can refer to the installation instructions and make sure the `python3-lib2to3` dependency is installed.
+
+1.4.2 fixes issues that have been detected in previous versions, and includes security fixes.
+
+Again, if you’re using an old release, please migrate to 1.4.2 to avoid sensitive information being leaked via the REST API. 
+
+[[improvements-1.4.2]]
+[float]
+=== Changes
+
+Changes introduced in Loud ML 1.4.2: 
+
+* Ubuntu 18.04 packages
+* RPM scriptlet fixes. You will no longer have to run `systemctl daemon-reload` manually after an upgrade
+* Important security fix: no longer leak password or other sensitive information via the REST API. If you are using an old release, please migrate to 1.4.2!
+* https://github.com/regel/loudml/issues/42[#42]: you can now define the Elasticsearch `doc_type` in `config.yml` file
+* Fix an error condition where the internal `state.json` file could become corrupted, and prevent `loudmld` from returning the model list
+* Fix `lower_%` and `upper_%` values returned when forecasting non stationary data
+* A `grace_period` setting can be set in your model configuration. If set, Loud ML will ignore new anomalies during `grade_period` seconds immediately after an anomaly
+* All default model settings are set if missing, and returned via `loudml show-model <model name>` command line
+* All annotations messages now include tag information in the format: `feature {} [tag:xx,tag:yy] is too {} (score={})`
+* Annotations will automatically create a new annotation database if it does not exist
+* Python API for developers was changed, functions `on_anomaly_start()` and `on_anomaly_end()` no longer have the model name in their parameters. Developers can get this info using `self.model` value.
+
+[[ack-1.4.2]]
+[float]
+=== Acknowledgements
+
+Thanks to our community for reporting the issues and giving us feedback on the roadmap!
+
+Please let us know on Github about the new features you'd like to see in the next releases!
+
