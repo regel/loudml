@@ -33,6 +33,7 @@ def generate_data(
     step_ms,
     errors,
     burst_ms,
+    field,
 ):
     ano = False
     previous_ts = None
@@ -54,7 +55,7 @@ def generate_data(
         else:
             ano = False
             yield ts, {
-                'value': random.lognormvariate(10, 1),
+                field: random.lognormvariate(10, 1),
             }
 
 def dump_to_json(generator):
@@ -158,6 +159,12 @@ def main():
         help="Measurement",
         type=str,
         default='dummy_data',
+    )
+    parser.add_argument(
+        '--field',
+        help="Field",
+        type=str,
+        default="value",
     )
     parser.add_argument(
         '--doc-type',
@@ -315,6 +322,7 @@ def main():
         arg.step_ms,
         arg.errors,
         arg.burst_ms,
+        arg.field,
     )
 
     if arg.output is None:
