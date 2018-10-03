@@ -21,6 +21,8 @@ LICENSE_VERSION = 1
 # TODO integrate with setuptools
 LOUDML_MAJOR_VERSION = 1
 
+MAX_RUNNING_MODELS = 3
+
 # Use Community Edition restrictions as default
 DEFAULT_PAYLOAD = {
     'features': {
@@ -236,6 +238,13 @@ class License:
         check_end = make_ts(to_date)
 
         return check_start >= allowed_start and check_end <= allowed_end
+
+    @property
+    def max_running_models(self):
+        features = self.payload.get('features')
+        if features:
+            return features.get('nrmodels', MAX_RUNNING_MODELS)
+        return MAX_RUNNING_MODELS
 
     @staticmethod
     def my_host_id():

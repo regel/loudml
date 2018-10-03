@@ -68,8 +68,6 @@ g_pool = None
 g_queue = None
 g_running_models = {}
 
-MAX_RUNNING_MODELS = 3
-
 # Do not change: pid file to ensure we're running single instance
 APP_INSTALL_PATHS = [
     "/usr/bin/loudmld",
@@ -709,7 +707,7 @@ def _model_start(model, params):
         # nothing to do; the job will load the model file
         return
 
-    if len(g_running_models) >= MAX_RUNNING_MODELS:
+    if len(g_running_models) >= g_config.license.max_running_models:
         g_lock.release()
         raise errors.LimitReached(
             "You've reached the maximum count allowed in your license",
