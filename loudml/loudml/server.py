@@ -784,6 +784,9 @@ def model_start(model_name):
     }
 
     model = g_storage.load_model(model_name)
+    if not model.is_trained:
+        raise errors.ModelNotTrained()
+
     model.set_run_params(params)
     model.set_run_state(None)
     g_storage.save_model(model)
