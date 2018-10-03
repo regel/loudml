@@ -76,7 +76,7 @@ class ModelNotFound(LoudMLException):
 
 class ModelNotTrained(LoudMLException):
     """Model not trained"""
-    code = 412
+    code = 400
 
 class UnsupportedDataSource(LoudMLException):
     """Unsupported data source"""
