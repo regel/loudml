@@ -14,4 +14,5 @@ Package: loudml-base
 Architecture: all
 Depends:
   ${misc:Depends},
+  ${dist:Depends}
 Description: LoudML dependencies

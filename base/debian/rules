@@ -1,7 +1,16 @@
 #!/usr/bin/make -f
 
+ifeq ($(shell dpkg-vendor --derives-from Ubuntu && echo yes),yes)
+	SUBSTVARS = -Vdist:Depends="python3-lib2to3"
+else
+	SUBSTVARS =
+endif
+
 %:
 	dh $@
+
+override_dh_gencontrol:
+	dh_gencontrol -- $(SUBSTVARS)
 
 override_dh_install:
 	rm -rf debian/loudml-base
