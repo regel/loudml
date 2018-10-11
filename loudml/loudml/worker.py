@@ -90,12 +90,37 @@ class Worker:
         )
         self.storage.save_model(model)
 
+    def _save_timeseries_prediction(
+        self,
+        model,
+        prediction,
+        source,
+        datasink=None,
+    ):
+        if datasink is None:
+            datasink = model.default_datasink
+
+        if datasink is None or datasink == source.name:
+            sink = source
+        else:
+            try:
+                sink_settings = self.config.get_datasource(
+                    datasink
+                )
+                sink = loudml.datasource.load_datasource(sink_settings)
+            except errors.LoudMLException as exn:
+                logging.error("cannot load data sink: %s", str(exn))
+                return
+
+        sink.save_timeseries_prediction(prediction, model)
+
     def predict(
         self,
         model_name,
         save_run_state=True,
         save_prediction=False,
         detect_anomalies=False,
+        datasink=None,
         **kwargs
     ):
         """
@@ -134,7 +159,12 @@ class Worker:
                 model.set_run_state(_state)
                 self.storage.save_state(model)
             if save_prediction:
-                source.save_timeseries_prediction(prediction, model)
+                self._save_timeseries_prediction(
+                    model,
+                    prediction,
+                    source,
+                    datasink,
+                )
 
             fmt = kwargs.get('format', 'series')
 
@@ -157,6 +187,7 @@ class Worker:
         self,
         model_name,
         save_prediction=False,
+        datasink=None,
         **kwargs
     ):
         """
@@ -183,7 +214,12 @@ class Worker:
                 )
 
             if save_prediction:
-                source.save_timeseries_prediction(forecast, model)
+                self._save_timeseries_prediction(
+                    model,
+                    forecast,
+                    source,
+                    datasink,
+                )
 
             return forecast.format_series()
         else:

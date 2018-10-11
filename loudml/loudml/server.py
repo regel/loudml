@@ -431,6 +431,7 @@ def model_train(model_name):
         kwargs.update({
             'autostart': True,
             'save_prediction': get_bool_arg('save_prediction'),
+            'datasink': request.args.get('datasink'),
             'detect_anomalies': get_bool_arg('detect_anomalies'),
         })
 
@@ -611,6 +612,7 @@ class TrainingJob(Job):
         self.autostart = kwargs.pop('autostart', False)
         self._kwargs_start = {
             'save_prediction': kwargs.pop('save_prediction', False),
+            'datasink': kwargs.pop('datasink', None),
             'detect_anomalies': kwargs.pop('detect_anomalies', False),
             'from_date': kwargs.get('from_date', None),
         }
@@ -761,6 +763,7 @@ def model_predict(model_name):
         from_date=get_date_arg('from', is_mandatory=True),
         to_date=get_date_arg('to', is_mandatory=True),
         save_prediction=request.args.get('save_prediction', default=False),
+        datasink=request.args.get('datasink'),
         detect_anomalies=request.args.get('detect_anomalies', default=False),
         license= g_config.license
     )
@@ -778,6 +781,7 @@ def model_start(model_name):
 
     params = {
         'save_prediction': get_bool_arg('save_prediction'),
+        'datasink': request.args.get('datasink'),
         'detect_anomalies': get_bool_arg('detect_anomalies'),
     }
 
@@ -832,6 +836,7 @@ def model_forecast(model_name):
 
     params = {
         'save_prediction': get_bool_arg('save_prediction'),
+        'datasink': request.args.get('datasink'),
     }
 
     model = g_storage.load_model(model_name)

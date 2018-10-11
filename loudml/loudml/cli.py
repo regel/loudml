@@ -298,6 +298,30 @@ class TrainCommand(Command):
         storage.save_model(model)
 
 
+def _save_timeseries_prediction(
+    config,
+    model,
+    prediction,
+    source,
+    datasink=None,
+):
+    if datasink is None:
+        datasink = model.default_datasink
+
+    if datasink is None or datasink == source.name:
+        sink = source
+    else:
+        try:
+            sink_settings = config.get_datasource(
+                datasink
+            )
+            sink = loudml.datasource.load_datasource(sink_settings)
+        except errors.LoudMLException as exn:
+            logging.error("cannot load data sink: %s", str(exn))
+            return
+
+    sink.save_timeseries_prediction(prediction, model)
+
 class ForecastCommand(Command):
     """
     Forecast the next measurements
@@ -344,6 +368,12 @@ class ForecastCommand(Command):
             help="Save prediction into the data source",
         )
 
+        parser.add_argument(
+            '--datasink',
+            dest='datasink',
+            help="name of data sink for prediction saving",
+        )
+
     def _dump(self, data):
         """
         Dump data to stdout
@@ -387,7 +417,13 @@ class ForecastCommand(Command):
                 )
 
             if args.save:
-                source.save_timeseries_prediction(prediction, model)
+                _save_timeseries_prediction(
+                    self.config,
+                    model,
+                    prediction,
+                    source,
+                    args.datasink,
+                )
             else:
                 if args.buckets:
                     data = prediction.format_buckets()
@@ -439,7 +475,13 @@ class PredictCommand(Command):
         group.add_argument(
             '-s', '--save',
             action='store_true',
-            help="Save prediction into the data source",
+            help="Save prediction",
+        )
+
+        parser.add_argument(
+            '--datasink',
+            dest='datasink',
+            help="name of data sink for prediction saving",
         )
 
     def _dump(self, data):
@@ -447,6 +489,7 @@ class PredictCommand(Command):
         Dump data to stdout
         """
         print(json.dumps(data, indent=4))
+
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
@@ -486,7 +529,13 @@ class PredictCommand(Command):
                 )
 
             if args.save:
-                source.save_timeseries_prediction(prediction, model)
+                _save_timeseries_prediction(
+                    self.config,
+                    model,
+                    prediction,
+                    source,
+                    args.datasink,
+                )
             else:
                 if args.buckets:
                     data = prediction.format_buckets()

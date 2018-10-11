@@ -420,6 +420,7 @@ class TimeSeriesModel(Model):
         Optional('max_forecast'): All(int, Range(min=1)),
         Optional('grace_period', default=0): schemas.TimeDelta(min=0, min_included=True),
         'timestamp_field': schemas.key,
+        'default_datasink': schemas.key,
     })
 
     def __init__(self, settings, state=None):
@@ -482,6 +483,10 @@ class TimeSeriesModel(Model):
     @property
     def type(self):
         return self.TYPE
+
+    @property
+    def default_datasink(self):
+        return self._settings.get('default_datasink')
 
     def get_hp_span(self, label):
         if (self.max_span - self.min_span) <= 0:
