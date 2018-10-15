@@ -4,6 +4,10 @@ datasources:
     type: influxdb
     addr: influxdb:8086
     database: telegraf
+  - name: kapacitor
+    type: influxdb
+    addr: kapacitor:9092
+    database: from_loudml
 
 storage:
   path: /var/lib/loudml
