@@ -212,10 +212,10 @@ class FileStorage(Storage):
         return data
 
     def list_models(self):
-        return [
+        return sorted([
             os.path.splitext(os.path.basename(path))[0]
             for path in glob.glob(self.model_path('*', validate=False))
-        ]
+        ])
 
     def _write_model_hook(self, model_name, settings):
         model_path = self.model_path(model_name)
