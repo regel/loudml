@@ -24,6 +24,47 @@ from . import (
     schemas,
 )
 
+def _convert_features_dict(features):
+    """
+    Convert old features dict format to list
+    """
+
+    result = []
+
+    for io, lst in features.items():
+        for feature in lst:
+            feature['io'] = io
+            result.append(feature)
+
+    return result
+
+def flatten_features(features):
+    """
+    Normalize feature list to the current format
+    """
+
+    if isinstance(features, dict):
+        features = _convert_features_dict(features)
+
+    inout = []
+    in_only = []
+    out_only = []
+
+    for feature in features:
+        io = feature.get('io')
+
+        if io == 'o':
+            out_only.append(feature)
+        elif io == 'i':
+            in_only.append(feature)
+        else:
+            if io is None:
+                feature['io'] = 'io'
+            inout.append(feature)
+
+    return inout + out_only + in_only
+
+
 class Feature:
     """
     Model feature
@@ -44,6 +85,7 @@ class Feature:
             )},
         ])),
         'default': Any(None, int, float, 'previous'),
+        Optional('io', default='io'): Any('io', 'o', 'i'),
         'script': Any(None, str),
         Optional('anomaly_type', default='low_high'): Any('low', 'high', 'low_high'),
         'transform': Any(None, "diff"),
@@ -63,6 +105,7 @@ class Feature:
         anomaly_type='low_high',
         transform=None,
         scores=None,
+        io='io',
     ):
         self.validate(locals())
 
@@ -75,8 +118,8 @@ class Feature:
         self.script = script
         self.match_all = match_all
         self.anomaly_type = anomaly_type
-        self.is_input = True
-        self.is_output = True
+        self.is_input = 'i' in io
+        self.is_output = 'o' in io
         self.transform = transform
         self.scores = "min_max" if scores is None else scores
 
@@ -123,35 +166,10 @@ class Model:
         self.routing = settings.get('routing')
         self._state = state
 
-        features = settings.get('features')
-        if isinstance(features, list):
-            self.features = [Feature(**feature) for feature in features]
-        elif isinstance(features, dict):
-            _in = features.get('i')
-            _out = features.get('o')
-            _in_out = features.get('io')
-            if _in is None:
-                _in = []
-            else:
-                _in = [Feature(**feature) for feature in _in]
-                for feature in _in:
-                    feature.is_input = True
-                    feature.is_output = False
+        features = flatten_features(settings.get('features'))
+        settings['features'] = features
 
-            if _out is None:
-                _out = []
-            else:
-                _out = [Feature(**feature) for feature in _out]
-                for feature in _out:
-                    feature.is_input = False
-                    feature.is_output = True
-
-            if _in_out is None:
-                _in_out = []
-            else:
-                _in_out = [Feature(**feature) for feature in _in_out]
-
-            self.features = _in_out + _out + _in
+        self.features = [Feature(**feature) for feature in features]
 
         self.max_threshold = self.settings.get('max_threshold')
         if self.max_threshold is None:

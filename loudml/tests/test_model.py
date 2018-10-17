@@ -8,6 +8,7 @@ from loudml import (
 )
 from loudml.model import (
     Feature,
+    flatten_features,
     Model,
 )
 
@@ -143,3 +144,101 @@ class TestModel(unittest.TestCase):
                 ],
             }
         )
+
+    def test_flatten_features(self):
+        res = flatten_features([
+            {
+                'name': 'foo',
+                'field': 'foo',
+                'metric': 'avg',
+            },
+        ])
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0]['io'], 'io')
+
+        res = flatten_features([
+            {
+                'name': 'foo',
+                'field': 'foo',
+                'metric': 'avg',
+                'io': 'i',
+            },
+            {
+                'name': 'bar',
+                'field': 'bar',
+                'metric': 'avg',
+                'io': 'io',
+            },
+            {
+                'name': 'baz',
+                'field': 'baz',
+                'metric': 'avg',
+                'io': 'o',
+            },
+        ])
+        self.assertEqual(res, [
+            {
+                'name': 'bar',
+                'field': 'bar',
+                'metric': 'avg',
+                'io': 'io',
+            },
+            {
+                'name': 'baz',
+                'field': 'baz',
+                'metric': 'avg',
+                'io': 'o',
+            },
+            {
+                'name': 'foo',
+                'field': 'foo',
+                'metric': 'avg',
+                'io': 'i',
+            },
+
+        ])
+
+        res = flatten_features({
+            'io': [
+                {
+                    'name': 'foo',
+                    'field': 'foo',
+                    'metric': 'avg',
+                },
+            ],
+            'o': [
+                {
+                    'name': 'bar',
+                    'field': 'bar',
+                    'metric': 'avg',
+                },
+            ],
+            'i': [
+                {
+                    'name': 'baz',
+                    'field': 'baz',
+                    'metric': 'avg',
+                },
+            ]
+        })
+        self.assertEqual(res, [
+            {
+                'name': 'foo',
+                'field': 'foo',
+                'metric': 'avg',
+                'io': 'io',
+            },
+            {
+                'name': 'bar',
+                'field': 'bar',
+                'metric': 'avg',
+                'io': 'o',
+            },
+            {
+                'name': 'baz',
+                'field': 'baz',
+                'metric': 'avg',
+                'io': 'i',
+            },
+
+        ])
