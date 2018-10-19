@@ -211,9 +211,13 @@ class TestInfluxQuick(unittest.TestCase):
             _build_tags_predicates([
                 {'tag': 'foo', 'value': 'bar'},
                 {'tag': 'a "', 'value': 'b \''},
+                {'tag': 'int', 'value': 42},
+                {'tag': 'bool', 'value': True},
             ]), [
                 "\"foo\"='bar'",
                 "\"a \\\"\"='b \\''",
+                "(\"int\"='42' OR \"int\"=42)",
+                "(\"bool\"='True' OR \"bool\"=True)",
             ]
         )
 

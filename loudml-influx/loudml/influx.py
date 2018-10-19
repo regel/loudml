@@ -225,17 +225,23 @@ def _build_tags_predicates(match_all=None):
 
     if match_all:
         for condition in match_all:
-            val = condition['value']
-            if isinstance(val, bool):
-                val = str(val)
-            elif isinstance(val, int):
-                val = str(val)
-
-            val = "'{}'".format(escape_quotes(val))
-            must.append("\"{}\"={}".format(
-              escape_doublequotes(condition['tag']),
-              val),
+            quoted_tag = "\"{}\"".format(
+                escape_doublequotes(condition['tag'])
             )
+            val = condition['value']
+            predicate = "{}='{}'".format(
+              quoted_tag,
+              escape_quotes(str(val)),
+            )
+
+            if isinstance(val, bool) or isinstance(val, int):
+                predicate = "({} OR {}={})".format(
+                    predicate,
+                    quoted_tag,
+                    str(val)
+                )
+
+            must.append(predicate)
 
     return must
 
