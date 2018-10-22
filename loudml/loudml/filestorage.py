@@ -173,6 +173,8 @@ class FileStorage(Storage):
             )
         except FileNotFoundError:
             raise errors.ModelNotFound(name=model_name)
+        except OSError as exn:
+            raise errors.LoudMLException(str(exn))
 
     def _get_model_state(self, model_path):
         state_path = os.path.join(model_path, "state.json")

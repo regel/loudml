@@ -956,7 +956,7 @@ def restart_predict_jobs():
     for name in g_storage.list_models():
         try:
             model = g_storage.load_model(name)
-        except errors.UnsupportedModel as exn:
+        except errors.LoudMLException as exn:
             logging.error("exception loading model '%s':%s", name, exn)
             continue
 
