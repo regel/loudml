@@ -1020,12 +1020,14 @@ def main():
     timer = RepeatingTimer(1, read_messages)
     timer.start()
 
-    host, port = g_config.server['listen'].split(':')
+    listen_addr = g_config.server['listen']
+    host, port = listen_addr.split(':')
 
     restart_predict_jobs()
 
     try:
         http_server = WSGIServer((host, int(port)), app)
+        logging.info("starting LoudML server on %s", listen_addr)
         http_server.serve_forever()
     except OSError as exn:
         logging.error(str(exn))
