@@ -85,6 +85,7 @@ class FileStorage(Storage):
         with open(tmp_path, 'w') as fd:
             json.dump(data, fd)
             os.fsync(fd)
+        os.chmod(tmp_path, 0o660)
         os.rename(tmp_path, path)
         os.close(tmp_fd)
 
