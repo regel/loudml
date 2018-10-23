@@ -1,5 +1,5 @@
 """
-LoudML command line tool
+Loud ML command line tool
 """
 
 import loudml.vendor
@@ -565,7 +565,7 @@ class PredictCommand(Command):
 
 def get_commands():
     """
-    Get LoudML CLI commands
+    Get Loud ML CLI commands
     """
     for ep in pkg_resources.iter_entry_points('loudml.commands'):
         yield ep.name, ep.load()()
@@ -573,7 +573,7 @@ def get_commands():
 
 def main(argv=None):
     """
-    LoudML command-line tool
+    Loud ML command-line tool
     """
 
     parser = argparse.ArgumentParser(

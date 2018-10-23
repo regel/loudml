@@ -1,4 +1,4 @@
-Dockerfile to build a LoudML container.
+Dockerfile to build a Loud ML container.
 
 Build Docker container
 ======================
@@ -47,7 +47,7 @@ Use the packages in the staging bucket in AWS S3
 Official packages
 -----------------
 
-Use the official community packages in the LoudML AWS S3 bucket.
+Use the official community packages in the Loud ML AWS S3 bucket.
 
 .. console:
 

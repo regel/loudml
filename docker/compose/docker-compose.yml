@@ -1,18 +1,18 @@
-# This is a Docker Compose file to work with LoudML and an InfluxDB stack.
+# This is a Docker Compose file to work with Loud ML and an InfluxDB stack.
 #
 # The following ports are made visible:
-#   8077: LoudML API
+#   8077: Loud ML API
 #   8888: Chronograph web interface
 #
 # Volumes for data persistence:
-#   loudml: LoudML
+#   loudml: Loud ML
 #   influxdb: InfluxDB
 #
 # To start all the containers:
 #
 #   docker-compose up
 #
-# To open a shell to run commands in the LoudML container:
+# To open a shell to run commands in the Loud ML container:
 #
 #   docker-compose exec loudml bash
 

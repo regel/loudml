@@ -1,5 +1,5 @@
 """
-InfluxDB module for LoudML
+InfluxDB module for Loud ML
 """
 import logging
 import json

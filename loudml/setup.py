@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Setup LoudML python package
+Setup Loud ML python package
 """
 
 import os

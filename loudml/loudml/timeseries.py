@@ -1,5 +1,5 @@
 """
-LoudML time-series module
+Loud ML time-series module
 """
 
 import copy

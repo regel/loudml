@@ -1,7 +1,7 @@
 Name: %{name}
 Version: %{version}
 Release:	1%{?dist}
-Summary:	Warp10 module for LoudML
+Summary:	Warp10 module for Loud ML
 
 Group: Applications/System
 License: Proprietary

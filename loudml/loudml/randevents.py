@@ -122,7 +122,7 @@ class TriangleEventGenerator(EventGenerator):
 
 class PatternGenerator(EventGenerator):
     """
-    Random event generator with a LoudML shape
+    Random event generator with a Loud ML shape
     """
 
     MARGIN = 6
@@ -164,7 +164,7 @@ d       r s
 
 class LoudMLEventGenerator(PatternGenerator):
     """
-    Random event generator with a LoudML shape
+    Random event generator with a Loud ML shape
     """
 
     MARGIN = 6

@@ -1,4 +1,4 @@
-This directory contains tools to package LoudML dependencies.
+This directory contains tools to package Loud ML dependencies.
 
 Requirements
 ------------

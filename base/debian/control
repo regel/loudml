@@ -15,4 +15,4 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${dist:Depends}
-Description: LoudML dependencies
+Description: Loud ML dependencies

@@ -147,7 +147,7 @@ def main():
         '-c', '--config',
         type=str,
         default="/etc/loudml/config.yml",
-        help="Path to LoudML configuration",
+        help="Path to Loud ML configuration",
     )
     parser.add_argument(
         '-o', '--output',

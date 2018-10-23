@@ -1,5 +1,5 @@
 """
-LoudML worker
+Loud ML worker
 """
 
 import logging
@@ -26,7 +26,7 @@ g_worker = None
 
 class Worker:
     """
-    LoudML worker
+    Loud ML worker
     """
 
     def __init__(self, config_path, msg_queue):

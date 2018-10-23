@@ -1,7 +1,7 @@
 Name:          %{name}
 Version:       %{version}
 Release:       1%{?dist}
-Summary:       LoudML dependencies
+Summary:       Loud ML dependencies
 Group:         Applications/System
 License:       Open Source
 URL:           http://www.loudml.com
@@ -14,7 +14,7 @@ AutoReqProv:   no
 
 %description
 
-Dependencies for LoudML.
+Dependencies for Loud ML.
 
 
 %install

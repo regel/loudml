@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Setup MongoDB module for LoudML
+Setup MongoDB module for Loud ML
 """
 
 import os
@@ -12,7 +12,7 @@ setup(
 
     version=os.getenv('LOUDML_VERSION', '1.4'),
 
-    description="MongoDB module for LoudML",
+    description="MongoDB module for Loud ML",
 
     py_modules=[
     ],

@@ -1,7 +1,7 @@
 Name: %{name}
 Version: %{version}
 Release:	1%{?dist}
-Summary:	Elasticsearch module for LoudML
+Summary:	Elasticsearch module for Loud ML
 
 Group: Applications/System
 License: Proprietary

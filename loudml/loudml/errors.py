@@ -1,9 +1,9 @@
 """
-LoudML errors
+Loud ML errors
 """
 
 class LoudMLException(Exception):
-    """LoudML exception"""
+    """Loud ML exception"""
     code = 500
 
     def __init__(self, msg=None):

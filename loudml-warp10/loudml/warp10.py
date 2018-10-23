@@ -1,5 +1,5 @@
 """
-Warp10 module for LoudML
+Warp10 module for Loud ML
 """
 
 import json
@@ -220,7 +220,7 @@ class Warp10DataSource(DataSource):
             values = item['v']
 
             for ts_us, value in values:
-                # XXX: Warp10 buckets are labeled with the right timestamp but LoudML
+                # XXX: Warp10 buckets are labeled with the right timestamp but Loud ML
                 # use the left one.
                 ts_us -= bucket_interval_us
 

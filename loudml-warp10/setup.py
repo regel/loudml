@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Setup Warp10 module for LoudML
+Setup Warp10 module for Loud ML
 """
 
 import os
@@ -12,7 +12,7 @@ setup(
 
     version=os.getenv('LOUDML_VERSION', '1.3'),
 
-    description="Warp10 module for LoudML",
+    description="Warp10 module for Loud ML",
 
     py_modules=[
     ],

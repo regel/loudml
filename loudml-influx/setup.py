@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Setup InfluxDB module for LoudML
+Setup InfluxDB module for Loud ML
 """
 
 import os
@@ -12,7 +12,7 @@ setup(
 
     version=os.getenv('LOUDML_VERSION', '1.4'),
 
-    description="InfluxDB module for LoudML",
+    description="InfluxDB module for Loud ML",
 
     py_modules=[
     ],

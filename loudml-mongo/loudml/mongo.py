@@ -1,5 +1,5 @@
 """
-MongoDB module for LoudML
+MongoDB module for Loud ML
 """
 
 import logging

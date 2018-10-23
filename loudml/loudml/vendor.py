@@ -1,5 +1,5 @@
 """
-LoudML vendor environment
+Loud ML vendor environment
 """
 
 import os

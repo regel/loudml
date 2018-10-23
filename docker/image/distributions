@@ -3,6 +3,6 @@ Label: LoudML
 Codename: stretch
 Architectures: amd64
 Components: main
-Description: Apt repository for LoudML
+Description: Apt repository for Loud ML
 #SignWith: $gpg_key
 

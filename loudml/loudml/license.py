@@ -17,7 +17,7 @@ from loudml.misc import make_ts
 # License format version (see class License for format details)
 LICENSE_VERSION = 1
 
-# Current LoudML major version
+# Current Loud ML major version
 # TODO integrate with setuptools
 LOUDML_MAJOR_VERSION = 1
 
@@ -119,7 +119,7 @@ class License:
     `features:nrmodels` is the maximum number of models that can be stored.
     The special value 'unlimited' disables the number check.
 
-    `version` is the major version number for LoudML. It is defined in this
+    `version` is the major version number for Loud ML. It is defined in this
     file.
 
     `exp_date` is the expiration date in `YYYY-MM-DD` format.

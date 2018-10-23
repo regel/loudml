@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Setup import module for LoudML
+Setup import module for Loud ML
 """
 
 import os
@@ -12,7 +12,7 @@ setup(
 
     version=os.getenv('LOUDML_VERSION', '1.4'),
 
-    description="Import module for LoudML",
+    description="Import module for Loud ML",
 
     py_modules=[
     ],

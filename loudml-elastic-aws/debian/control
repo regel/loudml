@@ -17,4 +17,4 @@ Depends:
   ${python3:Depends},
   loudml (= ${binary:Version}),
   loudml-elastic (= ${binary:Version}),
-Description: Elasticsearch AWS module for LoudML
+Description: Elasticsearch AWS module for Loud ML

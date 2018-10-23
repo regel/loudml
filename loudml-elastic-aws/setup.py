@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Setup Elasticsearch AWS module for LoudML
+Setup Elasticsearch AWS module for Loud ML
 """
 
 import os
@@ -12,7 +12,7 @@ setup(
 
     version=os.getenv('LOUDML_VERSION', '1.3'),
 
-    description="Elasticsearch AWS module for LoudML",
+    description="Elasticsearch AWS module for Loud ML",
 
     namespace_packages=['loudml'],
 

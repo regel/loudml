@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script builds a release version of LoudML (based on Debian Stretch
+# This script builds a release version of Loud ML (based on Debian Stretch
 # packages) and deploys the image on DockerHub.
 #
 # Requirements:

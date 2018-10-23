@@ -1,5 +1,5 @@
 """
-LoudML configuration
+Loud ML configuration
 """
 
 import copy
@@ -20,7 +20,7 @@ DEFAULT_LICENSE_PATH = '/etc/loudml/license.lic'
 
 class Config:
     """
-    LoudML configuration
+    Loud ML configuration
     """
 
     def __init__(self, data):

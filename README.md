@@ -1,4 +1,4 @@
-# LoudML core
+# Loud ML core
 
 ## Installation for developpers
 

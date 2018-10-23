@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Setup Elasticsearch module for LoudML
+Setup Elasticsearch module for Loud ML
 """
 
 import os
@@ -12,7 +12,7 @@ setup(
 
     version=os.getenv('LOUDML_VERSION', '1.4'),
 
-    description="Elasticsearch module for LoudML",
+    description="Elasticsearch module for Loud ML",
 
     py_modules=[
     ],

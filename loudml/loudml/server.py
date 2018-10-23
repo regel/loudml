@@ -1,5 +1,5 @@
 """
-LoudML server
+Loud ML server
 """
 
 import loudml.vendor
@@ -98,7 +98,7 @@ class RepeatingTimer(object):
 
 class Job:
     """
-    LoudML job
+    Loud ML job
     """
     func = None
     job_type = None
@@ -973,7 +973,7 @@ def restart_predict_jobs():
 
 def main():
     """
-    LoudML server
+    Loud ML server
     """
 
     global g_config
@@ -1027,7 +1027,7 @@ def main():
 
     try:
         http_server = WSGIServer((host, int(port)), app)
-        logging.info("starting LoudML server on %s", listen_addr)
+        logging.info("starting Loud ML server on %s", listen_addr)
         http_server.serve_forever()
     except OSError as exn:
         logging.error(str(exn))

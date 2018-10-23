@@ -1,5 +1,5 @@
 [Unit]
-Description=LoudML daemon
+Description=Loud ML daemon
 After=network.service
 
 [Service]

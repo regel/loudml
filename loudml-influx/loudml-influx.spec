@@ -1,7 +1,7 @@
 Name: %{name}
 Version: %{version}
 Release:	1%{?dist}
-Summary:	InfluxDB module for LoudML
+Summary:	InfluxDB module for Loud ML
 
 Group: Applications/System
 License: Proprietary

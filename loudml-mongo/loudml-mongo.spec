@@ -1,7 +1,7 @@
 Name: %{name}
 Version: %{version}
 Release:	1%{?dist}
-Summary:	MongoDB module for LoudML
+Summary:	MongoDB module for Loud ML
 
 Group: Applications/System
 License: Proprietary

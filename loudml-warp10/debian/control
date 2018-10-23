@@ -18,4 +18,4 @@ Depends:
   ${misc:Depends},
   ${python3:Depends},
   loudml,
-Description: Warp10 module for LoudML
+Description: Warp10 module for Loud ML

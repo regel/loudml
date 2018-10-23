@@ -21,4 +21,4 @@ Depends:
   ${misc:Depends},
   ${python3:Depends},
   loudml,
-Description: Import module for LoudML
+Description: Import module for Loud ML

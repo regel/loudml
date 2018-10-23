@@ -1,5 +1,5 @@
 """
-LoudML model
+Loud ML model
 """
 
 import copy
@@ -131,7 +131,7 @@ class Feature:
 
 class Model:
     """
-    LoudML model
+    Loud ML model
     """
 
     TYPE = 'generic'

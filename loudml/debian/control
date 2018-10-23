@@ -22,20 +22,20 @@ Depends:
   ${python3:Depends},
   loudml-base (= ${binary:Version}),
   loudml-api (>= 1.4.0),
-Description: LoudML core package
- LoudML core package.
+Description: Loud ML core package
+ Loud ML core package.
 
 Package: loudml-enterprise
 Architecture: all
 Depends:
   loudml (= ${binary:Version}),
-Description: LoudML Enterprise exclusive features
+Description: Loud ML Enterprise exclusive features
  Additional model: fingerprints.
 
 Package: loudml-internal
 Architecture: all
 Depends:
   loudml (= ${binary:Version}),
-Description: LoudML tools for internal usag
+Description: Loud ML tools for internal usag
  Internal tools:
  - license management

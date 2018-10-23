@@ -1,5 +1,5 @@
 """
-Base interface for LoudML storage
+Base interface for Loud ML storage
 """
 
 import logging
@@ -21,7 +21,7 @@ from . import (
 
 class Storage(metaclass=ABCMeta):
     """
-    Abstract class for LoudML storage
+    Abstract class for Loud ML storage
     """
 
     @abstractmethod

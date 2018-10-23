@@ -18,4 +18,4 @@ Depends:
   ${misc:Depends},
   ${python3:Depends},
   loudml,
-Description: MongoDB module for LoudML
+Description: MongoDB module for Loud ML

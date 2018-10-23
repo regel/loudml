@@ -21,4 +21,4 @@ Depends:
   ${misc:Depends},
   ${python3:Depends},
   loudml (= ${binary:Version}),
-Description: InfluxDB module for LoudML
+Description: InfluxDB module for Loud ML

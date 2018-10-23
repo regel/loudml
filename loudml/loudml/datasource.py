@@ -1,5 +1,5 @@
 """
-Base interface for LoudML data source
+Base interface for Loud ML data source
 """
 import datetime
 
@@ -25,7 +25,7 @@ from . import (
 
 class DataSource(metaclass=ABCMeta):
     """
-    Abstract class for LoudML storage
+    Abstract class for Loud ML storage
     """
 
     SCHEMA = Schema({

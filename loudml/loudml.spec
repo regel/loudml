@@ -1,7 +1,7 @@
 Name: %{name}
 Version: %{version}
 Release:	1%{?dist}
-Summary:	LoudML core package
+Summary:	Loud ML core package
 
 Group: Applications/System
 License: Proprietary
@@ -26,12 +26,12 @@ Requires: loudml-base == %{version}
 
 %package enterprise
 Group:    Applications/System
-Summary:  LoudML Enterprise exclusive features
+Summary:  Loud ML Enterprise exclusive features
 Requires: loudml == %{version}
 
 %package internal
 Group:    Applications/System
-Summary:  LoudML tools for internal usage
+Summary:  Loud ML tools for internal usage
 Requires: loudml == %{version}
 
 %description
@@ -60,7 +60,7 @@ if ! getent group loudml; then
   groupadd --system loudml
 fi
 if ! getent passwd loudml; then
-  useradd --comment "LoudML" --gid loudml --no-create-home --system --shell /sbin/nologin loudml
+  useradd --comment "Loud ML" --gid loudml --no-create-home --system --shell /sbin/nologin loudml
 fi
 
 # Remove old trailing files. Required for users who have installed <=1.3.2
@@ -108,7 +108,7 @@ do
 	mv $filename %{buildroot}/%{python3_sitelib}/rmn_common/${basename}.pyc ;
 done
 
-# LoudML daemon configuration
+# Loud ML daemon configuration
 install -m 0755 -d %{buildroot}/%{_sysconfdir}/loudml
 install -m 0755 -d %{buildroot}/%{_sysconfdir}/loudml/plugins.d
 install -m 0644 examples/config.yml %{buildroot}/%{_sysconfdir}/loudml/config.yml
@@ -135,7 +135,7 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 %dir %{python3_sitelib}/loudml-*.egg-info
 %{python3_sitelib}/loudml-*.egg-info/*
 
-# LoudML daemon configuration
+# Loud ML daemon configuration
 %attr(2777,root,loudml) %dir %{_sysconfdir}/loudml
 %attr(2777,root,loudml) %dir %{_sysconfdir}/loudml/plugins.d
 %config(noreplace) %{_sysconfdir}/loudml/config.yml

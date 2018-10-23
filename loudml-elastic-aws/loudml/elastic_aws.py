@@ -1,5 +1,5 @@
 """
-Elasticsearch module for LoudML
+Elasticsearch module for Loud ML
 for connecting to Amazon Elasticsearch Service
 """
 

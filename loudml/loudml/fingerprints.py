@@ -1,5 +1,5 @@
 """
-LoudML fingerprints module
+Loud ML fingerprints module
 """
 
 import copy

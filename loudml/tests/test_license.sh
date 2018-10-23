@@ -46,7 +46,7 @@ finish() {
 # Print usage screen
 usage() {
     cat <<EOF
-test_license.sh - Test LoudML licensing limitations
+test_license.sh - Test Loud ML licensing limitations
 
 Usage: test_license.sh OPTIONS
 
@@ -56,9 +56,9 @@ EOF
 }
 
 # loudmld_start
-# Start LoudML daemon and wait for it to be ready
+# Start Loud ML daemon and wait for it to be ready
 loudmld_start() {
-    echo "Starting LoudML daemon..."
+    echo "Starting Loud ML daemon..."
     loudmld -c "$config" &
     loudmld_pid=$!
 
@@ -66,13 +66,13 @@ loudmld_start() {
 }
 
 # loudmld_stop
-# Stop LoudML daemon
+# Stop Loud ML daemon
 loudmld_stop() {
     if [ "$loudmld_pid" = "" ]; then
         return;
     fi
 
-    echo "Stopping LoudML daemon..."
+    echo "Stopping Loud ML daemon..."
     kill "$loudmld_pid"
     loudmld_pid=""
 }
