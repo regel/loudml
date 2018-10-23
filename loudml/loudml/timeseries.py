@@ -69,9 +69,6 @@ DEFAULT_SEASONALITY = {
 float_formatter = lambda x: "%.2f" % x
 np.set_printoptions(formatter={'float_kind':float_formatter})
 
-# global vars for easy reusability
-# This UNIX process is handling a unique model
-_keras_model, _graph = None, None
 _verbose = 0
 
 # _hp_forecast_min=1 Backward compat with 1.2
@@ -441,6 +438,8 @@ class TimeSeriesModel(Model):
         self.means = None
         self.stds = None
         self.scores = None
+        self._keras_model = None
+        self._graph = None
 
         if self.span is None or self.span == "auto":
             self.min_span = settings.get('min_span') or _hp_span_min
@@ -706,8 +705,7 @@ class TimeSeriesModel(Model):
                      self.mins, self.maxs, self.maxs - self.mins)
 
         def cross_val_model(params):
-            global _keras_model, _graph
-            _keras_model, _graph = None, None
+            keras_model, graph = None, None
             # Destroys the current TF graph and creates a new one.
             # Useful to avoid clutter from old models / layers.
             K.clear_session()
@@ -720,25 +718,25 @@ class TimeSeriesModel(Model):
             )
 
             # expected input data shape: (batch_size, timesteps, nb_features)
-            _keras_model = Sequential()
+            keras_model = Sequential()
             if params.depth == 1:
-                _keras_model.add(LSTM(
+                keras_model.add(LSTM(
                     params.l1,
                     input_shape=(None, input_features),
                     return_sequences=False,
                 ))
-                _keras_model.add(Dense(y_train.shape[1], input_dim=params.l1))
+                keras_model.add(Dense(y_train.shape[1], input_dim=params.l1))
             elif params.depth == 2:
-                _keras_model.add(LSTM(
+                keras_model.add(LSTM(
                     params.l1,
                     input_shape=(None, input_features),
                     return_sequences=True,
                 ))
-                _keras_model.add(LSTM(params.l2, return_sequences=False))
-                _keras_model.add(Dense(y_train.shape[1], input_dim=params.l2))
+                keras_model.add(LSTM(params.l2, return_sequences=False))
+                keras_model.add(Dense(y_train.shape[1], input_dim=params.l2))
 
-            _keras_model.add(Activation(params.activation))
-            _keras_model.compile(
+            keras_model.add(Activation(params.activation))
+            keras_model.compile(
                 loss=params.loss_fct,
                 optimizer=params.optimizer,
                 metrics=['accuracy'],
@@ -749,7 +747,7 @@ class TimeSeriesModel(Model):
                 verbose=_verbose,
                 mode='auto',
             )
-            _keras_model.fit(
+            keras_model.fit(
                 X_train,
                 y_train,
                 epochs=num_epochs,
@@ -760,7 +758,7 @@ class TimeSeriesModel(Model):
             )
 
             # How well did it do?
-            scores = _keras_model.evaluate(
+            scores = keras_model.evaluate(
                 X_test,
                 y_test,
                 batch_size=batch_size,
@@ -771,7 +769,7 @@ class TimeSeriesModel(Model):
             if progress_cb is not None:
                 progress_cb(self.current_eval, max_evals)
 
-            return scores
+            return scores, keras_model, graph
 
         hyperparameters = HyperParameters()
 
@@ -780,7 +778,7 @@ class TimeSeriesModel(Model):
             hyperparameters.assign(args)
 
             try:
-                score = cross_val_model(hyperparameters)
+                score, _, _ = cross_val_model(hyperparameters)
                 return {'loss': score[0], 'status': STATUS_OK}
             except Exception as exn:
                 logging.warning("iteration failed: %s", exn)
@@ -822,7 +820,9 @@ class TimeSeriesModel(Model):
 
         # Get the values of the optimal parameters
         best_params = space_eval(space, best)
-        score = cross_val_model(HyperParameters(best_params))
+        score, self._keras_model, self._graph = cross_val_model(
+            HyperParameters(best_params)
+        )
         self.span = best_params['span']
         self.forecast_val = best_params['forecast']
         return (best_params, score)
@@ -899,9 +899,6 @@ class TimeSeriesModel(Model):
         """
         Train model
         """
-        global _keras_model, _graph
-
-        _keras_model, _graph = None, None
 
         self.mins, self.maxs = None, None
         self.means, self.stds = None, None
@@ -975,7 +972,7 @@ class TimeSeriesModel(Model):
                not isinstance(val, float):
                 best_params[key] = np.asscalar(val)
 
-        model_b64, weights_b64 = _serialize_keras_model(_keras_model)
+        model_b64, weights_b64 = _serialize_keras_model(self._keras_model)
 
         self._state = {
             'graph': model_b64,
@@ -1007,22 +1004,20 @@ class TimeSeriesModel(Model):
         """
         Unload current model
         """
-        global _keras_model, _graph
-        _keras_model = None
-        _graph = None
+        self._keras_model = None
+        self._graph = None
 
     def load(self):
         """
         Load current model
         """
-        global _keras_model, _graph
-
         if not self.is_trained:
             raise errors.ModelNotTrained()
-        if _keras_model is not None:
+        if self._keras_model:
+            # Already loaded
             return
 
-        _keras_model, _graph = _load_keras_model(
+        self._keras_model, self._graph = _load_keras_model(
             self._state['graph'],
             self._state['weights'],
             self._state['loss_fct'],
@@ -1150,8 +1145,6 @@ class TimeSeriesModel(Model):
         to_date,
         license=None,
     ):
-        global _keras_model
-
         self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
 
@@ -1245,7 +1238,11 @@ class TimeSeriesModel(Model):
             raise errors.LoudMLException("not enough data for prediction")
 
         logging.info("generating prediction")
-        Y_ = _keras_model.predict(X_test).reshape((len(X_test), self._forecast, len(self._y_indexes())))[:,0,:]
+        Y_ = self._keras_model.predict(X_test).reshape((
+            len(X_test),
+            self._forecast,
+            len(self._y_indexes()),
+        ))[:,0,:]
 
         for _, j, feature in self.enum_features(is_output=True):
             if feature.scores == "standardize":
@@ -1341,8 +1338,6 @@ class TimeSeriesModel(Model):
         to_date,
         license=None,
     ):
-        global _keras_model
-
         self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
 
@@ -1444,7 +1439,11 @@ class TimeSeriesModel(Model):
         xy_indexes = np.array(self._xy_indexes())
 
         while bucket_start < period.to_ts:
-            Y_ = _keras_model.predict(X).reshape((self._forecast, nb_outputs))
+            Y_ = self._keras_model.predict(X).reshape((
+                self._forecast,
+                nb_outputs,
+            ))
+
             for _, j, feature in self.enum_features(is_output=True):
                 if feature.scores == "standardize":
                     Y_[:,j] = np.clip(Y_[:,j], -3, 3)
@@ -1739,7 +1738,6 @@ class TimeSeriesModel(Model):
         mse_rtol,
         _state={},
     ):
-        global _keras_model
         good_date = _state.get('good_date', None)
         good_mse = _state.get('good_mse', 0)
 

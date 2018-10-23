@@ -52,7 +52,7 @@ class Config:
         if 'workers' not in self._server:
             self._server['workers'] = multiprocessing.cpu_count()
         if 'maxtasksperchild' not in self._server:
-            self._server['maxtasksperchild'] = 1
+            self._server['maxtasksperchild'] = 100
         if 'mse_rtol' not in self._server:
             self._server['mse_rtol'] = 4
 
