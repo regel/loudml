@@ -30,6 +30,12 @@ class TestModel(unittest.TestCase):
             measurement="baz",
             default=0,
         )
+        Feature(
+            name="foo",
+            field="prefix.bar",
+            metric="avg",
+            measurement="prefix.baz",
+        )
 
         # Invalid
         self.invalid_feature(
