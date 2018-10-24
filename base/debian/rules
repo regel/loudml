@@ -12,6 +12,8 @@ endif
 override_dh_gencontrol:
 	dh_gencontrol -- $(SUBSTVARS)
 
+override_dh_install: install_dir := debian/loudml-base/usr/lib/loudml/vendor
 override_dh_install:
 	rm -rf debian/loudml-base
-	pip3 install -r vendor/requirements.txt -t debian/loudml-base/usr/lib/loudml/vendor
+	pip3 install -r vendor/requirements.txt -t "$(install_dir)"
+	find "$(install_dir)" -name __pycache__ | xargs rm -rf
