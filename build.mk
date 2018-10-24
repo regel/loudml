@@ -2,8 +2,11 @@ BUILD_DIR ?= $(CURDIR)/build
 RPMBUILD_DIR ?= $(BUILD_DIR)/rpmbuild
 rpmsrc_dir := $(RPMBUILD_DIR)/SOURCES
 
-VERSION ?= $(shell git describe --tags --match 'v*.*.*' | \
-                       sed -e 's/^v//' -e 's/-/./g')
+# TODO: try to find the right path
+# The line below works because the file is only included from subdirectories.
+TOP_DIR ?= ..
+
+VERSION ?= $(shell $(TOP_DIR)/scripts/version)
 
 export LOUDML_VERSION=$(VERSION)
 

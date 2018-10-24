@@ -1,0 +1,4 @@
+#!/bin/sh
+
+git describe --tags --match 'v*.*.*' \
+  | sed -e 's/^v//' -e 's/-/./g'
