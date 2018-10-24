@@ -30,7 +30,7 @@ class TestFingerprints(unittest.TestCase):
             interval=60,
             span="24h",
             timestamp_field="@timestamp",
-            daytime_interval="6h",
+            bucket_interval="6h",
             offset="30s",
             aggregations=
               [dict(
@@ -241,7 +241,7 @@ class TestFingerprints(unittest.TestCase):
             interval=60,
             span="24h",
             timestamp_field="@timestamp",
-            daytime_interval="24h",
+            bucket_interval="24h",
             offset="30s",
             aggregations=
               [dict(

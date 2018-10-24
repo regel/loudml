@@ -515,7 +515,7 @@ class ElasticsearchDataSource(DataSource):
                         "quadrant_data": {
                             "date_histogram": {
                                 "field": model.timestamp_field,
-                                "interval": "%ds" % (model.daytime_interval),
+                                "interval": "%ds" % (model.bucket_interval),
                                 "min_doc_count": 0,
                                 "time_zone": "UTC",
                                 "format": "yyyy-MM-dd'T'HH:mm:ss'Z'", # key_as_string format

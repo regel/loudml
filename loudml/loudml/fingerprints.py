@@ -158,7 +158,10 @@ class FingerprintsModel(Model):
         Required('height'): All(int, Range(min=1)),
         Required('interval'): schemas.TimeDelta(min=0, min_included=False),
         Required('span'): schemas.TimeDelta(min=0, min_included=False),
-        Optional('daytime_interval'): schemas.TimeDelta(min=0, min_included=False),
+        Optional('bucket_interval', default=24 * 3600): schemas.TimeDelta(
+            min=0,
+            min_included=False,
+        ),
         Required('aggregations'): All([Aggregation.SCHEMA], Length(min=1)),
         'offset': schemas.TimeDelta(min=0),
         'timestamp_field': schemas.key,
@@ -167,16 +170,14 @@ class FingerprintsModel(Model):
     def __init__(self, settings, state=None):
         super().__init__(settings, state)
 
+        settings = self.settings
         self.key = settings['key']
         self.max_keys = settings['max_keys']
         self.w = settings['width']
         self.h = settings['height']
         self.interval = parse_timedelta(settings['interval']).total_seconds()
-        interval = self.settings.get('daytime_interval')
-        if interval is None:
-            self.daytime_interval = 0
-        else:
-            self.daytime_interval = parse_timedelta(interval).total_seconds()
+        bucket_interval = settings.get('bucket_interval')
+        self.bucket_interval = parse_timedelta(bucket_interval).total_seconds()
         self.span = parse_timedelta(settings['span']).total_seconds()
         self.offset = parse_timedelta(settings.get('offset', 0)).total_seconds()
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
@@ -199,10 +200,7 @@ class FingerprintsModel(Model):
 
     @property
     def nb_quadrants(self):
-        if self.daytime_interval == 0:
-            return 1
-        else:
-            return int(24*3600 / self.daytime_interval)
+        return int(24*3600 / self.bucket_interval)
 
     @property
     def nb_dimensions(self):
@@ -244,7 +242,7 @@ class FingerprintsModel(Model):
 
         for l in time_buckets:
             ts = make_ts(l['key_as_string'])
-            quad_num = int((int(ts) / self.daytime_interval)) % self.nb_quadrants
+            quad_num = int((int(ts) / self.bucket_interval)) % self.nb_quadrants
             quad_pos = quad_num * len(agg.features)
 
             for feat_num, feature in enumerate(agg.features):

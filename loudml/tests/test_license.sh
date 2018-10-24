@@ -208,7 +208,7 @@ cat >"$model4" <<EOF
   "width": 50,
   "height": 50,
   "use_daytime": true,
-  "daytime_interval": "6h",
+  "bucket_interval": "6h",
   "offset": "30s",
   "aggregations": [
     {

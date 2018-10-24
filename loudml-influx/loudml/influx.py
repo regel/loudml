@@ -491,7 +491,7 @@ class InfluxDataSource(DataSource):
             escape_doublequotes(agg.measurement),
             where,
             model.key,
-            int(model.daytime_interval * 1000),
+            int(model.bucket_interval * 1000),
             limit,
             offset,
         )
@@ -510,7 +510,7 @@ class InfluxDataSource(DataSource):
                 where,
                 " and ".join(time_pred),
                 escape_doublequotes(model.key),
-                int(model.daytime_interval * 1000),
+                int(model.bucket_interval * 1000),
                 limit,
                 offset,
             )

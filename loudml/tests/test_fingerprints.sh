@@ -337,7 +337,7 @@ cat << EOF > $tmpfile
             "measurement": "$MEASUREMENT"
         }
     ],
-    "daytime_interval": "2h",
+    "bucket_interval": "2h",
     "default_datasource": "$datasource",
     "height": 5,
     "width": 5,
