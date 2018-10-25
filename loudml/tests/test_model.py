@@ -276,3 +276,58 @@ class TestModel(unittest.TestCase):
             },
 
         ])
+
+    def test_agg_id(self):
+        model = Model(
+            settings={
+                'name': "foo",
+                'type': "generic",
+                'features': [
+                    {
+                        'name': 'f1',
+                        'measurement': 'm',
+                        'field': 'f',
+                        'metric': 'avg',
+                    },
+                    {
+                        'name': 'f2',
+                        'measurement': 'm',
+                        'field': 'f',
+                        'metric': 'avg',
+                        'match_all': [
+                            {'key': 'key', 'value': 'value'}
+                        ],
+                    },
+                    {
+                        'name': 'f3',
+                        'measurement': 'm',
+                        'field': 'f',
+                        'metric': 'avg',
+                        'match_all': [
+                            {'key': 'key', 'value': 'value'}
+                        ],
+                    },
+                    {
+                        'name': 'f4',
+                        'measurement': 'm',
+                        'field': 'f',
+                        'metric': 'avg',
+                        'match_all': [
+                            {'key': 'key', 'value': 'value2'}
+                        ],
+                    },
+                    {
+                        'name': 'f5',
+                        'field': 'f',
+                        'metric': 'avg',
+                    },
+                ],
+            }
+        )
+
+        agg_ids = [feature.agg_id for feature in model.features]
+        self.assertEqual(agg_ids[0], 'm')
+        self.assertEqual(agg_ids[1], 'm_ced1b023686195d411caee8450821ff77ed0c5eb')
+        self.assertEqual(agg_ids[2], agg_ids[1])
+        self.assertEqual(agg_ids[3], 'm_7359bacde7a306a62e35501cc9bb905e6b2c6f72')
+        self.assertEqual(agg_ids[4], 'all')

@@ -128,6 +128,18 @@ class Feature:
         self.is_output = 'o' in io
         self.transform = transform
         self.scores = "min_max" if scores is None else scores
+        self.agg_id = self.build_agg_id()
+
+    def build_agg_id(self):
+        prefix = self.measurement or self.collection
+
+        if not self.match_all:
+            return prefix or 'all'
+
+        return "{}_{}".format(
+            prefix,
+            misc.hash_dict(self.match_all)
+        )
 
     @classmethod
     def validate(cls, args):
