@@ -4,6 +4,8 @@ Miscelaneous Loud ML helpers
 
 import datetime
 import dateutil.parser
+import hashlib
+import json
 import numpy as np
 import pkg_resources
 import sys
@@ -307,7 +309,10 @@ def list_from_np(array):
     """
     return [nan_to_none(x) for x in array]
 
-
+def hash_dict(data):
+    ctx = hashlib.sha1()
+    ctx.update(json.dumps(data, sort_keys=True).encode("utf-8"))
+    return ctx.hexdigest()
 
 class NoDaemonProcess(multiprocessing.Process):
     # make 'daemon' attribute always return False

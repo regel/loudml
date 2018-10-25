@@ -9,6 +9,7 @@ from loudml.misc import (
     deepsizeof,
     escape_quotes,
     escape_doublequotes,
+    hash_dict,
     make_datetime,
     make_ts,
     str_to_ts,
@@ -118,3 +119,17 @@ class TestMisc(unittest.TestCase):
 
     def test_escape_doublequotes(self):
         self.assertEqual(escape_doublequotes('foo " "'), 'foo \\" \\"')
+
+    def test_hash_dict(self):
+        res = hash_dict({
+            'a': {
+                'b': [
+                     {'str': 'foo'},
+                     {'int': 42},
+                     {'float': 84.84},
+                     {'bool': True},
+                ],
+                'c': None,
+            }
+        })
+        self.assertEqual(res, "94f35de3a4b2dfbfadd2c75589b8c8141ca7d83e")
