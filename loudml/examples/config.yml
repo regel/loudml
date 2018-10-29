@@ -4,6 +4,7 @@ datasources: []
 #   type: influxdb
 #   addr: localhost
 #   database: mydatabase
+#   retention_policy: autogen
 
 # - name: elastic
 #   type: elasticsearch

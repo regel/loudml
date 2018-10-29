@@ -338,6 +338,7 @@ class InfluxDataSource(DataSource):
         Required('database'): schemas.key,
         Optional('dbuser'): All(schemas.key, Length(max=256)),
         Optional('dbuser_password'): str,
+        Optional('retention_policy'): schemas.key,
         Optional('use_ssl', default=False): Boolean(),
         Optional('verify_ssl', default=False): Boolean(),
         Optional('annotation_db', default='chronograf'): str,
@@ -364,6 +365,10 @@ class InfluxDataSource(DataSource):
     @property
     def dbuser_password(self):
         return self.cfg.get('dbuser_password')
+
+    @property
+    def retention_policy(self):
+        return self.cfg.get('retention_policy')
 
     @property
     def use_ssl(self):
