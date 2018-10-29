@@ -27,7 +27,6 @@ from loudml.misc import (
 )
 
 from loudml.influx import (
-    _build_queries,
     _build_time_predicates,
     _build_tags_predicates,
     InfluxDataSource,
@@ -218,9 +217,9 @@ class TestInfluxQuick(unittest.TestCase):
             ]
         )
 
-    def test_build_queries(self):
+    def test_build_times_queries(self):
         where = "time >= 1515404366123400000 and time < 1515423565456000000"
-        queries = list(_build_queries(
+        queries = list(self.source._build_times_queries(
             self.model,
             from_date=1515404366.1234,
             to_date="2018-01-08T14:59:25.456Z",
@@ -234,6 +233,31 @@ class TestInfluxQuick(unittest.TestCase):
                 "where {} group by time(3000ms);".format(where),
                 "select MEAN(\"baz\") as \"avg_baz\" from \"measure1\" "\
                 "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(where),
+            ],
+        )
+
+        source = InfluxDataSource({
+            'name': 'test',
+            'addr': ADDR,
+            'database': self.db,
+            'retention_policy': 'custom',
+        })
+
+        queries = list(source._build_times_queries(
+            self.model,
+            from_date=1515404366.1234,
+            to_date="2018-01-08T14:59:25.456Z",
+        ))
+        from_prefix = '"{}"."custom".'.format(self.db)
+        self.assertEqual(
+            queries,
+            [
+                "select MEAN(\"foo\") as \"avg_foo\" from {}\"measure1\" "\
+                "where {} group by time(3000ms);".format(from_prefix, where),
+                "select COUNT(\"bar\") as \"count_bar\" from {}\"measure2\" "\
+                "where {} group by time(3000ms);".format(from_prefix, where),
+                "select MEAN(\"baz\") as \"avg_baz\" from {}\"measure1\" "\
+                "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(from_prefix, where),
             ],
         )
 
@@ -555,4 +579,3 @@ class TestInfluxTimes(unittest.TestCase):
                 rtol=0.20,
                 atol=50,
             )
-

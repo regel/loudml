@@ -253,26 +253,6 @@ def _build_key_predicate(tag, val=None):
 
     return must
 
-def _build_queries(model, from_date=None, to_date=None):
-    """
-    Build queries according to requested features
-    """
-    # TODO sanitize inputs to avoid injection!
-
-    time_pred = _build_time_predicates(from_date, to_date)
-
-    for feature in model.features:
-        must = time_pred + _build_tags_predicates(feature.match_all)
-
-        where = " where {}".format(" and ".join(must)) if len(must) else ""
-
-        yield "select {} from \"{}\"{} group by time({}ms);".format(
-            _build_agg(feature),
-            escape_doublequotes(feature.measurement),
-            where,
-            int(model.bucket_interval * 1000),
-        )
-
 def _build_quad(model, agg, from_date=None, to_date=None, key_val=None, limit=0, offset=0):
     """
     Build aggregation query according to requested features
@@ -478,7 +458,40 @@ class InfluxDataSource(DataSource):
         """
         Send data to InfluxDB
         """
-        self.influxdb.write_points(requests)
+        self.influxdb.write_points(
+            requests,
+            retention_policy=self.retention_policy,
+        )
+
+    def _build_times_queries(self, model, from_date=None, to_date=None):
+        """
+        Build queries according to requested features
+        """
+        # TODO sanitize inputs to avoid injection!
+
+        time_pred = _build_time_predicates(from_date, to_date)
+
+        from_prefix = ""
+        retention_policy = self.retention_policy
+        if retention_policy:
+            from_prefix = '"{}"."{}".'.format(
+                escape_doublequotes(self.db),
+                escape_doublequotes(retention_policy),
+            )
+
+        for feature in model.features:
+            must = time_pred + _build_tags_predicates(feature.match_all)
+
+            where = " where {}".format(" and ".join(must)) if len(must) else ""
+
+            yield "select {} from {}\"{}\"{} group by time({}ms);".format(
+                _build_agg(feature),
+                from_prefix,
+                escape_doublequotes(feature.measurement),
+                where,
+                int(model.bucket_interval * 1000),
+            )
+
 
     @catch_query_error
     def _get_quadrant_data(
@@ -593,7 +606,7 @@ class InfluxDataSource(DataSource):
         features = model.features
         nb_features = len(features)
 
-        queries = _build_queries(model, from_date, to_date)
+        queries = self._build_times_queries(model, from_date, to_date)
         queries = ''.join(queries)
         results = self.influxdb.query(queries)
 
@@ -717,4 +730,3 @@ class InfluxDataSource(DataSource):
         points[0]['fields']['deleted'] = False
         self.annotationdb.write_points(points)
         return points
-
