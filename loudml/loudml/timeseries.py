@@ -1692,7 +1692,7 @@ class TimeSeriesModel(Model):
                     self._state['last_anomaly_ts'] = ts
 
             stats.append({
-                'mse': mse,
+                'mse': nan_to_none(mse),
                 'score': max_score,
                 'anomaly': is_anomaly,
                 'anomalies': anomalies,
