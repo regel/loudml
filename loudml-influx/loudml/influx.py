@@ -253,50 +253,6 @@ def _build_key_predicate(tag, val=None):
 
     return must
 
-def _build_quad(model, agg, from_date=None, to_date=None, key_val=None, limit=0, offset=0):
-    """
-    Build aggregation query according to requested features
-    """
-    # TODO sanitize inputs to avoid injection!
-
-    time_pred = _build_time_predicates(from_date, to_date)
-
-    must = time_pred + _build_tags_predicates(agg.match_all) \
-           + _build_key_predicate(model.key, key_val)
-
-    where = " where {}".format(" and ".join(must)) if len(must) else ""
-
-    yield "select {} from \"{}\"{} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
-        ','.join(list(set([_build_agg(feature) for feature in agg.features] + \
-                          [_build_count_agg2(feature) for feature in agg.features] + \
-                          [_build_sum_agg2(feature) for feature in agg.features]))),
-        escape_doublequotes(agg.measurement),
-        where,
-        model.key,
-        int(model.daytime_interval * 1000),
-        limit,
-        offset,
-    )
-    sum_of_squares = []
-    for feature in agg.features:
-        if feature.metric == 'stddev':
-            sum_of_squares.append(feature)
-
-    if len(sum_of_squares) > 0:
-        yield "select {} from ( select \"{}\"*\"{}\" as \"squares_{}\" from \"{}\"{} ) where {} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
-            ','.join(list(set([_sum_of_squares(feature) for feature in sum_of_squares]))),
-            escape_doublequotes(feature.field),
-            escape_doublequotes(feature.field),
-            escape_doublequotes(feature.field),
-            escape_doublequotes(agg.measurement),
-            where,
-            " and ".join(time_pred),
-            model.key,
-            int(model.daytime_interval * 1000),
-            limit,
-            offset,
-        )
-
 def catch_query_error(func):
     def wrapper(self, *args, **kwargs):
         try:
@@ -329,6 +285,14 @@ class InfluxDataSource(DataSource):
         super().__init__(cfg)
         self._influxdb = None
         self._annotationdb = None
+
+        self._from_prefix = ""
+        retention_policy = self.retention_policy
+        if retention_policy:
+            self._from_prefix = '"{}"."{}".'.format(
+                escape_doublequotes(self.db),
+                escape_doublequotes(retention_policy),
+            )
 
     @property
     def addr(self):
@@ -471,14 +435,6 @@ class InfluxDataSource(DataSource):
 
         time_pred = _build_time_predicates(from_date, to_date)
 
-        from_prefix = ""
-        retention_policy = self.retention_policy
-        if retention_policy:
-            from_prefix = '"{}"."{}".'.format(
-                escape_doublequotes(self.db),
-                escape_doublequotes(retention_policy),
-            )
-
         for feature in model.features:
             must = time_pred + _build_tags_predicates(feature.match_all)
 
@@ -486,12 +442,65 @@ class InfluxDataSource(DataSource):
 
             yield "select {} from {}\"{}\"{} group by time({}ms);".format(
                 _build_agg(feature),
-                from_prefix,
+                self._from_prefix,
                 escape_doublequotes(feature.measurement),
                 where,
                 int(model.bucket_interval * 1000),
             )
 
+    def _build_quad_queries(
+        self,
+        model,
+        agg,
+        from_date=None,
+        to_date=None,
+        key_val=None,
+        limit=0,
+        offset=0,
+    ):
+        """
+        Build aggregation query according to requested features
+        """
+        # TODO sanitize inputs to avoid injection!
+
+        time_pred = _build_time_predicates(from_date, to_date)
+
+        must = time_pred + _build_tags_predicates(agg.match_all) \
+               + _build_key_predicate(model.key, key_val)
+
+        where = " where {}".format(" and ".join(must)) if len(must) else ""
+
+        yield "select {} from {}\"{}\"{} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
+            self._from_prefix,
+            ','.join(list(set([_build_agg(feature) for feature in agg.features] + \
+                              [_build_count_agg2(feature) for feature in agg.features] + \
+                              [_build_sum_agg2(feature) for feature in agg.features]))),
+            escape_doublequotes(agg.measurement),
+            where,
+            model.key,
+            int(model.daytime_interval * 1000),
+            limit,
+            offset,
+        )
+        sum_of_squares = []
+        for feature in agg.features:
+            if feature.metric == 'stddev':
+                sum_of_squares.append(feature)
+
+        if len(sum_of_squares) > 0:
+            yield "select {} from ( select \"{}\"*\"{}\" as \"squares_{}\" from \"{}\"{} ) where {} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
+                ','.join(list(set([_sum_of_squares(feature) for feature in sum_of_squares]))),
+                escape_doublequotes(feature.field),
+                escape_doublequotes(feature.field),
+                escape_doublequotes(feature.field),
+                escape_doublequotes(agg.measurement),
+                where,
+                " and ".join(time_pred),
+                model.key,
+                int(model.daytime_interval * 1000),
+                limit,
+                offset,
+            )
 
     @catch_query_error
     def _get_quadrant_data(
@@ -504,7 +513,15 @@ class InfluxDataSource(DataSource):
         limit=0,
         offset=0,
     ):
-        queries = _build_quad(model, agg, from_date, to_date, key, limit, offset)
+        queries = self._build_quad_queries(
+            model,
+            agg,
+            from_date,
+            to_date,
+            key,
+            limit,
+            offset,
+        )
         queries = ''.join(queries)
         results = self.influxdb.query(queries)
 
