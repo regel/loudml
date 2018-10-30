@@ -272,6 +272,7 @@ class InfluxDataSource(DataSource):
     SCHEMA = DataSource.SCHEMA.extend({
         Required('addr'): str,
         Required('database'): schemas.key,
+        Optional('create_database', default=True): Boolean(),
         Optional('dbuser'): All(schemas.key, Length(max=256)),
         Optional('dbuser_password'): str,
         Optional('retention_policy'): schemas.key,
@@ -377,7 +378,9 @@ class InfluxDataSource(DataSource):
         """
         Create database
         """
-        self.influxdb.create_database(db or self.db)
+
+        if self.cfg.get('create_database'):
+            self.influxdb.create_database(db or self.db)
 
     @catch_query_error
     def drop(self, db=None):

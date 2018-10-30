@@ -4,6 +4,7 @@ datasources: []
 #   type: influxdb
 #   addr: localhost
 #   database: mydatabase
+#   create_database: true
 #   retention_policy: autogen
 
 # - name: elastic
