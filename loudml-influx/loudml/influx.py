@@ -387,7 +387,11 @@ class InfluxDataSource(DataSource):
         """
         Delete database
         """
-        self.influxdb.drop_database(db or self.db)
+        try:
+            self.influxdb.drop_database(db or self.db)
+        except influxdb.exceptions.InfluxDBClientError as exn:
+            if exn.code != 404:
+                raise exn
 
     def insert_data(self, data):
         raise errors.NotImplemented("InfluxDB is a pure time-series database")
