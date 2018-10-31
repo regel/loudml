@@ -768,6 +768,7 @@ class ElasticsearchDataSource(DataSource):
 
         for bucket in prediction.format_buckets():
             data = bucket['predicted']
+            data['model'] = model.name
             tags = model.get_tags()
             stats = bucket.get('stats', None)
             if stats is not None:
@@ -775,7 +776,7 @@ class ElasticsearchDataSource(DataSource):
                 tags['is_anomaly'] = stats.get('anomaly', False)
 
             self.insert_times_data(
-                index=model.name,
+                index=index,
                 ts=bucket['timestamp'],
                 tags=tags,
                 data=data,
