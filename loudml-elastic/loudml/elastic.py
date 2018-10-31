@@ -517,6 +517,8 @@ class ElasticsearchDataSource(DataSource):
                                 "field": model.timestamp_field,
                                 "interval": "%ds" % (model.daytime_interval),
                                 "min_doc_count": 0,
+                                "time_zone": "UTC",
+                                "format": "yyyy-MM-dd'T'HH:mm:ss'Z'", # key_as_string format
                                 "extended_bounds": _build_extended_bounds(from_ms, to_ms-1),
                             },
                             "aggs": cls.build_quadrant_aggs(model, aggregation),
@@ -609,6 +611,8 @@ class ElasticsearchDataSource(DataSource):
                 "extended_bounds": _build_extended_bounds(from_ms, to_ms - 1000*model.bucket_interval),
                 "interval": "%ds" % model.bucket_interval,
                 "min_doc_count": 0,
+                "time_zone": "UTC",
+                "format": "yyyy-MM-dd'T'HH:mm:ss'Z'", # key_as_string format
                 "order": {
                   "_key": "asc"
                 }
