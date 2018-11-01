@@ -64,7 +64,9 @@ g_config = None
 g_jobs = {}
 g_training = {}
 g_storage = None
+g_training_pool = None
 g_pool = None
+g_nice = 0
 g_queue = None
 g_running_models = {}
 
@@ -151,7 +153,7 @@ class Job:
         self.state = 'waiting'
         self._future = g_pool.schedule(
             loudml.worker.run,
-            args=[self.id, self.func] + self.args,
+            args=[self.id, 0, self.func] + self.args,
             kwargs=self.kwargs,
         )
         self._future.add_done_callback(self._done_cb)
@@ -618,6 +620,23 @@ class TrainingJob(Job):
         }
         self._kwargs = kwargs
 
+    def start(self):
+        """
+        Submit training job to worker pool
+        """
+        global g_training_pool
+        global g_nice
+        global g_jobs
+
+        g_jobs[self.id] = self
+        self.state = 'waiting'
+        self._future = g_training_pool.schedule(
+            loudml.worker.run,
+            args=[self.id, g_nice, self.func] + self.args,
+            kwargs=self.kwargs,
+        )
+        self._future.add_done_callback(self._done_cb)
+
     def _done_cb(self, result):
         """
         Callback executed when job is done
@@ -977,6 +996,8 @@ def main():
     """
 
     global g_config
+    global g_training_pool
+    global g_nice
     global g_pool
     global g_queue
     global g_storage
@@ -1010,6 +1031,13 @@ def main():
         sys.exit(1)
 
     g_queue = multiprocessing.Queue()
+    g_nice = g_config.training.get('nice', 0)
+    g_training_pool = pebble.ProcessPool(
+        max_workers=g_config.server.get('workers', 1),
+        max_tasks=g_config.server.get('maxtasksperchild', 1),
+        initializer=loudml.worker.init_worker,
+        initargs=[args.config, g_queue],
+    )
     g_pool = pebble.ProcessPool(
         max_workers=g_config.server.get('workers', 1),
         max_tasks=g_config.server.get('maxtasksperchild', 1),
@@ -1036,5 +1064,7 @@ def main():
 
     logging.info("stopping")
     timer.cancel()
+    g_training_pool.stop()
+    g_training_pool.join()
     g_pool.stop()
     g_pool.join()

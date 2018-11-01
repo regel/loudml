@@ -46,6 +46,10 @@ class Config:
         if 'path' not in self._storage:
             self._storage['path'] = "/var/lib/loudml"
 
+        self._training = data.get('training', {})
+        if 'nice' not in self._training:
+            self._training['nice'] = 5
+
         self._server = data.get('server', {})
         if 'listen' not in self._server:
             self._server['listen'] = "localhost:8077"
@@ -60,6 +64,11 @@ class Config:
     def datasources(self):
         # XXX: return a copy to prevent modification by the caller
         return copy.deepcopy(self._datasources)
+
+    @property
+    def training(self):
+        # XXX: return a copy to prevent modification by the caller
+        return copy.deepcopy(self._training)
 
     @property
     def storage(self):

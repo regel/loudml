@@ -5,6 +5,7 @@ Loud ML worker
 import logging
 import signal
 import math
+import os
 
 import loudml.config
 import loudml.datasource
@@ -36,7 +37,7 @@ class Worker:
         self.job_id = None
         signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-    def run(self, job_id, func_name, *args, **kwargs):
+    def run(self, job_id, nice, func_name, *args, **kwargs):
         """
         Run requested task and return the result
         """
@@ -46,8 +47,10 @@ class Worker:
             'job_id': job_id,
             'state': 'running',
         })
-        logging.info("job[%s] starting", job_id)
+        logging.info("job[%s] starting, nice=%d", job_id, nice)
         self.job_id = job_id
+        curnice = os.nice(0)
+        os.nice(int(nice) - curnice)
 
         try:
             res = getattr(self, func_name)(*args, **kwargs)
@@ -244,6 +247,6 @@ def init_worker(config_path, msg_queue):
     g_worker = Worker(config_path, msg_queue)
 
 
-def run(job_id, func_name, *args, **kwargs):
+def run(job_id, nice, func_name, *args, **kwargs):
     global g_worker
-    return g_worker.run(job_id, func_name, *args, **kwargs)
+    return g_worker.run(job_id, nice, func_name, *args, **kwargs)
