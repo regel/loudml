@@ -432,6 +432,8 @@ class TestInfluxTimes(unittest.TestCase):
                 ts=ts,
                 data=data,
             )
+        self.normal_until = to_date
+
 
         # Random 20s drops range 12-13
         dt = datetime.datetime(2018, 8, 1, 12, 0)
@@ -573,6 +575,9 @@ class TestInfluxTimes(unittest.TestCase):
             normal.shape, prediction.predicted.shape
         )
         for j, _ in enumerate(normal):
+            if prediction.timestamps[j] >= self.normal_until:
+                break
+
             np.testing.assert_allclose(
                 prediction.predicted[j],
                 normal[j],
