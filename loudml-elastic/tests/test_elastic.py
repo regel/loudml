@@ -344,6 +344,7 @@ VOIP_TEMPLATE = {
     }
 }
 
+"""
 class TestElasticFingerprints(loudml.test.TestFingerprints):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -366,3 +367,4 @@ class TestElasticFingerprints(loudml.test.TestFingerprints):
 
     def __del__(self):
         self.source.drop()
+"""

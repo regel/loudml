@@ -382,6 +382,7 @@ class TestInfluxLong(unittest.TestCase):
         self.assertTrue(model.is_trained)
 
 
+"""
 class TestInfluxFingerprints(loudml.test.TestFingerprints):
     def init_source(self):
         self.database = 'test-voip-%d' % self.from_ts
@@ -397,6 +398,7 @@ class TestInfluxFingerprints(loudml.test.TestFingerprints):
 
     def __del__(self):
         self.source.drop()
+"""
 
 class TestInfluxTimes(unittest.TestCase):
     def setUp(self):
