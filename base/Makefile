@@ -1,7 +1,9 @@
 NAME := loudml-base
 
+PIP_COMPILE ?= pip-compile
+
 vendor/requirements.txt: vendor/requirements.txt.in
-	pip-compile -U -o $@ $<
+	$(PIP_COMPILE) -U -o $@ $<
 
 rpm: $(NAME).rpm
 
