@@ -26,14 +26,14 @@ from loudml.mongo import (
 
 class TestMongo(unittest.TestCase):
     def setUp(self):
-        db = os.environ.get('MONGODB_DB', db),
+        db = os.environ.get('MONGODB_DB')
         if not db:
             db = "test-{}".format(int(datetime.datetime.now().timestamp()))
 
         settings = {
             'name': 'test',
             'addr': os.environ.get('MONGODB_ADDR', "localhost:27017"),
-            'database': os.environ.get('MONGODB_DB', db),
+            'database': db,
         }
 
         username = os.environ.get('MONGODB_USER')
