@@ -1,5 +1,6 @@
 import loudml.vendor
 
+import copy
 import datetime
 import logging
 import numpy as np
@@ -101,7 +102,9 @@ class TestElasticDataSource(unittest.TestCase):
         t0 -= t0 % bucket_interval
         self.t0 = t0
 
-        self.index = 'test-%d' % t0
+        self.index = "test-{}".format(t0)
+        self.sink_index = "test-{}-prediction".format(t0)
+
         logging.info("creating index %s", self.index)
         if os.environ.get('ELASTICSEARCH_ADDR', None) is None:
             # tip: useful tool to query ES AWS remotely:
@@ -110,13 +113,22 @@ class TestElasticDataSource(unittest.TestCase):
             settings = config.get_datasource('aws')
             settings['index'] = self.index
             self.source = loudml.datasource.load_datasource(settings)
+
+            settings = copy.deepcopy(settings)
+            settings['index'] = self.sink_index
+            self.sink = loudml.datasource.load_datasource(settings)
         else:
-            self.source = ElasticsearchDataSource({
+            settings = {
                 'name': 'test',
                 'addr': os.environ['ELASTICSEARCH_ADDR'],
                 'index': self.index,
                 'doc_type': 'custom',
-            })
+            }
+            self.source = ElasticsearchDataSource(settings)
+
+            settings = copy.deepcopy(settings)
+            settings['index'] = self.sink_index
+            self.sink = ElasticsearchDataSource(settings)
 
         template = TEMPLATE
         template['mappings'][self.source.doc_type] = MAPPING
@@ -184,6 +196,7 @@ class TestElasticDataSource(unittest.TestCase):
         time.sleep(10)
 
     def tearDown(self):
+        self.sink.drop()
         self.source.drop()
 
     def test_get_index_name(self):
@@ -234,12 +247,10 @@ class TestElasticDataSource(unittest.TestCase):
             observed=np.array([[4.1], [1.9]]),
         )
 
-        self.source.drop(self.model.name)
-        self.source.save_timeseries_prediction(prediction, self.model)
-        self.source.refresh()
+        self.sink.save_timeseries_prediction(prediction, self.model)
+        self.sink.refresh()
 
-        res = self.source.search(
-            index=self.model.name,
+        res = self.sink.search(
             routing=self.model.routing,
             size=100,
             body={}
@@ -253,6 +264,7 @@ class TestElasticDataSource(unittest.TestCase):
             self.assertEqual(source, {
                 'avg_foo': predicted[i][0],
                 'timestamp': int(timestamps[i] * 1000),
+                'model': self.model.name,
             })
 
     def test_match_all(self):

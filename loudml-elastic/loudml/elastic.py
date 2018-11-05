@@ -776,7 +776,7 @@ class ElasticsearchDataSource(DataSource):
                 tags['is_anomaly'] = stats.get('anomaly', False)
 
             self.insert_times_data(
-                index=index,
+                index=self.index or index,
                 ts=bucket['timestamp'],
                 tags=tags,
                 data=data,
