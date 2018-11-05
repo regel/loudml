@@ -186,7 +186,27 @@ class Model:
     @classmethod
     def validate(cls, settings):
         """Validate the settings against the schema"""
-        return schemas.validate(cls.SCHEMA, settings)
+
+        res = schemas.validate(cls.SCHEMA, settings)
+
+        has_input = False
+        has_output = False
+
+        for feature in settings['features']:
+            io = feature.get('io', 'io')
+            if 'i' in io:
+                has_input = True
+            if 'o' in io:
+                has_output = True
+            if has_input and has_output:
+                break
+
+        if not has_input:
+            raise errors.Invalid('model has no input feature')
+        if not has_output:
+            raise errors.Invalid('model has no output feature')
+
+        return res
 
     @property
     def type(self):

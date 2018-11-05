@@ -139,6 +139,34 @@ class TestModel(unittest.TestCase):
         )
         self.invalid_model(
             settings={
+                'name': "foo",
+                'type': "generic",
+                'features': [
+                    {
+                        'name': 'bar',
+                        'field': 'baz',
+                        'metric': 'avg',
+                        'io': 'i',
+                    },
+                ],
+            }
+        )
+        self.invalid_model(
+            settings={
+                'name': "foo",
+                'type': "generic",
+                'features': [
+                    {
+                        'name': 'bar',
+                        'field': 'baz',
+                        'metric': 'count',
+                        'io': 'o',
+                    }
+                ],
+            }
+        )
+        self.invalid_model(
+            settings={
                 'name': 'foo/invalid',
                 'type': 'generic',
                 'features': [
