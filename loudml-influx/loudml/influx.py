@@ -696,7 +696,7 @@ class InfluxDataSource(DataSource):
             stats = bucket.get('stats', None)
             if stats is not None:
                 data['score'] = float(stats.get('score'))
-                tags['is_anomaly'] = stats.get('anomaly', False)
+                data['is_anomaly'] = stats.get('anomaly', False)
 
             self.insert_times_data(
                 measurement='prediction_{}'.format(model.name), # Add id? timestamp?
