@@ -166,10 +166,9 @@ class Model:
         self.routing = settings.get('routing')
         self._state = state
 
-        features = flatten_features(settings.get('features'))
-        settings['features'] = features
-
-        self.features = [Feature(**feature) for feature in features]
+        self.features = [
+            Feature(**feature) for feature in settings['features']
+        ]
 
         self.max_threshold = self.settings.get('max_threshold')
         if self.max_threshold is None:
@@ -189,10 +188,13 @@ class Model:
 
         res = schemas.validate(cls.SCHEMA, settings)
 
+        features = flatten_features(settings.get('features'))
+        res['features'] = features
+
         has_input = False
         has_output = False
 
-        for feature in settings['features']:
+        for feature in res['features']:
             io = feature.get('io', 'io')
             if 'i' in io:
                 has_input = True
