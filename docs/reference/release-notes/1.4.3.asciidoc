@@ -15,7 +15,8 @@ Please raise issues on https://github.com/regel/loudml/issues[Github] if you exp
 Time series prediction can now be saved into a specific data sink (https://github.com/regel/loudml/issues/58[issue #58]):
   - the name of the datasink can be passed to `._predict` endpoint with the parameter `datasink`
   - the name the default data sink can be defined in model settings (`default_datasink`)
-  
+
+[float]
 === Model description
 
 The `.` character is now allowed in feature fields and measurements (https://github.com/regel/loudml/issues/40[issue #40]).
@@ -60,20 +61,20 @@ Example of feature:
 }
 ```
 
+[float]
 === InfluxDB
 
 * Retention policy can now be configured in InfluxDB datasource settings.
 * Add `create_database` to InfluxDB datasource settings for enabling/disabling database creation (default = `true`).
 
+[float]
 === Miscellaneous
 
 Multiprocessing optimizations.
 
+[float]
 === Fixes
 
 Loud ML now serializes `null` instead of `nan` in the `mse` field of the prediction result (https://github.com/regel/loudml/issues/52[issue #52]).
 
 Avoid crash when attemting to activate a model that is in the middle of training (https://github.com/regel/loudml/issues/53[issue #53]).
-
-
-
