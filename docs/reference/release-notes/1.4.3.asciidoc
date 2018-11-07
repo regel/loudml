@@ -12,13 +12,13 @@ Please raise issues on https://github.com/regel/loudml/issues[Github] if you exp
 
 === Data sink
 
-Time series prediction can now be saved into a specific data sink:
+Time series prediction can now be saved into a specific data sink (https://github.com/regel/loudml/issues/58[issue #58]):
   - the name of the datasink can be passed to `._predict` endpoint with the parameter `datasink`
   - the name the default data sink can be defined in model settings (`default_datasink`)
   
 === Model description
 
-The `.` character is now allowed in feature fields and measurements.
+The `.` character is now allowed in feature fields and measurements (https://github.com/regel/loudml/issues/40[issue #40]).
 
 Two formats are supported to define model features. The first (now deprecated, but still supported):
 
@@ -69,7 +69,11 @@ Example of feature:
 
 Multiprocessing optimizations.
 
-Fix: Loud ML now serializes `null` instead of `nan` in the `mse` field of the prediction result.
+=== Fixes
+
+Loud ML now serializes `null` instead of `nan` in the `mse` field of the prediction result (https://github.com/regel/loudml/issues/52[issue #52]).
+
+Avoid crash when attemting to activate a model that is in the middle of training (https://github.com/regel/loudml/issues/53[issue #53]).
 
 
 
