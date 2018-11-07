@@ -23,7 +23,8 @@ The `.` character is now allowed in feature fields and measurements (https://git
 
 Two formats are supported to define model features. The first (now deprecated, but still supported):
 
-```
+[source,json]
+----
 "features": {
     "io": [
        {... feature ...},
@@ -33,17 +34,18 @@ Two formats are supported to define model features. The first (now deprecated, b
     "i": [...],
     "o": [...]
 }
-```
+----
 
 and the second, new, format:
 
-```
+[source,json]
+----
 "features": [
    {... feature ...},
    {... feature ...},
    ...
 ]
-```
+----
 
 In this new format, the input/output information is given by the parameter `io` inside the feature.
 
@@ -53,13 +55,14 @@ In this new format, the input/output information is given by the parameter `io` 
 
 Example of feature:
 
-```
+[source,json]
+----
 {
     "name": "myfeature",
     "io": "i"
     ...
 }
-```
+----
 
 [float]
 === InfluxDB
