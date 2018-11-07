@@ -14,7 +14,7 @@ Please raise issues on https://github.com/regel/loudml/issues[Github] if you exp
 
 ==== Packaging
 
-Added packaging for Ubuntu 18.04
+Added packaging for Ubuntu 18.04.
 
 ==== Data sink
 
@@ -24,9 +24,9 @@ Time series prediction can now be saved into a specific datasink:
   
 ==== Model description
 
-`.` character is now allowed in feature fields and measurements.
+The `.` character is now allowed in feature fields and measurements.
 
-Two formats are supported to define model features:
+Two formats are supported to define model features. The first (now deprecated, but still supported):
 
 ```
 "features": {
@@ -40,7 +40,7 @@ Two formats are supported to define model features:
 }
 ```
 
-and 
+and the second, new, format:
 
 ```
 "features": [
@@ -50,7 +50,7 @@ and
 ]
 ```
 
-The first one is now deprecated (but still supported). Instead, the input/output information is given by the parameter `io` inside the feature.
+In this new format, the input/output information is given by the parameter `io` inside the feature.
 
 - `i` = input
 - `o` = output
@@ -68,17 +68,17 @@ Example of feature:
 
 ==== InfluxDB
 
-* retention policy can now be configured in InfluxDB datasource settings
-* add `create_database` to InfluxDB datasource settings for enabling/disabling database creation (default = `true`)
+* Retention policy can now be configured in InfluxDB datasource settings.
+* Add `create_database` to InfluxDB datasource settings for enabling/disabling database creation (default = `true`).
 
 ==== Miscellaneous
 
 Multiprocessing optimizations.
 
-Fix: serialize `null` instead of `nan` in `mse` field of prediction result
+Fix: serialize `null` instead of `nan` in `mse` field of prediction result.
 
 
 === Enteprise edition
 
-* Added MongoDB connector
-* Added Warp10 connector
+* Added MongoDB connector.
+* Added Warp10 connector.
