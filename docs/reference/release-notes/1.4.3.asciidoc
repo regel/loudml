@@ -76,8 +76,8 @@ Example of feature:
 Multiprocessing optimizations.
 
 [float]
-=== Fixes
+=== Bug fixes
 
-Loud ML now serializes `null` instead of `nan` in the `mse` field of the prediction result (https://github.com/regel/loudml/issues/52[issue #52]).
+Loud ML now serializes `null` instead of `nan` in the `mse` field of the prediction result. (https://github.com/regel/loudml/issues/52[issue #52]).
 
-Avoid crash when attemting to activate a model that is in the middle of training (https://github.com/regel/loudml/issues/53[issue #53]).
+Loud ML now avoids crashes when attempting to activate a model that is in the middle of training. (https://github.com/regel/loudml/issues/53[issue #53]).
