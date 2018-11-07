@@ -8,21 +8,15 @@ The changes listed below have been released for the first time in Loud ML 1.4.3.
 Please raise issues on https://github.com/regel/loudml/issues[Github] if you experience compatibility issues on your system.
 ==================================================
 
-[[community-1.4.2]]
-[float]
-=== Community
+[[community-1.4.3]]
 
-==== Packaging
-
-Added packaging for Ubuntu 18.04.
-
-==== Data sink
+=== Data sink
 
 Time series prediction can now be saved into a specific data sink:
   - the name of the datasink can be passed to `._predict` endpoint with the parameter `datasink`
   - the name the default data sink can be defined in model settings (`default_datasink`)
   
-==== Model description
+=== Model description
 
 The `.` character is now allowed in feature fields and measurements.
 
@@ -66,19 +60,16 @@ Example of feature:
 }
 ```
 
-==== InfluxDB
+=== InfluxDB
 
 * Retention policy can now be configured in InfluxDB datasource settings.
 * Add `create_database` to InfluxDB datasource settings for enabling/disabling database creation (default = `true`).
 
-==== Miscellaneous
+=== Miscellaneous
 
 Multiprocessing optimizations.
 
 Fix: Loud ML now serializes `null` instead of `nan` in the `mse` field of the prediction result.
 
 
-=== Enteprise edition
 
-* Added MongoDB connector.
-* Added Warp10 connector.
