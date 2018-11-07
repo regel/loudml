@@ -13,9 +13,9 @@ A `measurement` defines an object type in the data source:
 Accepted parameters to define model features are:
 
 [horizontal]
-`name`:: Name given to this feature
-`field`:: TSDB column name
-`measurement`:: TSDB table to fetch data
+`name`:: Name given to this feature (must match `^[a-zA-Z0-9-_@]+$`)
+`field`:: TSDB column name (must match `^[a-zA-Z0-9-_@.]+$`)
+`measurement`:: TSDB table to fetch data (must match `^[a-zA-Z0-9-_@.]+$`)
 `match_all`:: list of TSDB tag names and values that must be matched when fetching the data
 `metric`:: An aggregation operator supported by the TSDB
 `default`:: A default float value to replace NaN values returned by the TSDB, or `previous` in order to fill the series with previous non-NaN value
