@@ -9,7 +9,7 @@ Please raise issues on https://github.com/regel/loudml/issues[Github] if you exp
 ==================================================
 
 [[community-1.4.3]]
-
+[[float]]
 === Data sink
 
 Time series prediction can now be saved into a specific data sink (https://github.com/regel/loudml/issues/58[issue #58]):
