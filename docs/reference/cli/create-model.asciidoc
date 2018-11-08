@@ -42,6 +42,7 @@ The supported settings are:
 [horizontal]
 `bucket_interval`::       (duration) The bucket aggregation interval
 `default_datasource`::       (string) The implicit data source to query and insert data
+`default_datasink`::       (string) The implicit data sink for prediction saving
 `features`::       (array) An array of features, or dictionary of features, derived from the aggregated input data
 `interval`::       (duration) The periodic anomaly detection interval
 `max_evals`::      (integer) The integer number of iterations to produce a model with optimal accuracy

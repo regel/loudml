@@ -107,6 +107,7 @@ The supported options are:
 [horizontal]
 `save_prediction`:: Write all predicted values to the default data source for this model
 `detect_anomalies`:: Flag that enables anomaly detection
+`data_datasink`:: Name of the data sink for prediction insertion (overrides the default one)
 
 This task can be stopped using `_stop`:
 
