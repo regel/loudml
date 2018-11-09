@@ -32,69 +32,70 @@ class TestFingerprints(unittest.TestCase):
             timestamp_field="@timestamp",
             bucket_interval="6h",
             offset="30s",
-            aggregations=
-              [dict(
-                measurement="xdr",
-                features=[
-                  dict(
-                    field="duration",
+            features=[
+                dict(
                     name="count-all",
-                    metric="count"
-                  ),
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="count",
+                ),
+                dict(
                     name="mean-all-duration",
-                    metric="avg"
-                  ),
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="avg",
+                ),
+                dict(
                     name="std-all-duration",
-                    metric="stddev"
-                  )
-                ]
-              ),
-              dict(
-                measurement="xdr",
-                match_all=[dict(tag="international", value=True)],
-                features=[
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="stddev",
+                ),
+
+                dict(
                     name="count-international",
-                    metric="count"
-                  ),
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="count",
+                    match_all=[dict(tag="international", value=True)],
+                ),
+                dict(
                     name="mean-international-duration",
-                    metric="avg"
-                  ),
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="avg",
+                    match_all=[dict(tag="international", value=True)],
+                ),
+                dict(
                     name="std-international-duration",
-                    metric="stddev"
-                  )
-                ]
-              ),
-              dict(
-                measurement="xdr",
-                match_all=[dict(tag="toll_call", value=True)],
-                features=[
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="stddev",
+                    match_all=[dict(tag="international", value=True)],
+                ),
+
+                dict(
                     name="count-premium",
-                    metric="count"
-                  ),
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="count",
+                    match_all=[dict(tag="toll_call", value=True)],
+                ),
+                dict(
                     name="mean-premium-duration",
-                    metric="avg"
-                  ),
-                  dict(
+                    measurement="xdr",
                     field="duration",
+                    metric="avg",
+                    match_all=[dict(tag="toll_call", value=True)],
+                ),
+                dict(
                     name="std-premium-duration",
-                    metric="stddev"
-                  )
-                ]
-              )],
+                    measurement="xdr",
+                    field="duration",
+                    metric="stddev",
+                    match_all=[dict(tag="toll_call", value=True)],
+                ),
+            ],
         ))
 
         self.callers = [
@@ -249,32 +250,32 @@ class TestFingerprints(unittest.TestCase):
             timestamp_field="@timestamp",
             bucket_interval="24h",
             offset="30s",
-            aggregations=
-              [dict(
-                measurement="xdr",
-                features=[
-                  dict(
+            features=[
+                dict(
+                    measurement="xdr",
                     field="duration",
                     name="count-all",
-                    metric="count"
-                  ),
-                  dict(
+                    metric="count",
+                ),
+                dict(
+                    measurement="xdr",
                     field="duration",
                     name="sum-all",
                     metric="sum"
-                  ),
-                  dict(
+                ),
+                dict(
+                    measurement="xdr",
                     field="duration",
                     name="min-all-duration",
                     metric="min"
-                  ),
-                  dict(
+                ),
+                dict(
+                    measurement="xdr",
                     field="duration",
                     name="max-all-duration",
                     metric="max"
-                  )
-                ]
-              )],
+                )
+            ],
         ))
 
         model.train(self.source, self.from_ts, self.to_ts)

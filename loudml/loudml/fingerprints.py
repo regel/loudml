@@ -58,38 +58,19 @@ from .model import (
 
 class Aggregation:
     """
-    Document aggregation that outputs features
+    Aggregation of features matching the same criteria
     """
-
-    SCHEMA = Schema({
-        Required('measurement'): schemas.key,
-        Required('features'): All([Feature.SCHEMA], Length(min=1)),
-        'match_all': Any(None, Schema([
-            {Required(schemas.key): Any(
-                bool,
-                int,
-                float,
-                All(str, Length(max=256)),
-            )},
-        ])),
-    })
 
     def __init__(
         self,
+        agg_id,
         measurement=None,
-        features=None,
         match_all=None,
     ):
-        self.validate(locals())
-
+        self.agg_id = agg_id
         self.measurement = measurement
-        self.features = [Feature(**feature) for feature in features]
         self.match_all = match_all
-
-    @classmethod
-    def validate(cls, args):
-        del args['self']
-        schemas.validate(cls.SCHEMA, args)
+        self.features = []
 
 
 class FingerprintsPrediction:
@@ -162,7 +143,6 @@ class FingerprintsModel(Model):
             min=0,
             min_included=False,
         ),
-        Required('aggregations'): All([Aggregation.SCHEMA], Length(min=1)),
         'offset': schemas.TimeDelta(min=0),
         'timestamp_field': schemas.key,
     })
@@ -182,10 +162,9 @@ class FingerprintsModel(Model):
         self.offset = parse_timedelta(settings.get('offset', 0)).total_seconds()
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
 
-        self.aggs = [Aggregation(**agg) for agg in settings['aggregations']]
-        self.features=[]
-        for agg in self.aggs:
-            self.features.extend(agg.features)
+        self._aggs = {}
+        self.aggs = None
+        self._register_aggregations()
 
         if state is not None:
             self._state = state
@@ -193,6 +172,22 @@ class FingerprintsModel(Model):
             self._stds = np.array(state['stds'])
 
         self._som_model = None
+
+    def _register_aggregations(self):
+        for feature in self.features:
+             agg = self._aggs.get(feature.agg_id)
+             if agg is None:
+                 agg = self._aggs[feature.agg_id] = Aggregation(
+                     feature.agg_id,
+                     feature.measurement or feature.collection,
+                     feature.match_all,
+                 )
+             agg.features.append(feature)
+
+        self.aggs = [
+            self._aggs[agg_id]
+            for agg_id in sorted(self._aggs.keys())
+        ]
 
     @property
     def type(self):
