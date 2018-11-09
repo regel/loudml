@@ -484,10 +484,10 @@ class InfluxDataSource(DataSource):
         where = " where {}".format(" and ".join(must)) if len(must) else ""
 
         yield "select {} from {}\"{}\"{} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
-            self._from_prefix,
             ','.join(list(set([_build_agg(feature) for feature in agg.features] + \
                               [_build_count_agg2(feature) for feature in agg.features] + \
                               [_build_sum_agg2(feature) for feature in agg.features]))),
+            self._from_prefix,
             escape_doublequotes(agg.measurement),
             where,
             model.key,
