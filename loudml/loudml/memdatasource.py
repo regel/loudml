@@ -124,7 +124,7 @@ class MemDataSource(DataSource):
         pass
 
     @staticmethod
-    def _compute_bucket_avg(bucket, field, default=None):
+    def _compute_bucket_avg(bucket, field):
         """
         Compute metric average
         """
@@ -134,7 +134,7 @@ class MemDataSource(DataSource):
             values = [entry.data[field] for entry in bucket.data if field in entry.data]
             avg = sum(values) / nb
         else:
-            avg = default
+            avg = None
 
         return avg
 
@@ -191,14 +191,6 @@ class MemDataSource(DataSource):
             logging.error("unknown metric: %s", metric)
             raise errors.UnsupportedMetric(metric)
 
-        if agg_val is None:
-            if feature.default is np.nan:
-                logging.info(
-                    "missing data: field '%s', metric '%s', bucket '%s'",
-                    field, metric, bucket.format_key(),
-                )
-            agg_val = feature.default
-
         return agg_val
 
     def get_quadrant_data(
@@ -231,7 +223,14 @@ class MemDataSource(DataSource):
             timeval = ts_to_str(timestamp)
 
             for i, feature in enumerate(features):
-                X[i] = self._compute_agg_val(bucket, feature)
+                agg_val = self._compute_agg_val(bucket, feature)
+                if agg_val is None:
+                    logging.info(
+                        "missing data: field '%s', metric '%s', bucket: %s",
+                        feature.field, feature.metric, timeval,
+                    )
+                else:
+                    X[i] = agg_val
 
             if t0 is None:
                 t0 = timestamp
