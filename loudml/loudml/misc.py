@@ -54,27 +54,39 @@ def parse_timedelta(
     """
 
     if isinstance(delta, str) and len(delta) > 0:
-        unit = {
-            's': 'seconds',
-            'm': 'minutes',
-            'h': 'hours',
-            'd': 'days',
-            'w': 'weeks',
-        }.get(delta[-1])
+        unit = delta[-1]
 
-        if unit is None:
+        if unit in '0123456789':
+            unit = 's'
             value = delta
-            unit = 'seconds'
         else:
             value = delta[:-1]
     else:
-        unit = 'seconds'
+        unit = 's'
         value = delta
 
     try:
         value = float(value)
     except ValueError:
-        raise errors.Invalid("invalid time delta")
+        raise errors.Invalid("invalid time delta value")
+
+    if unit == 'M':
+        value *= 30
+        unit = 'd'
+    elif unit == 'y':
+        value *= 365
+        unit = 'd'
+
+    unit = {
+        's': 'seconds',
+        'm': 'minutes',
+        'h': 'hours',
+        'd': 'days',
+        'w': 'weeks',
+    }.get(unit)
+
+    if unit is None:
+        raise errors.Invalid("invalid time delta unit")
 
     message = "time delta must be {} {} seconds"
 

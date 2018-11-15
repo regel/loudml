@@ -32,6 +32,8 @@ class TestMisc(unittest.TestCase):
         self.assertEqual(to_sec("42d"), 42 * 60 * 60 * 24)
         self.assertEqual(to_sec("42w"), 42 * 60 * 60 * 24 * 7)
         self.assertEqual(to_sec("-42s"), -42)
+        self.assertEqual(to_sec("2M"), 60 * 24 * 3600)
+        self.assertEqual(to_sec("2y"), 365 * 2 * 24 * 3600)
 
         def invalid(value, **kwargs):
             with self.assertRaises(errors.Invalid):
