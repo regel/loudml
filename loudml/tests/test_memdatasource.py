@@ -11,6 +11,9 @@ from loudml.memdatasource import MemDataSource
 logging.getLogger('tensorflow').disabled = True
 
 from loudml.timeseries import TimeSeriesModel
+from loudml.misc import (
+    nan_to_none,
+)
 
 FEATURES = [
     {
@@ -64,7 +67,9 @@ class TestMemDataSource(unittest.TestCase):
     def test_get_times_data(self):
         res = self.source.get_times_data(self.model, from_date=1, to_date=9)
 
-        self.assertEqual(
-            [line[1] for line in res],
-            [[2.5], [0], [4.0]],
-        )
+        foo_avg = []
+        for line in res:
+            foo_avg.append(nan_to_none(line[1][0]))
+
+        self.assertEqual(foo_avg, [2.5, None, 4.0])
+
