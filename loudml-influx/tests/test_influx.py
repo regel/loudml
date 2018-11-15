@@ -1,5 +1,6 @@
 import loudml.vendor
 
+import copy
 import datetime
 from datetime import timezone
 import logging
@@ -24,6 +25,7 @@ from loudml.misc import (
     escape_quotes,
     escape_doublequotes,
     nan_to_none,
+    make_ts,
 )
 
 from loudml.influx import (
@@ -31,6 +33,7 @@ from loudml.influx import (
     _build_tags_predicates,
     InfluxDataSource,
 )
+from loudml.memdatasource import MemDataSource
 
 from loudml.timeseries import TimeSeriesModel
 from loudml.randevents import SinEventGenerator
@@ -282,6 +285,39 @@ class TestInfluxQuick(unittest.TestCase):
 
         self.assertEqual(foo_avg, [2.5, None, 4.0])
         self.assertEqual(bar_count, [2.0, 0, 1.0])
+
+    def test_get_times_data2(self):
+        res = self.source.get_times_data(
+            self.model,
+            from_date=self.t0,
+            to_date=self.t0 + 8,
+        )
+
+        # _source to write aggregate data to RAM 
+        _source = MemDataSource()
+        _features = copy.deepcopy(self.model.features)
+        for _, feature in enumerate(self.model.features):
+            feature.metric = 'avg'
+
+        i = None
+        for i, (_, val, timeval) in enumerate(res):
+            bucket = {
+                feature.field: val[i]
+                for i, feature in enumerate(self.model.features)
+            }
+            bucket.update({self.model.timestamp_field: make_ts(timeval)})
+            _source.insert_times_data(bucket)
+
+        res2 = _source.get_times_data(
+            self.model,
+            from_date=self.t0,
+            to_date=self.t0 + 8,
+        )
+        self.model.features = _features
+
+        for i, (_, val2, timeval2) in enumerate(res2):
+            (_, val, timeval) = res[i]
+            np.testing.assert_allclose(val, val2)
 
     def test_match_all(self):
         model = TimeSeriesModel(dict(
