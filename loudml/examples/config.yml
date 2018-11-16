@@ -6,12 +6,14 @@ datasources: []
 #   database: mydatabase
 #   create_database: true
 #   retention_policy: autogen
+#   max_series_per_request: 2000
 
 # - name: elastic
 #   type: elasticsearch
 #   addr: localhost:9200
 #   index: myindex
 #   doc_type: doc
+#   max_series_per_request: 2000
 
 storage:
   path: /var/lib/loudml

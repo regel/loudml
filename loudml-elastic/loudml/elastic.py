@@ -440,37 +440,6 @@ class ElasticsearchDataSource(DataSource):
 
         return int(es_res['aggregations']['count']['value'])
 
-    def _compute_quad_partition_size(
-        self,
-        model,
-        from_ms,
-        to_ms,
-    ):
-        cardinality = self.get_field_cardinality(model, from_ms, to_ms)
-        nb_time_buckets = math.ceil((to_ms - from_ms) / (6 * 3600 * 100))
-
-        quad = {
-            "key_as_string": "2016-12-31T18:00:00.000Z",
-            "key": 1483207200000,
-            "doc_count": 0,
-            "extended_stats": {
-                "count": 0,
-                "min": 0,
-                "max": 0,
-                "avg": 0.0,
-                "sum": 0.0,
-                "sum_of_squares": 0.0,
-                "variance": 0.0,
-                "std_deviation": 0.0,
-                "std_deviation_bounds": {
-                    "upper": 0.0,
-                    "lower": 0.0,
-                }
-            }
-        }
-
-        return cardinality * deepsizeof(quad) * nb_time_buckets * model.nb_features
-
     @staticmethod
     def build_quadrant_aggs(model, agg):
         res = {}
@@ -561,8 +530,8 @@ class ElasticsearchDataSource(DataSource):
         from_ms, to_ms = _date_range_to_ms(from_date, to_date)
 
         if key is None:
-            size = self._compute_quad_partition_size(model, from_ms, to_ms)
-            num_partition = max(math.ceil(size / PARTITION_MAX_SIZE), 1)
+            num_series = self.get_field_cardinality(model, from_ms, to_ms)
+            num_partition = math.ceil(num_series / self.max_series_per_request)
         else:
             num_partition = 1
 

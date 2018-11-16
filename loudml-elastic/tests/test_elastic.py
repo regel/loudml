@@ -366,4 +366,3 @@ class TestElasticFingerprints(loudml.test.TestFingerprints):
 
     def __del__(self):
         self.source.drop()
-"""

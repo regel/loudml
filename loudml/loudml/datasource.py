@@ -13,6 +13,8 @@ from voluptuous import (
     All,
     Any,
     Length,
+    Optional,
+    Range,
     Required,
     Schema,
 )
@@ -31,6 +33,10 @@ class DataSource(metaclass=ABCMeta):
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
+        Optional('max_series_per_request', default=2000): All(
+            int,
+            Range(min=1),
+        ),
     }, extra=ALLOW_EXTRA)
 
     def __init__(self, cfg):
@@ -53,6 +59,10 @@ class DataSource(metaclass=ABCMeta):
     @property
     def name(self):
         return self._cfg.get('name')
+
+    @property
+    def max_series_per_request(self):
+        return self._cfg['max_series_per_request']
 
     def init(self, *args, **kwargs):
         pass

@@ -37,8 +37,6 @@ from loudml.misc import (
 )
 from loudml.datasource import DataSource
 
-
-g_max_series_in_partition = 2000
 g_aggregators = {}
 
 # Fingerprints code assumes that we return something equivalent to Elasticsearch
@@ -604,7 +602,8 @@ class InfluxDataSource(DataSource):
         to_date=None,
         key=None,
     ):
-        global g_max_series_in_partition
+        max_series_per_req = self.max_series_per_request
+
 #        result = self.influxdb.query("SHOW SERIES CARDINALITY")
         result = self.influxdb.query("SHOW TAG VALUES CARDINALITY WITH KEY = \"{}\"".format(model.key))
         for (_, tags), points in result.items():
@@ -613,14 +612,17 @@ class InfluxDataSource(DataSource):
 
         output = itertools.chain()
         gens = []
-        for offset in range(int(total_series / g_max_series_in_partition) + 1):
-            gens.append(self._get_quadrant_data(model=model,
-                                    agg=agg,
-                                    from_date=from_date,
-                                    to_date=to_date,
-                                    key=key,
-                                    limit=g_max_series_in_partition,
-                                    offset=offset*g_max_series_in_partition))
+        for offset in range(int(total_series / max_series_per_req) + 1):
+            gens.append(self._get_quadrant_data(
+                model=model,
+                agg=agg,
+                from_date=from_date,
+                to_date=to_date,
+                key=key,
+                limit=max_series_per_req,
+                offset=offset * max_series_per_req,
+            ))
+
         for gen in gens:
             output = itertools.chain(output, gen)
         return output
