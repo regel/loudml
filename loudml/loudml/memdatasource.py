@@ -124,6 +124,36 @@ class MemDataSource(DataSource):
         pass
 
     @staticmethod
+    def _compute_bucket_min(bucket, field):
+        """
+        Compute metric minimum
+        """
+
+        nb = len(bucket.data)
+        if nb:
+            values = [entry.data[field] for entry in bucket.data if field in entry.data]
+            _min = min(values)
+        else:
+            _min = None
+
+        return _min
+
+    @staticmethod
+    def _compute_bucket_max(bucket, field):
+        """
+        Compute metric maximum
+        """
+
+        nb = len(bucket.data)
+        if nb:
+            values = [entry.data[field] for entry in bucket.data if field in entry.data]
+            _max = max(values)
+        else:
+            _max = None
+
+        return _max
+
+    @staticmethod
     def _compute_bucket_avg(bucket, field):
         """
         Compute metric average
@@ -187,6 +217,10 @@ class MemDataSource(DataSource):
             agg_val = cls._compute_bucket_avg(bucket, field)
         elif metric == 'count':
             agg_val = cls._compute_bucket_count(bucket, field)
+        elif metric == 'min':
+            agg_val = cls._compute_bucket_min(bucket, field)
+        elif metric == 'max':
+            agg_val = cls._compute_bucket_max(bucket, field)
         else:
             logging.error("unknown metric: %s", metric)
             raise errors.UnsupportedMetric(metric)
