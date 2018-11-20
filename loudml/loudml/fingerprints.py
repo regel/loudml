@@ -2,6 +2,8 @@
 Loud ML fingerprints module
 """
 
+import loudml.vendor
+
 import operator
 import datetime
 import copy
