@@ -300,6 +300,7 @@ class FingerprintsModel(Model):
         dataset,
         num_epochs=100,
         limit=-1,
+        progress_cb=None,
     ):
         # Apply data standardization to each feature individually
         # https://en.wikipedia.org/wiki/Feature_scaling
@@ -314,7 +315,7 @@ class FingerprintsModel(Model):
         self._som_model = som.SOM(self.w, self.h, data_dimens, num_epochs)
 
         # Start Training
-        self._som_model.train(zY, truncate=limit)
+        self._som_model.train(zY, truncate=limit, progress_cb=progress_cb)
 
         # Map vectors to their closest neurons
         return self._som_model.map_vects(zY)
@@ -446,6 +447,7 @@ class FingerprintsModel(Model):
         to_date="now",
         num_epochs=100,
         limit=-1,
+        progress_cb=None,
         license=None,
     ):
         self._som_model = None
@@ -492,6 +494,7 @@ class FingerprintsModel(Model):
             dataset,
             num_epochs,
             limit,
+            progress_cb,
         )
 
         model_ckpt, model_index, model_meta = som.serialize_model(self._som_model)

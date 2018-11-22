@@ -179,7 +179,13 @@ class SOM(object):
             for j in range(n):
                 yield np.array([i, j])
 
-    def train(self, vects, verbose=1, truncate=-1):
+    def train(
+        self,
+        vects,
+        verbose=1,
+        truncate=-1,
+        progress_cb=None,
+    ):
         """
         Trains the SOM.
         'input_vects' should be an iterable of 1-D NumPy arrays with
@@ -195,6 +201,9 @@ class SOM(object):
 
         #Training iterations
         for iter_no in range(self._n_iterations):
+            if progress_cb:
+                progress_cb(iter_no, self._n_iterations)
+
             if verbose>0 and (iter_no % 10 == 0):
                 print("Training Iteration: ", iter_no)
             #Train with each vector one by one
