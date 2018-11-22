@@ -3,6 +3,7 @@ import loudml.vendor
 import argparse
 import logging
 import random
+import re
 import time
 
 from . import (
@@ -121,10 +122,22 @@ def init_datasource(arg, tags=None):
 
 
 def dump_to_datasource(generator, datasource, tags=None, **kwargs):
+    dyn_tags = {}
+
+    if tags:
+        pattern = re.compile("^num\([0-9]+\)$")
+        for k, v in tags.items():
+            if pattern.match(v):
+                dyn_tags[k] = int(v[4:-1])
+
     for ts, data in generator:
         now = time.time()
         if ts > now:
             time.sleep(ts - now)
+
+        if tags:
+            for k, v in dyn_tags.items():
+                tags[k] = random.randint(0, v)
 
         datasource.insert_times_data(
             ts=ts,
