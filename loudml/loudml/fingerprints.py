@@ -446,10 +446,13 @@ class FingerprintsModel(Model):
         to_date="now",
         num_epochs=100,
         limit=-1,
+        license=None,
     ):
         self._som_model = None
         self._means = None
         self._stds = None
+
+        self.check_allowed_date_range(from_date, to_date, license)
 
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
@@ -554,7 +557,10 @@ class FingerprintsModel(Model):
         from_date,
         to_date,
         key_val=None,
+        license=None,
     ):
+        self.check_allowed_date_range(from_date, to_date, license)
+
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
 
