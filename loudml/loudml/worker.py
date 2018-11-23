@@ -180,7 +180,10 @@ class Worker:
 
         elif model.type == 'fingerprints':
             logging.info("job[%s]: calculated fingerprints for model '%s'",
-                         self.job_id, self.model.name)
+                         self.job_id, model_name)
+
+            prediction = model.predict(source, **kwargs)
+
             if detect_anomalies:
                 hooks = self.storage.load_model_hooks(model_name, source)
                 model.detect_anomalies(prediction, hooks)
@@ -197,6 +200,8 @@ class Worker:
                     )
 
                 self.storage.save_model(model)
+
+            return prediction.format()
         else:
             logging.info("job[%s] prediction done", self.job_id)
 
