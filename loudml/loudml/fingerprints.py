@@ -898,4 +898,3 @@ class FingerprintsModel(Model):
             fp_pred['stats'] = stats
 
         prediction.anomalies = self._state['anomaly']
-

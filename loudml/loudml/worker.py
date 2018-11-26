@@ -187,18 +187,7 @@ class Worker:
             if detect_anomalies:
                 hooks = self.storage.load_model_hooks(model_name, source)
                 model.detect_anomalies(prediction, hooks)
-
-                for fp in prediction.fingerprints:
-                    key = fp['key']
-                    stats = fp['stats']
-                    max_score = stats['score']
-                    source.insert_times_data(
-                        ts=prediction.to_ts,
-                        data={ 'score': max_score },
-                        tags={ model.key: key },
-                        measurement='scores_{}'.format(model.name),
-                    )
-
+                source.save_fp_anomalies_info(model, prediction)
                 self.storage.save_model(model)
 
             return prediction.format()

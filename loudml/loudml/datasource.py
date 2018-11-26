@@ -177,6 +177,16 @@ class DataSource(metaclass=ABCMeta):
         """
         return None
 
+    def get_top_abnormal_keys(
+        self,
+        model,
+        from_date,
+        to_date,
+        size=10,
+    ):
+        raise NotImplemented()
+
+
 def load_datasource(settings):
     """
     Load datasource

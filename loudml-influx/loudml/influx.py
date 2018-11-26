@@ -1,6 +1,7 @@
 """
 InfluxDB module for Loud ML
 """
+
 import logging
 import json
 import os
@@ -201,7 +202,12 @@ def _sum_of_squares(feature):
                feature.field,
            )
 
-def _build_time_predicates(from_date=None, to_date=None):
+def _build_time_predicates(
+    from_date=None,
+    to_date=None,
+    from_included=True,
+    to_included=False,
+):
     """
     Build time range predicates for 'where' clause
     """
@@ -209,9 +215,15 @@ def _build_time_predicates(from_date=None, to_date=None):
     must = []
 
     if from_date:
-        must.append("time >= {}".format(make_ts_ns(from_date)))
+        must.append("time {} {}".format(
+            ">=" if from_included else ">",
+            make_ts_ns(from_date),
+        ))
     if to_date:
-        must.append("time < {}".format(make_ts_ns(to_date)))
+        must.append("time {} {}".format(
+            "<=" if to_included else "<",
+            make_ts_ns(to_date),
+        ))
 
     return must
 
@@ -627,7 +639,6 @@ class InfluxDataSource(DataSource):
             output = itertools.chain(output, gen)
         return output
 
-
     @catch_query_error
     def get_times_data(
         self,
@@ -762,3 +773,71 @@ class InfluxDataSource(DataSource):
         points[0]['fields']['deleted'] = False
         self.annotationdb.write_points(points)
         return points
+
+    def save_fp_anomalies_info(self, model, prediction):
+        """
+        Save informations of fingerprints anomalies into the data source
+        """
+
+        for fp in prediction.fingerprints:
+            key = fp['key']
+            stats = fp['stats']
+            max_score = stats['score']
+
+            self.insert_times_data(
+                ts=prediction.to_ts,
+                data={
+                    'score': max_score,
+                    'sub_anomalies': len(stats['anomalies']),
+                },
+                tags={model.key: key},
+                measurement='anomalies_{}'.format(model.name),
+            )
+
+        self.commit()
+
+    @catch_query_error
+    def get_top_abnormal_keys(
+        self,
+        model,
+        from_date,
+        to_date,
+        size=10,
+    ):
+        time_pred = _build_time_predicates(
+            from_date,
+            to_date,
+            from_included=False,
+            to_included=True,
+        )
+
+        # XXX: 'order by "score"' is not supported by InfluxDB
+
+        query = 'select "sub_anomalies" as "anomalies" ' \
+                'from {}"anomalies_{}" ' \
+                'where {} group by "{}"'.format(
+            self._from_prefix,
+            escape_doublequotes(model.name),
+            " and ".join(time_pred),
+            escape_doublequotes(model.key),
+        )
+        result = self.influxdb.query(query)
+
+        out = []
+        for k, v in result.items():
+            key = k[1]
+
+            total_anomalies = 0
+            anomalies = []
+            for ano in v:
+                total_anomalies += ano['anomalies']
+                anomalies.append(ano)
+
+            item = key
+            item['total_anomalies'] = total_anomalies
+            item['anomalies'] = anomalies
+
+            out.append(item)
+
+        out.sort(key=lambda x: x['total_anomalies'], reverse=True)
+        return out[0:size]

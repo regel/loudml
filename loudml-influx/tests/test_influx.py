@@ -335,6 +335,7 @@ class TestInfluxQuick(unittest.TestCase):
             atol=0,
         )
 
+
 class TestInfluxLong(unittest.TestCase):
     def setUp(self):
 
