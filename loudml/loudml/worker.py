@@ -185,7 +185,7 @@ class Worker:
             prediction = model.predict(source, **kwargs)
 
             if detect_anomalies:
-                hooks = self.storage.load_model_hooks(model_name, source)
+                hooks = self.storage.load_model_hooks(model.settings, source)
                 model.detect_anomalies(prediction, hooks)
                 source.save_fp_anomalies_info(model, prediction)
                 self.storage.save_model(model)
