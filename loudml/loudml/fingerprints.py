@@ -567,6 +567,9 @@ class FingerprintsModel(Model):
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
 
+        if from_ts >= to_ts:
+            raise errors.Invalid("invalid date range")
+
         # Fixup range to be sure that it is a multiple of interval
         from_ts = math.floor(from_ts / self.interval) * self.interval
         to_ts = math.ceil(to_ts / self.interval) * self.interval
