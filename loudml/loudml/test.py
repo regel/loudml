@@ -32,6 +32,8 @@ class TestFingerprints(unittest.TestCase):
             timestamp_field="@timestamp",
             bucket_interval="6h",
             offset="30s",
+            min_threshold=70,
+            max_threshold=80,
             features=[
                 dict(
                     name="count-all",
@@ -117,13 +119,67 @@ class TestFingerprints(unittest.TestCase):
 0.0, 0.0, 0.0, 1.0, 800.0, 0.0, 1.0, 20.0, 0.0, 1.0, 20.0, 0.0, 1.0, 20.0, 0.0]
 
 
-        def add(j, v):
-            d, i, p = v
-            tags=dict()
-            tags['caller']=caller
+        # Profile 0: very busy, short calls, low variation
+        self._insert_data(
+            self.callers[0],
+            [
+                (30, False, False),
+                (60, False, False),
+                (90, False, False),
+                (40, False, False),
+                (120, False, False),
+                (60, True, False),
+                (30, False, False),
+                (150, False, True),
+                (60, False, False),
+                (80, False, False),
+            ],
+            self.from_ts,
+            self.to_ts,
+        )
+
+        # Profile 1: less busy, high variation
+        self._insert_data(
+            self.callers[1],
+            [
+                (5, False, False),
+                (1200, False, False),
+                (800, False, False),
+                (20, False, False),
+                (500, False, False),
+                (760, True, False),
+                (60, False, False),
+            ],
+            self.from_ts,
+            self.to_ts,
+        )
+
+        # Profile 2: lazy, low variation, international
+        self._insert_data(
+            self.callers[2],
+            [
+                (5, True, False),
+                (1200, True, False),
+                (800, True, False),
+                (20, True, True),
+            ],
+            self.from_ts,
+            self.to_ts,
+        )
+
+        # Insert data
+        self.source.commit()
+
+        # Let datasource indexes the data before querying it
+        time.sleep(10)
+
+    def _insert_data(self, caller, data, from_ts, to_ts):
+        step = int((to_ts - from_ts) / len(data))
+        for j, (d, i, p) in enumerate(data):
+            tags = {'caller': caller}
 
             self.source.insert_times_data(
-                ts=self.from_ts + j * step,
+                ts=from_ts + j * step,
                 data={
                     'duration': d,
                     'international': i,
@@ -133,57 +189,6 @@ class TestFingerprints(unittest.TestCase):
                 tags=tags,
                 timestamp_field=self.model.timestamp_field,
             )
-
-        # Profile 0: very busy, short calls, low variation
-        caller = self.callers[0]
-        data = [
-            (30, False, False),
-            (60, False, False),
-            (90, False, False),
-            (40, False, False),
-            (120, False, False),
-            (60, True, False),
-            (30, False, False),
-            (150, False, True),
-            (60, False, False),
-            (80, False, False),
-        ]
-        step = int((self.to_ts - self.from_ts) / len(data))
-        for i, v in enumerate(data):
-            add(i, v)
-
-        # Profile 1: less busy, high variation
-        caller = self.callers[1]
-        data = [
-            (5, False, False),
-            (1200, False, False),
-            (800, False, False),
-            (20, False, False),
-            (500, False, False),
-            (760, True, False),
-            (60, False, False),
-        ]
-        step = int((self.to_ts - self.from_ts) / len(data))
-        for i, v in enumerate(data):
-            add(i, v)
-
-        # Profile 2: lazy, low variation, international
-        caller = self.callers[2]
-        data = [
-            (5, True, False),
-            (1200, True, False),
-            (800, True, False),
-            (20, True, True),
-        ]
-        step = int((self.to_ts - self.from_ts) / len(data))
-        for i, v in enumerate(data):
-            add(i, v)
-
-        # Insert data
-        self.source.commit()
-
-        # Let elasticsearch indexes the data before querying it
-        time.sleep(10)
 
     def init_source(self):
         raise NotImplemented()
@@ -207,10 +212,6 @@ class TestFingerprints(unittest.TestCase):
         if self.model.is_trained:
             return
         self.model.train(self.source, self.from_ts, self.to_ts)
-
-    def test_train(self):
-        self._require_training()
-        self.assertTrue(self.model.is_trained)
 
     def test_predict(self):
         self._require_training()
@@ -237,7 +238,6 @@ class TestFingerprints(unittest.TestCase):
 
             self.assertEqual(fp['fingerprint'], self.expected_fp[fp['key']])
 
-
     def test_count_sum_min_max(self):
         model = FingerprintsModel(dict(
             name='test',
@@ -250,6 +250,8 @@ class TestFingerprints(unittest.TestCase):
             timestamp_field="@timestamp",
             bucket_interval="24h",
             offset="30s",
+            max_threshold=80,
+            min_threshold=70,
             features=[
                 dict(
                     measurement="xdr",
@@ -284,8 +286,104 @@ class TestFingerprints(unittest.TestCase):
             self.from_ts,
             self.to_ts,
         )
+        model.detect_anomalies(prediction)
+
         fps = prediction.format()['fingerprints']
 
         self.assertEqual(fps['33601020304']['fingerprint'], [ 7.0, 3345.0,  5.0, 1200.0])
         self.assertEqual(fps['33612345678']['fingerprint'], [10.0,  720.0, 30.0,  150.0])
         self.assertEqual(fps['33688774455']['fingerprint'], [ 4.0, 2025.0,  5.0, 1200.0])
+
+    def test_detect_anomalies(self):
+        self._require_training()
+        self.assertTrue(self.model.is_trained)
+
+        from_ts = self.to_ts
+        to_ts = from_ts + 3600 * 24
+
+        # Profile 0: to few call
+        self._insert_data(
+            self.callers[0],
+            [
+                (10, False, False),
+            ],
+            from_ts,
+            to_ts,
+        )
+
+        # Profile 1: international
+        self._insert_data(
+            self.callers[1],
+            [
+                (5, False, False),
+                (10, True, False),
+                (1200, False, False),
+                (10, True, False),
+                (800, False, False),
+                (10, True, False),
+                (20, False, False),
+                (10, True, False),
+                (500, False, False),
+                (10, True, False),
+                (760, True, False),
+                (10, True, False),
+                (60, False, False),
+            ],
+            from_ts,
+            to_ts,
+        )
+
+        # Profile 2: too busy
+        self._insert_data(
+            self.callers[2],
+            [
+                (5, True, False),
+                (5, True, False),
+                (5, True, False),
+                (5, True, False),
+                (1200, True, False),
+                (1200, True, False),
+                (1200, True, False),
+                (1200, True, False),
+                (800, True, False),
+                (800, True, False),
+                (800, True, False),
+                (800, True, False),
+                (20, True, True),
+                (20, True, True),
+                (20, True, True),
+                (20, True, True),
+            ],
+            from_ts,
+            to_ts,
+        )
+
+        # Insert data
+        self.source.commit()
+
+        # Let datasource indexes the data before querying it
+        time.sleep(10)
+
+        prediction = self.model.predict(
+            self.source,
+            from_ts,
+            to_ts,
+        )
+        self.model.detect_anomalies(prediction)
+
+        fps = prediction.fingerprints
+        ano_fps = [fp for fp in prediction.fingerprints if fp['stats']['anomaly']]
+        self.assertEqual(len(ano_fps), 3)
+
+        self.source.save_fp_anomalies_info(self.model, prediction)
+        time.sleep(10)
+        res = self.source.get_top_abnormal_keys(self.model, from_ts, to_ts)
+
+        self.assertEqual(
+            [(x['caller'], x['total_anomalies']) for x in res],
+            [
+                ('33601020304', 6),
+                ('33688774455', 3),
+                ('33612345678', 1),
+            ]
+        )
