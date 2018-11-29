@@ -47,6 +47,6 @@ debian/changelog: debian/changelog.in
 # Build DEB package
 define debbuild
 @echo -e "  DEBBUILD\t$(1)"
-debuild -us -uc -b
+debuild --preserve-envvar=LOUDML_VERSION -us -uc -b
 endef
 
