@@ -43,6 +43,9 @@ from . import (
     errors,
     schemas,
 )
+from .datasource import (
+    load_datasource,
+)
 from .filestorage import (
     FileStorage,
 )
@@ -793,6 +796,28 @@ def model_predict(model_name):
 
     return jsonify(job.result())
 
+@app.route("/models/<model_name>/_top")
+def model_top(model_name):
+    global g_storage
+    global g_config
+
+    from_date = get_date_arg('from', is_mandatory=True)
+    to_date = get_date_arg('to', is_mandatory=True)
+    size = get_int_arg('size', default=10)
+
+    model = g_storage.load_model(model_name)
+
+    src_settings = g_config.get_datasource(model.default_datasource)
+    source = load_datasource(src_settings)
+
+    res = source.get_top_abnormal_keys(
+        model,
+        from_date,
+        to_date,
+        size,
+    )
+
+    return jsonify(res)
 
 @app.route("/models/<model_name>/_start", methods=['POST'])
 def model_start(model_name):
