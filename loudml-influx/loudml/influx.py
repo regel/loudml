@@ -813,7 +813,7 @@ class InfluxDataSource(DataSource):
 
         # XXX: 'order by "score"' is not supported by InfluxDB
 
-        query = 'select "sub_anomalies" as "anomalies" ' \
+        query = 'select "sub_anomalies" as "anomalies", "score" ' \
                 'from {}"anomalies_{}" ' \
                 'where {} group by "{}"'.format(
             self._from_prefix,
@@ -828,13 +828,20 @@ class InfluxDataSource(DataSource):
             key = k[1]
 
             total_anomalies = 0
+            total_score = 0
+            max_score = 0
+
             anomalies = []
             for ano in v:
                 total_anomalies += ano['anomalies']
+                total_score += ano['score']
+                max_score = max(max_score, ano['score'])
                 anomalies.append(ano)
 
             item = key
             item['total_anomalies'] = total_anomalies
+            item['total_score'] = total_score
+            item['max_score'] = max_score
             item['anomalies'] = anomalies
 
             out.append(item)
