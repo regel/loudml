@@ -479,7 +479,6 @@ class TimeSeriesModel(Model):
 
         self.grace_period = parse_timedelta(settings['grace_period']).total_seconds()
 
-        self.sequential = None
         self.current_eval = None
 
     def enum_features(self, is_input=None, is_output=None):
@@ -852,6 +851,56 @@ class TimeSeriesModel(Model):
         self.forecast_val = best_params['forecast']
         return (best_params, score)
 
+    def _train_ckpt_on_dataset(
+        self,
+        dataset,
+        train_size=0.67,
+        batch_size=64,
+        num_epochs=100,
+        progress_cb=None,
+    ):
+        self.current_eval = 0
+        self.stat_dataset(dataset)
+
+        # Canonicalize dataset in-place
+        self.canonicalize_dataset(dataset, out=dataset)
+
+        input_features = len(self._x_indexes())
+
+        logging.info("Preprocessing. mins: %s maxs: %s ranges: %s",
+                     self.mins, self.maxs, self.maxs - self.mins)
+
+        (_, X_train, y_train), (_, X_test, y_test) = self.train_test_split(
+            dataset,
+            train_size=train_size,
+        )
+
+        _stop = EarlyStopping(
+            monitor='val_loss',
+            patience=5,
+            verbose=_verbose,
+            mode='auto',
+        )
+        self._keras_model.fit(
+            X_train,
+            y_train,
+            epochs=num_epochs,
+            batch_size=batch_size,
+            verbose=_verbose,
+            validation_data=(X_test, y_test),
+            callbacks=[_stop],
+        )
+
+        # How well did it do?
+        score = self._keras_model.evaluate(
+            X_test,
+            y_test,
+            batch_size=batch_size,
+            verbose=_verbose,
+        )
+        return score
+
+
     def _format_dataset(self, dataset):
         """
         Format dataset for time-series training
@@ -920,6 +969,7 @@ class TimeSeriesModel(Model):
         max_evals=None,
         progress_cb=None,
         license=None,
+        incremental=False,
     ):
         """
         Train model
@@ -981,14 +1031,31 @@ class TimeSeriesModel(Model):
         if self.seasonality.get('weekday'):
             dataset = np.append(dataset, weekday, axis=1)
 
-        best_params, score = self._train_on_dataset(
-            dataset,
-            train_size,
-            batch_size,
-            num_epochs,
-            max_evals,
-            progress_cb=progress_cb,
-        )
+        if incremental == True:
+            if self.support_incremental_training == False:
+                raise errors.LoudMLException("cannot resume training, old models must be retrained first")
+            
+            best_params = self._state.get('best_params', dict())
+            # Destroys the current TF graph and creates a new one.
+            # Useful to avoid clutter from old models / layers.
+            K.clear_session()
+            self.load()
+            score = self._train_ckpt_on_dataset(
+                dataset,
+                train_size,
+                batch_size,
+                num_epochs,
+                progress_cb=progress_cb,
+            )
+        else:
+            best_params, score = self._train_on_dataset(
+                dataset,
+                train_size,
+                batch_size,
+                num_epochs,
+                max_evals,
+                progress_cb=progress_cb,
+            )
         self.current_eval = None
 
         for key, val in best_params.items():
@@ -1075,7 +1142,7 @@ class TimeSeriesModel(Model):
         return self._state is not None and ('weights' in self._state or 'h5py' in self._state)
 
     @property
-    def can_do_incremental_training(self):
+    def support_incremental_training(self):
         """
         Tells the model can continue training from the current ckpt
         """

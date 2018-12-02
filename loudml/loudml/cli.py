@@ -275,6 +275,11 @@ class TrainCommand(Command):
             default=-1,
             type=int,
         )
+        parser.add_argument(
+            '-i', '--incremental',
+            help="Resume training from the current checkpoint",
+            action='store_true',
+        )
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
@@ -296,6 +301,7 @@ class TrainCommand(Command):
                 args.from_date,
                 args.to_date,
                 max_evals=args.max_evals,
+                incremental=args.incremental,
                 license=self.config.license,
             )
             print("loss: %f" % result['loss'])
