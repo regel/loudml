@@ -15,7 +15,7 @@ from scipy.stats import norm, halfnorm, normaltest
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow.contrib.keras.api.keras import backend as K
-from tensorflow.contrib.keras.api.keras.models import Sequential
+from tensorflow.contrib.keras.api.keras.models import Sequential, load_model
 from tensorflow.contrib.keras.api.keras.layers import Dense
 from tensorflow.contrib.keras.api.keras.layers import Activation
 from tensorflow.contrib.keras.api.keras.layers import LSTM
@@ -177,27 +177,25 @@ def _serialize_keras_model(keras_model):
 
     import base64
     import tempfile
-    import h5py
-
-    model_b64 = base64.b64encode(keras_model.to_json().encode('utf-8'))
 
     fd, path = tempfile.mkstemp()
     try:
-        keras_model.save_weights(path)
+        keras_model.save(path)
         with os.fdopen(fd, 'rb') as tmp:
-            weights_b64 = base64.b64encode(tmp.read())
+            model_b64 = base64.b64encode(tmp.read())
     finally:
         os.remove(path)
 
-    return model_b64.decode('utf-8'), weights_b64.decode('utf-8')
+    return model_b64.decode('utf-8')
 
-def _load_keras_model(model_b64, weights_b64, loss_fct, optimizer):
+
+def _load_keras_model_compat(model_b64, weights_b64, loss_fct, optimizer):
     """
-    Load Keras model
+    Load incomplete Keras model
     """
     import tempfile
     import base64
-    import h5py
+
     # Note: the import were moved here to avoid the speed penalty
     # in code that imports the storage module
     import tensorflow as tf
@@ -221,6 +219,29 @@ def _load_keras_model(model_b64, weights_b64, loss_fct, optimizer):
     graph = tf.get_default_graph()
 
     return keras_model, graph
+
+def _load_keras_model(model_b64):
+    import tempfile
+    import base64
+
+    fd, path = tempfile.mkstemp()
+    try:
+        with os.fdopen(fd, 'wb') as tmp:
+            tmp.write(base64.b64decode(model_b64.encode('utf-8')))
+            tmp.close()
+    finally:
+        keras_model = load_model(path)
+        os.remove(path)
+
+#    optimizer_cls = None
+#    if optimizer == 'adam':
+#        optimizer_cls = tf.keras.optimizers.Adam()
+# TF 1.12: compile not required, the optimizer state is saved
+#    keras_model.compile()
+
+    graph = None
+    return keras_model, graph
+
 
 class DateRange:
     def __init__(self, from_date, to_date):
@@ -735,10 +756,14 @@ class TimeSeriesModel(Model):
                 keras_model.add(LSTM(params.l2, return_sequences=False))
                 keras_model.add(Dense(y_train.shape[1], input_dim=params.l2))
 
+            optimizer_cls = None
+            if params.optimizer == 'adam':
+                optimizer_cls = tf.keras.optimizers.Adam()
+
             keras_model.add(Activation(params.activation))
             keras_model.compile(
                 loss=params.loss_fct,
-                optimizer=params.optimizer,
+                optimizer=optimizer_cls,
                 metrics=['accuracy'],
             )
             _stop = EarlyStopping(
@@ -972,13 +997,10 @@ class TimeSeriesModel(Model):
                not isinstance(val, float):
                 best_params[key] = np.asscalar(val)
 
-        model_b64, weights_b64 = _serialize_keras_model(self._keras_model)
+        model_b64 = _serialize_keras_model(self._keras_model)
 
         self._state = {
-            'graph': model_b64,
-            'weights': weights_b64, # H5PY data encoded in base64
-            'loss_fct': best_params['loss_fct'],
-            'optimizer': best_params['optimizer'],
+            'h5py': model_b64,
             'best_params': best_params,
             'mins': self.mins.tolist(),
             'maxs': self.maxs.tolist(),
@@ -1017,12 +1039,15 @@ class TimeSeriesModel(Model):
             # Already loaded
             return
 
-        self._keras_model, self._graph = _load_keras_model(
-            self._state['graph'],
-            self._state['weights'],
-            self._state['loss_fct'],
-            self._state['optimizer'],
-        )
+        if self._state.get('h5py', None) is not None:
+            self._keras_model, _ = _load_keras_model(self._state.get('h5py'))
+        else:
+            self._keras_model, _ = _load_keras_model_compat(
+                self._state['graph'],
+                self._state['weights'],
+                self._state['loss_fct'],
+                self._state['optimizer'],
+            )
 
         self.mins = np.array(self._state['mins'])
         self.maxs = np.array(self._state['maxs'])
@@ -1047,7 +1072,14 @@ class TimeSeriesModel(Model):
         """
         Tells if model is trained
         """
-        return self._state is not None and 'weights' in self._state
+        return self._state is not None and ('weights' in self._state or 'h5py' in self._state)
+
+    @property
+    def can_do_incremental_training(self):
+        """
+        Tells the model can continue training from the current ckpt
+        """
+        return self._state is not None and ('h5py' in self._state)
 
     @property
     def _span(self):
