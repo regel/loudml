@@ -40,6 +40,7 @@ services:
     depends_on:
       - influxdb
     volumes:
+      - ./etc/kapacitor.conf:/etc/kapacitor/kapacitor.conf:ro
       - ./var/kapacitor:/var/lib/kapacitor
     environment:
       KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
