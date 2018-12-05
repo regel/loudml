@@ -1,13 +1,16 @@
 ---
 datasources:
+  - name: kapacitor
+    type: influxdb
+    addr: kapacitor:9092
+    database: loudml
+    retention_policy: autogen
+    create_database: false
   - name: influx
     type: influxdb
     addr: influxdb:8086
     database: telegraf
-  - name: kapacitor
-    type: influxdb
-    addr: kapacitor:9092
-    database: from_loudml
+    retention_policy: autogen
 
 storage:
   path: /var/lib/loudml
