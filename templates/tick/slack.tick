@@ -1,0 +1,40 @@
+var model
+
+var from_measurement
+
+var out_db
+
+var retention_policy
+
+var out_measurement
+
+var data = stream
+    |from()
+        .measurement(from_measurement)
+    |eval(lambda: model)
+        .as('model')
+        .keep()
+
+var saved = data
+    |influxDBOut()
+        .database(out_db)
+        .retentionPolicy(retention_policy)
+        .measurement(out_measurement)
+
+var pos = data
+    |stateCount(lambda: "is_anomaly" == TRUE)
+    |alert()
+        // Warn after 1 point
+        .warn(lambda: "state_count" >= 1)
+        // Critical after 5 points
+        .crit(lambda: "state_count" >= 5 AND "score" > 90.0)
+        .message('{{ .Time }}: Hey, unexpected situation detected by model={{ index .Fields "model" }} state=ongoing score={{ index .Fields "score" | printf "%0.3f" }}.')
+        .slack()
+
+var neg = data
+    |stateCount(lambda: "is_anomaly" == FALSE)
+    |alert()
+        .info(lambda: "state_count" == 1)
+        .message('{{ .Time }}: situation back to normal model={{ index .Fields "model" }} state=finished score={{ index .Fields "score" | printf "%0.3f" }}.')
+        .slack()
+
