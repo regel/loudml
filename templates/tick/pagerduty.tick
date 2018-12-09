@@ -1,0 +1,32 @@
+var model
+
+var from_measurement
+
+var out_db
+
+var retention_policy
+
+var out_measurement
+
+var data = stream
+    |from()
+        .measurement(from_measurement)
+    |eval(lambda: model)
+        .as('model')
+        .keep()
+
+var saved = data
+    |influxDBOut()
+        .database(out_db)
+        .retentionPolicy(retention_policy)
+        .measurement(out_measurement)
+
+var pos = data
+    |changeDetect('is_anomaly')
+    |alert()
+        .warn(lambda: "is_anomaly" == TRUE)
+        .crit(lambda: "is_anomaly" == TRUE AND "score" > 90.0)
+        .message('{{if ne .Level "OK" }} Hey, unexpected situation detected score={{ index .Fields "score" | printf "%0.3f" }} {{else}} Back to normal {{end}}')
+        .pagerDuty2()
+
+
