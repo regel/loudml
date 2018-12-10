@@ -115,6 +115,7 @@ class Job:
         self.error = None
         self.progress = None
         self._future = None
+        self.model_name = None
 
     @property
     def desc(self):
@@ -123,6 +124,8 @@ class Job:
             'type': self.job_type,
             'state': self.state,
         }
+        if self.model_name:
+            desc['model'] = self.model_name
         if self.result:
             desc['result'] = self._result
         if self.error:
