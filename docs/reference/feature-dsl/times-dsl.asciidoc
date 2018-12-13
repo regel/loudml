@@ -4,28 +4,52 @@
 Defines how time series data must be aggregated into features
 for learning and inference.
 
-Features define how to aggregate numerical data from a `measurement`
+Features define how to aggregate numerical data from a `measurement`. +
 A `measurement` defines an object type in the data source:
 
-* For Elasticsearch data source, the `measurement` is not used. You can set the `doc_type` in `config.yml` data source settings. Default is `doc` if not set
-* For InfluxDB data source, the `measurement` is the series measurement name
+* For Elasticsearch data source, the `measurement` is not used. You can set the `doc_type` in `config.yml` data source settings. Default is `doc` if not set.
+* For InfluxDB data source, the `measurement` is the series measurement name.
 
-Accepted parameters to define model features are:
+=== Feature Supported settings
 
 [horizontal]
-`name`:: Name given to this feature (must match `^[a-zA-Z0-9-_@]+$`)
-`field`:: TSDB column name (must match `^[a-zA-Z0-9-_@.]+$`)
-`measurement`:: TSDB table to fetch data (must match `^[a-zA-Z0-9-_@.]+$`)
-`match_all`:: list of TSDB tag names and values that must be matched when fetching the data
-`metric`:: An aggregation operator supported by the TSDB
-`default`:: A default float value to replace NaN values returned by the TSDB, or `previous` in order to fill the series with previous non-NaN value
+`name`:: (string) Name given to this feature (must match `^[a-zA-Z0-9-_@]+$`)
+`field`:: (string) TSDB column name (must match `^[a-zA-Z0-9-_@.]+$`)
+`measurement`:: (string) TSDB table to fetch data (must match `^[a-zA-Z0-9-_@.]+$`)
+`match_all`:: (array) List of TSDB tag names and values that must be matched when fetching the data
+`metric`:: (Aggregation operator) As supported by the TSDB
+`default`:: (float) A default float value to replace NaN values returned by the TSDB, or `previous` in order to fill the series with previous non-NaN value
 `transform`:: `null`, or `diff` additional processing to apply to TSDB data in order to generate the feature
 `scores`:: `min_max`, or `standardize` additional processing to apply to TSDB data in order to generate the feature
 `anomaly_type`:: `low_high`, `low`, or `high` according to the type of abnormal values to detect
 
+=== Aggregation operators
 The list below defines the aggregation operators can be used to
 define features. These values can be extracted by using numeric
 fields in the data source documents.
+
+[options="header"]
+|=======================
+|Aggregation operator   |Elasticsearch Support      | InfluxDB Support
+|`count`                  |True                       |True
+|`min`                    |True                       |True
+|`max`                    |True                       |True
+|`sum`                    |True                       |True
+|`avg`                    |True                       |True
+|`sum_of_squares`         |True                       |True
+|`variance`               |True                       |True
+|`std_deviation`          |True                       |True
+|`derivative`             |False                      |True
+|`integral`               |False                      |True
+|`spread`                 |False                      |True
+|`mode`                   |False                      |True
+|`5percentile`            |False                      |True
+|`10percentile`           |False                      |True
+|`90percentile`           |False                      |True
+|`95percentile`           |False                      |True
+|`stddev`                 |False                      |True
+|=======================
+
 
 [NOTE]
 ==================================================
@@ -35,17 +59,6 @@ nor extracting features from categories ie, non numeric fields.
 
 ==================================================
 
-The `metric` operators that are supported consist of: `count`, `min`, `max`, `sum`,
-`avg`, `sum_of_squares`, `variance`, and `std_deviation`.
-
-[NOTE]
-==================================================
-
-This version supports the following additional operators with InfluxDB:
-`derivative`, `integral`, `spread`, `mode`, `5percentile`, `10percentile`,
-`90percentile`, `95percentile`, `stddev`
-
-==================================================
 
 [[dip-user-traffic]]
 == A First Example: Abnormal Dips in User Traffic
@@ -261,5 +274,3 @@ will become:
   "type": "timeseries"
 }
 --------------------------------------------------
-
-
