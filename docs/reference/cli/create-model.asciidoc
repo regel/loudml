@@ -69,7 +69,8 @@ type: timeseries
 `bucket_interval`::       (duration) The bucket aggregation interval.
 `default_datasource`::       (string) The implicit data source to query and insert data as defined in `config.yml`.
 `default_datasink`::       (string) The implicit data source to write back prediction output data as defined in `config.yml`.
-`features`::       (array) An array of features, or dictionary of features, derived from the aggregated input data.
+`features`::       (array) An array of features, or dictionary of features, derived from the aggregated input data. +
+ Refer to <<feature-dsl/time-dsl.asciidoc#,Feature-DSL>> for more information.
 `interval`::       (duration) The periodic anomaly detection interval.
 `max_evals`::      (integer) The integer number of iterations to produce a model with optimal accuracy.
 `name`::  (string) Name of this model. This identifier must be unique.
