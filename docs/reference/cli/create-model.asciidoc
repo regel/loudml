@@ -2,14 +2,18 @@
 == Create Model Command
 
 The `create-model` command will create a new model according to the
-settings defined in the input file:
+settings defined in the input file. +
+Input files can be valid json or yml dataModel files.
 
 [source,bash]
 --------------------------------------------------
-loudml create-model avg_temp2.json
+loudml create-model dataModel.json
+loudml create-model dataModel.yml
 --------------------------------------------------
 
-The `avg_temp2.json` file (Or .yml file if YAML format is used)
+=== Example dataModel.json
+
+The `dataModel.json` file (Or .yml file if YAML format is used)
 may contain the following settings:
 
 [source,js]
@@ -36,25 +40,51 @@ may contain the following settings:
   "type": "timeseries"
 }
 --------------------------------------------------
+=== Example dataModel.yml
 
-The supported settings are:
+[source,yaml]
+--------------------------------------------------
+---
+bucket_interval: 1m
+default_datasource: my-datasource
+features:
+- default: 0
+  field: temp2
+  measurement: temperature_series
+  metric: avg
+  name: avg_temp_feature
+interval: 60
+max_evals: 10
+name: avg_temp2-model
+offset: 30
+span: 5
+max_threshold: 90
+min_threshold: 50
+type: timeseries
+--------------------------------------------------
+
+=== Datamodel Supported settings
 
 [horizontal]
-`bucket_interval`::       (duration) The bucket aggregation interval
-`default_datasource`::       (string) The implicit data source to query and insert data
-`default_datasink`::       (string) The implicit data sink for prediction saving
-`features`::       (array) An array of features, or dictionary of features, derived from the aggregated input data
-`interval`::       (duration) The periodic anomaly detection interval
-`max_evals`::      (integer) The integer number of iterations to produce a model with optimal accuracy
-`name`::  (string) Name of this model. This identifier must be unique
-`offset`::   (duration) The time offset used when querying the data source
+`bucket_interval`::       (duration) The bucket aggregation interval.
+`default_datasource`::       (string) The implicit data source to query and insert data as defined in `config.yml`.
+`default_datasink`::       (string) The implicit data source to write back prediction output data as defined in `config.yml`.
+`features`::       (array) An array of features, or dictionary of features, derived from the aggregated input data.
+`interval`::       (duration) The periodic anomaly detection interval.
+`max_evals`::      (integer) The integer number of iterations to produce a model with optimal accuracy.
+`name`::  (string) Name of this model. This identifier must be unique.
+`offset`::   (duration) The time offset used when querying the data source +
+  The `offset` parameter is equivalent to Elasticsearch https://www.elastic.co/guide/en/elasticsearch/reference/6.x/indices-update-settings.html[index.refresh_interval] parameter. +
+  This parameter takes into account the fact that all data will not hit the TSDB in real time and cannot be consumed immediately. +
+  Loud ML automatically applies a negative time offset to all TSDB queries, eg if you set `"offset": 30s` and your query ranges from `now-2d` to `now`, then loudml will query the TSDB between `now-2d` and `now-30s`.
+  
 `seasonality`::   (dictionary) Enables `daytime` or `weekday` patterns detection in the model. Default is disabled.
-`forecast`::   (integer) The forecast horizon, defined as the number of time buckets to forecast when requesting the model to predict future data
-`span`::   (integer) The span interval, defined as the number of past time buckets to use as a proxy to predict future data
-`grace_period`::   (duration) A grace period interval to ignore new anomalies immediately after a new anomaly. Default value is zero (disabled)
+`forecast`::   (integer) The forecast horizon, defined as the number of time buckets to forecast when requesting the model to predict future data.
+`span`::   (integer) The span interval, defined as the number of past time buckets to use as a proxy to predict future data.
+`grace_period`::   (duration) A grace period interval to ignore new anomalies immediately after a new anomaly. Default value is zero (disabled).
 `max_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies start when this threshold is exceeded. An optimal value will be set automatically if the threshold is set to zero.
 `min_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies end when the current scores fall behind this threshold. An optimal value will be set automatically if the threshold is set to zero.
-`type`::   (string) `timeseries`, or `fingerprints`
+`type`::   (string) `timeseries`, or `fingerprints`.
 `timestamp_field`::   (string) Optional. The main timestamp field in your TSDB data source. The default value for this field is `timestamp`. You can set the value to `@timestamp` or the value that fits your TSDB mapping.
 
 This above example defines a unique feature, named `avg_temp_feature` that will
@@ -86,15 +116,3 @@ Please vote and let us know if you'd like us to implement native data aggregatio
 and features across distinct data-sources: https://github.com/regel/loudml/issues/22[GitHub Aggregating from distinct data sources]
 
 ==================================================
-
-[NOTE]
-==================================================
-
-The `offset` parameter is equivalent to Elasticsearch https://www.elastic.co/guide/en/elasticsearch/reference/6.x/indices-update-settings.html[index.refresh_interval] parameter.
-
-This parameter takes into account the fact that all data will not hit the TSDB in real time and cannot be consumed immediately.
-
-Loud ML automatically applies a negative time offset to all TSDB queries, eg if you set `offset`=30s and your query ranges from `now-2d` to `now`, then loudml will query the TSDB between `now-2d` and `now-30s`
-
-==================================================
-
