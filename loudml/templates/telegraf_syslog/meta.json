@@ -1,0 +1,4 @@
+{
+        "short_desc": "Detect anomalies in log message counts",
+        "long_desc": "Creates a baseline on the count of logs for given hosts. This model triggers anomalies if the number becomes too low or too high."
+}

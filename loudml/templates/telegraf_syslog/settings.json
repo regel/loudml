@@ -1,0 +1,31 @@
+{
+        "type": "donut",
+        "default_datasource": "telegraf",
+        "name": "{{name}}",
+        "max_threshold": 0,
+        "min_threshold": 0,
+        "bucket_interval": "5m",
+        "interval": "60s",
+        "grace_period": 0,
+        "features": [
+            {
+                "measurement": "syslog",
+                "match_all": [
+                    {
+                        "tag": "host",
+                        "value": "{{host}}"
+                    }
+                ],
+                "default": 0,
+                "metric": "count",
+                "anomaly_type": "low_high",
+                "field": "message",
+                "io": "io",
+                "name": "count_all"
+            }
+        ],
+        "offset": "10s",
+        "max_evals": 21,
+        "span": 140,
+        "forecast": 1
+}
