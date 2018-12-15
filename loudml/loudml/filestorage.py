@@ -35,7 +35,6 @@ OBJECT_KEY_SCHEMA = schemas.All(
    Match("^[a-zA-Z0-9-_@.]+$"),
 )
 
-
 class FileStorage(Storage):
     """
     File storage
@@ -44,9 +43,14 @@ class FileStorage(Storage):
     def __init__(self, path):
         self.path = path
         self.model_dir = os.path.join(path, 'models')
+        self.template_dir = os.path.join(path, 'templates')
 
         try:
             os.makedirs(self.model_dir, exist_ok=True)
+        except OSError as exn:
+            raise errors.LoudMLException(str(exn))
+        try:
+            os.makedirs(self.template_dir, exist_ok=True)
         except OSError as exn:
             raise errors.LoudMLException(str(exn))
 
@@ -85,6 +89,9 @@ class FileStorage(Storage):
                 data['state'],
             )
             os.unlink(path)
+
+    def template_path(self, template_name):
+        return os.path.join(self.template_dir, template_name)
 
     def model_path(self, model_name, validate=True):
         """
@@ -203,6 +210,22 @@ class FileStorage(Storage):
     def model_exists(self, name):
         return os.path.exists(self.model_path(name))
 
+    def _get_model_meta(self, model_path, model_name):
+        settings_path = os.path.join(model_path, "meta.json")
+        try:
+            return self._load_json(settings_path)
+        except ValueError as exn:
+            raise errors.Invalid(
+                "invalid model setting file: {}: {}".format(
+                    settings_path,
+                    str(exn),
+                )
+            )
+        except FileNotFoundError:
+            raise errors.ModelNotFound(name=model_name)
+        except OSError as exn:
+            raise errors.LoudMLException(str(exn))
+
     def _get_model_settings(self, model_path, model_name):
         settings_path = os.path.join(model_path, "settings.json")
         try:
@@ -260,6 +283,19 @@ class FileStorage(Storage):
 
         return data
 
+    def get_template_data(self, name):
+        model_path = self.template_path(name)
+        settings = self._get_model_settings(model_path, name)
+        meta = self._get_model_meta(model_path, name)
+
+        data = {
+            'settings': settings,
+            'name': name,
+        }
+        data.update(meta)
+
+        return data
+
     def list_checkpoints(self, name):
         return sorted([
             os.path.splitext(os.path.basename(path))[0]
@@ -270,6 +306,12 @@ class FileStorage(Storage):
         return sorted([
             os.path.splitext(os.path.basename(path))[0]
             for path in glob.glob(self.model_path('*', validate=False))
+        ])
+
+    def list_templates(self):
+        return sorted([
+            os.path.splitext(os.path.basename(path))[0]
+            for path in glob.glob(self.template_path('*'))
         ])
 
     def _write_model_hook(self, model_name, settings):

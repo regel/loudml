@@ -160,6 +160,11 @@ class CreateModelCommand(Command):
 
     def add_args(self, parser):
         parser.add_argument(
+            '-t', '--template',
+            help="Template name",
+            type=str,
+        )
+        parser.add_argument(
             'model_file',
             help="Model file",
             type=str,
@@ -203,17 +208,33 @@ class CreateModelCommand(Command):
         return settings
 
     def exec(self, args):
-        model_settings = self.load_model_file(args.model_file)
-        model = loudml.model.load_model(settings=model_settings,
-                                        config=self.config)
-
         storage = FileStorage(self.config.storage['path'])
+        if args.template is not None:
+            params = self._load_model_json(args.model_file)
+            model = storage.load_template(args.template, config=self.config, **params)
+        else:
+            model_settings = self.load_model_file(args.model_file)
+            model = loudml.model.load_model(settings=model_settings,
+                                            config=self.config)
+
 
         if args.force and storage.model_exists(model.name):
             storage.delete_model(model.name)
 
         storage.create_model(model, self.config)
         logging.info("model '%s' created", model.name)
+
+
+class ListTemplatesCommand(Command):
+    """
+    List templates
+    """
+
+    def exec(self, args):
+        storage = FileStorage(self.config.storage['path'])
+
+        for tmpl in storage.list_templates():
+            print(tmpl)
 
 
 class ListModelsCommand(Command):

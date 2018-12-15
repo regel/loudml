@@ -345,6 +345,25 @@ def get_model_info(name):
 
     return info
 
+def get_template_info(name):
+    global g_storage
+
+    info = g_storage.get_template_data(name)
+    info['params'] = list(g_storage.find_undeclared_variables(name))
+
+    return info
+
+class TemplatesResource(Resource):
+    @catch_loudml_error
+    def get(self):
+        templates = []
+
+        for name in g_storage.list_templates():
+            templates.append(get_template_info(name))
+
+        return jsonify(templates)
+
+api.add_resource(TemplatesResource, "/templates")
 
 class ModelsResource(Resource):
     @catch_loudml_error
@@ -364,8 +383,12 @@ class ModelsResource(Resource):
         global g_config
         global g_storage
 
-        settings = get_json()
-        model = loudml.model.load_model(settings=settings, config=g_config)
+        tmpl = request.args.get('template', None)
+        if tmpl is not None:
+            _vars = request.get_json()
+            model = g_storage.load_template(tmpl, config=g_config, **_vars)
+        else:
+            model = loudml.model.load_model(settings=request.json, config=g_config)
 
         g_storage.create_model(model, g_config)
 

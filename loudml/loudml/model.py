@@ -25,6 +25,10 @@ from . import (
     schemas,
 )
 
+import json
+from jinja2 import Template
+from jinja2 import Environment, meta
+
 def _convert_features_dict(features):
     """
     Convert old features dict format to list
@@ -373,3 +377,16 @@ def load_model(settings, state=None, config=None):
     if model_cls is None:
         raise errors.UnsupportedModel(model_type)
     return model_cls(settings, state)
+
+
+def load_template(settings, state=None, config=None, *args, **kwargs):
+    t = Template(json.dumps(settings))
+    settings = json.loads(t.render(**kwargs))
+    return load_model(settings, state, config)
+
+def find_undeclared_variables(settings):
+    env = Environment()
+    ast = env.parse(json.dumps(settings))
+    return meta.find_undeclared_variables(ast)
+
+

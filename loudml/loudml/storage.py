@@ -14,6 +14,8 @@ from .misc import (
 )
 from .model import (
     load_model,
+    load_template,
+    find_undeclared_variables,
 )
 from . import (
     errors,
@@ -33,12 +35,20 @@ class Storage(metaclass=ABCMeta):
         """Get model"""
 
     @abstractmethod
+    def get_template_data(self, name):
+        """Get model template"""
+
+    @abstractmethod
     def list_models(self):
         """List models"""
 
     @abstractmethod
     def list_checkpoints(self, name):
         """List model checkpoints"""
+
+    @abstractmethod
+    def list_templates(self):
+        """List templates"""
 
     @abstractmethod
     def create_model(self, model, config):
@@ -72,6 +82,18 @@ class Storage(metaclass=ABCMeta):
         """Load model"""
         model_data = self.get_model_data(name, ckpt_name)
         return load_model(**model_data)
+
+    def load_template(self, _name, *args, **kwargs):
+        """Load template"""
+        model_data = self.get_template_data(_name)
+        settings = model_data['settings']
+        return load_template(settings=settings, *args, **kwargs)
+
+    def find_undeclared_variables(self, name):
+        """List undeclared variables in a given template"""
+        model_data = self.get_template_data(name)
+        settings = model_data['settings']
+        return find_undeclared_variables(settings=settings)
 
     @abstractmethod
     def get_model_hook(self, model_name, hook_name):

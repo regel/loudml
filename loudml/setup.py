@@ -31,6 +31,7 @@ setup(
     install_requires=[
         "dictdiffer>=0.7.1",
         'uuid',
+        'Jinja2==2.10',
         'python-crontab==2.3.5',
         "dateutils>=0.6.6",
         "Flask>=0.12.1",
@@ -46,7 +47,6 @@ setup(
         "pycrypto>=2.6.1",
         "PyYAML>=3.11",
         "voluptuous>=0.10.5",
-        "scikit-learn>=0.19.1",
     ],
 
     extras_require={
@@ -75,6 +75,7 @@ setup(
             'create-model=loudml.cli:CreateModelCommand',
             'delete-model=loudml.cli:DeleteModelCommand',
             'list-models=loudml.cli:ListModelsCommand',
+            'list-templates=loudml.cli:ListTemplatesCommand',
             'show-model=loudml.cli:ShowModelCommand',
             'train=loudml.cli:TrainCommand',
             'predict=loudml.cli:PredictCommand',
