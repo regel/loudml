@@ -1,5 +1,6 @@
 import argparse
 
+import loudml.vendor
 from loudml.license import License
 
 
