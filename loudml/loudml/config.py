@@ -49,6 +49,11 @@ class Config:
         self._training = data.get('training', {})
         if 'nice' not in self._training:
             self._training['nice'] = 5
+        if 'incremental' not in self._training:
+            self._training['incremental'] = {
+                'enable': False,
+                'crons': [],
+            }
 
         self._server = data.get('server', {})
         if 'listen' not in self._server:
