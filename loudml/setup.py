@@ -31,6 +31,7 @@ setup(
     install_requires=[
         "dictdiffer>=0.7.1",
         'uuid',
+        'python-crontab==2.3.5',
         "dateutils>=0.6.6",
         "Flask>=0.12.1",
         "Flask-restful>=0.3.5",
