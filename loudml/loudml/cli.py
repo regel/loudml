@@ -281,7 +281,16 @@ class TrainCommand(Command):
             action='store_true',
         )
 
+    def exec_all(self, args):
+        storage = FileStorage(self.config.storage['path'])
+        for name in storage.list_models():
+            args.model_name = name
+            self.exec(args)
+
     def exec(self, args):
+        if args.model_name == '*':
+            return self.exec_all(args)
+
         storage = FileStorage(self.config.storage['path'])
         model = storage.load_model(args.model_name)
         source = get_datasource(self.config, args.datasource or
