@@ -310,6 +310,8 @@ class TrainCommand(Command):
                 args.from_date,
                 args.to_date,
                 max_evals=args.max_evals,
+                num_cpus=self.config.training['num_cpus'],
+                num_gpus=self.config.training['num_gpus'],
                 incremental=args.incremental,
                 license=self.config.license,
             )
@@ -445,6 +447,8 @@ class ForecastCommand(Command):
                 args.from_date,
                 args.to_date,
                 license=self.config.license,
+                num_cpus=self.config.inference['num_cpus'],
+                num_gpus=self.config.inference['num_gpus'],
             )
             if constraint:
                 model.test_constraint(
@@ -560,6 +564,8 @@ class PredictCommand(Command):
                     args.to_date,
                     mse_rtol=self.config.server['mse_rtol'],
                     license=self.config.license,
+                    num_cpus=self.config.inference['num_cpus'],
+                    num_gpus=self.config.inference['num_gpus'],
                 )
                 prediction.stat()
                 model.detect_anomalies(prediction)
@@ -569,6 +575,8 @@ class PredictCommand(Command):
                     args.from_date,
                     args.to_date,
                     license=self.config.license,
+                    num_cpus=self.config.inference['num_cpus'],
+                    num_gpus=self.config.inference['num_gpus'],
                 )
 
             if args.save:

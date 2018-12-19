@@ -700,12 +700,28 @@ class TimeSeriesModel(Model):
         self.min_threshold = _range[0] + (_range[1] - _range[0]) * 0.66
         self.max_threshold = min(100.0, _range[1] * 1.05)
 
+
+    def _set_xpu_config(self, num_cpus, num_gpus):
+        config = tf.ConfigProto(
+            allow_soft_placement=True,
+            device_count = {'CPU' : num_cpus, 'GPU' : num_gpus},
+        )
+        config.gpu_options.allow_growth = True
+#        config.log_device_placement = True
+#        config.intra_op_parallelism_threads=num_cores
+#        config.inter_op_parallelism_threads=num_cores
+                
+        sess = tf.Session(config=config)
+        K.set_session(sess)
+
     def _train_on_dataset(
         self,
         dataset,
         train_size=0.67,
         batch_size=64,
         num_epochs=100,
+        num_cpus=1,
+        num_gpus=0,
         max_evals=None,
         progress_cb=None,
     ):
@@ -729,6 +745,7 @@ class TimeSeriesModel(Model):
             # Destroys the current TF graph and creates a new one.
             # Useful to avoid clutter from old models / layers.
             K.clear_session()
+            self._set_xpu_config(num_cpus, num_gpus)
 
             self.span = params.span
             self.forecast_val = params.forecast
@@ -966,6 +983,8 @@ class TimeSeriesModel(Model):
         train_size=0.67,
         batch_size=64,
         num_epochs=100,
+        num_cpus=1,
+        num_gpus=0,
         max_evals=None,
         progress_cb=None,
         license=None,
@@ -1038,8 +1057,7 @@ class TimeSeriesModel(Model):
             best_params = self._state.get('best_params', dict())
             # Destroys the current TF graph and creates a new one.
             # Useful to avoid clutter from old models / layers.
-            K.clear_session()
-            self.load()
+            self.load(num_cpus, num_gpus)
             score = self._train_ckpt_on_dataset(
                 dataset,
                 train_size,
@@ -1053,6 +1071,8 @@ class TimeSeriesModel(Model):
                 train_size,
                 batch_size,
                 num_epochs,
+                num_cpus,
+                num_gpus,
                 max_evals,
                 progress_cb=progress_cb,
             )
@@ -1075,7 +1095,14 @@ class TimeSeriesModel(Model):
             'stds': self.stds.tolist(),
             'loss': score[0],
         }
-        prediction = self.predict(datasource, from_date, to_date)
+        self.unload()
+        prediction = self.predict(
+            datasource,
+            from_date,
+            to_date,
+            num_cpus=num_cpus,
+            num_gpus=num_gpus,
+        )
         prediction.stat()
         mse = prediction.mse
         self.scores = prediction.scores.flatten()
@@ -1095,8 +1122,9 @@ class TimeSeriesModel(Model):
         """
         self._keras_model = None
         self._graph = None
+        K.clear_session()
 
-    def load(self):
+    def load(self, num_cpus, num_gpus):
         """
         Load current model
         """
@@ -1105,6 +1133,9 @@ class TimeSeriesModel(Model):
         if self._keras_model:
             # Already loaded
             return
+
+        K.clear_session()
+        self._set_xpu_config(num_cpus, num_gpus)
 
         if self._state.get('h5py', None) is not None:
             self._keras_model, _ = _load_keras_model(self._state.get('h5py'))
@@ -1243,6 +1274,8 @@ class TimeSeriesModel(Model):
         from_date,
         to_date,
         license=None,
+        num_cpus=1,
+        num_gpus=0,
     ):
         self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
@@ -1252,7 +1285,7 @@ class TimeSeriesModel(Model):
 
         logging.info("predict(%s) range=%s", self.name, period)
 
-        self.load()
+        self.load(num_cpus, num_gpus)
 
         # Build history time range
         # Extra data are required to predict first buckets
@@ -1337,6 +1370,7 @@ class TimeSeriesModel(Model):
             raise errors.LoudMLException("not enough data for prediction")
 
         logging.info("generating prediction")
+
         Y_ = self._keras_model.predict(X_test).reshape((
             len(X_test),
             self._forecast,
@@ -1436,6 +1470,8 @@ class TimeSeriesModel(Model):
         from_date,
         to_date,
         license=None,
+        num_cpus=1,
+        num_gpus=0,
     ):
         self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
@@ -1445,7 +1481,7 @@ class TimeSeriesModel(Model):
 
         logging.info("forecast(%s) range=%s", self.name, period)
 
-        self.load()
+        self.load(num_cpus, num_gpus)
 
         # Build history time range
         # Extra data are required to forecast first buckets
@@ -1878,8 +1914,10 @@ class TimeSeriesModel(Model):
         mse_rtol,
         _state={},
         license=None,
+        num_cpus=1,
+        num_gpus=0,
     ):
-        self.load()
+        self.load(num_cpus, num_gpus)
 
         self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)

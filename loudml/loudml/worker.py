@@ -88,6 +88,10 @@ class Worker:
 
         model.train(
             source,
+            batch_size=self.config.training['batch_size'],
+            num_epochs=self.config.training['epochs'],
+            num_cpus=self.config.training['num_cpus'],
+            num_gpus=self.config.training['num_gpus'],
             progress_cb=progress_cb,
             **kwargs
         )
@@ -142,11 +146,15 @@ class Worker:
                     source,
                     mse_rtol=mse_rtol,
                     _state=_state,
+                    num_cpus=self.config.inference['num_cpus'],
+                    num_gpus=self.config.inference['num_gpus'],
                     **kwargs
                 )
             else:
                 prediction = model.predict(
                     source,
+                    num_cpus=self.config.inference['num_cpus'],
+                    num_gpus=self.config.inference['num_gpus'],
                     **kwargs
                 )
 
@@ -211,7 +219,12 @@ class Worker:
 
         constraint = kwargs.pop('constraint', None)
 
-        forecast = model.forecast(source, **kwargs)
+        forecast = model.forecast(
+            source,
+            num_cpus=self.config.inference['num_cpus'],
+            num_gpus=self.config.inference['num_gpus'],
+            **kwargs
+        )
 
         if model.type == 'timeseries':
             logging.info("job[%s] forecasted values for %d time buckets",

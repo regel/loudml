@@ -47,13 +47,28 @@ class Config:
             self._storage['path'] = "/var/lib/loudml"
 
         self._training = data.get('training', {})
+        if 'num_cpus' not in self._training:
+            self._training['num_cpus'] = 1
+        if 'num_gpus' not in self._training:
+            self._training['num_gpus'] = 0
         if 'nice' not in self._training:
             self._training['nice'] = 5
+        if 'batch_size' not in self._training:
+            self._training['batch_size'] = 64
+        if 'epochs' not in self._training:
+            self._training['epochs'] = 100
+
         if 'incremental' not in self._training:
             self._training['incremental'] = {
                 'enable': False,
                 'crons': [],
             }
+
+        self._inference = data.get('inference', {})
+        if 'num_cpus' not in self._inference:
+            self._inference['num_cpus'] = 1
+        if 'num_gpus' not in self._inference:
+            self._inference['num_gpus'] = 0
 
         self._server = data.get('server', {})
         if 'listen' not in self._server:
@@ -74,6 +89,11 @@ class Config:
     def training(self):
         # XXX: return a copy to prevent modification by the caller
         return copy.deepcopy(self._training)
+
+    @property
+    def inference(self):
+        # XXX: return a copy to prevent modification by the caller
+        return copy.deepcopy(self._inference)
 
     @property
     def storage(self):
