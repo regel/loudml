@@ -21,7 +21,13 @@ storage:
 server:
   listen: localhost:8077
 
+#inference:
+#  num_cpus: 1
+#  num_gpus: 0
+
 #training:
+#  num_cpus: 1
+#  num_gpus: 0
 #  incremental:
 #    enable: True
 #    crons:
