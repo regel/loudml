@@ -617,10 +617,14 @@ class InfluxDataSource(DataSource):
         max_series_per_req = self.max_series_per_request
 
 #        result = self.influxdb.query("SHOW SERIES CARDINALITY")
+        total_series = None
         result = self.influxdb.query("SHOW TAG VALUES CARDINALITY WITH KEY = \"{}\"".format(model.key))
         for (_, tags), points in result.items():
             point = next(points)
             total_series = int(point['count'])
+
+        if total_series is None:
+           raise errors.NoData()
 
         output = itertools.chain()
         gens = []
