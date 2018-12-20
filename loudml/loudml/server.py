@@ -310,6 +310,15 @@ def get_date_arg(param, default=None, is_mandatory=False):
 
     return schemas.validate(schemas.Timestamp(), value, name=param)
 
+def get_json(is_mandatory=True):
+    """
+    Parse JSON data from request body
+    """
+    data = request.json
+    if is_mandatory and data is None:
+        raise errors.Invalid("request body is empty")
+
+    return data
 
 def get_model_info(name):
     global g_storage
@@ -353,7 +362,7 @@ class ModelsResource(Resource):
         global g_config
         global g_storage
 
-        settings = request.json
+        settings = get_json()
         model = loudml.model.load_model(settings=settings, config=g_config)
 
         g_storage.create_model(model, g_config)
@@ -396,11 +405,7 @@ class ModelResource(Resource):
         global g_storage
         global g_running_models
 
-        settings = request.json
-
-        if settings is None:
-            return "model description is missing", 400
-
+        settings = get_json()
         settings['name'] = model_name
         model = loudml.model.load_model(settings=settings, config=g_config)
 
@@ -472,9 +477,7 @@ class HooksResource(Resource):
     def put(self, model_name):
         global g_storage
 
-        data = request.json
-        if data is None:
-            return "hook data is missing", 400
+        data = get_json()
 
         hook_type = data.get('type')
         if hook_type is None:
@@ -518,9 +521,7 @@ class HookResource(Resource):
         if model_name is None:
             return "model description is missing", 400
 
-        data = request.json
-        if data is None:
-            return "hook description is missing", 400
+        data = get_json()
 
         hook_type = data.get('type')
         if hook_type is None:
