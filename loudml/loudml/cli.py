@@ -70,6 +70,88 @@ class Command:
         Execute command
         """
 
+class LoadCheckpointCommand(Command):
+    """
+    Load checkpoint
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            '-c', '--checkpoint',
+            help="Checkpoint name",
+            type=str,
+        )
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        if not args.checkpoint:
+            raise LoudMLException(
+                "'checkpoint' argument is required")
+
+        storage = FileStorage(self.config.storage['path'])
+        storage.set_current_ckpt(args.model_name, args.checkpoint)
+
+class SaveCheckpointCommand(Command):
+    """
+    Save new checkpoint
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            '-c', '--checkpoint',
+            help="Checkpoint name",
+            type=str,
+        )
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        if not args.checkpoint:
+            raise LoudMLException(
+                "'checkpoint' argument is required")
+
+        storage = FileStorage(self.config.storage['path'])
+        model = storage.load_model(args.model_name)
+        storage.save_state(model, args.checkpoint)
+
+class ListCheckpointsCommand(Command):
+    """
+    List checkpoints
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            '-i', '--info',
+            help="Display checkpoint information",
+            action='store_true',
+        )
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+
+    def exec(self, args):
+        storage = FileStorage(self.config.storage['path'])
+        if args.info:
+            print("checkpoint             loss   ")
+            print("==============================")
+            for ckpt_name in storage.list_checkpoints(args.model_name):
+                data = storage.get_model_data(args.model_name, ckpt_name)
+                print("{:22} {:.5f}".format(
+                    ckpt_name,
+                    data['state'].get('loss'),
+                ))
+        else:
+            for ckpt_name in storage.list_checkpoints(args.model_name):
+                print(ckpt_name)
 
 class CreateModelCommand(Command):
     """

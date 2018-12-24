@@ -70,6 +70,9 @@ setup(
             'loudml-lic=loudml.license_mgmnt:main',
         ],
         'loudml.commands': [
+            'list-checkpoints=loudml.cli:ListCheckpointsCommand',
+            'save-checkpoint=loudml.cli:SaveCheckpointCommand',
+            'load-checkpoint=loudml.cli:LoadCheckpointCommand',
             'create-model=loudml.cli:CreateModelCommand',
             'delete-model=loudml.cli:DeleteModelCommand',
             'list-models=loudml.cli:ListModelsCommand',

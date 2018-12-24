@@ -35,6 +35,7 @@ OBJECT_KEY_SCHEMA = schemas.All(
    Match("^[a-zA-Z0-9-_@.]+$"),
 )
 
+
 class FileStorage(Storage):
     """
     File storage
@@ -50,6 +51,19 @@ class FileStorage(Storage):
             raise errors.LoudMLException(str(exn))
 
         self._convert_models()
+
+    def get_ckpt_name(self, i):
+        return "{:02d}".format(i)
+
+    def get_next_ckpt_name(self, model_path):
+        path = next(iter(sorted(glob.glob(os.path.join(model_path, '*.ckpt')),
+            key=lambda f: os.stat(f).st_mtime, reverse=True)), None)
+
+        if path is None:
+            return self.get_ckpt_name(0)
+        else:
+            ckpt = os.path.splitext(os.path.basename(path))[0]
+            return self.get_ckpt_name(int(ckpt)+1)
 
     def _convert_models(self):
         """
@@ -98,8 +112,17 @@ class FileStorage(Storage):
         settings.pop('name', None)
         self._write_json(os.path.join(model_path, "settings.json"), settings)
 
-    def _write_model_state(self, model_path, state=None):
-        state_path = os.path.join(model_path, "state.json")
+    def _write_model_state(self, model_path, state=None, ckpt_name=None):
+        if ckpt_name is None:
+            try:
+                state_path = os.readlink(os.path.join(model_path, "state.json"))
+            except OSError:
+                # convert state.json file
+                ckpt_name = self.get_ckpt_name(0)
+                state_path = os.path.join(model_path, "{}.ckpt".format(ckpt_name))
+                os.rename(os.path.join(model_path, "state.json"), state_path)
+        else:
+            state_path = os.path.join(model_path, "{}.ckpt".format(ckpt_name))
 
         if state is None:
             try:
@@ -109,7 +132,7 @@ class FileStorage(Storage):
         else:
             self._write_json(state_path, state)
 
-    def _write_model(self, path, settings, state=None, save_state=True):
+    def _write_model(self, path, settings, state=None, save_state=True, save_ckpt=True):
         try:
             os.makedirs(path, exist_ok=True)
         except OSError as exn:
@@ -117,7 +140,13 @@ class FileStorage(Storage):
 
         self._write_model_settings(path, settings)
         if save_state:
-            self._write_model_state(path, state)
+            ckpt_name = None
+            if save_ckpt:
+                ckpt_name = self.get_next_ckpt_name(path)
+
+            self._write_model_state(path, state, ckpt_name)
+            if save_ckpt:
+                self._set_current_ckpt(path, ckpt_name)
 
     def create_model(self, model, config=None):
         if (config and config.limits['nrmodels'] != "unlimited"
@@ -132,7 +161,7 @@ class FileStorage(Storage):
 
         self._write_model(model_path, model.settings, model.state)
 
-    def save_model(self, model, save_state=True):
+    def save_model(self, model, save_state=True, save_ckpt=True):
         model_path = self.model_path(model.name)
         try:
             old_settings = self._get_model_settings(model_path, model.name)
@@ -146,11 +175,29 @@ class FileStorage(Storage):
             model.settings,
             model.state,
             save_state,
+            save_ckpt,
         )
         return diff(old_settings, model.settings, expand=True)
 
-    def save_state(self, model):
-        self._write_model_state(self.model_path(model.name), model.state)
+    def save_state(self, model, ckpt_name=None):
+        self._write_model_state(self.model_path(model.name), model.state, ckpt_name)
+
+    def _set_current_ckpt(self, model_path, ckpt_name):
+        state_path = os.path.join(model_path, "state.json")
+        ckpt_path = os.path.join(model_path, "{}.ckpt".format(ckpt_name))
+        try:
+            os.unlink(state_path)
+        except FileNotFoundError:
+            pass
+
+        os.symlink(ckpt_path, state_path)
+        # touch the file to update mtime
+        with open(ckpt_path, 'a'):
+            os.utime(ckpt_path, None)
+
+    def set_current_ckpt(self, model_name, ckpt_name):
+        model_path = self.model_path(model_name)
+        self._set_current_ckpt(model_path, ckpt_name)
 
     def delete_model(self, name):
         try:
@@ -177,8 +224,12 @@ class FileStorage(Storage):
         except OSError as exn:
             raise errors.LoudMLException(str(exn))
 
-    def _get_model_state(self, model_path):
-        state_path = os.path.join(model_path, "state.json")
+    def _get_model_state(self, model_path, ckpt_name=None):
+        if ckpt_name is None:
+            state_path = os.path.join(model_path, "state.json")
+        else:
+            state_path = os.path.join(model_path, "{}.ckpt".format(ckpt_name))
+
         try:
             return self._load_json(state_path)
         except ValueError as exn:
@@ -192,7 +243,7 @@ class FileStorage(Storage):
             # Model is not trained yet
             return None
 
-    def get_model_data(self, name):
+    def get_model_data(self, name, ckpt_name=None):
         model_path = self.model_path(name)
         settings = self._get_model_settings(model_path, name)
         settings['name'] = name
@@ -202,7 +253,7 @@ class FileStorage(Storage):
         }
 
         try:
-            state = self._get_model_state(model_path)
+            state = self._get_model_state(model_path, ckpt_name)
             if state is not None:
                 data['state'] = state
         except errors.Invalid as exn:
@@ -213,6 +264,12 @@ class FileStorage(Storage):
             os.rename(state_path, state_path + ".broken")
 
         return data
+
+    def list_checkpoints(self, name):
+        return sorted([
+            os.path.splitext(os.path.basename(path))[0]
+            for path in glob.glob(os.path.join(self.model_dir, name, '*.ckpt'))
+        ])
 
     def list_models(self):
         return sorted([

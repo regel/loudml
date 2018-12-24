@@ -29,12 +29,16 @@ class Storage(metaclass=ABCMeta):
         """Tell if a model exists"""
 
     @abstractmethod
-    def get_model_data(self, name):
+    def get_model_data(self, name, ckpt_name=None):
         """Get model"""
 
     @abstractmethod
     def list_models(self):
         """List models"""
+
+    @abstractmethod
+    def list_checkpoints(self, name):
+        """List model checkpoints"""
 
     @abstractmethod
     def create_model(self, model, config):
@@ -57,12 +61,16 @@ class Storage(metaclass=ABCMeta):
         """Save model"""
 
     @abstractmethod
-    def save_state(self, model):
+    def save_state(self, model, ckpt_name=None):
         """Save model state"""
 
-    def load_model(self, name):
+    @abstractmethod
+    def set_current_ckpt(self, model_name, ckpt_name):
+        """Set active checkpoint"""
+
+    def load_model(self, name, ckpt_name=None):
         """Load model"""
-        model_data = self.get_model_data(name)
+        model_data = self.get_model_data(name, ckpt_name)
         return load_model(**model_data)
 
     @abstractmethod
