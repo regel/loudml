@@ -343,13 +343,13 @@ class PlotCommand(Command):
             '-x',
             help="Z dimension to plot on the x axis",
             type=int,
-            default=0,
+            default=-1,
         )
         parser.add_argument(
             '-y',
             help="Z dimension to plot on the y axis",
             type=int,
-            default=1,
+            default=-1,
         )
 
     def exec(self, args):

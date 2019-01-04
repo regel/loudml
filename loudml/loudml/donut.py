@@ -20,6 +20,7 @@ import sys
 import random
 import time
 import numpy as np
+import itertools
 from scipy.stats import norm
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -1470,8 +1471,8 @@ class DonutModel(Model):
         license=None,
         num_cpus=1,
         num_gpus=0,
-        x_dim=0,
-        y_dim=1,
+        x_dim=-1,
+        y_dim=-1,
     ):
         """
     
@@ -1482,14 +1483,14 @@ class DonutModel(Model):
         """
         global g_mc_batch_size
         import matplotlib.pyplot as plt
+        from mpl_toolkits import mplot3d
 
         period = self.build_date_range(from_date, to_date)
 
         logging.info("plot_results(%s) range=%s", self.name, period)
 
         self.load(num_cpus, num_gpus)
-        # FIXME: test x_dim and y_dim, must be in [0, latent_dim-1] range
-        # latent dim can be read from z_mean tensor shape
+        _, latent_dim = self._encoder_model.outputs[0].get_shape()
 
         # Build history time range
         # Extra data are required to predict first buckets
@@ -1539,9 +1540,41 @@ class DonutModel(Model):
         # display a 2D plot of the digit classes in the latent space
         z_mean, _, _ = self._encoder_model.predict(X_test,
                                                    batch_size=g_mc_batch_size)
-        plt.figure(figsize=(12, 10))
-        #FIXME: pick x, y plane automatically based on latent-dim value and elipse shape
-        plt.scatter(z_mean[:, x_dim], z_mean[:, y_dim])
+
+        if x_dim < 0 or y_dim < 0:
+            mses = []
+            for (x, y) in itertools.combinations(range(0,latent_dim), 2):
+                _mean = np.mean(z_mean, axis=0)[[x,y]]
+                mse = ((z_mean[:,[x,y]] - _mean) ** 2).mean(axis=0)
+                mses.append([x, y, mse[0] + mse[1]])
+    
+            mses = sorted(mses, key=lambda x:x[2])
+            x_dim = mses[0][0]
+            y_dim = mses[0][1]
+
+        excl = [x for x in range(latent_dim) if x != x_dim and x != y_dim]
+
+        fig = plt.figure(figsize=(12, 10))
+        if latent_dim > 3:
+            zc = np.array([
+                [z_mean[i, excl[0]], z_mean[i, excl[1]], z_mean[i, excl[2]]]
+                for i, _ in enumerate(z_mean)
+            ])
+            # (x-min(x))/(max(x)-min(x)). RGBA values should be within 0-1 range
+            zc = (zc - np.min(zc, axis=0)) / (np.max(zc, axis=0) - np.min(zc, axis=0))
+            if latent_dim > 5:
+                ax = plt.axes(projection='3d')
+                ax.set_zlabel("z[{}]".format(excl[3]))
+                ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim], z_mean[:, excl[3]], c=zc)
+            else:
+                ax = plt.axes(projection='3d')
+                zc[:, 0] = 0
+                ax.set_zlabel("z[{}]".format(excl[0]))
+                ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim], z_mean[:, excl[0]], c=zc)
+        else:
+            plt.scatter(z_mean[:, x_dim], z_mean[:, y_dim], c=z_mean[:, excl[0]])
+            plt.colorbar()
+
         plt.xlabel("z[{}]".format(x_dim))
         plt.ylabel("z[{}]".format(y_dim))
         plt.show()
