@@ -750,7 +750,7 @@ def _model_start(model, params):
 
         to_date = datetime.datetime.now().timestamp() - model.offset
 
-        if model.type == 'timeseries':
+        if model.type == 'timeseries' or model.type == 'donut':
             if from_date is None:
                 from_date = to_date - model.interval
 

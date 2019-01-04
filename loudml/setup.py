@@ -82,6 +82,7 @@ setup(
             'forecast=loudml.cli:ForecastCommand',
         ],
         'loudml.models': [
+            'donut=loudml.donut:DonutModel',
         ],
         'loudml.hooks': [
             'annotations=loudml.annotations:AnnotationHook',

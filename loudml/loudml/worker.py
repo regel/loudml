@@ -138,7 +138,7 @@ class Worker:
         src_settings = self.config.get_datasource(model.default_datasource)
         source = loudml.datasource.load_datasource(src_settings)
 
-        if model.type == 'timeseries':
+        if model.type == 'timeseries' or model.type == 'donut':
             mse_rtol = self.config.server['mse_rtol']
             _state = model.get_run_state()
             if detect_anomalies:
@@ -213,7 +213,7 @@ class Worker:
             **kwargs
         )
 
-        if model.type == 'timeseries':
+        if model.type == 'timeseries' or model.type == 'donut':
             logging.info("job[%s] forecasted values for %d time buckets",
                          self.job_id, len(forecast.timestamps))
             if constraint:
