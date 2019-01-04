@@ -27,7 +27,7 @@ MAX_RUNNING_MODELS = 3
 DEFAULT_PAYLOAD = {
     'features': {
         'datasources': ["elasticsearch", "influxdb"],
-        'models': ["timeseries"],
+        'models': ["timeseries", "donut"],
         'nrmodels': 3,
     },
     'hostid': "any",
