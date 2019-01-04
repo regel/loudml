@@ -80,6 +80,7 @@ setup(
             'train=loudml.cli:TrainCommand',
             'predict=loudml.cli:PredictCommand',
             'forecast=loudml.cli:ForecastCommand',
+            'plot=loudml.cli:PlotCommand',
         ],
         'loudml.models': [
             'donut=loudml.donut:DonutModel',

@@ -310,6 +310,79 @@ class ShowModelCommand(Command):
             else:
                 print(json.dumps(model.preview, indent=4))
 
+class PlotCommand(Command):
+    """
+    Plot model latent space on data set
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            'model_name',
+            help="Model name",
+            type=str,
+        )
+        parser.add_argument(
+            '-d', '--datasource',
+            help="Datasource",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--from',
+            help="From date",
+            type=str,
+            dest='from_date',
+        )
+        parser.add_argument(
+            '-t', '--to',
+            help="To date",
+            type=str,
+            default="now",
+            dest='to_date',
+        )
+        parser.add_argument(
+            '-x',
+            help="Z dimension to plot on the x axis",
+            type=int,
+            default=0,
+        )
+        parser.add_argument(
+            '-y',
+            help="Z dimension to plot on the y axis",
+            type=int,
+            default=1,
+        )
+
+    def exec(self, args):
+        if args.model_name == '*':
+            return self.exec_all(args)
+
+        storage = FileStorage(self.config.storage['path'])
+        model = storage.load_model(args.model_name)
+        source = get_datasource(self.config, args.datasource or
+                                model.default_datasource)
+
+        if model.type == 'donut':
+            if not args.from_date:
+                raise LoudMLException(
+                    "'from' argument is required for time-series",
+                )
+            if not args.to_date:
+                raise LoudMLException(
+                    "'to' argument is required for time-series",
+                )
+            model.plot_results(
+                source,
+                args.from_date,
+                args.to_date,
+                license=self.config.license,
+                num_cpus=self.config.inference['num_cpus'],
+                num_gpus=self.config.inference['num_gpus'],
+                x_dim=args.x,
+                y_dim=args.y,
+            )
+        else:
+            raise errors.UnsupportedModel(model.type)
+
 
 class TrainCommand(Command):
     """
