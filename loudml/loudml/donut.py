@@ -851,7 +851,7 @@ class DonutModel(Model):
                         )
 
                 missing.append(is_nan)
-                _x = x[i:j]
+                _x = np.copy(x[i:j])
                 # set missing points to zero
                 _x[is_nan == True] = 0.0
                 data_x.append(_x)
