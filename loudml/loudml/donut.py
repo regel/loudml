@@ -1052,37 +1052,6 @@ class DonutModel(Model):
     def _window(self):
         return self._span
 
-    def _xy_indexes(self):
-        """
-        Return array of feature indices that are input and output for training and prediction
-        """
-        ii = set(self._x_indexes()) & set(self._y_indexes())
-        return sorted(list(ii))
-
-    def _y_indexes(self):
-        """
-        Return array of feature indices that are output for training and predictions
-        """
-        all_features = self.features
-        y_indexes = []
-        for index, feature in enumerate(all_features):
-            if feature.is_output == True:
-                y_indexes.append(index)
-
-        return y_indexes
-
-    def _x_indexes(self):
-        """
-        Return array of feature indices that must be input to training
-        """
-        all_features = self.features
-        x_indexes = []
-        for index, feature in enumerate(all_features):
-            if feature.is_input == True:
-                x_indexes.append(index)
-
-        return x_indexes
-
     def predict(
         self,
         datasource,
