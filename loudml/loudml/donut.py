@@ -334,8 +334,8 @@ class TimeSeriesPrediction:
             raise errors.NotFound("feature not found")
 
         plt.rcParams["figure.figsize"] = (17, 9)
-        plt.plot(self.observed[:,i],"--")
-        plt.plot(self.predicted[:,i],":")
+        plt.plot(self.observed,"--")
+        plt.plot(self.predicted,":")
         plt.show()
 
 
