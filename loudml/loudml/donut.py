@@ -1442,6 +1442,7 @@ class DonutModel(Model):
         num_gpus=0,
         x_dim=-1,
         y_dim=-1,
+        output=None,
     ):
         """
     
@@ -1556,5 +1557,8 @@ class DonutModel(Model):
 
         plt.xlabel("z[{}]".format(x_dim))
         plt.ylabel("z[{}]".format(y_dim))
-        plt.show()
+        if output is None:
+            plt.show()
+        else:
+            plt.savefig(output)
 

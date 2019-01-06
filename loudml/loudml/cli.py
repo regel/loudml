@@ -351,6 +351,12 @@ class PlotCommand(Command):
             type=int,
             default=-1,
         )
+        parser.add_argument(
+            '-o', '--output',
+            help="Output figure to file",
+            type=str,
+            default=None,
+        )
 
     def exec(self, args):
         if args.model_name == '*':
@@ -379,6 +385,7 @@ class PlotCommand(Command):
                 num_gpus=self.config.inference['num_gpus'],
                 x_dim=args.x,
                 y_dim=args.y,
+                output=args.output,
             )
         else:
             raise errors.UnsupportedModel(model.type)
