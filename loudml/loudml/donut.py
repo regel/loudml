@@ -1525,6 +1525,18 @@ class DonutModel(Model):
 
         fig = plt.figure(figsize=(12, 10))
         if latent_dim > 3:
+            ax = plt.axes(projection='3d')
+            ax.set_zticks([])
+        else:
+            ax = plt.axes()
+        
+        # Hide grid lines
+        ax.grid(False)
+        # Hide axes ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        if latent_dim > 3:
             zc = np.array([
                 [z_mean[i, excl[0]], z_mean[i, excl[1]], z_mean[i, excl[2]]]
                 for i, _ in enumerate(z_mean)
@@ -1532,11 +1544,9 @@ class DonutModel(Model):
             # (x-min(x))/(max(x)-min(x)). RGBA values should be within 0-1 range
             zc = (zc - np.min(zc, axis=0)) / (np.max(zc, axis=0) - np.min(zc, axis=0))
             if latent_dim > 5:
-                ax = plt.axes(projection='3d')
                 ax.set_zlabel("z[{}]".format(excl[3]))
                 ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim], z_mean[:, excl[3]], c=zc)
             else:
-                ax = plt.axes(projection='3d')
                 zc[:, 0] = 0
                 ax.set_zlabel("z[{}]".format(excl[0]))
                 ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim], z_mean[:, excl[0]], c=zc)
