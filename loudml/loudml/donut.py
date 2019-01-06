@@ -1502,6 +1502,10 @@ class DonutModel(Model):
             model_name (string): which model is using this function
         """
         global g_mc_batch_size
+        # Agg = Anti-grain geometry engine
+        # running inside a Docker image. No Xwindow
+        import matplotlib
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         from mpl_toolkits import mplot3d
 
