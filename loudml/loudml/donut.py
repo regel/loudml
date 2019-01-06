@@ -35,6 +35,8 @@ from tensorflow.contrib.keras.api.keras.losses import mean_squared_error
 from tensorflow.contrib.keras.api.keras import regularizers
 from tensorflow.contrib.keras.api.keras.utils import plot_model
 
+import h5py # Read training_config.optimizer_config
+
 from hyperopt import hp
 from hyperopt import space_eval
 from hyperopt import (
@@ -111,6 +113,47 @@ def sampling(args):
     epsilon = K.random_normal(shape=(batch, dim))
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
+def add_loss(model, W):
+    inputs = model.inputs[0]
+    outputs = model.outputs[0]
+    z_mean = model.get_layer('z_mean').output
+    z_log_var = model.get_layer('z_log_var').output
+
+    reconstruction_loss = mean_squared_error(inputs, outputs)
+    reconstruction_loss *= W
+    kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
+    kl_loss = K.sum(kl_loss, axis=-1)
+    kl_loss *= -0.5
+    vae_loss = K.mean(reconstruction_loss + kl_loss)
+    model.add_loss(vae_loss)
+
+def _get_encoder(_keras_model):
+    # instantiate encoder model
+    inputs = _keras_model.inputs[0]
+    z_mean = _keras_model.get_layer('z_mean').output
+    z_log_var = _keras_model.get_layer('z_log_var').output
+    z = _keras_model.get_layer('z').output
+    model = _Model(inputs, [z_mean, z_log_var, z], name='encoder')
+    return model
+
+def _get_decoder(_keras_model):
+    # instantiate decoder model
+    _, latent_dim = _keras_model.get_layer('z').output.get_shape()
+    latent_dim = int(latent_dim)
+    latent_inputs = Input(shape=(int(latent_dim),), name='z_sampling')
+
+    for j, layer in enumerate(_keras_model.layers):
+        if layer.name == 'z':
+            break
+
+    x = latent_inputs
+    for layer in _keras_model.layers[j+1:]:
+        x = layer(x)
+
+    new_model = _Model(latent_inputs, x, name='decoder')
+    return new_model
+
+
 def _get_scores(y, _mean, _std):
     y = (y - _mean) / _std
     return y
@@ -171,7 +214,28 @@ def _load_keras_model(model_b64):
             tmp.close()
     finally:
         keras_model = load_model(path, compile=False)
+        opened_new_file = not isinstance(path, h5py.File)
+        if opened_new_file:
+            f = h5py.File(path, mode='r')
+        else:
+            f = filepath
+        training_config = f.attrs.get('training_config')
+        optimizer_cls = None
+        if training_config is None:
+            optimizer_cls = tf.keras.optimizers.Adam()
+        else:
+            training_config = json.loads(training_config.decode('utf-8'))
+            optimizer_config = training_config['optimizer_config']
+            optimizer_cls = tf.keras.optimizers.deserialize(optimizer_config)
+
+        if opened_new_file:
+            f.close()
         os.remove(path)
+        _, W = keras_model.inputs[0].get_shape()
+        add_loss(keras_model, int(W))
+        keras_model.compile(
+            optimizer=optimizer_cls,
+        )
 
     return keras_model
 
@@ -582,7 +646,7 @@ class DonutModel(Model):
         dataset = self.scale_dataset(dataset)
 
         def cross_val_model(params):
-            keras_model, encoder, decoder = None, None, None
+            keras_model = None
             # Destroys the current TF graph and creates a new one.
             # Useful to avoid clutter from old models / layers.
             K.clear_session()
@@ -607,7 +671,7 @@ class DonutModel(Model):
             
             # VAE model = encoder + decoder
             # build encoder model
-            inputs = Input(shape=input_shape, name='encoder_input')
+            inputs = Input(shape=input_shape)
             x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
                       activation='relu')(inputs)
@@ -618,30 +682,16 @@ class DonutModel(Model):
             # note that "output_shape" isn't necessary with the TensorFlow backend
             z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
             
-            # instantiate encoder model
-            encoder = _Model(inputs, [z_mean, z_log_var, z], name='encoder')
-            
             # build decoder model
-            latent_inputs = Input(shape=(latent_dim,), name='z_sampling')
-            x = Dense(intermediate_dim, name='intermediate',
+            x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
-                      activation='relu')(latent_inputs)
+                      activation='relu')(z)
             outputs = Dense(W, activation='linear')(x)
-            
-            # instantiate decoder model
-            decoder = _Model(latent_inputs, outputs, name='decoder')
-            
+             
             # instantiate VAE model
-            outputs = decoder(encoder(inputs)[2])
             keras_model = _Model(inputs, outputs, name='vae_mlp')
-            
-            reconstruction_loss = mean_squared_error(inputs, outputs)
-            reconstruction_loss *= W
-            kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
-            kl_loss = K.sum(kl_loss, axis=-1)
-            kl_loss *= -0.5
-            vae_loss = K.mean(reconstruction_loss + kl_loss)
-            keras_model.add_loss(vae_loss)
+
+            add_loss(keras_model, W)
             optimizer_cls = None
             if params.optimizer == 'adam':
                 optimizer_cls = tf.keras.optimizers.Adam()
@@ -676,7 +726,7 @@ class DonutModel(Model):
             if progress_cb is not None:
                 progress_cb(self.current_eval, max_evals)
 
-            return score, keras_model, encoder, decoder
+            return score, keras_model
 
         hyperparameters = HyperParameters()
 
@@ -685,7 +735,7 @@ class DonutModel(Model):
             hyperparameters.assign(args)
 
             try:
-                score, _, _, _ = cross_val_model(hyperparameters)
+                score, _ = cross_val_model(hyperparameters)
                 return {'loss': score, 'status': STATUS_OK}
             except Exception as exn:
                 logging.warning("iteration failed: %s", exn)
@@ -717,7 +767,7 @@ class DonutModel(Model):
 
         # Get the values of the optimal parameters
         best_params = space_eval(space, best)
-        score, self._keras_model, self._encoder_model, self._decoder_model = cross_val_model(
+        score, self._keras_model = cross_val_model(
             HyperParameters(best_params)
         )
         self.span = best_params['span']
@@ -1013,9 +1063,9 @@ class DonutModel(Model):
         if self._state.get('h5py', None) is not None:
             self._keras_model = _load_keras_model(self._state.get('h5py'))
             # instantiate encoder model
-            self._encoder_model = self._keras_model.get_layer('encoder')
+            self._encoder_model = _get_encoder(self._keras_model)
             # instantiate decoder model
-            self._decoder_model = self._keras_model.get_layer('decoder')
+            self._decoder_model = _get_decoder(self._keras_model)
         else:
             raise errors.ModelNotTrained()
 
