@@ -640,7 +640,7 @@ class DonutModel(Model):
         abnormal=None,
     ):
         if max_evals is None:
-            max_evals = self.settings.get('max_evals', 10)
+            max_evals = self.settings.get('max_evals', 21) # latent_dim*intermediate_dim
 
         self.current_eval = 0
 
@@ -747,7 +747,7 @@ class DonutModel(Model):
             {
               'span': self.get_hp_span('span'),
               'latent_dim': hp.choice('latent_dim', [3, 5, 8]),
-              'intermediate_dim': int(self.get_hp_span('span')/2) + hp.randint('intermediate_dim', self.get_hp_span('span')),
+              'intermediate_dim': hp.choice('i1', [21, 34, 55, 89, 144, 233, 377]),
               'optimizer': hp.choice('optimizer', ['adam']),
             }
         ])
