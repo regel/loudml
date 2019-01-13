@@ -398,9 +398,11 @@ class TimeSeriesPrediction:
         if i is None:
             raise errors.NotFound("feature not found")
 
+        x = np.linspace(1, len(self.observed), len(self.observed))
         plt.rcParams["figure.figsize"] = (17, 9)
-        plt.plot(self.observed,"--")
-        plt.plot(self.predicted,":")
+        plt.plot(x, self.observed, "--")
+        plt.fill_between(x, self.lower, self.upper, alpha=0.2)
+        plt.plot(x, self.predicted, ":", color='black')
         plt.show()
 
 
