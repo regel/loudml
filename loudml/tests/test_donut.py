@@ -154,6 +154,11 @@ class TestTimes(unittest.TestCase):
 
     def test_format(self):
         dataset = np.array([0, np.nan, 4, 6, 8, 10, 12, 14])
+        abnormal = np.array([
+            False, False, True,
+            False, False, False,
+            False, True,
+        ])
         model = DonutModel(dict(
             name='test_fmt',
             offset=30,
@@ -182,6 +187,36 @@ class TestTimes(unittest.TestCase):
             [6.0, 8.0, 10.0],
             [8.0, 10.0, 12.0],
             [10.0, 12.0, 14.0],
+        ])
+        missing, x = model._format_dataset(dataset, accept_missing=False)
+        self.assertEqual(missing.tolist(), [
+            [False, False, False],
+            [False, False, False],
+            [False, False, False],
+            [False, False, False],
+        ])
+        self.assertEqual(x.tolist(), [
+            [4.0, 6.0, 8.0],
+            [6.0, 8.0, 10.0],
+            [8.0, 10.0, 12.0],
+            [10.0, 12.0, 14.0],
+        ])
+        missing, x = model._format_dataset(dataset, abnormal=abnormal)
+        self.assertEqual(missing.tolist(), [
+            [False, True, True],
+            [True, True, False],
+            [True, False, False],
+            [False, False, False],
+            [False, False, False],
+            [False, False, True],
+        ])
+        self.assertEqual(x.tolist(), [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 6.0],
+            [0.0, 6.0, 8.0],
+            [6.0, 8.0, 10.0],
+            [8.0, 10.0, 12.0],
+            [10.0, 12.0, 0.0],
         ])
 
     def test_train(self):
