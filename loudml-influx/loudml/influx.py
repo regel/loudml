@@ -750,9 +750,12 @@ class InfluxDataSource(DataSource):
             'modified_time_ns': ts_to_ns(ts),
             'start_time': ts_to_ns(ts),
             'text': desc,
+            'id': _id,
+        }
+        # tag type easier to view annotations using TICK 1.7.x 
+        _tags = {
             'type': _type,
         }
-        _tags = { 'id': _id }
         if tags is not None:
             _tags.update(tags)
         points = [{
