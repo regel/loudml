@@ -223,6 +223,22 @@ class TestTimes(unittest.TestCase):
         self._require_training()
         self.assertTrue(self.model.is_trained)
 
+    def test_span_auto(self):
+        model = DonutModel(dict(
+            name='test',
+            offset=30,
+            span='auto',
+            bucket_interval=20 * 60,
+            interval=60,
+            features=FEATURES,
+            max_evals=40,
+        ))
+
+        self.assertEqual(model.span, "auto")
+        model.train(self.source, self.from_date, self.to_date)
+        #print(model._span)
+        self.assertTrue(10 <= model._span <= 15)
+
     def test_forecast(self):
         model = DonutModel(dict(
             name='test',
