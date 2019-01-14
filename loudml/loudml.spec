@@ -9,6 +9,7 @@ URL: www.loudml.com
 Source0: %{name}-%{version}.tar.gz
 
 BuildRequires: python34 python34-pip
+BuildRequires: python34-devel
 BuildRequires: systemd
 BuildRequires: systemd-units
 Requires(post): systemd
