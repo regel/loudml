@@ -109,7 +109,7 @@ class Hook:
             return name
 
         tags = ",".join([
-            "{}:{}".format(tag['key'], tag['value'])
+            "{}:{}".format(tag['tag'], tag['value'])
             for tag in match_all
         ])
         return "{}[{}]".format(name, tags)
