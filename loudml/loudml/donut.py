@@ -153,6 +153,18 @@ def _get_decoder(_keras_model):
     new_model = _Model(latent_inputs, x, name='decoder')
     return new_model
 
+def _get_index(d, from_date, step):
+    return int((make_ts(d) - make_ts(from_date)) / step)
+
+def _format_windows(from_date, to_date, step, windows):
+    size = _get_index(to_date, from_date, step)
+    abnormal = np.full((size,), False, dtype=bool)
+    for _from, _to in windows:
+        x = _get_index(_from, from_date, step)
+        y = _get_index(_to, from_date, step)
+        abnormal[min(size,max(0,x)):max(0,min(y,size))] = True
+
+    return abnormal
 
 def _get_scores(y, _mean, _std):
     y = (y - _mean) / _std
@@ -934,6 +946,7 @@ class DonutModel(Model):
         progress_cb=None,
         license=None,
         incremental=False,
+        windows=[],
     ):
         """
         Train model
@@ -956,7 +969,12 @@ class DonutModel(Model):
         # Prepare dataset
         nb_buckets = self.compute_nb_buckets(period.from_ts, period.to_ts)
         dataset = np.full((nb_buckets,), np.nan, dtype=float)
-        abnormal = np.full((nb_buckets,), False, dtype=bool)
+        abnormal = _format_windows(
+            period.from_ts,
+            period.to_ts,
+            self.bucket_interval,
+            windows,
+        )
 
         # Fill dataset
         data = datasource.get_times_data(self, period.from_ts, period.to_ts)
