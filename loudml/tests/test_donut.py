@@ -28,6 +28,7 @@ from loudml.randevents import (
 from loudml.donut import (
     DonutModel,
     TimeSeriesPrediction,
+    _format_windows,
 )
 from loudml.model import Feature
 
@@ -151,6 +152,64 @@ class TestTimes(unittest.TestCase):
         self._require_training()
         self.assertTrue(self.model.is_trained)
 
+    def test_format_windows(self):
+        from_date = 100
+        to_date = 200
+        step = 10
+        abnormal = _format_windows(
+            from_date,
+            to_date,
+            step,
+            [
+            ],
+        )
+        self.assertEqual(np.all(abnormal == False), True)
+
+        abnormal = _format_windows(
+            from_date,
+            to_date,
+            step,
+            [
+                [50, 90],
+                [200, 220],
+            ],
+        )
+        self.assertEqual(np.all(abnormal == False), True)
+
+        abnormal = _format_windows(
+            from_date,
+            to_date,
+            step,
+            [
+                [100, 200],
+            ],
+        )
+        self.assertEqual(np.all(abnormal == True), True)
+
+        abnormal = _format_windows(
+            from_date,
+            to_date,
+            step,
+            [
+                [150, 160],
+            ],
+        )
+        self.assertEqual(abnormal.tolist(), [
+            False, False, False, False, False, True, False, False, False, False,
+        ])
+
+        abnormal = _format_windows(
+            from_date,
+            to_date,
+            step,
+            [
+                [50, 110],
+                [190, 240],
+            ],
+        )
+        self.assertEqual(abnormal.tolist(), [
+            True, False, False, False, False, False, False, False, False, True,
+        ])
 
     def test_format(self):
         dataset = np.array([0, np.nan, 4, 6, 8, 10, 12, 14])
@@ -219,9 +278,46 @@ class TestTimes(unittest.TestCase):
             [10.0, 12.0, 0.0],
         ])
 
+
+
     def test_train(self):
         self._require_training()
         self.assertTrue(self.model.is_trained)
+
+    def test_train_abnormal(self):
+        source = MemDataSource()
+        from_date = 0
+        to_date = 100
+        for i in range(100):
+            for j in range(3):
+                source.insert_times_data({
+                    'timestamp': i*6 + j,
+                    'foo': j if (i >= 60 and i < 80) else random.uniform(-20, 20) 
+                })
+            for j in range(3):
+                source.insert_times_data({
+                    'timestamp': i*6 + j + 3,
+                    'foo': -j if (i >= 60 and i < 80) else random.uniform(-20, 20) 
+                })
+
+        abnormal=[
+        # list windows containing abnormal data 
+            ['1970-01-01 00:06:00', '1970-01-01 00:08:00'], #    [6*60, 6*80],
+        ]
+        model = DonutModel(dict(
+            name='test',
+            offset=30,
+            span=10,
+            bucket_interval=1,
+            interval=60,
+            features=[FEATURE_AVG_FOO],
+            max_evals=1,
+        ))
+
+        result = model.train(source, from_date, to_date)
+        print("loss: %f" % result['loss'])
+        result = model.train(source, from_date, to_date, windows=abnormal)
+        print("loss: %f" % result['loss'])
 
     def test_span_auto(self):
         model = DonutModel(dict(
