@@ -40,6 +40,7 @@ from loudml.misc import (
     dt_get_daytime,
     dt_get_weekday,
     ts_to_str,
+    str_to_datetime,
 )
 
 from loudml import (
@@ -286,23 +287,25 @@ class TestTimes(unittest.TestCase):
 
     def test_train_abnormal(self):
         source = MemDataSource()
-        from_date = 0
-        to_date = 100
+        from_date = '1970-01-01T00:00:00.000Z'
+        to_date = '1970-01-01T00:10:00.000Z'
         for i in range(100):
             for j in range(3):
                 source.insert_times_data({
                     'timestamp': i*6 + j,
-                    'foo': j if (i >= 60 and i < 80) else random.uniform(-20, 20) 
+                    'foo': 1.0 if (i >= 10 and i < 20) else math.sin(j) 
                 })
             for j in range(3):
                 source.insert_times_data({
                     'timestamp': i*6 + j + 3,
-                    'foo': -j if (i >= 60 and i < 80) else random.uniform(-20, 20) 
+                    'foo': 1.0 if (i >= 10 and i < 20) else math.sin(-j) 
                 })
 
         abnormal=[
         # list windows containing abnormal data 
-            ['1970-01-01 00:06:00', '1970-01-01 00:08:00'], #    [6*60, 6*80],
+            #date --date=@$((6*10)) --utc
+            #date --date=@$((6*20)) --utc
+            ['1970-01-01T00:01:00.000Z', '1970-01-01T00:02:00.000Z'], #    [6*10, 6*20],
         ]
         model = DonutModel(dict(
             name='test',
@@ -315,9 +318,18 @@ class TestTimes(unittest.TestCase):
         ))
 
         result = model.train(source, from_date, to_date)
+        loss1 = result['loss']
         print("loss: %f" % result['loss'])
+        #prediction = model.predict(source, from_date, to_date)
+        #prediction.plot('avg_foo')
+
         result = model.train(source, from_date, to_date, windows=abnormal)
+        loss2 = result['loss']
         print("loss: %f" % result['loss'])
+        #prediction = model.predict(source, from_date, to_date)
+        #prediction.plot('avg_foo')
+        self.assertTrue(loss2 < loss1)
+        self.assertTrue(loss2 > 0)
 
     def test_span_auto(self):
         model = DonutModel(dict(
