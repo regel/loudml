@@ -115,13 +115,19 @@ def sampling(args):
 
 def add_loss(model, W):
     inputs = model.inputs[0]
+    abnormal = model.inputs[1]
+    # abnormal = K.print_tensor(abnormal, message='abnormal = ')
     outputs = model.outputs[0]
     z_mean = model.get_layer('z_mean').output
     z_log_var = model.get_layer('z_log_var').output
 
+    inputs = inputs * (1.0 - abnormal)
+    outputs = outputs * (1.0 - abnormal)
+    beta = K.sum(1.0 - abnormal, axis=-1, keepdims=True) / W
+    # beta = K.print_tensor(beta, message='beta = ')
     reconstruction_loss = mean_squared_error(inputs, outputs)
     reconstruction_loss *= W
-    kl_loss = 1 + z_log_var - K.square(z_mean) - K.exp(z_log_var)
+    kl_loss = 1 + z_log_var - beta * K.square(z_mean) - K.exp(z_log_var)
     kl_loss = K.sum(kl_loss, axis=-1)
     kl_loss *= -0.5
     vae_loss = K.mean(reconstruction_loss + kl_loss)
@@ -129,11 +135,12 @@ def add_loss(model, W):
 
 def _get_encoder(_keras_model):
     # instantiate encoder model
-    inputs = _keras_model.inputs[0]
+    main_input = _keras_model.inputs[0]
+    aux_input = _keras_model.inputs[1]
     z_mean = _keras_model.get_layer('z_mean').output
     z_log_var = _keras_model.get_layer('z_log_var').output
     z = _keras_model.get_layer('z').output
-    model = _Model(inputs, [z_mean, z_log_var, z], name='encoder')
+    model = _Model([main_input, aux_input], [z_mean, z_log_var, z], name='encoder')
     return model
 
 def _get_decoder(_keras_model):
@@ -667,7 +674,7 @@ class DonutModel(Model):
             self._set_xpu_config(num_cpus, num_gpus)
 
             self.span = W = params.span
-            (_, X_train), (_, X_test) = self.train_test_split(
+            (X_miss, X_train), (X_miss_val, X_test) = self.train_test_split(
                 dataset,
                 train_size=train_size,
                 abnormal=abnormal,
@@ -685,10 +692,12 @@ class DonutModel(Model):
             
             # VAE model = encoder + decoder
             # build encoder model
-            inputs = Input(shape=input_shape)
+            main_input = Input(shape=input_shape)
+            aux_input = Input(shape=input_shape) # bool vector to flag missing data points
+            aux_output = Lambda(lambda x: x)(aux_input)
             x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
-                      activation='relu')(inputs)
+                      activation='relu')(main_input)
             z_mean = Dense(latent_dim, name='z_mean')(x)
             z_log_var = Dense(latent_dim, name='z_log_var')(x)
             
@@ -700,11 +709,10 @@ class DonutModel(Model):
             x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
                       activation='relu')(z)
-            outputs = Dense(W, activation='linear')(x)
+            main_output = Dense(W, activation='linear')(x)
              
             # instantiate VAE model
-            keras_model = _Model(inputs, outputs, name='vae_mlp')
-
+            keras_model = _Model([main_input, aux_input], [main_output, aux_output], name='vae_mlp')
             add_loss(keras_model, W)
             optimizer_cls = None
             if params.optimizer == 'adam':
@@ -721,17 +729,17 @@ class DonutModel(Model):
                 mode='auto',
             )
             keras_model.fit(
-                X_train,
+                [X_train, X_miss],
                 epochs=num_epochs,
                 batch_size=batch_size,
                 verbose=_verbose,
-                validation_data=(X_test, None),
+                validation_data=([X_test, X_miss_val], None),
                 callbacks=[_stop],
             )
 
             # How well did it do?
             score = keras_model.evaluate(
-                X_test,
+                [X_test, X_miss_val],
                 batch_size=batch_size,
                 verbose=_verbose,
             )
@@ -801,7 +809,7 @@ class DonutModel(Model):
 
         dataset = self.scale_dataset(dataset)
 
-        (_, X_train), (_, X_test) = self.train_test_split(
+        (X_miss, X_train), (X_miss_val, X_test) = self.train_test_split(
             dataset,
             train_size=train_size,
         )
@@ -813,17 +821,17 @@ class DonutModel(Model):
             mode='auto',
         )
         self._keras_model.fit(
-            X_train,
+            [X_train, X_miss],
             epochs=num_epochs,
             batch_size=batch_size,
             verbose=_verbose,
-            validation_data=(X_test, None),
+            validation_data=([X_test, X_miss_val], None),
             callbacks=[_stop],
         )
 
         # How well did it do?
         score = self._keras_model.evaluate(
-            X_test,
+            [X_test, X_miss_val],
             batch_size=batch_size,
             verbose=_verbose,
         )
@@ -837,10 +845,6 @@ class DonutModel(Model):
 
         diff = y_true - y_pred
         ano_type = feature.anomaly_type
-        # FIXME: M-ELBO shall remove the need for this gap
-        rtol = 0.05 # 5% gap above normal data range
-        y_low = y_low * (1 - rtol) # small gap to reduce VAE baseline detection.
-        y_high = y_high * (1 + rtol) # small gap to reduce VAE baseline detection.
         mu = (y_low + y_high) / 2.0
         std = (y_high - mu) / 3.0
         score = 2 * norm.cdf(abs(y_true - mu), loc=0, scale=std) - 1
@@ -1201,17 +1205,21 @@ class DonutModel(Model):
         x_ = X_test.copy()
         # MCMC
         for _ in range(g_mcmc_count):
-            z_mean, _, _ = self._encoder_model.predict(x_, batch_size=g_mc_batch_size)
+            z_mean, _, _ = self._encoder_model.predict([x_, missing], batch_size=g_mc_batch_size)
             x_decoded = self._decoder_model.predict(z_mean, batch_size=g_mc_batch_size)
             x_[missing == True] = x_decoded[missing == True]
 
         y = np.full((predict_len,), np.nan, dtype=float)
         y_low = np.full((predict_len,), np.nan, dtype=float)
         y_high = np.full((predict_len,), np.nan, dtype=float)
+        no_missing_point = np.full((g_mc_count, self.W), False, dtype=bool)
         for j, x in enumerate(x_):
             y[j] = x[-1]
             # MC integration
-            _, _, Z = self._encoder_model.predict(np.tile(x, [g_mc_count, 1]), batch_size=g_mc_batch_size)
+            _, _, Z = self._encoder_model.predict(
+                [np.tile(x, [g_mc_count, 1]), no_missing_point],
+                batch_size=g_mc_batch_size,
+            )
             x_decoded = self._decoder_model.predict(Z, batch_size=g_mc_batch_size)
             std = np.std(x_decoded[:,-1])
             y_low[j] = x[-1] - 3 * std
@@ -1341,12 +1349,18 @@ class DonutModel(Model):
         for j, _ in enumerate(x_):
             # MCMC
             for _ in range(g_mcmc_count):
-                z_mean, _, _ = self._encoder_model.predict(np.array([x]), batch_size=g_mc_batch_size)
+                z_mean, _, _ = self._encoder_model.predict(
+                    [np.array([x]), np.array([missing])],
+                    batch_size=g_mc_batch_size,
+                )
                 x_decoded = self._decoder_model.predict(z_mean, batch_size=g_mc_batch_size)
                 x[missing == True] = x_decoded[0][missing == True]
 
             # MC integration
-            _, _, Z = self._encoder_model.predict(np.tile(x, [g_mc_count, 1]), batch_size=g_mc_batch_size)
+            _, _, Z = self._encoder_model.predict(
+                [np.tile(x, [g_mc_count, 1]), np.tile(missing, [g_mc_count, 1])],
+                batch_size=g_mc_batch_size,
+            )
             x_decoded = self._decoder_model.predict(Z, batch_size=g_mc_batch_size)
             std = np.std(x_decoded[:,-1])
             y_low[j] = x[-1] - 3 * std
@@ -1577,12 +1591,12 @@ class DonutModel(Model):
         logging.info("found %d time periods", nb_buckets_found)
 
         norm_dataset = self.scale_dataset(dataset)
-        _, X_test = self._format_dataset(norm_dataset[:X_until])
+        X_miss_val, X_test = self._format_dataset(norm_dataset[:X_until])
         if len(X_test) == 0:
             raise errors.LoudMLException("not enough data for prediction")
    
         # display a 2D plot of the digit classes in the latent space
-        z_mean, _, _ = self._encoder_model.predict(X_test,
+        z_mean, _, _ = self._encoder_model.predict([X_test, X_miss_val],
                                                    batch_size=g_mc_batch_size)
 
         if x_dim < 0 or y_dim < 0:
