@@ -358,13 +358,13 @@ class TestTimes(unittest.TestCase):
             features=[
                 FEATURE_COUNT_FOO,
             ],
-            max_evals=5,
+            max_evals=21,
         ))
         source = MemDataSource()
         generator = SinEventGenerator(base=3, amplitude=3, sigma=0.01)
 
         # Align date range to day interval
-        to_date = datetime.datetime.now().timestamp()
+        to_date = make_ts('1970-12-01T00:00:00.000Z')
         to_date = math.floor(to_date / (3600*24)) * (3600*24)
         from_date = to_date - 3600 * 24 * 7 * 3
         for ts in generator.generate_ts(from_date, to_date, step_ms=600000):
@@ -398,8 +398,8 @@ class TestTimes(unittest.TestCase):
             all_default,
         )
 
-        forecast_head = np.array([7.52, 7.88, 8.61, 9.06, 9.54])
-        forecast_tail = np.array([5.02, 5.46, 6.11, 6.74, 7.16])
+        forecast_head = np.array([0.35, 0.67, 0.73, 0.70, 1.35])
+        forecast_tail = np.array([-0.09, -0.02, -0.05, 0.06, 0.08])
 
 #        print(forecast.predicted)
         delta = 1.0
