@@ -85,7 +85,11 @@ class Worker:
                     'max_evals': max_evals,
                 },
             })
-
+        windows = source.list_anomalies(
+            args.from_date,
+            args.to_date,
+            tags={ 'model': args.model_name },
+        )
         model.train(
             source,
             batch_size=self.config.training['batch_size'],
@@ -93,6 +97,7 @@ class Worker:
             num_cpus=self.config.training['num_cpus'],
             num_gpus=self.config.training['num_gpus'],
             progress_cb=progress_cb,
+            windows=windows,
             **kwargs
         )
         self.storage.save_model(model)

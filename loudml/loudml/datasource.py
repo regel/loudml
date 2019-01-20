@@ -186,6 +186,13 @@ class DataSource(metaclass=ABCMeta):
     ):
         raise NotImplemented()
 
+    def list_anomalies(
+        self,
+        from_date,
+        to_date,
+        tags=None,
+    ):
+        return []
 
 def load_datasource(settings):
     """

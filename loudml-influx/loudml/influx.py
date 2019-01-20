@@ -1,7 +1,6 @@
 """
 InfluxDB module for Loud ML
 """
-
 import logging
 import json
 import os
@@ -34,6 +33,7 @@ from loudml.misc import (
     make_ts,
     parse_addr,
     str_to_ts,
+    ts_to_str,
     build_agg_name,
 )
 from loudml.datasource import DataSource
@@ -780,5 +780,41 @@ class InfluxDataSource(DataSource):
         points[0]['fields']['deleted'] = False
         self.annotationdb.write_points(points)
         return points
+
+
+    def list_anomalies(
+        self,
+        from_date,
+        to_date,
+        tags=None,
+    ):
+        _tags = {
+            'type': 'loudml',
+        }
+        if tags is not None:
+            _tags.update(tags)
+
+        query = self._build_annotations_query(
+            measurement='annotations',
+            from_date=from_date,
+            to_date=to_date,
+            tags=_tags,
+        )
+
+        query = ''.join(query)
+        result = self.annotationdb.query(query)
+
+        windows = []
+        for j, point in enumerate(result.get_points()):
+            timeval = point.get('start_time')
+            timeval2 = point['time']
+            print(point)
+            if timeval is not None and timeval2 is not None:
+                windows.append([
+                    ts_to_str(make_ts(timeval / 1e9)),
+                    ts_to_str(make_ts(timeval2)),
+                ])
+
+        return windows
 
 

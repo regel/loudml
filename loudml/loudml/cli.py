@@ -467,6 +467,11 @@ class TrainCommand(Command):
                 raise LoudMLException(
                     "'to' argument is required for time-series",
                 )
+            windows = source.list_anomalies(
+                args.from_date,
+                args.to_date,
+                tags={'model': args.model_name },
+            )
             result = model.train(
                 source,
                 args.from_date,
@@ -476,6 +481,7 @@ class TrainCommand(Command):
                 num_gpus=self.config.training['num_gpus'],
                 incremental=args.incremental,
                 license=self.config.license,
+                windows=windows,
             )
             print("loss: %f" % result['loss'])
         else:
