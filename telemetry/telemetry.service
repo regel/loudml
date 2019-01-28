@@ -1,0 +1,11 @@
+[Unit]
+Description=Loud ML telemetry daemon
+After=network.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/telemetry
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
