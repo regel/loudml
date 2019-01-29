@@ -955,7 +955,7 @@ class DonutModel(Model):
         from_date,
         to_date="now",
         train_size=0.67,
-        batch_size=64,
+        batch_size=256,
         num_epochs=100,
         num_cpus=1,
         num_gpus=0,
