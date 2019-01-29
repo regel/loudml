@@ -147,7 +147,12 @@ class TestTimes(unittest.TestCase):
         if self.model.is_trained:
             return
 
-        self.model.train(self.source, self.from_date, self.to_date)
+        self.model.train(
+            self.source,
+            self.from_date,
+            self.to_date,
+            batch_size=32,
+        )
 
     def test_train(self):
         self._require_training()
