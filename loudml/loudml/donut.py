@@ -92,6 +92,8 @@ _hp_span_max = 100
 g_mcmc_count = 10
 g_mc_count = 1000
 g_mc_batch_size = 256
+g_lambda = 0.01
+
 
 # reparameterization trick
 # instead of sampling from Q(z|X), sample eps = N(0,I)
@@ -121,8 +123,6 @@ def add_loss(model, W):
     z_mean = model.get_layer('z_mean').output
     z_log_var = model.get_layer('z_log_var').output
 
-    inputs = inputs * (1.0 - abnormal)
-    outputs = outputs * (1.0 - abnormal)
     beta = K.sum(1.0 - abnormal, axis=-1, keepdims=True) / W
     # beta = K.print_tensor(beta, message='beta = ')
     reconstruction_loss = mean_squared_error(inputs, outputs)
@@ -148,16 +148,9 @@ def _get_decoder(_keras_model):
     _, latent_dim = _keras_model.get_layer('z').output.get_shape()
     latent_dim = int(latent_dim)
     latent_inputs = Input(shape=(int(latent_dim),), name='z_sampling')
-
-    for j, layer in enumerate(_keras_model.layers):
-        if layer.name == 'z':
-            break
-
-    x = latent_inputs
-    for layer in _keras_model.layers[j+1:]:
-        x = layer(x)
-
-    new_model = _Model(latent_inputs, x, name='decoder')
+    x = _keras_model.get_layer('dense_1')(latent_inputs)
+    output = _keras_model.get_layer('dense_2')(x)
+    new_model = _Model(latent_inputs, output, name='decoder')
     return new_model
 
 def _get_index(d, from_date, step):
@@ -424,6 +417,25 @@ class TimeSeriesPrediction:
         plt.plot(x, self.predicted, ":", color='black')
         plt.show()
 
+
+def generator(x, missing, batch_size, model):
+    batch_x = np.zeros((batch_size, x.shape[1]))
+    batch_missing = np.zeros((batch_size, x.shape[1]))
+    while True:
+        abnormal = np.random.binomial(1, g_lambda, x.shape[1])
+        for i in range(batch_size):
+            index = random.randint(0,len(x)-1)
+            batch_x[i] = x[index]
+            batch_missing[i] = np.maximum(
+                abnormal,
+                missing[index],
+            )
+
+        for _ in range(g_mcmc_count):
+            x_decoded, _ = model.predict([batch_x, batch_missing], batch_size=g_mc_batch_size)
+            batch_x[batch_missing > 0] = x_decoded[batch_missing > 0]
+       
+        yield ([batch_x, batch_missing], None)
 
 class DonutModel(Model):
     """
@@ -708,11 +720,11 @@ class DonutModel(Model):
             # build decoder model
             x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
-                      activation='relu')(z)
-            main_output = Dense(W, activation='linear')(x)
+                      activation='relu', name='dense_1')(z)
+            main_output = Dense(W, activation='linear', name='dense_2')(x)
              
-            # instantiate VAE model
-            keras_model = _Model([main_input, aux_input], [main_output, aux_output], name='vae_mlp')
+            # instantiate Donut model
+            keras_model = _Model([main_input, aux_input], [main_output, aux_output], name='donut')
             add_loss(keras_model, W)
             optimizer_cls = None
             if params.optimizer == 'adam':
@@ -728,13 +740,14 @@ class DonutModel(Model):
                 verbose=_verbose,
                 mode='auto',
             )
-            keras_model.fit(
-                [X_train, X_miss],
+            keras_model.fit_generator(
+                generator(X_train, X_miss, batch_size, keras_model),
                 epochs=num_epochs,
-                batch_size=batch_size,
+                steps_per_epoch=len(X_train) / batch_size,
                 verbose=_verbose,
                 validation_data=([X_test, X_miss_val], None),
                 callbacks=[_stop],
+                workers=0, # https://github.com/keras-team/keras/issues/5511
             )
 
             # How well did it do?
