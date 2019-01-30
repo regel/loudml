@@ -1282,6 +1282,8 @@ class DonutModel(Model):
         datasource,
         from_date,
         to_date,
+        percent_interval=0.68,
+        percent_noise=0,
         license=None,
         num_cpus=1,
         num_gpus=0,
@@ -1352,6 +1354,7 @@ class DonutModel(Model):
         logging.info("generating prediction")
         x_ = X_test.copy()
 
+        p = norm().ppf(1-(1-percent_interval)/2)
         missing = np.full((self._window,), False, dtype=bool)
         # force last col to missing
         missing[-1] = True
@@ -1359,6 +1362,7 @@ class DonutModel(Model):
         y_low = np.full((forecast_len,), np.nan, dtype=float)
         y_high = np.full((forecast_len,), np.nan, dtype=float)
         x = x_[0]
+        noise = percent_noise * float(self.bucket_interval) / (24*3600)
         for j, _ in enumerate(x_):
             # MCMC
             for _ in range(g_mcmc_count):
@@ -1369,6 +1373,10 @@ class DonutModel(Model):
                 x_decoded = self._decoder_model.predict(z_mean, batch_size=g_mc_batch_size)
                 x[missing == True] = x_decoded[0][missing == True]
 
+            # uncertainty is modeled using a random uniform noise distribution
+            # that increases over time
+            expand = np.random.uniform(-noise * j, noise * j, len(x))
+            x *= 1 + expand
             # MC integration
             _, _, Z = self._encoder_model.predict(
                 [np.tile(x, [g_mc_count, 1]), np.tile(missing, [g_mc_count, 1])],
@@ -1376,8 +1384,8 @@ class DonutModel(Model):
             )
             x_decoded = self._decoder_model.predict(Z, batch_size=g_mc_batch_size)
             std = np.std(x_decoded[:,-1])
-            y_low[j] = x[-1] - 3 * std
-            y_high[j] = x[-1] + 3 * std
+            y_low[j] = x[-1] - p * std
+            y_high[j] = x[-1] + p * std
             y[j] = x[-1]
             x = np.roll(x, -1)
             # set missing point to zero

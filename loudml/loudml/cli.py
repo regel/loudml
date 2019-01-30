@@ -547,6 +547,20 @@ class ForecastCommand(Command):
             type=str,
             dest='to_date',
         )
+        parser.add_argument(
+            '-p',
+            help="percentage of confidence interval",
+            type=float,
+            default=0.68, # = +/-1 STD
+            dest='p_val',
+        )
+        parser.add_argument(
+            '-n',
+            help="percentage of additional uniform noise for each 24 hours period",
+            type=float,
+            default=0.0,
+            dest='noise_val',
+        )
 
         group = parser.add_mutually_exclusive_group()
         group.add_argument(
@@ -598,6 +612,8 @@ class ForecastCommand(Command):
                 source,
                 args.from_date,
                 args.to_date,
+                percent_interval=args.p_val,
+                percent_noise=args.noise_val,
                 license=self.config.license,
                 num_cpus=self.config.inference['num_cpus'],
                 num_gpus=self.config.inference['num_gpus'],
