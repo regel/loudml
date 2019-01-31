@@ -1,7 +1,9 @@
-LoudML
+Loud ML
 ------
 
-The disruptive machine learning API
+Digital ICT and IoT infrastructures are growing exponentially. It is now commonplace to have millions of assets in a data center or IoT devices deployed around the world. Operations and maintenance teams at that scale can quickly become overwhelmed by the quantity of data produced by these assets.
+
+Loud ML is a bot that will enhance the management and operations of your most valuable assets through automation and prediction.
 
 Links
 ~~~~~
@@ -10,9 +12,7 @@ https://github.com/regel[GitHub page of the project]
 
 You can submit issues and suggest new exciting features at: https://github.com/regel/loudml/issues[Issues]
 
-Official website: http://www.loudml.com[loudml.com]
-
-http://loudml.io/guide/[Documentation]
+https://loudml.io/guide/[Documentation]
 
 Plug-ins
 ~~~~~~~~
