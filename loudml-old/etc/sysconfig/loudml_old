@@ -1,6 +1,0 @@
-# Configuration file for the Bonsai service
-
-# Options passed to daemon
-
-LISTEN="localhost:8077"
-OPTIONS=
