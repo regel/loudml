@@ -18,7 +18,6 @@ Requires(postun): systemd
 Requires: python34
 Requires: python34-setuptools
 Requires: curl
-Requires: loudml-api >= 1.4.0
 Requires: loudml-base == %{version}
 %{?systemd_requires}
 
@@ -74,30 +73,9 @@ find %{python3_sitelib} \
 %install
 cd loudml
 
-# Enable instance checking
-sed -i 's/# *DISABLED check_instance()/check_instance()/' loudml/server.py
-
-[ -n $(grep -E "^    check_instance()$" loudml/server.py) ] && \
-    echo -e "error: instance checking no present"
-
 make install DESTDIR=%{buildroot}
 install -m 0755 -d %{buildroot}/%{_datarootdir}/loudml
 install -m 0644 LICENSE %{buildroot}/%{_datarootdir}/loudml/LICENSE
-
-# PYC binary distribution, mv files to pre-PEP-3147 location to be able to
-# load modules
-for filename in $(find %{buildroot}/%{python3_sitelib}/loudml/__pycache__/ -name "*.cpython-34.pyc") ;
-do
-	basename=$(basename $filename) ;
-	basename="${basename%.cpython-34.pyc}" ;
-	mv $filename %{buildroot}/%{python3_sitelib}/loudml/${basename}.pyc ;
-done
-for filename in $(find %{buildroot}/%{python3_sitelib}/rmn_common/__pycache__/ -name "*.cpython-34.pyc") ;
-do
-	basename=$(basename $filename) ;
-	basename="${basename%.cpython-34.pyc}" ;
-	mv $filename %{buildroot}/%{python3_sitelib}/rmn_common/${basename}.pyc ;
-done
 
 # Loud ML daemon configuration
 install -m 0755 -d %{buildroot}/%{_sysconfdir}/loudml
@@ -108,11 +86,6 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 
 %files
 %defattr(-,root,root,-)
-# Exclude source .py files, and PEP3147 __pycache__
-%exclude %{python3_sitelib}/loudml/*.py
-%exclude %{python3_sitelib}/loudml/__pycache__
-%exclude %{python3_sitelib}/rmn_common/*.py
-%exclude %{python3_sitelib}/rmn_common/__pycache__
 # Skip dependencies management by pkg_resources (does not work well with our
 # vendor system)
 %exclude %{python3_sitelib}/loudml-*.egg-info/requires.txt

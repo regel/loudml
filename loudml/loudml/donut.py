@@ -570,18 +570,6 @@ class DonutModel(Model):
 
         return DateRange(from_ts, to_ts)
 
-    def check_allowed_date_range(self, from_date, to_date, license=None):
-        """
-        Check that date range is allowed by license.
-
-        Throw exception if unauthorized.
-        """
-        if license is None:
-            return
-
-        if not license.data_range_allowed(from_date, to_date):
-            raise errors.Forbidden("Data range not allowed by license")
-
     def apply_defaults(self, x):
         """
         Apply default feature value to np array
@@ -972,7 +960,6 @@ class DonutModel(Model):
         self.means, self.stds = None, None
         self.scores = None
 
-        self.check_allowed_date_range(from_date, to_date, license)
         period =  self.build_date_range(from_date, to_date)
         logging.info(
             "train(%s) range=%s train_size=%f batch_size=%d epochs=%d)",
@@ -1145,7 +1132,6 @@ class DonutModel(Model):
         global g_mc_count
         global g_mc_batch_size
 
-        self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
@@ -1285,7 +1271,6 @@ class DonutModel(Model):
         global g_mc_count
         global g_mc_batch_size
 
-        self.check_allowed_date_range(from_date, to_date, license)
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return

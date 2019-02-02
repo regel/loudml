@@ -12,7 +12,6 @@ export PYBUILD_DISABLE_python2 = 1
 
 # Enable instances limitations
 override_dh_auto_configure:
-	sed -i 's/# *DISABLED check_instance()/check_instance()/' loudml/server.py
 	dh_auto_configure
 
 # Keep bytecode instead of source code

@@ -21,14 +21,9 @@ LICENSE_VERSION = 1
 # TODO integrate with setuptools
 LOUDML_MAJOR_VERSION = 1
 
-MAX_RUNNING_MODELS = 3
-
-# Use Community Edition restrictions as default
 DEFAULT_PAYLOAD = {
     'features': {
-        'datasources': ["elasticsearch", "influxdb"],
-        'models': ["timeseries", "donut"],
-        'nrmodels': 3,
+        'models': ["donut"],
     },
     'hostid': "any",
 }
@@ -220,31 +215,6 @@ class License:
 
         if host_id == 'any' or host_id == self.my_host_id():
             return True
-
-    def data_range_allowed(self, from_date, to_date):
-        """
-        Check whether data range is allowed.
-
-        If data_range is not present, any date is considered valid.
-        """
-        features = self.payload.get('features', None)
-        data_range = features.get('data_range', None)
-        if data_range is None:
-            return True
-
-        allowed_start = make_ts(data_range[0])
-        allowed_end = make_ts(data_range[1])
-        check_start = make_ts(from_date)
-        check_end = make_ts(to_date)
-
-        return check_start >= allowed_start and check_end <= allowed_end
-
-    @property
-    def max_running_models(self):
-        features = self.payload.get('features')
-        if features:
-            return features.get('nrmodels', MAX_RUNNING_MODELS)
-        return MAX_RUNNING_MODELS
 
     @staticmethod
     def my_host_id():

@@ -149,11 +149,6 @@ class FileStorage(Storage):
                 self._set_current_ckpt(path, ckpt_name)
 
     def create_model(self, model, config=None):
-        if (config and config.limits['nrmodels'] != "unlimited"
-                and len(self.list_models()) >= config.limits['nrmodels']):
-            raise errors.Forbidden(
-                "You've reached the maximum count allowed in your license")
-
         model_path = self.model_path(model.name)
 
         if os.path.exists(model_path):

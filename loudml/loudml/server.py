@@ -737,12 +737,6 @@ def _model_start(model, params):
         # nothing to do; the job will load the model file
         return
 
-    if len(g_running_models) >= g_config.license.max_running_models:
-        g_lock.release()
-        raise errors.LimitReached(
-            "You've reached the maximum count allowed in your license",
-        )
-
     def create_job(from_date=None, save_run_state=True, detect_anomalies=None):
         kwargs = params.copy()
         if detect_anomalies is not None:
@@ -1045,7 +1039,7 @@ def main():
 
     app.logger.setLevel(logging.INFO)
 
-    #DISABLED check_instance()
+    check_instance()
 
     try:
         g_config = loudml.config.load_config(args.config)

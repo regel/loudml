@@ -21,7 +21,6 @@ Depends:
   ${misc:Depends},
   ${python3:Depends},
   loudml-base (= ${binary:Version}),
-  loudml-api (>= 1.4.0),
 Description: Loud ML core package
  Loud ML core package.
 

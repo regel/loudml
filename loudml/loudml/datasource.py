@@ -200,9 +200,6 @@ def load_datasource(settings):
     """
     src_type = settings['type']
 
-    if 'allowed' in settings and not src_type in settings['allowed']:
-        raise errors.Forbidden("Not allowed by license: " + src_type)
-
     datasource_cls = misc.load_entry_point('loudml.datasources', src_type)
     if datasource_cls is None:
         raise errors.UnsupportedDataSource(src_type)
