@@ -15,11 +15,6 @@ import json
 logging.getLogger('tensorflow').disabled = True
 
 import loudml.errors as errors
-try:
-    import loudml.test
-except ImportError as exn:
-    # ignore fingerprint import error
-    print("warning:", exn)
 
 from loudml.misc import (
     escape_quotes,
@@ -421,23 +416,6 @@ class TestInfluxLong(unittest.TestCase):
 
         # Check
         self.assertTrue(model.is_trained)
-
-
-class TestInfluxFingerprints(loudml.test.TestFingerprints):
-    def init_source(self):
-        self.database = 'test-voip-%d' % self.from_ts
-        logging.info("creating database %s", self.database)
-        self.source = InfluxDataSource({
-            'name': 'test',
-            'type': 'influx',
-            'addr': ADDR,
-            'database': self.database,
-        })
-        self.source.drop()
-        self.source.init()
-
-    def __del__(self):
-        self.source.drop()
 
 
 class TestInfluxTimes(unittest.TestCase):

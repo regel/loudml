@@ -24,22 +24,12 @@ Requires: loudml-base == %{version}
 # Disable debug package
 %define debug_package %{nil}
 
-%package enterprise
-Group:    Applications/System
-Summary:  Loud ML Enterprise exclusive features
-Requires: loudml == %{version}
-
 %package internal
 Group:    Applications/System
 Summary:  Loud ML tools for internal usage
 Requires: loudml == %{version}
 
 %description
-
-
-%description enterprise
-
-Additional model: fingerprints.
 
 
 %description internal
@@ -117,7 +107,6 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 
 %files
 %defattr(-,root,root,-)
-%exclude %{python3_sitelib}/loudml/fingerprints.*
 # Exclude source .py files, and PEP3147 __pycache__
 %exclude %{python3_sitelib}/loudml/*.py
 %exclude %{python3_sitelib}/loudml/__pycache__
@@ -141,10 +130,6 @@ install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 %config(noreplace) %{_sysconfdir}/loudml/config.yml
 %{_unitdir}/loudmld.service
 %attr(2775,loudml,loudml) %{_sharedstatedir}/loudml
-
-
-%files enterprise
-%{python3_sitelib}/loudml/fingerprints.pyc
 
 
 %files internal

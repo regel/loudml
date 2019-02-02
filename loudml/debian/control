@@ -25,13 +25,6 @@ Depends:
 Description: Loud ML core package
  Loud ML core package.
 
-Package: loudml-enterprise
-Architecture: all
-Depends:
-  loudml (= ${binary:Version}),
-Description: Loud ML Enterprise exclusive features
- Additional model: fingerprints.
-
 Package: loudml-internal
 Architecture: all
 Depends:

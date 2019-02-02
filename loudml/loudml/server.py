@@ -756,12 +756,6 @@ def _model_start(model, params):
 
             kwargs['from_date'] = from_date
             kwargs['to_date'] = to_date
-        elif model.type.endswith('fingerprints'):
-            if from_date is None:
-                from_date = to_date - model.span
-
-            kwargs['from_date'] = from_date
-            kwargs['to_date'] = to_date
 
         job = PredictionJob(
             model.name,

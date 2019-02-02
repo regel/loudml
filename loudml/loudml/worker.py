@@ -186,19 +186,6 @@ class Worker:
             else:
                 raise errors.Invalid('unknown requested format')
 
-        elif model.type == 'fingerprints':
-            logging.info("job[%s]: calculated fingerprints for model '%s'",
-                         self.job_id, model_name)
-
-            prediction = model.predict(source, **kwargs)
-
-            if detect_anomalies:
-                hooks = self.storage.load_model_hooks(model.settings, source)
-                model.detect_anomalies(prediction, hooks)
-                source.save_fp_anomalies_info(model, prediction)
-                self.storage.save_model(model)
-
-            return prediction.format()
         else:
             logging.info("job[%s] prediction done", self.job_id)
 
