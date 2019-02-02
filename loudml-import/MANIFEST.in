@@ -1,2 +1,0 @@
-recursive-include * *.template
-recursive-include * *.csv

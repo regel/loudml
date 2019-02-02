@@ -8,7 +8,6 @@ clean:
 	$(MAKE) -C loudml-elastic clean
 	$(MAKE) -C loudml-elastic-aws clean
 	$(MAKE) -C loudml-influx clean
-	$(MAKE) -C loudml-import clean
 	$(MAKE) -C loudml-warp10 clean
 	rm -rf build
 
@@ -18,13 +17,11 @@ install:
 	$(MAKE) -C loudml-elastic install
 	$(MAKE) -C loudml-elastic-aws install
 	$(MAKE) -C loudml-influx install
-	$(MAKE) -C loudml-import install
 	$(MAKE) -C loudml-warp10 install
 
 uninstall:
 	$(MAKE) -C loudml-warp10 uninstall
 	$(MAKE) -C loudml-influx uninstall
-	$(MAKE) -C loudml-import uninstall
 	$(MAKE) -C loudml-elastic-aws uninstall
 	$(MAKE) -C loudml-elastic uninstall
 	$(MAKE) -C loudml uninstall
@@ -32,7 +29,6 @@ uninstall:
 
 dev:
 	$(MAKE) -C loudml-influx dev
-	$(MAKE) -C loudml-import dev
 	$(MAKE) -C loudml-elastic dev
 	$(MAKE) -C loudml-elastic-aws dev
 	$(MAKE) -C loudml-warp10 dev
@@ -44,7 +40,6 @@ test:
 	$(MAKE) -C loudml-elastic test
 	$(MAKE) -C loudml-elastic-aws test
 	$(MAKE) -C loudml-influx test
-	$(MAKE) -C loudml-import test
 	$(MAKE) -C loudml-warp10 test
 
 rpm:
@@ -54,7 +49,6 @@ rpm:
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-elastic-aws rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-influx rpm
-	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-import rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml-warp10 rpm
 	@echo -e "\nRPM packages:"
 	@find $(BUILD_DIR) -name '*.rpm'
@@ -67,7 +61,6 @@ deb:
 	$(MAKE) -C loudml-elastic deb
 	$(MAKE) -C loudml-elastic-aws deb
 	$(MAKE) -C loudml-influx deb
-	$(MAKE) -C loudml-import deb
 	$(MAKE) -C loudml-warp10 deb
 	@echo -e "\nDEB packages:"
 	@find -name '*.deb'
