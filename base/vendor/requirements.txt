@@ -14,6 +14,7 @@ certifi==2018.11.29       # via requests
 chardet==3.0.4            # via requests
 click==7.0                # via flask
 cycler==0.10.0            # via matplotlib
+daiquiri==1.5.0
 dateutils==0.6.6
 decorator==4.3.2          # via networkx
 dictdiffer==0.7.1
@@ -31,7 +32,7 @@ hyperopt==0.1
 idna==2.8                 # via requests
 influxdb==5.2.1
 itsdangerous==1.1.0       # via flask
-jinja2==2.10              # via flask
+jinja2==2.10
 jmespath==0.9.3           # via boto3, botocore
 keras-applications==1.0.7  # via tensorflow
 keras-preprocessing==1.0.8  # via tensorflow
