@@ -1,0 +1,123 @@
+[[settings]]
+== Configuring Loud ML
+
+Loud ML ships with good defaults and requires very little configuration.
+Most settings can be changed using the Loud ML 
+<<cli,CLI>>.
+
+The configuration files should contain settings which are specific to 
+your NoSQL databases (such as database name and remote access parameters),
+or settings which Loud ML requires in order to respond to API calls.
+
+[[config-files-location]]
+[float]
+=== Config files location
+
+Loud ML has one configuration file:
+
+* `config.yml` for configuring Loud ML
+
+Any change to the `config.yml` file requires a restart of the `loudmld` service.
+Depending on your Linux distributions, the command may vary.
+
+These files are located in the config directory, whose default location depends
+on whether or not the installation is from an archive distribution (`whl` or
+`egg`) or a package distribution (Debian or RPM packages).
+
+For the archive distributions, the config directory location defaults to
+`$LM_HOME/config`. The location of the config directory can be changed via the
+`LM_PATH_CONF` environment variable as follows:
+
+[source,sh]
+-------------------------------
+LM_PATH_CONF=/path/to/my/config ./bin/loudmld
+-------------------------------
+
+Alternatively, you can `export` the `LM_PATH_CONF` environment variable via the
+command line or via your shell profile.
+
+For the package distributions, the config directory location defaults to
+`/etc/loudml`. The location of the config directory can also be changed
+via the `LM_PATH_CONF` environment variable, but note that setting this in your
+shell is not sufficient. Instead, this variabled is sourced from
+`/etc/default/loudml` (for the Debian package) and
+`/etc/sysconfig/loudml` (for the RPM package). You will need to edit the
+`LM_PATH_CONF=/etc/loudml` entry in one of these files accordingly to
+change the config directory location.
+
+
+[float]
+=== Config file format
+
+The configuration format is http://www.yaml.org/[YAML]. Here is an
+example of changing the path of the persistent storage directory:
+
+[source,yaml]
+--------------------------------------------------
+storage:
+    path: /var/lib/loudml
+--------------------------------------------------
+
+Settings can also be flattened as follows:
+
+[source,yaml]
+--------------------------------------------------
+storage.path: /var/lib/loudml
+--------------------------------------------------
+
+The `loudmld` HTTP server will listen on the address and port defined
+in your configuration file.
+
+[source,yaml]
+--------------------------------------------------
+server:
+    listen: localhost:8077
+--------------------------------------------------
+
+Your license file location can be configured using `license.path` property. This setting is not required if you are running Loud ML Community Edition.
+
+[source,yaml]
+--------------------------------------------------
+license:
+    path: /etc/loudml/license.lic
+--------------------------------------------------
+
+Accepted `loudmld` server configuration parameters are:
+
+[horizontal]
+`listen`:: TCP server will listen on this address and port number
+`mse_rtol`:: relative tolerance parameter, default equals 4.0 
+
+Finally, you can define your data sources; ie, how Loud ML will connect to
+your databases and find all information required for machine learning.
+
+[source,yaml]
+--------------------------------------------------
+datasources:
+  - name: favorite_source
+    type: influxdb
+    addr: localhost:8086
+    database: favoritedb
+  - name: other_source
+    type: elasticsearch
+    addr: localhost:9200
+    index: some_index*
+--------------------------------------------------
+
+The supported settings are:
+
+[horizontal]
+`name`::       (string) A user defined name that will refer to this data source
+`type`::       (string) Accepts `influxdb`, or `elasticsearch`
+`addr`::       (string) The network address and port number to connect to the database
+`database`::   (string) The database name. This property is only relevant if `type` equals `influxdb`
+`index`::      (string) The index pattern. This property is only relevant if `type` equals `elasticsearch`
+`doc_type`::      (string) The document `type` expected in Elasticsearch indexes for this data source. This property is only relevant if `type` equals `elasticsearch`
+`dbuser`::     (string) User name, if using HTTP basic authentication to connect to the database
+`dbuser_password`::      (string) User password, if using HTTP basic authentication to connect to the database
+`use_ssl`::    (boolean) Enable this flag if the SSL protocol must be used to connect to the database
+`verify_ssl`:: (boolean) Enable this flag to authenticate the server's certificate
+`ca_certs`::   (string) File path to trusted CA certificates file. This file will be used to authenticate the server's certificate
+`client_cert`:: (string) File path to client certificate file. This file will be sent to the server in order to authenticate Loud ML queries to the database
+`client_key`:: (string) File path to client private key. This property is required if `client_cert` is used, and must point to the private key matching the client certificate
+

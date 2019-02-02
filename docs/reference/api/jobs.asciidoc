@@ -1,0 +1,60 @@
+[[api-jobs]]
+== Jobs API
+
+The jobs API allows to get a typed JSON document from the current
+jobs running asynchronously based on its identifier. The following example gets a
+JSON document from the job with identifier `b67c10d6-3886-4285-a19c-2b908323238a`:
+
+=== Getting job information
+
+[source,js]
+--------------------------------------------------
+GET /jobs/<job_id>
+--------------------------------------------------
+
+Example:
+
+[source,js]
+--------------------------------------------------
+GET /jobs/b67c10d6-3886-4285-a19c-2b908323238a
+--------------------------------------------------
+
+The result of the above get operation is:
+
+[source,js]
+--------------------------------------------------
+{
+  "id": "b67c10d6-3886-4285-a19c-2b908323238a", 
+  "state": "done", 
+  "type": "training"
+}
+--------------------------------------------------
+
+The job state will have one of the following values:
+
+[horizontal]
+`waiting`::    Job is waiting to be scheduled
+`running`::    Job is running and the result is not yet ready
+`done`::       Job is completed and the result is available
+`failed`::     Job failed. The error string will return more information
+
+A top level GET operation will list all running jobs.
+
+[source,js]
+--------------------------------------------------
+GET /jobs
+--------------------------------------------------
+
+=== Cancelling a job
+
+[source,js]
+--------------------------------------------------
+POST /jobs/<job_id>/_cancel
+--------------------------------------------------
+
+Example:
+
+[source,js]
+--------------------------------------------------
+POST /jobs/b67c10d6-3886-4285-a19c-2b908323238a/_cancel
+--------------------------------------------------

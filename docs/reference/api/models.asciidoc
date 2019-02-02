@@ -1,0 +1,188 @@
+[[api-models]]
+== Models API
+
+This section contains a detailed description of the model CRUD APIs.
+The APIs support similar functions found in the model CLI, including:
+
+* <<cli-create-model,Creating a model>>
+* <<cli-delete-model,Deleting a model>>
+* <<cli-list-models,Listing existing models>>
+* <<cli-forecast,Generating forecast for a given model>>
+* Running a new job to train the model
+* Running periodic inference with new data
+
+=== Create Model API
+
+A new model can be defined using the `PUT` method and
+defining model parameters inside the request body using
+Loud ML <<feature-dsl, feature description language>>. 
+
+[source,js]
+--------------------------------------------------
+PUT /models
+{
+   ...feature description language
+}
+--------------------------------------------------
+
+Using curl:
+
+[source,bash]
+--------------------------------------------------
+curl -H "Content-Type: application/json" -X PUT localhost:8077/models --data-binary @model.json
+--------------------------------------------------
+
+[NOTE]
+==================================================
+
+The HTTP content type must be `application/json`
+
+==================================================
+
+=== Delete Model API
+
+To delete the model named `cpu_and_mem-model`, use the DELETE method:
+
+[source,js]
+--------------------------------------------------
+DELETE /models/cpu_and_mem-model
+--------------------------------------------------
+
+=== List Models API
+
+To list all existing models use the GET method:
+
+[source,js]
+--------------------------------------------------
+GET /models
+--------------------------------------------------
+
+=== Train Model API
+
+To start a training job for a given model you must specify a date
+range in the url parameters. The `from` and `to` parameters
+support <<date-math>> format and operations.
+
+[source,js]
+--------------------------------------------------
+POST /models/cpu_and_mem-model/_train?from=<range_start>&to=<range_end>
+--------------------------------------------------
+
+On success, it will return a job identifier.
+
+[source,js]
+--------------------------------------------------
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Content-Type: application/json
+< Content-Length: 39
+< Server: Werkzeug/0.12.2 Python/3.4.5
+< Date: Fri, 26 Jan 2018 22:39:30 GMT
+< 
+"624e7ab7-2a87-44b3-9d2f-ddf6bace84d7"
+--------------------------------------------------
+
+[NOTE]
+==================================================
+
+The `_train` command starts an asynchronous job in the 
+background. The current status for this job can be obtained
+by polling the <<api-jobs>> API.
+
+==================================================
+
+=== Activate Model API
+
+After training, you can start a model in order to output
+predictions every `interval`. The predicted values will
+automatically be written to your data source. 
+
+[source,js]
+--------------------------------------------------
+POST /models/cpu_and_mem-model/_start
+--------------------------------------------------
+
+The supported options are:
+
+[horizontal]
+`save_prediction`:: Write all predicted values to the default data source for this model
+`detect_anomalies`:: Flag that enables anomaly detection
+
+This task can be stopped using `_stop`:
+
+[source,js]
+--------------------------------------------------
+POST /models/cpu_and_mem-model/_stop
+--------------------------------------------------
+
+=== Forecast API
+
+After training is completed, you can request the forecast of
+future feature values using the forecast API.
+
+[source,js]
+--------------------------------------------------
+POST /models/pricing_model/_forecast?from=now&to=now+1h&bg=true
+--------------------------------------------------
+
+Accepted parameters for the _forecast API are:
+
+[horizontal]
+`from`:: generate the requested data from this date
+`to`:: generate the requested data until this date
+`bg`:: `true` to run an asynchronous job in the background, `false` (default) to run in the foreground
+
+On success it will return a job identifier if `bg`=`true`, or data points if `bg`=`false` or option is missing.
+
+[source,js]
+--------------------------------------------------
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Content-Type: application/json
+< Content-Length: 39
+< Server: Werkzeug/0.12.2 Python/3.4.5
+< Date: Fri, 14 Mar 2018 10:00:00 GMT
+< 
+"b67c10d6-3886-4285-a19c-2b908323238a"
+--------------------------------------------------
+
+You can then query the job result using the <<api-jobs,Job API>>:
+
+[source,js]
+--------------------------------------------------
+GET /jobs/b67c10d6-3886-4285-a19c-2b908323238a
+--------------------------------------------------
+
+The result of the above get operation will contain the forecast result,
+according to feature names and properties defined in your model.
+
+[source,js]
+--------------------------------------------------
+{
+    "id": "b67c10d6-3886-4285-a19c-2b908323238a",
+    "state": "done", 
+    "type": "forecast",
+    "result": {
+        "predicted": {
+            "pricing_feature": [
+                1.0200526714324951,
+                1.0138707160949707,
+                1.0268415212631226,
+                1.0200526714324951,
+                1.0138707160949707,
+                1.0268415212631226
+            ]
+        },
+        "timestamps": [
+            1521018000.0,
+            1521018600.0,
+            1521019200.0,
+            1521019800.0,
+            1521020400.0,
+            1521021000.0
+        ]
+    }
+}
+--------------------------------------------------
+
+

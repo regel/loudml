@@ -1,0 +1,257 @@
+[[api-hooks]]
+== Hooks API
+
+This section contains a detailed description of the hook CRUD APIs.
+The APIs support functions that are not found in the CLI.
+
+=== Add Hook API
+
+A new hook can be defined using the `PUT` method and
+defining hook parameters inside the request body. This hook
+will handle notifications for a given model when running
+anomaly detection.
+
+One or more hooks can be used for a given model. An active
+hook can be unregistered at any time.
+
+[source,js]
+--------------------------------------------------
+PUT /models/<model_name>/hooks
+{
+   ...your parameters
+}
+--------------------------------------------------
+
+Using curl:
+
+[source,bash]
+--------------------------------------------------
+curl -H "Content-Type: application/json" -X PUT localhost:8077/models/my-model/hooks --data-binary @hook.json
+--------------------------------------------------
+
+[NOTE]
+==================================================
+
+The HTTP content type must be `application/json`
+
+==================================================
+
+=== Delete Hook API
+
+To delete the hook named `email-hook`, use the DELETE method:
+
+[source,js]
+--------------------------------------------------
+DELETE /models/<model_name>/hooks/<hook_name>
+--------------------------------------------------
+
+Example:
+
+[source,js]
+--------------------------------------------------
+DELETE /models/my-model/hooks/email-hook
+--------------------------------------------------
+
+=== Putting it all together: An email notification example
+
+Loud ML gives you the freedom to implement your own action handlers
+and decisions when new outliers are detected. All anomalies are
+therefore actionnable. We call these action handlers `Hooks`.
+
+This tutorial will guide you through a basic email notifications
+example.
+
+The email hook is open sourced, written in Python, and provided AS-IS.
+You can fork this example and create your own in order to fit your
+requirements.
+
+==== 1/6: Download and install the mail plugin
+
+To download the source code and install the mail plugin, run:
+
+[source,sh]
+--------------------------------------------------
+git clone https://github.com/vnyb/loudml-plugin-mail
+cd loudml-plugin-mail/
+./setup.py install
+--------------------------------------------------
+
+==== 2/6: Edit the configuration
+
+A file name named `mail.yml` is included in the directory and allows
+you to customize your settings.
+
+As `root` copy this file to your plugin directory.
+
+[source,sh]
+--------------------------------------------------
+cp mail.yml /etc/loudml/plugins.d/
+--------------------------------------------------
+
+You can edit file `/etc/loudml/plugins.d/mail.yml` to define the
+SMTP settings relevant to your infrastructure. The parameters
+will be used by the mail client to send the notifications.
+
+[source,yaml]
+--------------------------------------------------
+smtp:
+  host: smtp.server.tld
+  port: 587
+  user: user
+  password: password
+  tls: true
+--------------------------------------------------
+
+Changes will take effect after restarting the `loudmld` service.
+
+==== 3/6: Setup your model and thresholds
+
+One case study is to spot <<dip-user-traffic, Abnormal Dips in User Traffic>> so
+we will use this example in this tutorial.
+
+The `traffic-model` model in this example counts user requests for each bucket interval.
+Now, since we want to detect request counts that are abnormally low, we set
+`anomaly_type` to `low` in this model definition.
+
+[source,js]
+--------------------------------------------------
+{
+  "bucket_interval": "1m",
+  "default_datasource": "my-datasource",
+  "features": [
+    {
+      "default": 0,
+      "metric": "count",
+      "field": "requests",
+      "measurement": "traffic",
+      "name": "count_all_requests",
+      "anomaly_type": "low"
+    }
+  ],
+  "interval": 60,
+  "max_evals": 10,
+  "name": "traffic-model",
+  "offset": 30,
+  "forecast": 5,
+  "span": 20,
+  "max_threshold": 70,
+  "min_threshold": 50,
+  "type": "timeseries"
+}
+--------------------------------------------------
+
+You will also note 2 threshold values in this file:
+
+* `max_threshold`: New anomalies are raised when the current score exceeds this threshold
+* `min_threshold`: Anomalies end when the current score becomes lower than this threshold
+
+==== 4/6: Create and train the model
+
+You can refer to the CLI guide <<cli-create-model,Creating a model>>, or the API guide <<api-models,Model API>> to create this model.
+
+[IMPORTANT]
+==================================================
+
+Do not forget to train your model, eg using <<cli-train,train command>> in the CLI
+
+==================================================
+
+==== 5/6: Attach your email hook to this new model
+
+The `loudml_plugin_mail/` directory will contain a file named `example.json`
+
+[NOTE]
+==================================================
+
+The .py file provided in `loudml-plugin-mail` directory will parse this file,
+and expect certain settings to be included. If you fork this code you have 
+the freedom to implement the configuration settings you need.
+
+==================================================
+
+This file should contain the following settings and help you to customize
+the content of email notifications you receive.
+
+Available settings in this file are:
+
+* `name`: A unique name
+* Name and address that will be used in the `from` field
+* Name and address that will be used in the `to` field
+* Subject with placeholders for the model `name` and anomaly `score`
+* Content with placeholders for the model `name`, anomaly `score`, `predicted` and `observed` features, and the `reason` that triggered the anomaly
+
+[source,js]
+--------------------------------------------------
+{
+    "type": "mail",
+    "name": "mail-example",
+    "config": {
+        "from": {
+            "name": "LoudML",
+            "address": "loudml@domain.tld"
+        },
+        "to": {
+            "name": "Admin",
+            "address": "admin@domain.tld"
+        },
+        "templates": {
+            "anomaly_start": {
+                "subject": "[LoudML] anomaly detected! (model={model}, score={score})",
+                "content": "Anomaly detected by LoudML!\n\nmodel={model}\ndate={date}\nscore={score}\npredicted={predicted}\nobserved={observed}\n\nReason:\n\n{reason}"
+            },
+            "anomaly_end": {
+                "subject": "[LoudML] anomaly ended (model={model}, score={score})",
+                "content": "Anomaly ended\nmodel={model}\ndate={date}\nscore={score}"
+            }
+        }
+    }
+}
+--------------------------------------------------
+
+You can finalize the configuration by attaching the settings to the `traffic-model` hook.
+
+[source,sh]
+--------------------------------------------------
+curl -H "Content-Type: application/json" -X PUT localhost:8077/models/traffic-model/hooks --data-binary @example.json
+--------------------------------------------------
+
+==== 6/6: Start periodic anomaly detection, and receive notifications
+
+After the setup is complete you may enable live anomaly detection
+using the <<api-models, Model API and _start endpoint>>. This will tell
+the `loudmld` process to output predictions at regular interval and
+call the hooks when new anomalies are starting or ending.
+
+[source,sh]
+--------------------------------------------------
+curl -X POST localhost:8077/models/traffic-model/_start?detect_anomalies=true
+--------------------------------------------------
+
+[IMPORTANT]
+==================================================
+
+The `detect_anomalies` property is activated in the above example.
+
+==================================================
+
+The email body received may contain the following information when a new anomaly is detected:
+
+[quote,Your favorite mail App]
+____
+Anomaly detected by LoudML!
+
+model=traffic-model
+
+date=2018-05-16 17:00:20.966302+02:00
+
+score=76
+
+predicted={"count_all_requests": 2344.2}
+
+observed={"count_all_requests": 251.0}
+
+Reason:
+
+feature count_all_requests is too low (score = 76.0)
+____
+

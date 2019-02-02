@@ -1,0 +1,70 @@
+[[getting-started]]
+= Getting Started
+
+[partintro]
+--
+
+Loud ML is a new deep learning API that makes it simple to prepare, train, and deploy machine learning models for predictive analytics with your favorite database. The user selects the times series that they want to model and sets the model date ranges, then Loud ML will build the models and save them back into the desired database for analysis. Loud ML does all the work and removes the complexity of machine learning with Tensorflow.
+
+It is used as the underlying technology that powers applications with predictive capabilities, and shortest time to market.
+
+Here are a few sample use-cases that Loud ML is used for:
+
+* Detecting abnormal dips in user traffic and responding to incidents before they impact customers satisfaction
+* Detecting outliers in periodic fluctuations over changing baseline; eg., e-commerce transactions where the time of day, and even the season, implies varying changes in the data
+* Spotting abnormal load in a distributed database
+* Dynamically spotting network traffic patterns and anticipating congestion before it impacts customer experience
+* Forecasting various quantities: for finance, for retail, for energy, and for supply chain optimization
+* Abnormal fraud pattern detection
+* Wizard magic, to reveal hidden features; eg, guessing footsteps when your only data is X,Y,Z acceleration. 
+
+[NOTE]
+==================================================
+
+Wizard magic is powered by `supervised` learning. All other cases are fully `unsupervised`
+since they do not require labelled data to forecast the output.
+
+==================================================
+
+For the rest of this tutorial, you will be guided through the process of getting Loud ML up and running, taking a peek inside it, and performing basic operations like creating, training, and using your data to get accurate predictions. At the end of this tutorial, you should have a good idea of what Loud ML is, how it works, and hopefully be inspired to see how you can use it to build sophisticated applications that mine intelligence from your data.
+--
+
+== Basic Concepts
+
+There are a few concepts that are core to Loud ML. Understanding these concepts from the outset will tremendously help ease the learning process.
+
+[float]
+=== Time Series Database (TSDB)
+
+A time series database (TSDB) is a software system that is optimized for handling time series data —- arrays of numbers indexed by time (a datetime or a datetime range). 
+
+[float]
+=== Near Real Time (NRT)
+
+Loud ML is a near real time API that aggregates data from external databases. What this means is there is a slight latency (normally from one to 30 seconds) from the time you index documents in the TSDB until the time it becomes available for search and aggregation performed by Loud ML.
+
+[float]
+=== Data Source
+
+A data source is an external system that supports data query and aggregation. For example, it can be a TSDB or any other document source supported by the API. This object is expressed in YAML format and defined in the configuration.
+
+[float]
+=== Model
+
+A machine learning model uses features to represent changes in the data. With Loud ML, these features are assigned by the user when creating the model. For example, a feature can be `avg(cpu_load)` to represent the average metric calculed on the document field named `cpu_load`. The features are defined at model creation time and are used both in <<training>> and <<inference>>.
+
+[float]
+[[training]]
+=== Training
+
+This is the magic part: your model will learn the features according to data history. This operation is called training. It can be CPU intensive and data hungry. The more data, the longer the training. Your training result is saved on the local filesystem, so it does not have to be repeated if not necessary. Training will output the model accuracy level as a percentage. The higher the accuracy, the better in order to use the model in production.
+
+[float]
+[[inference]]
+=== Inference
+
+After training, you can perform inference. This means your model can repeat the operations that it knows (or the ones that have been discovered through training) using brand new data. For example, with time series data, running inference means your model will predict future data based on present and past data: if your features are avg(cpu_temperature) and max(cpu_load), and your `bucket_interval` is 60s, you will predict the temperature and load in the next minute.
+
+You can run inference using both past history data (usually to verify the model accuracy), and present data.
+
+

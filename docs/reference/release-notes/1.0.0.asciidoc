@@ -1,0 +1,18 @@
+[[release-notes-1.0.0]]
+== 1.0.0 Release Notes
+
+The changes listed below have been released for the first time in Loud ML 1.0.0:
+
+* InfluxDb. We have tested this release using InfluxDb version 1.4.2. 
+* Elasticsearch. We have tested this release using Elasticsearch version 5.x.
+
+[NOTE]
+==================================================
+Please raise issues on https://github.com/regel/loudml/issues[Github] if you experience compatibility issues on your system.
+==================================================
+
+[[breaking-1.0.0]]
+[float]
+=== Breaking changes
+
+No breaking changes have been made (yet)

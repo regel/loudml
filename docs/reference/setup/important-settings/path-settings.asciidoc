@@ -1,0 +1,21 @@
+[[path-settings]]
+=== `storage.path` and `logs.path`
+
+If you are using the `.whl` or `egg` archives, the `storage` and `logs`
+directories are sub-folders of `$LM_HOME`.  If these important folders are left
+in their default locations, there is a high risk of them being deleted while
+upgrading Loud ML to a new version.
+
+In production use, you will almost certainly want to change the locations of the
+storage and log folder:
+
+[source,yaml]
+--------------------------------------------------
+storage:
+  path: /var/lib/loudml
+logs:
+  path: /var/log/loudml
+--------------------------------------------------
+
+The RPM and Debian distributions already use custom paths for `storage` and `logs`.
+

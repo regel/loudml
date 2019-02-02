@@ -1,0 +1,192 @@
+[[rpm]]
+=== Install Loud ML with RPM
+
+The RPM for Loud ML can be <<install-rpm,downloaded from our website>>
+or from our  <<rpm-repo,RPM repository>>. It can be used to install
+Loud ML on any RPM-based system such as OpenSuSE, SLES, Centos, Red Hat,
+and Oracle Enterprise.
+
+NOTE: RPM install is not supported on distributions with old versions of RPM,
+such as SLES 11 and CentOS 5.
+
+All stable versions of Loud ML can be found in our <<rpm-repo,RPM repository>>
+
+[[rpm-key]]
+==== Import the Loud ML PGP Key
+
+include::key.asciidoc[]
+
+[source,sh]
+-------------------------
+rpm --import http://loudml.s3-website-eu-west-1.amazonaws.com/repo/gpg/GPG-KEY-LOUDML
+-------------------------
+
+==== Install Python34
+
+Ensure Python3 is installed on your system before installing the `loudml` packages. You can install Python3 with one of the following commands:
+
+[source,sh]
+--------------------------------------------------
+sudo yum install python34<1>
+sudo dnf install python34<2>
+sudo zypper install python34<3>
+--------------------------------------------------
+<1> Use `yum` on CentOS and older Red Hat based distributions.
+<2> Use `dnf` on Fedora and other newer Red Hat distributions.
+<3> Use `zypper` on OpenSUSE based distributions
+
+[[rpm-repo]]
+==== Installing from the RPM repository
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {version} of Loud ML has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+Create a file called `loudml.repo` in the `/etc/yum.repos.d/` directory
+for RedHat based distributions, or in the `/etc/zypp/repos.d/` directory for
+OpenSuSE based distributions, containing:
+
+ifeval::["{release-state}"=="released"]
+
+["source","sh",subs="attributes,callouts"]
+--------------------------------------------------
+[loudml-{major-version}]
+name=LoudML packages for Enterprise Linux 7 - $basearch
+baseurl=http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/$basearch
+gpgcheck=1
+gpgkey=http://loudml.s3-website-eu-west-1.amazonaws.com/repo/gpg/GPG-KEY-LOUDML
+enabled=1
+autorefresh=1
+type=rpm-md
+--------------------------------------------------
+
+endif::[]
+
+And your repository is ready for use. You can now install Loud ML with one of the following commands:
+
+[source,sh]
+--------------------------------------------------
+sudo yum install loudml loudml-elastic loudml-influx<1>
+sudo dnf install loudml loudml-elastic loudml-influx<2>
+sudo zypper install loudml loudml-elastic loudml-influx<3>
+--------------------------------------------------
+<1> Use `yum` on CentOS and older Red Hat based distributions.
+<2> Use `dnf` on Fedora and other newer Red Hat distributions.
+<3> Use `zypper` on OpenSUSE based distributions
+
+endif::[]
+
+[[install-rpm]]
+==== Download and install the RPM manually
+
+ifeval::["{release-state}"=="unreleased"]
+
+Version {version} of Loud ML has not yet been released.
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
+The RPM for Loud ML v{version} can be downloaded from the website and installed as follows:
+
+["source","sh",subs="attributes"]
+--------------------------------------------
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}-{release}.el7.centos.x86_64.rpm
+wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}-{release}.el7.centos.x86_64.rpm.sha512
+shasum -a 512 -c loudml-{version}.rpm.sha512 <1>
+sudo rpm --install loudml-{version}.rpm
+--------------------------------------------
+<1> Compares the SHA of the downloaded RPM and the published checksum, which should output
+    `loudml-{version}.rpm: OK`.
+
+endif::[]
+
+include::skip-set-kernel-parameters.asciidoc[]
+
+include::init-systemd.asciidoc[]
+
+[[rpm-running-init]]
+==== Running Loud ML with SysV `init`
+
+Use the `chkconfig` command to configure Loud ML to start automatically
+when the system boots up:
+
+[source,sh]
+--------------------------------------------------
+sudo chkconfig --add loudmld
+--------------------------------------------------
+
+Loud ML can be started and stopped using the `service` command:
+
+[source,sh]
+--------------------------------------------
+sudo -i service loudmld start
+sudo -i service loudmld stop
+--------------------------------------------
+
+If Loud ML fails to start for any reason, it will print the reason for
+failure to STDOUT. Log files can be found in `/var/log/loudml/`.
+
+
+[[rpm-running-systemd]]
+include::systemd.asciidoc[]
+
+[[rpm-check-running]]
+include::check-running.asciidoc[]
+
+[[rpm-configuring]]
+==== Configuring Loud ML
+
+include::etc-loudml.asciidoc[]
+
+The RPM also has a system configuration file (`/etc/sysconfig/loudml`),
+which allows you to set the following parameters:
+
+include::sysconfig-file.asciidoc[]
+
+NOTE: Distributions that use `systemd` require that system resource limits be
+configured via `systemd` rather than via the `/etc/sysconfig/loudml`
+file.  See <<systemd>> for more information.
+
+[[rpm-layout]]
+==== Directory layout of RPM
+
+The RPM places config files, logs, and the data directory in the appropriate
+locations for an RPM-based system:
+
+
+[cols="<h,<,<m,<m",options="header",]
+|=======================================================================
+| Type | Description | Default Location | Setting
+| home
+  | Loud ML home directory or `$LM_HOME`
+  | /usr/share/loudml
+ d|
+
+| conf
+  | Configuration files including `config.yml`
+  | /etc/loudml
+  | <<config-files-location,LM_PATH_CONF>>
+
+| conf
+  | Environment variables including heap size, file descriptors.
+  | /etc/sysconfig/loudml
+ d|
+
+| data
+  | The location of the data files of each model defined
+    on the node. 
+  | /var/lib/loudml
+  | storage.path
+
+| logs
+  | Log files location.
+  | /var/log/loudml
+
+|=======================================================================
+
+include::next-steps.asciidoc[]

@@ -1,0 +1,79 @@
+[[setup-upgrade]]
+= Upgrade Loud ML
+
+[partintro]
+--
+Loud ML can usually be upgraded using a <<rolling-upgrades,Rolling upgrade>>
+process so upgrading minimizes service interrupt time. However, you might
+need to <<training-upgrades,Retrain to upgrade>> models created in older versions.
+
+[IMPORTANT]
+===========================================
+Before upgrading Loud ML:
+
+* Review the breaking changes for changes that
+affect your application.
+* Check the deprecation log to see if you are using
+any deprecated features.
+* If you use custom plugins, make sure compatible versions are available.
+* Test upgrades in a development environment before upgrading your production environment
+* <<training-snapshot,Back up your training data>> before upgrading.
+You **cannot roll back** to an earlier version unless you have a backup of
+your training data.
+
+===========================================
+
+--
+
+[[rolling-upgrades]]
+== Rolling upgrades
+
+A rolling upgrade allows a Loud ML instance to be upgraded and minimize service
+interrupt time.
+ 
+Rolling upgrades can be performed between minor versions.
+
+To perform a rolling upgrade:
+
+[[training-snapshot]]
+. *Back up your data*
++
+--
+Backup your configuration and model data
+[source,bash]
+--------------------------------------------------
+tar -zcvf archive.tar.gz /etc/loudml /var/lib/loudml
+--------------------------------------------------
+--
+. *Stop the running loudmld service.*
++
+--
+[source,bash]
+--------------------------------------------------
+systemctl stop loudmld
+--------------------------------------------------
+--
+. *Update the installed package*.
++
+--
+Use YUM, (Or APT in Debian distributions) to update to the
+latest version:
+[source,bash]
+--------------------------------------------------
+yum update -y loudml
+--------------------------------------------------
+--
+. *Restart the loudmld service*
++
+--
+[source,bash]
+--------------------------------------------------
+systemctl start loudmld
+--------------------------------------------------
+--
+
+
+[[training-upgrades]]
+== Training upgrades
+
+A training upgrade will keep all configuration files

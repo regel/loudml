@@ -1,0 +1,49 @@
+[[cli-predict]]
+== Predict Command
+
+The predict command will return model predictions for a given time range,
+and a given model. For example the command below will output predictions
+for model named `avg_temp2` between yesterday and the current time:
+
+[source,bash]
+--------------------------------------------------
+loudml predict --from "now-1d" --to "now" avg_temp2 -b
+--------------------------------------------------
+
+And this example will output result to `stdout`:
+
+[source,js]
+--------------------------------------------------
+[
+   {
+       "observed": {
+           "avg_temp_feature": 29.7
+       },
+       "predicted": {
+           "avg_temp_feature": 30.1
+       },
+       "timestamp": 1516986000.0
+   },
+   {
+       "observed": {
+           "avg_temp_feature": 28.3
+       },
+       "predicted": {
+           "avg_temp_feature": 28.01
+       },
+       "timestamp": 1516987200.0
+   },
+........
+]
+--------------------------------------------------
+
+The `predict` command supports the following options:
+
+[horizontal]
+`-f`::       (date) The `from` date in range query, supports <<date-math,Date Math>> notation.
+`-t`::       (date) The `to` date in range query, supports <<date-math,Date Math>> notation. 
+`-b`::       Will format the output into buckets
+`-s`::       Will save output predictions to the data-source
+`model`::      The model name
+
+

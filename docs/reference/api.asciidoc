@@ -1,0 +1,21 @@
+[[api]]
+= APIs
+
+[partintro]
+--
+This section contains a detailed description of the following CRUD APIs:
+
+* <<api-datasources>>
+* <<api-jobs>>
+* <<api-models>>
+* <<api-hooks>>
+--
+
+include::api/datasources.asciidoc[]
+
+include::api/jobs.asciidoc[]
+
+include::api/models.asciidoc[]
+
+include::api/hooks.asciidoc[]
+

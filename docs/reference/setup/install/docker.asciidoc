@@ -1,0 +1,80 @@
+[[docker]]
+=== Installing and running Loud ML with Docker
+
+The official Docker image for Loud ML can be downloaded from our
+DockerHub repo. It can be used to install Loud ML on any
+operating system that supports Docker containers.
+
+To install Loud ML Community version, run the command below:
+
+[source,sh]
+-------------------------
+docker pull loudml/community
+-------------------------
+
+To run the image, and in particular the `loudmld` process giving
+access to the HTTP API you can run:
+ 
+[source,sh]
+-------------------------
+docker run -ti -p 8077:8077 -v $VOLUME/etc/loudml/config.yml:/etc/loudml/config.yml:ro  -v $VOLUME/var/lib/loudml:/var/lib/loudml:rw loudml/community
+-------------------------
+
+[NOTE]
+==================================================
+
+`loudmld` stores all training information to `/var/lib/loudml` directory.
+This directory is local to the container and you can define $VOLUME in the
+above shell command to keep these files on your host.
+
+==================================================
+
+
+[NOTE]
+==================================================
+
+Docker users can use more advanced settings thanks to `docker-compose`
+
+An example for your reference is available in the loudml Github repository,
+directory docker-compose/. You can fork the example and create your own
+as required.
+
+==================================================
+
+[[docker-layout]]
+==== Directory layout of Docker container
+
+The Docker image places config files, logs, and the data directory in the appropriate
+locations for a Debian-based system:
+
+[cols="<h,<,<m,<m",options="header",]
+|=======================================================================
+| Type | Description | Default Location | Setting
+| home
+  | Loud ML home directory or `$LM_HOME`
+  | /usr/share/loudml
+ d|
+
+| conf
+  | Configuration files including `config.yml`
+  | /etc/loudml
+  | <<config-files-location,LM_PATH_CONF>>
+
+| conf
+  | Environment variables including heap size, file descriptors.
+  | /etc/default/loudml
+ d|
+
+| data
+  | The location of the data files of each model defined
+    on the node. 
+  | /var/lib/loudml
+  | storage.path
+
+| logs
+  | Log files location.
+  | /var/log/loudml
+
+|=======================================================================
+
+include::next-steps.asciidoc[]

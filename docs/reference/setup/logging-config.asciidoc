@@ -1,0 +1,43 @@
+[[logging]]
+
+[float]
+[[configuring-logging-levels]]
+=== Configuring logging levels
+
+There are two ways to configuring logging levels, each having situations in which they are appropriate to use.
+
+1. Via the command-line: `-E <name of logging hierarchy>=<level>` (e.g.,
+   `-E logger.loudml.training=info`). This is most appropriate when
+   you are temporarily debugging a problem on a single node (for example, a
+   problem with startup, or during development).
+2. Via `config.yml`: `<name of logging hierarchy>: <level>` (e.g.,
+   `logger.loudml.training: info`). This is most appropriate when
+   you are temporarily debugging a problem but are not starting loudmld
+   via the command-line (e.g., via a service) or you want a logging level
+   adjusted on a more permanent basis.
+
+[float]
+[[deprecation-logging]]
+=== Deprecation logging
+
+In addition to regular logging, Loud ML allows you to enable logging
+of deprecated actions. For example this allows you to determine early, if
+you need to migrate certain functionality in the future. By default,
+deprecation logging is enabled at the WARN level, the level at which all
+deprecation log messages will be emitted.
+
+[source,properties]
+--------------------------------------------------
+logger.deprecation.level = warn
+--------------------------------------------------
+
+This will create a daily rolling deprecation log file in your log directory.
+Check this file regularly, especially when you intend to upgrade to a new
+major version.
+
+The default logging configuration has set the roll policy for the deprecation
+logs to roll and compress after 1 GB, and to preserve a maximum of five log
+files (four rolled logs, and the active log).
+
+You can disable it by setting the deprecation log level to `error`.
+

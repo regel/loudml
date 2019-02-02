@@ -1,0 +1,114 @@
+[[release-notes-1.3.0]]
+== 1.3.0 Release Notes
+
+The changes listed below have been released for the first time in Loud ML 1.3.0.
+
+[NOTE]
+==================================================
+Please raise issues on https://github.com/regel/loudml/issues[Github] if you experience compatibility issues on your system.
+==================================================
+
+[[overview-1.3.0]]
+[float]
+=== Overview
+
+1.3 is a significant update in several areas:
+
+* Enhanced packaging.
+* Official Docker container availability.
+* Awesome new functions, including:
+** forecast: let's take a look into the future!
+** seasonality: periodic fluctuations arise from physical world activities; one flag to turn it on and you will love it!
+** unlimited input, output, or input/output features in a model: want to forecast energy production based on sun and wind conditions? Give it a try.
+* Huge enhancements and more freedom in the anomaly detection API. You now have the freedom to create your own handler.
+* Enhanced support and bug fixes for Elasticsearch.
+
+[[improvements-1.3.0]]
+[float]
+=== Improvements
+
+* First things first, we have improved RPM and DEB packaging to:
+  - ensure all dependencies are included;
+  - simplify the installation process.
+* A new `loudml-base` package:
+  - contains all Python dependencies in a `vendor/` directory;
+  - this ensures the runtime environment is sane, without missing PIP dependencies.
+* A new `loudml-api` package:
+  - contains a GPLv2 public API for developers;
+  - enables software developers to implement and customise their own functions to handle anomalies.
+* The official Docker image is finally available:
+  - get started by running `docker pull loudml/community` and then `docker run`.
+
+[[features-1.3.0]]
+[float]
+=== New features
+
+The 1.3 release introduces new cool features.
+
+* New APIs
+** A public API for anomaly detection handlers is now available:
+*** we have released two open-source examples using the Loud ML API in GPLv2 license;
+*** the first example implements email notifications, and the second HTTP webhook notifications;
+*** you are welcome to fork the examples, create your own, and share your code with the community.
+* New endpoints are available in `loudmld` to expose new REST APIs:
+** /models/<name>/_forecast 
+*** will create a one-shot forecasting job; you can query the output using the job id;
+** /models/<model_name>/hooks/ 
+*** will either list or add new handlers for anomaly detection;
+** /models/<model_name>/hooks/<hook_name> 
+*** will either get, delete, or update a given anomaly detection handler.
+
+* Database support
+** InfluxDB security parameters are now available:
+*** you can add database credentials and SSL parameters to `/etc/loudml/config.yml`
+** Elasticsearch security parameters are now available:
+*** you can add database credentials and SSL parameters to `/etc/loudml/config.yml`
+
+* New functions
+** You can select seasonality parameters in your time series model
+*** when activated, these will help you fit time series data with weekday, and/or time of day repeating patterns.
+** Define `i`, `o`, `io` (input, output or input/output) are now available in the time series model:
+*** you can now define your time series model features respectively as input-only, output only, or input and output.
+** A `match_all` property is now available in the model feature definition:
+*** you can now filter measurements from your data source based on certain fields or tag values.
+** New properties `max_threshold`, and `min_threshold` replace the unique anomaly detection threshold value:
+*** hysteresis implementation;
+*** the property accepts values in range 0-100;
+*** these raise anomalies when the current score is higher than `max_threshold`, and will cool down when the score is lower than `min_threshold`.
+** A new `anomaly_type` property is available in the model feature definition:
+*** the property accepts the values `high`, `low`, and `low_high`;
+*** these raise anomalies when values are respectively higher than expected, lower than expected, or both.
+** CLI: a new command, named `forecast`, is available:
+*** as the name implies, it will forecast and output future values on demand.
+** A new `forecast` property is available in the model feature definition:
+*** you can define how many bucket intervals you need to forecast in the future.
+** The existing `span` property in the model features definition now accepts an `auto` parameter:
+*** when used and combined with `-m` (or `max_evals` property) training, the optimal `span` value will be calculated automatically.
+
+
+[[breaking-1.3.0]]
+[float]
+=== Breaking changes
+
+Few breaking changes have been made:
+
+* All data is still saved in `/var/lib/loudml` by default, however your model data will be split into distinct sub-directories for each model.
+* The `threshold` in model properties is replaced by `max_threshold` and `min_threshold` in order to support hysterisis and report the anomalies
+* The `accuracy` is no longer reported in the training output log. The value was causing confusion, and was therefore removed. The reason behind this is that time series are internally using an LSTM regression model, and minimize the mean square error (MSE). Only the loss value is relevant. The lower the `loss` obtained in training, the better.
+
+[[ack-1.3.0]]
+[float]
+=== Acknowledgements
+
+We would like to express our warm thanks to our early adopters and believers:
+
+* Thank you to the hard-working and dedicated team who delivered this awesome release
+* Thank you to friends, kids and family, for their incredible support
+* Thank you to Lorenzo Mangani, for helping us in AI innovation for the telecom industry
+* Thank you to our technology partner InfluxData, Inc. Everything you do is magic! 
+* Thank you to all the entire Loud ML user community, for all your excellent feedback
+
+We cannot wait to provide you the next release, already adding cool features on
+the roadmap. Please let us know your favorite feature requests on Github!
+
+

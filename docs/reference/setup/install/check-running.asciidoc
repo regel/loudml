@@ -1,0 +1,20 @@
+==== Checking that Loud ML is running
+
+You can test that your Loud ML node is running by sending an HTTP
+request to port `8077` on `localhost`:
+
+[source,js]
+--------------------------------------------
+GET /
+--------------------------------------------
+
+which should give you a response something like this:
+
+["source","js",subs="attributes,callouts"]
+--------------------------------------------
+{
+  "version" : "{version}",
+  "tagline" : "The Disruptive Machine Learning API"
+}
+--------------------------------------------
+

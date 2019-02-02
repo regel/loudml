@@ -1,0 +1,42 @@
+[[install-loudml]]
+== Installing Loud ML
+
+Loud ML is provided in the following package formats:
+
+[horizontal]
+`deb`::
+
+The `deb` package is suitable for Debian Stretch
+systems.  Debian packages may be downloaded from our Debian repository.
++
+<<deb>>
+
+`ubuntu`::
+
+The `ubuntu` deb package is suitable for Ubuntu 18.04
+systems.  Ubuntu packages may be downloaded from our Ubuntu repository.
++
+<<ubuntu>>
+
+`rpm`::
+
+The `rpm` package is suitable for installation on Red Hat, Centos, SLES,
+OpenSuSE and other RPM-based systems.  RPMs may be downloaded from our
+RPM repository.
++
+<<rpm>>
+
+`docker`::
+
+The `docker` image is suitable to run Loud ML in a container environment
+across several operating systems.
+<<docker>>
+
+
+include::install/deb.asciidoc[]
+
+include::install/ubuntu.asciidoc[]
+
+include::install/rpm.asciidoc[]
+
+include::install/docker.asciidoc[]
