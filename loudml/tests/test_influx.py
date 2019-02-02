@@ -30,7 +30,8 @@ from loudml.influx import (
 )
 from loudml.memdatasource import MemDataSource
 
-from loudml.timeseries import TimeSeriesModel
+from loudml.model import Model
+from loudml.donut import DonutModel
 from loudml.randevents import SinEventGenerator
 from loudml.filestorage import TempStorage
 
@@ -114,14 +115,13 @@ class TestInfluxQuick(unittest.TestCase):
         self.source.drop()
         self.source.init()
 
-        self.model = TimeSeriesModel(dict(
+        self.model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
             bucket_interval=3,
             interval=60,
             features=FEATURES,
-            threshold=30,
         ))
 
         data = [
@@ -300,7 +300,7 @@ class TestInfluxQuick(unittest.TestCase):
                 feature.field: val[i]
                 for i, feature in enumerate(self.model.features)
             }
-            bucket.update({self.model.timestamp_field: make_ts(timeval)})
+            bucket.update({'timestamp': make_ts(timeval)})
             _source.insert_times_data(bucket)
 
         res2 = _source.get_times_data(
@@ -315,14 +315,13 @@ class TestInfluxQuick(unittest.TestCase):
             np.testing.assert_allclose(val, val2)
 
     def test_match_all(self):
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
             bucket_interval=3,
             interval=60,
             features=FEATURES_MATCH_ALL_TAG1,
-            threshold=30,
         ))
         res = self.source.get_times_data(
             model,
@@ -340,14 +339,13 @@ class TestInfluxQuick(unittest.TestCase):
             atol=0,
         )
 
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
             bucket_interval=3,
             interval=60,
             features=FEATURES_MATCH_ALL_TAG2,
-            threshold=30,
         ))
 
         res = self.source.get_times_data(
@@ -400,14 +398,13 @@ class TestInfluxLong(unittest.TestCase):
         self.source.commit()
 
     def test_train(self):
-        model = TimeSeriesModel(dict(
+        model = DonutModel(dict(
             name='test',
             offset=30,
             span=5,
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES[0:1],
-            threshold=30,
             max_evals=1,
         ))
 
@@ -520,11 +517,10 @@ class TestInfluxTimes(unittest.TestCase):
                 }
 
     def test_loudmld(self):
-        model = TimeSeriesModel(dict(
+        model = DonutModel(dict(
             name='test',
             offset=30,
-            span=8,
-            forecast=4,
+            span=200,
             bucket_interval=10,
             interval=10,
             features=[
@@ -535,15 +531,12 @@ class TestInfluxTimes(unittest.TestCase):
                     'field': 'foo',
                 }
             ],
-            max_evals=5,
-            min_threshold=0,
-            max_threshold=0,
+            max_evals=21,
         ))
-        model2 = TimeSeriesModel(dict(
+        model2 = DonutModel(dict(
             name='normal',
             offset=30,
-            span=8,
-            forecast=4,
+            span=200,
             bucket_interval=10,
             interval=10,
             features=[
@@ -565,7 +558,7 @@ class TestInfluxTimes(unittest.TestCase):
 
         print("training model")
         model.train(self.source, from_date, to_date)
-        print("training done, mse=", model._state['mse'])
+        print("training done")
 
         # simulate loudmld loop in range 11h00 - 13h30
         dt = datetime.datetime(2018, 8, 1, 11, 00)
@@ -590,12 +583,12 @@ class TestInfluxTimes(unittest.TestCase):
         self.source.commit()
 
         self.assertEqual(
-            normal.shape, prediction.predicted.shape
+            normal.T[0].shape, prediction.predicted.shape
         )
         for j, _ in enumerate(normal):
             np.testing.assert_allclose(
                 prediction.predicted[j],
                 normal[j],
-                rtol=0.20,
-                atol=50,
+                rtol=0.10,
+                atol=20,
             )

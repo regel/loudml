@@ -11,7 +11,7 @@ from loudml import (
     errors,
 )
 
-from loudml.timeseries import TimeSeriesModel
+from loudml.donut import DonutModel
 from loudml.filestorage import FileStorage
 
 FEATURES = [
@@ -29,7 +29,7 @@ class TestFileStorage(unittest.TestCase):
             storage = FileStorage(tmp)
 
             # Create
-            model = TimeSeriesModel(dict(
+            model = DonutModel(dict(
                 name='test-1',
                 offset=30,
                 span=300,
@@ -39,12 +39,12 @@ class TestFileStorage(unittest.TestCase):
                 max_threshold=70,
                 min_threshold=60,
             ))
-            self.assertEqual(model.type, 'timeseries')
+            self.assertEqual(model.type, 'donut')
             storage.create_model(model)
             self.assertTrue(storage.model_exists(model.name))
 
             # Create
-            model = TimeSeriesModel(dict(
+            model = DonutModel(dict(
                 name='test-2',
                 offset=56,
                 span=200,
@@ -69,6 +69,6 @@ class TestFileStorage(unittest.TestCase):
 
             # Rebuild
             model = storage.load_model("test-2")
-            self.assertEqual(model.type, 'timeseries')
+            self.assertEqual(model.type, 'donut')
             self.assertEqual(model.name, 'test-2')
             self.assertEqual(model.offset, 56)

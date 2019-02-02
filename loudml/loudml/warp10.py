@@ -190,8 +190,6 @@ class Warp10DataSource(DataSource):
         tags=None,
         **kwargs
     ):
-        span = model.span * 1e6
-
         period = model.build_date_range(from_date, to_date)
 
         nb_buckets = int((period.to_ts - period.from_ts) / model.bucket_interval)

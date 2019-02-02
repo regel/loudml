@@ -1,3 +1,5 @@
+import loudml.vendor
+
 import datetime
 import logging
 import os
@@ -19,8 +21,9 @@ from loudml.misc import (
 
 from loudml.randevents import SinEventGenerator
 
-from loudml.timeseries import (
-    TimeSeriesModel,
+from loudml.model import Model
+from loudml.donut import (
+    DonutModel,
 )
 from loudml.warp10 import (
     Warp10DataSource,
@@ -44,7 +47,7 @@ class TestWarp10(unittest.TestCase):
 
         self.tag = {'test': self.prefix}
 
-        self.model = TimeSeriesModel(dict(
+        self.model = Model(dict(
             name="test-model",
             offset=30,
             span=3,
@@ -63,7 +66,6 @@ class TestWarp10(unittest.TestCase):
                     'default': 0,
                 },
             ],
-            threshold=30,
         ))
 
         self.t0 = datetime.datetime.now(datetime.timezone.utc).replace(
@@ -77,7 +79,7 @@ class TestWarp10(unittest.TestCase):
         self.source.drop(tags=self.tag)
 
     def test_multi_fetch(self):
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="test-model",
             offset=30,
             span=3,
@@ -99,7 +101,6 @@ class TestWarp10(unittest.TestCase):
                     'default': 0,
                 },
             ],
-            threshold=30,
         ))
         res = self.source.build_multi_fetch(
             model,
@@ -228,7 +229,7 @@ BUCKETIZE
             )
 
     def test_match_all(self):
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="test-model",
             offset=30,
             span=3,
@@ -244,7 +245,6 @@ BUCKETIZE
                     ],
                 },
             ],
-            threshold=30,
         ))
 
         t0 = self.t0
@@ -304,7 +304,7 @@ BUCKETIZE
             atol=0,
         )
 
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="test-model",
             offset=30,
             span=3,
@@ -320,7 +320,6 @@ BUCKETIZE
                     ],
                 },
             ],
-            threshold=30,
         ))
 
         res = self.source.get_times_data(
@@ -340,7 +339,7 @@ BUCKETIZE
         )
 
     def test_train_predict(self):
-        model = TimeSeriesModel(dict(
+        model = DonutModel(dict(
             name='test',
             offset=30,
             span=5,
@@ -360,7 +359,6 @@ BUCKETIZE
                     'default': 5,
                 },
             ],
-            threshold=30,
             max_evals=1,
         ))
 
@@ -401,7 +399,7 @@ BUCKETIZE
         self.source.save_timeseries_prediction(prediction, model, tags=self.tag)
 
         # Fake model just for extracting saved prediction
-        model2 = TimeSeriesModel(dict(
+        model2 = Model(dict(
             name='test-prediction',
             offset=30,
             span=5,
@@ -419,7 +417,6 @@ BUCKETIZE
                     'field': "prediction.{}.avg_foo".format(model.name),
                 },
             ],
-            threshold=30,
             max_evals=1,
         ))
 

@@ -3,6 +3,7 @@ Loud ML model
 """
 
 import copy
+import math
 import numpy as np
 
 from voluptuous import (
@@ -63,6 +64,29 @@ def flatten_features(features):
             inout.append(feature)
 
     return inout + out_only + in_only
+
+
+class DateRange:
+    def __init__(self, from_date, to_date):
+        self.from_ts = misc.make_ts(from_date)
+        self.to_ts = misc.make_ts(to_date)
+
+        if self.to_ts < self.from_ts:
+            raise errors.Invalid("invalid date range: {}".format(self))
+
+    @property
+    def from_str(self):
+        return misc.ts_to_str(self.from_ts)
+
+    @property
+    def to_str(self):
+        return misc.ts_to_str(self.to_ts)
+
+    def __str__(self):
+        return "{}-{}".format(
+            self.from_str,
+            self.to_str,
+        )
 
 
 class Feature:
@@ -164,6 +188,10 @@ class Model:
                 Optional('io'): All([Feature.SCHEMA], Length(min=1)),
             }),
         ),
+        Optional('bucket_interval'): schemas.TimeDelta(
+            min=0, min_included=False,
+        ),
+        'timestamp_field': schemas.key,
         'routing': Any(None, schemas.key),
         'threshold': schemas.score,
         'max_threshold': schemas.score,
@@ -187,6 +215,8 @@ class Model:
         self.features = [
             Feature(**feature) for feature in settings['features']
         ]
+        self.timestamp_field = settings.get('timestamp_field', 'timestamp')
+        self.bucket_interval = misc.parse_timedelta(settings.get('bucket_interval', 0)).total_seconds()
 
         self.max_threshold = self.settings.get('max_threshold')
         if self.max_threshold is None:
@@ -228,6 +258,21 @@ class Model:
 
         return res
 
+    def build_date_range(self, from_date, to_date):
+        """
+        Fixup date range to be sure that is a multiple of bucket_interval
+
+        return timestamps
+        """
+
+        from_ts = misc.make_ts(from_date)
+        to_ts = misc.make_ts(to_date)
+
+        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
+        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
+
+        return DateRange(from_ts, to_ts)
+
     @property
     def type(self):
         return self.settings['type']
@@ -235,6 +280,21 @@ class Model:
     @property
     def default_datasource(self):
         return self._settings.get('default_datasource')
+
+    @property
+    def default_datasink(self):
+        return self._settings.get('default_datasink')
+
+    def get_tags(self):
+        tags = {}
+        for feature in self.features:
+            if feature.match_all:
+                for condition in feature.match_all:
+                    tag = condition['tag']
+                    val = condition['value']
+                    tags[tag] = val
+
+        return tags
 
     @property
     def settings(self):

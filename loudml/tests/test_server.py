@@ -27,4 +27,3 @@ class TestServer(unittest.TestCase):
         self.assertTrue(rv.is_json)
         data = rv.get_json()
         self.assertIn('features', data)
-        self.assertIn('nrmodels', data['features'])

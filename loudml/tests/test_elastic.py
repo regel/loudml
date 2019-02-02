@@ -16,8 +16,8 @@ import loudml.errors as errors
 
 from loudml.elastic import ElasticsearchDataSource
 
-from loudml.timeseries import (
-    TimeSeriesModel,
+from loudml.model import Model
+from loudml.donut import (
     TimeSeriesPrediction,
 )
 
@@ -104,8 +104,17 @@ class TestElasticDataSource(unittest.TestCase):
         if os.environ.get('ELASTICSEARCH_ADDR', None) is None:
             # tip: useful tool to query ES AWS remotely:
             # npm install aws-es-curl -g
-            config = loudml.config.load_config('/etc/loudml/config.yml')
-            settings = config.get_datasource('aws')
+            settings = dict(
+                name='aws',
+                type='elasticsearch_aws',
+                doc_type='doc',
+                host='search-foobar-es-pp5tqxzzceo6fwmo3lk2hhv5mq.eu-west-1.es.amazonaws.com',
+                region='eu-west-1',
+                get_boto_credentials=False,
+                access_key='AKIAJ4AAPKD5H5PW3YSA',
+                secret_key='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',
+            )
+
             settings['index'] = self.index
             self.source = loudml.datasource.load_datasource(settings)
 
@@ -131,7 +140,7 @@ class TestElasticDataSource(unittest.TestCase):
         self.source.drop()
         self.source.init(template_name="test", template=template)
 
-        self.model = TimeSeriesModel(dict(
+        self.model = Model(dict(
             name='times-model', # not test-model due to TEMPLATE
             offset=30,
             span=300,
@@ -233,13 +242,13 @@ class TestElasticDataSource(unittest.TestCase):
             now_ts,
             now_ts + self.model.bucket_interval,
         ]
-        predicted = [[4.0], [2.0]]
+        predicted = [4.0, 2.0]
 
         prediction = TimeSeriesPrediction(
             self.model,
             timestamps=timestamps,
             predicted=np.array(predicted),
-            observed=np.array([[4.1], [1.9]]),
+            observed=np.array([4.1, 1.9]),
         )
 
         self.sink.save_timeseries_prediction(prediction, self.model)
@@ -257,13 +266,13 @@ class TestElasticDataSource(unittest.TestCase):
         for i, hit in enumerate(sorted(hits, key=lambda x: x['_source']['timestamp'])):
             source = hit['_source']
             self.assertEqual(source, {
-                'avg_foo': predicted[i][0],
+                'avg_foo': predicted[i],
                 'timestamp': int(timestamps[i] * 1000),
                 'model': self.model.name,
             })
 
     def test_match_all(self):
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="times-model",
             offset=30,
             span=300,
@@ -288,7 +297,7 @@ class TestElasticDataSource(unittest.TestCase):
             atol=0,
         )
 
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="times-model",
             offset=30,
             span=300,

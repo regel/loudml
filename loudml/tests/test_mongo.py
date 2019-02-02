@@ -1,3 +1,5 @@
+import loudml.vendor
+
 import datetime
 import logging
 import numpy as np
@@ -17,8 +19,9 @@ from loudml.misc import (
 
 from loudml.randevents import SinEventGenerator
 
-from loudml.timeseries import (
-    TimeSeriesModel,
+from loudml.model import Model
+from loudml.donut import (
+    DonutModel,
 )
 from loudml.mongo import (
     MongoDataSource,
@@ -48,7 +51,7 @@ class TestMongo(unittest.TestCase):
 
         self.source = MongoDataSource(settings)
 
-        self.model = TimeSeriesModel(dict(
+        self.model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
@@ -69,7 +72,6 @@ class TestMongo(unittest.TestCase):
                     'default': 0,
                 },
             ],
-            threshold=30,
         ))
 
         self.t0 = datetime.datetime.now(datetime.timezone.utc).replace(
@@ -143,7 +145,7 @@ class TestMongo(unittest.TestCase):
             )
 
     def test_match_all(self):
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
@@ -160,7 +162,6 @@ class TestMongo(unittest.TestCase):
                     ],
                 },
             ],
-            threshold=30,
         ))
         t0 = self.t0
         data = [
@@ -216,7 +217,7 @@ class TestMongo(unittest.TestCase):
             rtol=0,
             atol=0,
         )
-        model = TimeSeriesModel(dict(
+        model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
@@ -233,7 +234,6 @@ class TestMongo(unittest.TestCase):
                     ],
                 },
             ],
-            threshold=30,
         ))
         res = self.source.get_times_data(
             model,
@@ -251,7 +251,7 @@ class TestMongo(unittest.TestCase):
         )
 
     def test_train_predict(self):
-        model = TimeSeriesModel(dict(
+        model = DonutModel(dict(
             name='test',
             offset=30,
             span=5,
@@ -273,7 +273,6 @@ class TestMongo(unittest.TestCase):
                     'default': 5,
                 },
             ],
-            threshold=30,
             max_evals=1,
         ))
 

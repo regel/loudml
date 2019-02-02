@@ -14,7 +14,6 @@ import copy
 import datetime
 import json
 import logging
-import math
 import os
 import sys
 import random
@@ -73,6 +72,7 @@ from .misc import (
 )
 from .model import (
     Model,
+    DateRange,
 )
 
 DEFAULT_SEASONALITY = {
@@ -250,29 +250,6 @@ def _load_keras_model(model_b64):
         )
 
     return keras_model
-
-
-class DateRange:
-    def __init__(self, from_date, to_date):
-        self.from_ts = make_ts(from_date)
-        self.to_ts = make_ts(to_date)
-
-        if self.to_ts < self.from_ts:
-            raise errors.Invalid("invalid date range: {}".format(self))
-
-    @property
-    def from_str(self):
-        return ts_to_str(self.from_ts)
-
-    @property
-    def to_str(self):
-        return ts_to_str(self.to_ts)
-
-    def __str__(self):
-        return "{}-{}".format(
-            self.from_str,
-            self.to_str,
-        )
 
 class TimeSeriesPrediction:
     """
@@ -455,7 +432,6 @@ class DonutModel(Model):
         Optional('seasonality', default=DEFAULT_SEASONALITY): schemas.seasonality,
         Optional('forecast'): Any(None, "auto", All(int, Range(min=1))),
         Optional('grace_period', default=0): schemas.TimeDelta(min=0, min_included=True),
-        'timestamp_field': schemas.key,
         'default_datasink': schemas.key,
     })
 
@@ -464,7 +440,6 @@ class DonutModel(Model):
         super().__init__(settings, state)
 
         settings = self.validate(settings)
-        self.timestamp_field = settings.get('timestamp_field', 'timestamp')
         self.bucket_interval = parse_timedelta(settings.get('bucket_interval')).total_seconds()
         self.interval = parse_timedelta(settings.get('interval')).total_seconds()
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
@@ -498,17 +473,6 @@ class DonutModel(Model):
                 yield i, j, feature
                 j += 1
 
-    def get_tags(self):
-        tags = {}
-        for feature in self.features:
-            if feature.match_all:
-                for condition in feature.match_all:
-                    tag = condition['tag']
-                    val = condition['value']
-                    tags[tag] = val
-
-        return tags
-
     @property
     def type(self):
         return self.TYPE
@@ -516,10 +480,6 @@ class DonutModel(Model):
     @property
     def W(self):
         return self.span
-
-    @property
-    def default_datasink(self):
-        return self._settings.get('default_datasink')
 
     def get_hp_span(self, label):
         if (self.max_span - self.min_span) <= 0:
@@ -554,21 +514,6 @@ class DonutModel(Model):
         Compute the number of bucket between `from_ts` and `to_ts`
         """
         return int((to_ts - from_ts) / self.bucket_interval) + 2
-
-    def build_date_range(self, from_date, to_date):
-        """
-        Fixup date range to be sure that is a multiple of bucket_interval
-
-        return timestamps
-        """
-
-        from_ts = make_ts(from_date)
-        to_ts = make_ts(to_date)
-
-        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
-        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
-
-        return DateRange(from_ts, to_ts)
 
     def apply_defaults(self, x):
         """

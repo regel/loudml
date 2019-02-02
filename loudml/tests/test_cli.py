@@ -75,6 +75,10 @@ class TestCli(unittest.TestCase):
                 "forecast",
                 "train",
                 "show-model",
+                "plot",
+                "load-checkpoint",
+                "save-checkpoint",
+                "list-checkpoints",
                 ]),
         )
 
