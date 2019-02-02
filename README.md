@@ -1,4 +1,12 @@
-# Loud ML core
+# Loud ML - Reveal the hidden
+
+Loud ML is an AI bot that will enhance the management and operations of your most valuable assets through automation and prediction.
+
+# Getting started for new users
+
+http://loudml.io/guide/[Documentation]
+
+# Getting started for developers
 
 ## Installation for developpers
 
@@ -79,3 +87,4 @@ loudml-faker -o influx -a localhost -b mydb -m mydata --from now-3w --to now
 ```bash
 loudml-faker -o elastic -a localhost:9200 -i myindex --from now-3w --to now
 ```
+
