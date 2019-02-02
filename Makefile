@@ -25,7 +25,6 @@ rpm:
 	@find $(BUILD_DIR) -name '*.rpm'
 
 deb:
-	mv public/*.deb .
 	$(MAKE) -C loudml deb
 	$(MAKE) -C base deb
 	@echo -e "\nDEB packages:"
