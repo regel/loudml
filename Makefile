@@ -4,20 +4,16 @@ DEBREPO_DIR := $(BUILD_DIR)/debrepo/stretch
 
 clean:
 	$(MAKE) -C loudml clean
-	$(MAKE) -C public/api clean
 	rm -rf build
 
 install:
 	$(MAKE) -C loudml install
-	$(MAKE) -C public/api install
 
 uninstall:
 	$(MAKE) -C loudml uninstall
-	$(MAKE) -C public/api uninstall
 
 dev:
 	$(MAKE) -C loudml dev
-	$(MAKE) -C public/api dev
 
 test:
 	$(MAKE) -C loudml test
@@ -29,7 +25,6 @@ rpm:
 	@find $(BUILD_DIR) -name '*.rpm'
 
 deb:
-	$(MAKE) -C public/api deb
 	mv public/*.deb .
 	$(MAKE) -C loudml deb
 	$(MAKE) -C base deb
