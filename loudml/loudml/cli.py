@@ -458,7 +458,7 @@ class TrainCommand(Command):
         source = get_datasource(self.config, args.datasource or
                                 model.default_datasource)
 
-        if model.type == 'timeseries' or model.type == 'donut':
+        if model.type in ['timeseries', 'donut']:
             if not args.from_date:
                 raise LoudMLException(
                     "'from' argument is required for time-series",
@@ -597,7 +597,7 @@ class ForecastCommand(Command):
         if not model.is_trained:
             raise ModelNotTrained()
 
-        if model.type == 'timeseries' or model.type == 'donut':
+        if model.type in ['timeseries', 'donut']:
             if not args.from_date:
                 raise LoudMLException(
                     "'from' argument is required for time-series")
@@ -717,7 +717,7 @@ class PredictCommand(Command):
         if not model.is_trained:
             raise ModelNotTrained()
 
-        if model.type == 'timeseries' or model.type == 'donut':
+        if model.type in ['timeseries', 'donut']:
             if not args.from_date:
                 raise LoudMLException(
                     "'from' argument is required for time-series")
