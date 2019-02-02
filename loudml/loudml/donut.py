@@ -1055,24 +1055,17 @@ class DonutModel(Model):
             'loss': score,
         }
         self.unload()
-        prediction = self.predict(
-            datasource,
-            from_date,
-            to_date,
-            num_cpus=num_cpus,
-            num_gpus=num_gpus,
-        )
-        prediction.stat()
-        mse = prediction.mse
-        self.scores = prediction.scores.flatten()
-        self._state.update({
-            'mse': mse,
-            'scores': self.scores.tolist(),
-        })
+        #prediction = self.predict(
+        #    datasource,
+        #    from_date,
+        #    to_date,
+        #    num_cpus=num_cpus,
+        #    num_gpus=num_gpus,
+        #)
+        #prediction.stat()
 
         return {
             'loss': score,
-            'mse': mse,
         }
 
     def unload(self):
