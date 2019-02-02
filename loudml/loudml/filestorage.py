@@ -159,7 +159,7 @@ class FileStorage(Storage):
         if os.path.exists(model_path):
             raise errors.ModelExists()
 
-        self._write_model(model_path, model.settings, model.state)
+        self._write_model(model_path, model.settings, model.state, save_state=False)
 
     def save_model(self, model, save_state=True, save_ckpt=True):
         model_path = self.model_path(model.name)
