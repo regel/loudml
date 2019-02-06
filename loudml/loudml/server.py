@@ -14,6 +14,7 @@ import multiprocessing
 import pebble
 import pkg_resources
 import queue
+import schedule
 import sys
 import uuid
 
@@ -46,6 +47,9 @@ from .datasource import (
 )
 from .filestorage import (
     FileStorage,
+)
+from .metrics import (
+    send_metrics,
 )
 from .misc import (
     make_bool,
@@ -1076,6 +1080,9 @@ def main():
     host, port = listen_addr.split(':')
 
     restart_predict_jobs()
+
+    send_metrics()
+    schedule.every().hour.do(send_metrics)
 
     try:
         http_server = WSGIServer((host, int(port)), app)

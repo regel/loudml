@@ -55,12 +55,14 @@ pyyaml==3.13
 requests-aws4auth==0.9
 requests==2.21.0          # via influxdb, requests-aws4auth
 s3transfer==0.1.13        # via boto3
+schedule==0.6.0
 scipy==1.2.0              # via hyperopt
 six==1.12.0               # via absl-py, cycler, flask-restful, grpcio, h5py, hyperopt, influxdb, keras-preprocessing, matplotlib, protobuf, python-dateutil, tensorboard, tensorflow
 tensorboard==1.12.2       # via tensorflow
 tensorflow==1.12.0
 termcolor==1.1.0          # via tensorflow
 urllib3==1.24.1           # via botocore, elasticsearch, requests
+uuid==1.30
 voluptuous==0.10.5
 werkzeug==0.14.1          # via flask, tensorboard
 wheel==0.32.3             # via tensorboard, tensorflow
