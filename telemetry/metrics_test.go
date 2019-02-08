@@ -11,26 +11,35 @@ func TestMetricsFromJSON(t *testing.T) {
 	json2 := []byte(`{"key": "value"}`)
 	json3 := []byte(`{"host_id": "dead-beef", "loudml": {"version": "1.2.3"}}`)
 
-	m, err = metricsFromJSON(json1)
+	m, err = metricsFromJSON("loudmld", json1)
 	if err == nil {
 		t.Errorf("error: invalid JSON expected")
 	}
 
-	m, err = metricsFromJSON(json2)
+	m, err = metricsFromJSON("loudmld", json2)
 	if err == nil {
 		t.Errorf("error: expected missing fields in JSON")
 	}
 
-	m, err = metricsFromJSON(json3)
+	m, err = metricsFromJSON("loudmld", json3)
 	if m.HostId != "dead-beef" {
 		t.Errorf("error: expected 'dead-beef', got '%s'", m.HostId)
 	}
 }
 
+func NewTestMetrics() Metrics {
+	m := Metrics{HostId: "myhostid"}
+	m.LoudML.Distribution = "CentOS"
+	m.LoudML.NrModels = 1
+	m.LoudML.Version = "1.2.3"
+	m.UserAgent = "loudmld"
+
+	return m
+}
+
 // Test serialization of Metrics structure using InfluxDB Line protocol
 func TestMetricsToInfluxDB(t *testing.T) {
-	m := Metrics{HostId: "myhostid"}
-	m.LoudML.Version = "1.2.3"
+	m := NewTestMetrics()
 	expected := "telemetry,version=1.2.3 hostid=myhostid 12345"
 	var res string
 
@@ -41,10 +50,11 @@ func TestMetricsToInfluxDB(t *testing.T) {
 }
 
 func TestMetricTags(t *testing.T) {
-	m := Metrics{HostId: "myhostid"}
-	m.LoudML.Version = "1.2.3"
+	m := NewTestMetrics()
 	expect := map[string]string{
-		"version": "1.2.3",
+		"distribution": "CentOS",
+		"version":      "1.2.3",
+		"user-agent":   "loudmld",
 	}
 	res := m.tags()
 	if !reflect.DeepEqual(res, expect) {
@@ -53,10 +63,10 @@ func TestMetricTags(t *testing.T) {
 }
 
 func TestMetricFields(t *testing.T) {
-	m := Metrics{HostId: "myhostid"}
-	m.LoudML.Version = "1.2.3"
+	m := NewTestMetrics()
 	expected := map[string]interface{}{
-		"hostid": m.HostId,
+		"nr_models": m.LoudML.NrModels,
+		"hostid":    m.HostId,
 	}
 	res := m.fields()
 	if !reflect.DeepEqual(res, expected) {

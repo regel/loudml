@@ -53,7 +53,7 @@ func route_api(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		m, err := metricsFromJSON(body)
+		m, err := metricsFromJSON(r.UserAgent(), body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusMethodNotAllowed)
 			return
@@ -67,7 +67,7 @@ func route_api(w http.ResponseWriter, r *http.Request) {
 
 		pt, err := client.NewPoint(measurement, m.tags(), m.fields(), time.Now())
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err, body)
 		}
 		bp.AddPoint(pt)
 

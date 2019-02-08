@@ -24,6 +24,9 @@ from .errors import (
     LoudMLException,
     ModelNotTrained,
 )
+from .metrics import (
+    send_metrics,
+)
 from .misc import (
     parse_constraint,
     make_ts,
@@ -222,6 +225,7 @@ class CreateModelCommand(Command):
             storage.delete_model(model.name)
 
         storage.create_model(model, self.config)
+        send_metrics(self.config.metrics, storage, user_agent="loudml")
         logging.info("model '%s' created", model.name)
 
 
@@ -283,6 +287,7 @@ class DeleteModelCommand(Command):
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])
         storage.delete_model(args.model_name)
+        send_metrics(self.config.metrics, storage, user_agent="loudml")
         logging.info("model '%s' deleted", args.model_name)
 
 
@@ -507,6 +512,7 @@ class TrainCommand(Command):
             raise errors.UnsupportedModel(model.type)
 
         storage.save_model(model)
+        send_metrics(self.config.metrics, storage, user_agent="loudml")
 
 
 def _save_timeseries_prediction(
@@ -659,6 +665,8 @@ class ForecastCommand(Command):
                     data = prediction.format_series()
                 self._dump(data)
 
+        send_metrics(self.config.metrics, storage, user_agent="loudml")
+
 
 class PredictCommand(Command):
     """
@@ -777,6 +785,8 @@ class PredictCommand(Command):
                 else:
                     data = prediction.format_series()
                 self._dump(data)
+
+        send_metrics(self.config.metrics, storage, user_agent="loudml")
 
 
 def get_commands():

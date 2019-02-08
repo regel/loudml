@@ -38,3 +38,5 @@ server:
 #       from: "now-7d"
 #       to: "now"
 
+#telemetry:
+#  enabled: True

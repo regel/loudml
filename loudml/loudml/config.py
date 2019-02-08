@@ -83,6 +83,10 @@ class Config:
         return copy.deepcopy(self._inference)
 
     @property
+    def metrics(self):
+        return copy.deepcopy(self._metrics)
+
+    @property
     def storage(self):
         # XXX: return a copy to prevent modification by the caller
         return copy.deepcopy(self._storage)

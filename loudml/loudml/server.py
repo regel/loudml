@@ -1081,8 +1081,11 @@ def main():
 
     restart_predict_jobs()
 
-    send_metrics()
-    schedule.every().hour.do(send_metrics)
+    def daemon_send_metrics():
+        send_metrics(g_config.metrics, g_storage, user_agent="loudmld")
+
+    daemon_send_metrics()
+    schedule.every().hour.do(daemon_send_metrics)
 
     try:
         http_server = WSGIServer((host, int(port)), app)

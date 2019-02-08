@@ -1,3 +1,14 @@
+Testing
+=======
+
+Unit tests provide an instant feedback on whether the individual components
+are working as expected. The unit tests can be run with the command
+"make unittests".
+
+Integration tests provide a more in-depth testing but may require
+additional setup, especially data sources, and will take much more time. The
+integration tests can be run with the command "make test".
+
 Python Dependencies
 ===================
 

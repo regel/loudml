@@ -8,12 +8,17 @@ import (
 type Metrics struct {
 	HostId string `json:"host_id"`
 	LoudML struct {
-		Version string `json:"version"`
+		Distribution string `json:"distribution"`
+		NrModels     int    `json:"nr_models"`
+		Version      string `json:"version"`
 	} `json:"loudml"`
+	UserAgent string
 }
 
-func metricsFromJSON(jsonBlob []byte) (Metrics, error) {
+func metricsFromJSON(ua string, jsonBlob []byte) (Metrics, error) {
 	var m Metrics
+
+	m.UserAgent = ua
 
 	if !json.Valid(jsonBlob) {
 		return m, errors.New("invalid JSON")
@@ -41,7 +46,8 @@ func (m Metrics) toInfluxDBLine(ts string, measurement string) string {
 
 func (m Metrics) fields() map[string]interface{} {
 	res := map[string]interface{}{
-		"hostid": m.HostId,
+		"hostid":    m.HostId,
+		"nr_models": m.LoudML.NrModels,
 	}
 
 	return res
@@ -49,7 +55,9 @@ func (m Metrics) fields() map[string]interface{} {
 
 func (m Metrics) tags() map[string]string {
 	res := map[string]string{
-		"version": m.LoudML.Version,
+		"distribution": m.LoudML.Distribution,
+		"user-agent":   m.UserAgent,
+		"version":      m.LoudML.Version,
 	}
 
 	return res

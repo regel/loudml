@@ -5,7 +5,7 @@
 # Configuration
 
 # Telemetry server
-host="localhost:8080"
+host="localhost"
 
 # End of configuration
 # ---------------------------------------------------------------------------

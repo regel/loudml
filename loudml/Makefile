@@ -1,4 +1,7 @@
 NAME := loudml
+unittests := $(addprefix tests/, \
+	test_config.py test_metrics.py test_misc.py test_model.py test_schemas.py \
+	test_server.py)
 
 install:
 	./setup.py install $(INSTALL_OPTS)
@@ -15,6 +18,9 @@ dev:
 
 test:
 	nosetests-3.4 -v tests/
+
+unittest:
+	nosetests -v $(unittests)
 
 rpm: $(NAME).rpm
 
