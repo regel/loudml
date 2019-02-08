@@ -108,11 +108,11 @@ class TestElasticDataSource(unittest.TestCase):
                 name='aws',
                 type='elasticsearch_aws',
                 doc_type='doc',
-                host='search-foobar-es-pp5tqxzzceo6fwmo3lk2hhv5mq.eu-west-1.es.amazonaws.com',
+                host=os.environ['ELASTICSEARCH_HOST'],
                 region='eu-west-1',
                 get_boto_credentials=False,
-                access_key='AKIAJ4AAPKD5H5PW3YSA',
-                secret_key='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',
+                access_key=os.environ['AWS_ACCESS_KEY_ID'],
+                secret_key=os.environ['AWS_SECRET_ACCESS_KEY'],
             )
 
             settings['index'] = self.index
