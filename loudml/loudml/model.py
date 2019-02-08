@@ -11,11 +11,9 @@ from voluptuous import (
     All,
     Any,
     Length,
-    Match,
     Range,
     Required,
     Optional,
-    Boolean,
     Schema,
 )
 
@@ -28,6 +26,7 @@ from . import (
 import json
 from jinja2 import Template
 from jinja2 import Environment, meta
+
 
 def _convert_features_dict(features):
     """
@@ -42,6 +41,7 @@ def _convert_features_dict(features):
             result.append(feature)
 
     return result
+
 
 def flatten_features(features):
     """
@@ -347,6 +347,7 @@ class Model:
         """
         return NotImplemented()
 
+
 def load_model(settings, state=None, config=None):
     """
     Load model
@@ -381,9 +382,8 @@ def load_template(settings, state=None, config=None, *args, **kwargs):
     settings = json.loads(t.render(**kwargs))
     return load_model(settings, state, config)
 
+
 def find_undeclared_variables(settings):
     env = Environment()
     ast = env.parse(json.dumps(settings))
     return meta.find_undeclared_variables(ast)
-
-

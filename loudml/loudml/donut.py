@@ -10,14 +10,12 @@ the encoder can be used to  generate latent vectors.
 """
 
 
-import copy
 import datetime
 import json
 import logging
 import os
 import sys
 import random
-import time
 import numpy as np
 import itertools
 from scipy.stats import norm
@@ -32,9 +30,8 @@ from tensorflow.contrib.keras.api.keras.layers import Lambda, Input, Dense
 from tensorflow.contrib.keras.api.keras.models import Model as _Model
 from tensorflow.contrib.keras.api.keras.losses import mean_squared_error
 from tensorflow.contrib.keras.api.keras import regularizers
-from tensorflow.contrib.keras.api.keras.utils import plot_model
 
-import h5py # Read training_config.optimizer_config
+import h5py  # Read training_config.optimizer_config
 
 from hyperopt import hp
 from hyperopt import space_eval
@@ -49,11 +46,9 @@ from hyperopt import (
 from voluptuous import (
     All,
     Any,
-    Boolean,
     Required,
     Optional,
     Range,
-    Schema,
 )
 
 from . import (
@@ -67,7 +62,6 @@ from .misc import (
     make_ts,
     nan_to_none,
     parse_timedelta,
-    ts_to_str,
     ts_to_datetime,
 )
 from .model import (
@@ -81,7 +75,7 @@ DEFAULT_SEASONALITY = {
 }
 
 float_formatter = lambda x: "%.2f" % x
-np.set_printoptions(formatter={'float_kind':float_formatter})
+np.set_printoptions(formatter={'float_kind': float_formatter})
 
 _verbose = 0
 
@@ -115,6 +109,7 @@ def sampling(args):
     epsilon = K.random_normal(shape=(batch, dim))
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
+
 def add_loss(model, W):
     inputs = model.inputs[0]
     abnormal = model.inputs[1]
@@ -133,6 +128,7 @@ def add_loss(model, W):
     vae_loss = K.mean(reconstruction_loss + kl_loss)
     model.add_loss(vae_loss)
 
+
 def _get_encoder(_keras_model):
     # instantiate encoder model
     main_input = _keras_model.inputs[0]
@@ -142,6 +138,7 @@ def _get_encoder(_keras_model):
     z = _keras_model.get_layer('z').output
     model = _Model([main_input, aux_input], [z_mean, z_log_var, z], name='encoder')
     return model
+
 
 def _get_decoder(_keras_model):
     # instantiate decoder model
@@ -153,8 +150,10 @@ def _get_decoder(_keras_model):
     new_model = _Model(latent_inputs, output, name='decoder')
     return new_model
 
+
 def _get_index(d, from_date, step):
     return int((make_ts(d) - make_ts(from_date)) / step)
+
 
 def _format_windows(from_date, to_date, step, windows):
     size = _get_index(to_date, from_date, step)
@@ -162,13 +161,15 @@ def _format_windows(from_date, to_date, step, windows):
     for _from, _to in windows:
         x = _get_index(_from, from_date, step)
         y = _get_index(_to, from_date, step)
-        abnormal[min(size,max(0,x)):max(0,min(y,size))] = True
+        abnormal[min(size, max(0, x)):max(0, min(y, size))] = True
 
     return abnormal
+
 
 def _get_scores(y, _mean, _std):
     y = (y - _mean) / _std
     return y
+
 
 def _revert_scores(y, _mean, _std):
     y = (y * _std) + _mean
@@ -197,6 +198,7 @@ class HyperParameters:
                 pass
             setattr(self, key, value)
 
+
 def _serialize_keras_model(keras_model):
     """
     Serialize Keras model
@@ -214,6 +216,7 @@ def _serialize_keras_model(keras_model):
         os.remove(path)
 
     return model_b64.decode('utf-8')
+
 
 def _load_keras_model(model_b64):
     import tempfile
@@ -251,6 +254,7 @@ def _load_keras_model(model_b64):
 
     return keras_model
 
+
 class TimeSeriesPrediction:
     """
     Time-series prediction
@@ -286,7 +290,7 @@ class TimeSeriesPrediction:
 
         observed = {}
         predicted = {}
-        
+
         feature = self.model.features[0]
         observed[feature.name] = list_from_np(self.observed)
         predicted[feature.name] = list_from_np(self.predicted)
@@ -401,7 +405,7 @@ def generator(x, missing, batch_size, model):
     while True:
         abnormal = np.random.binomial(1, g_lambda, x.shape[1])
         for i in range(batch_size):
-            index = random.randint(0,len(x)-1)
+            index = random.randint(0, len(x)-1)
             batch_x[i] = x[index]
             batch_missing[i] = np.maximum(
                 abnormal,
@@ -411,8 +415,9 @@ def generator(x, missing, batch_size, model):
         for _ in range(g_mcmc_count):
             x_decoded, _ = model.predict([batch_x, batch_missing], batch_size=g_mc_batch_size)
             batch_x[batch_missing > 0] = x_decoded[batch_missing > 0]
-       
+
         yield ([batch_x, batch_missing], None)
+
 
 class DonutModel(Model):
     """
@@ -581,13 +586,13 @@ class DonutModel(Model):
     def _set_xpu_config(self, num_cpus, num_gpus):
         config = tf.ConfigProto(
             allow_soft_placement=True,
-            device_count = {'CPU' : num_cpus, 'GPU' : num_gpus},
+            device_count={'CPU': num_cpus, 'GPU': num_gpus},
         )
         config.gpu_options.allow_growth = True
 #        config.log_device_placement = True
 #        config.intra_op_parallelism_threads=num_cores
 #        config.inter_op_parallelism_threads=num_cores
-                
+
         sess = tf.Session(config=config)
         K.set_session(sess)
 
@@ -604,7 +609,7 @@ class DonutModel(Model):
         abnormal=None,
     ):
         if max_evals is None:
-            max_evals = self.settings.get('max_evals', 21) # latent_dim*intermediate_dim
+            max_evals = self.settings.get('max_evals', 21)  # latent_dim*intermediate_dim
 
         self.current_eval = 0
 
@@ -634,18 +639,18 @@ class DonutModel(Model):
             input_shape = (W, )
             intermediate_dim = params.intermediate_dim
             latent_dim = params.latent_dim
-            
+
             # VAE model = encoder + decoder
             # build encoder model
             main_input = Input(shape=input_shape)
-            aux_input = Input(shape=input_shape) # bool vector to flag missing data points
+            aux_input = Input(shape=input_shape)  # bool vector to flag missing data points
             aux_output = Lambda(lambda x: x)(aux_input)
             x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
                       activation='relu')(main_input)
             z_mean = Dense(latent_dim, name='z_mean')(x)
             z_log_var = Dense(latent_dim, name='z_log_var')(x)
-            
+
             # use reparameterization trick to push the sampling out as input
             # note that "output_shape" isn't necessary with the TensorFlow backend
             z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
@@ -680,7 +685,7 @@ class DonutModel(Model):
                 verbose=_verbose,
                 validation_data=([X_test, X_miss_val], None),
                 callbacks=[_stop],
-                workers=0, # https://github.com/keras-team/keras/issues/5511
+                workers=0,  # https://github.com/keras-team/keras/issues/5511
             )
 
             # How well did it do?
@@ -854,7 +859,7 @@ class DonutModel(Model):
         data_x = []
         for i in range(len(x) - self.W + 1):
             j = i + self.W
-            if (accept_missing == True) or (not np.isnan(x[i:j]).any()):
+            if accept_missing or not np.isnan(x[i:j]).any():
                 # arxiv.org/abs/1802.03903
                 # set user defined abnormal data points to zero
                 if abnormal is None:
@@ -868,7 +873,7 @@ class DonutModel(Model):
                 missing.append(is_nan)
                 _x = np.copy(x[i:j])
                 # set missing points to zero
-                _x[is_nan == True] = 0.0
+                _x[is_nan] = 0.0
                 data_x.append(_x)
 
         return np.array(missing), np.array(data_x)
@@ -904,7 +909,7 @@ class DonutModel(Model):
         self.means, self.stds = None, None
         self.scores = None
 
-        period =  self.build_date_range(from_date, to_date)
+        period = self.build_date_range(from_date, to_date)
         logging.info(
             "train(%s) range=%s train_size=%f batch_size=%d epochs=%d)",
             self.name,
@@ -943,7 +948,7 @@ class DonutModel(Model):
 
         logging.info("found %d time periods", nb_buckets_found)
 
-        if incremental == True:
+        if incremental:
             best_params = self._state.get('best_params', dict())
             # Destroys the current TF graph and creates a new one.
             # Useful to avoid clutter from old models / layers.
@@ -1044,7 +1049,6 @@ class DonutModel(Model):
                 self.max_threshold,
             )
 
-
     @property
     def is_trained(self):
         """
@@ -1103,7 +1107,7 @@ class DonutModel(Model):
         data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
 
         # Only a subset of history will be used for computing the prediction
-        X_until = None # right bound for prediction
+        X_until = None  # right bound for prediction
         i = None
 
         for i, (_, val, timeval) in enumerate(data):
@@ -1142,7 +1146,7 @@ class DonutModel(Model):
         for _ in range(g_mcmc_count):
             z_mean, _, _ = self._encoder_model.predict([x_, missing], batch_size=g_mc_batch_size)
             x_decoded = self._decoder_model.predict(z_mean, batch_size=g_mc_batch_size)
-            x_[missing == True] = x_decoded[missing == True]
+            x_[missing] = x_decoded[missing]
 
         y = np.full((predict_len,), np.nan, dtype=float)
         y_low = np.full((predict_len,), np.nan, dtype=float)
@@ -1156,7 +1160,7 @@ class DonutModel(Model):
                 batch_size=g_mc_batch_size,
             )
             x_decoded = self._decoder_model.predict(Z, batch_size=g_mc_batch_size)
-            std = np.std(x_decoded[:,-1])
+            std = np.std(x_decoded[:, -1])
             y_low[j] = x[-1] - 3 * std
             y_high[j] = x[-1] + 3 * std
 
@@ -1241,7 +1245,7 @@ class DonutModel(Model):
         data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
 
         # Only a subset of history will be used for computing the prediction
-        X_until = None # right bound for prediction
+        X_until = None  # right bound for prediction
         i = None
 
         for i, (_, val, timeval) in enumerate(data):
@@ -1291,7 +1295,7 @@ class DonutModel(Model):
                     batch_size=g_mc_batch_size,
                 )
                 x_decoded = self._decoder_model.predict(z_mean, batch_size=g_mc_batch_size)
-                x[missing == True] = x_decoded[0][missing == True]
+                x[missing] = x_decoded[0][missing]
 
             # uncertainty is modeled using a random uniform noise distribution
             # that increases over time
@@ -1303,7 +1307,7 @@ class DonutModel(Model):
                 batch_size=g_mc_batch_size,
             )
             x_decoded = self._decoder_model.predict(Z, batch_size=g_mc_batch_size)
-            std = np.std(x_decoded[:,-1])
+            std = np.std(x_decoded[:, -1])
             y_low[j] = x[-1] - p * std
             y_high[j] = x[-1] + p * std
             y[j] = x[-1]
@@ -1436,7 +1440,6 @@ class DonutModel(Model):
         prediction.stats = stats
         prediction.anomaly_indices = anomaly_indices
 
-
     def predict2(
         self,
         datasource,
@@ -1467,7 +1470,7 @@ class DonutModel(Model):
         output=None,
     ):
         """
-    
+
         # Arguments:
             models (tuple): encoder and decoder models
             data (tuple): test data and label
@@ -1479,7 +1482,6 @@ class DonutModel(Model):
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
-        from mpl_toolkits import mplot3d
 
         period = self.build_date_range(from_date, to_date)
 
@@ -1506,7 +1508,7 @@ class DonutModel(Model):
         data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
 
         # Only a subset of history will be used for computing the prediction
-        X_until = None # right bound for prediction
+        X_until = None  # right bound for prediction
         i = None
 
         for i, (_, val, timeval) in enumerate(data):
@@ -1532,31 +1534,31 @@ class DonutModel(Model):
         X_miss_val, X_test = self._format_dataset(norm_dataset[:X_until])
         if len(X_test) == 0:
             raise errors.LoudMLException("not enough data for prediction")
-   
+
         # display a 2D plot of the digit classes in the latent space
         z_mean, _, _ = self._encoder_model.predict([X_test, X_miss_val],
                                                    batch_size=g_mc_batch_size)
 
         if x_dim < 0 or y_dim < 0:
             mses = []
-            for (x, y) in itertools.combinations(range(0,latent_dim), 2):
-                _mean = np.mean(z_mean, axis=0)[[x,y]]
-                mse = ((z_mean[:,[x,y]] - _mean) ** 2).mean(axis=0)
+            for (x, y) in itertools.combinations(range(0, latent_dim), 2):
+                _mean = np.mean(z_mean, axis=0)[[x, y]]
+                mse = ((z_mean[:, [x, y]] - _mean) ** 2).mean(axis=0)
                 mses.append([x, y, mse[0] + mse[1]])
-    
-            mses = sorted(mses, key=lambda x:x[2])
+
+            mses = sorted(mses, key=lambda x: x[2])
             x_dim = mses[0][0]
             y_dim = mses[0][1]
 
         excl = [x for x in range(latent_dim) if x != x_dim and x != y_dim]
 
-        fig = plt.figure(figsize=(12, 10))
+        plt.figure(figsize=(12, 10))
         if latent_dim > 3:
             ax = plt.axes(projection='3d')
             ax.set_zticks([])
         else:
             ax = plt.axes()
-        
+
         # Hide grid lines
         ax.grid(False)
         # Hide axes ticks
@@ -1587,4 +1589,3 @@ class DonutModel(Model):
             plt.show()
         else:
             plt.savefig(output)
-

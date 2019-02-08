@@ -187,7 +187,7 @@ class Job:
             self._result = self._future.result()
             self.state = 'done'
             logging.info("job[%s] done", self.id)
-        except concurrent.futures.CancelledError as exn:
+        except concurrent.futures.CancelledError:
             self.error = "job canceled"
             self.state = 'canceled'
             logging.error("job[%s] canceled", self.id)
@@ -310,6 +310,7 @@ def get_date_arg(param, default=None, is_mandatory=False):
 
     return schemas.validate(schemas.Timestamp(), value, name=param)
 
+
 def get_json(is_mandatory=True):
     """
     Parse JSON data from request body
@@ -319,6 +320,7 @@ def get_json(is_mandatory=True):
         raise errors.Invalid("request body is empty")
 
     return data
+
 
 def get_model_info(name):
     global g_storage
@@ -343,6 +345,7 @@ def get_model_info(name):
 
     return info
 
+
 def get_template_info(name):
     global g_storage
 
@@ -350,6 +353,7 @@ def get_template_info(name):
     info['params'] = list(g_storage.find_undeclared_variables(name))
 
     return info
+
 
 class TemplatesResource(Resource):
     @catch_loudml_error
@@ -361,7 +365,9 @@ class TemplatesResource(Resource):
 
         return jsonify(templates)
 
+
 api.add_resource(TemplatesResource, "/templates")
+
 
 class ModelsResource(Resource):
     @catch_loudml_error
@@ -412,7 +418,7 @@ class ModelResource(Resource):
                 timer.cancel()
 
             job = g_training.get(model_name)
-            if job and job.is_stopped() == False:
+            if job and not job.is_stopped():
                 job.cancel()
 
             g_storage.delete_model(model_name)
@@ -433,17 +439,17 @@ class ModelResource(Resource):
         model = loudml.model.load_model(settings=settings, config=g_config)
 
         changes = g_storage.save_model(model, save_state=False)
-        for change, param, desc in changes: 
+        for change, param, desc in changes:
             logging.info("model '%s' %s %s %s", model_name, change, param, desc)
             if change == 'change' and param == 'interval':
                 previous_val, next_val = desc
-                g_lock.acquire() 
+                g_lock.acquire()
                 timer = g_running_models.get(model_name)
                 if timer is not None:
                     timer.cancel()
                     timer.interval = parse_timedelta(next_val).total_seconds()
                     timer.start()
-                g_lock.release() 
+                g_lock.release()
 
         logging.info("model '%s' updated", model_name)
         return "success"
@@ -578,11 +584,13 @@ def hook_test(model_name, hook_name):
 
     return "ok", 200
 
+
 def _remove_datasource_secrets(datasource):
     datasource.pop('password', None)
     datasource.pop('dbuser_password', None)
     datasource.pop('write_token', None)
     datasource.pop('read_token', None)
+
 
 class DataSourcesResource(Resource):
     @catch_loudml_error
@@ -679,10 +687,9 @@ class TrainingJob(Job):
             g_storage.save_model(model)
             try:
                 _model_start(model, self._kwargs_start)
-            except errors.LoudMLException as exn:
+            except errors.LoudMLException:
                 model.set_run_params(None)
                 g_storage.save_model(model)
-
 
     @property
     def args(self):
@@ -808,6 +815,7 @@ def model_predict(model_name):
 
     return jsonify(job.result())
 
+
 @app.route("/models/<model_name>/_top")
 def model_top(model_name):
     global g_storage
@@ -830,6 +838,7 @@ def model_top(model_name):
     )
 
     return jsonify(res)
+
 
 @app.route("/models/<model_name>/_start", methods=['POST'])
 def model_start(model_name):
@@ -1062,15 +1071,15 @@ def main():
 
     cron = CronTab(user='loudml')
     cron.remove_all()
-    if g_config.training['incremental']['enable'] == True:
+    if g_config.training['incremental']['enable']:
         for tab in g_config.training['incremental']['crons']:
             job = cron.new(command='/usr/bin/loudml train \* -i -f {} -t {}'.format(tab['from'], tab['to']),
                            comment='incremental training')
             job.setall(tab['crontab'])
 
-    for item in cron:  
+    for item in cron:
         logging.info(item)
-    
+
     cron.write()
 
     g_queue = multiprocessing.Queue()

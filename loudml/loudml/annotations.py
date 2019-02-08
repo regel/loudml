@@ -1,4 +1,3 @@
-import logging
 import uuid
 
 from loudml.api import (
@@ -7,18 +6,17 @@ from loudml.api import (
 
 from voluptuous import (
     ALLOW_EXTRA,
-    All,
-    Any,
     Optional,
     Required,
     Schema,
 )
 
+
 class AnnotationHook(Hook):
     CONFIG_SCHEMA = Schema({
         Required('type'): str,
         Optional('text'): str,
-# TODO: Add tags
+        # TODO: Add tags
     }, extra=ALLOW_EXTRA)
 
     def __init__(self, *args, **kwargs):

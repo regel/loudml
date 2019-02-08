@@ -2,6 +2,7 @@
 Loud ML errors
 """
 
+
 class LoudMLException(Exception):
     """Loud ML exception"""
     code = 500
@@ -14,6 +15,7 @@ class Conflict(LoudMLException):
     """Conflict"""
     code = 409
 
+
 class DataSourceError(LoudMLException):
     """Error occured on data source query"""
     code = 500
@@ -25,12 +27,14 @@ class DataSourceError(LoudMLException):
     def __str__(self):
         return "datasource[{}]: {}".format(self.datasource, self.error)
 
+
 class DataSourceNotFound(DataSourceError):
     """Data source not found"""
     code = 404
 
     def __str__(self):
         return "{} (name = '{}')".format(self.error, self.datasource)
+
 
 class Invalid(LoudMLException):
     """Data is invalid"""
@@ -55,13 +59,16 @@ class Invalid(LoudMLException):
             path = '.'.join([str(key) for key in self.path])
             return "invalid field {}: {}{}".format(path, self.error, hint)
 
+
 class LimitReached(LoudMLException):
     """Limit reached"""
     code = 429
 
+
 class ModelExists(LoudMLException):
     """Model exists"""
     code = 409
+
 
 class ModelNotFound(LoudMLException):
     """Model not found"""
@@ -74,9 +81,11 @@ class ModelNotFound(LoudMLException):
         name = "" if self.name is None else " ({})".format(self.name)
         return "Model{} not found".format(name)
 
+
 class ModelNotTrained(LoudMLException):
     """Model not trained"""
     code = 400
+
 
 class UnsupportedDataSource(LoudMLException):
     """Unsupported data source"""
@@ -123,8 +132,10 @@ class NotFound(LoudMLException):
     """Not found"""
     code = 404
 
+
 class NoData(NotFound):
     """No data"""
+
 
 class TransportError(LoudMLException):
     """Transport error"""

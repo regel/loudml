@@ -2,15 +2,16 @@
 Loud ML hook API
 """
 
-import json
 import os
 import yaml
+
 
 def validate(schema, data):
     """
     Validate data against a schema
     """
     return schema(data) if schema else data
+
 
 class Plugin:
     """
