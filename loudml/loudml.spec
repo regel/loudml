@@ -24,18 +24,7 @@ Requires: loudml-base == %{version}
 # Disable debug package
 %define debug_package %{nil}
 
-%package internal
-Group:    Applications/System
-Summary:  Loud ML tools for internal usage
-Requires: loudml == %{version}
-
 %description
-
-
-%description internal
-
-Internal tools:
-- license management
 
 
 %prep
@@ -107,10 +96,6 @@ cp -r templates %{buildroot}/%{_sharedstatedir}/loudml
 %{_unitdir}/loudmld.service
 %attr(2775,loudml,loudml) %{_sharedstatedir}/loudml
 %attr(2775,loudml,loudml) %{_sharedstatedir}/loudml/templates
-
-
-%files internal
-%{_bindir}/loudml-lic
 
 
 %doc

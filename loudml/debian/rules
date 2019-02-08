@@ -21,7 +21,6 @@ override_dh_auto_configure:
 _pyver := $(shell python3 --version | cut -d ' ' -f 2 | cut -d '.' -f -2)
 _pyvernum := $(shell echo $(_pyver) | sed 's/\.//')
 _pydir := debian/loudml/usr/lib/python$(_pyver)/dist-packages
-_enterprise_pydir := debian/loudml-enterprise/usr/lib/python$(_pyver)/dist-packages
 override_dh_install:
 	dh_install
 
@@ -40,14 +39,6 @@ override_dh_install:
 		cp $$src ${_pydir}/rmn_common/$$dst; \
 	done
 	find ${_pydir} -name requires.txt | xargs rm -f
-
-	# loudml-enterprise subpackage
-	mkdir -p ${_enterprise_pydir}/loudml
-	mv ${_pydir}/loudml/fingerprints.* ${_enterprise_pydir}/loudml
-
-	# loudml-internal subpackage
-	mkdir -p debian/loudml-internal/usr/bin
-	mv debian/loudml/usr/bin/loudml-lic debian/loudml-internal/usr/bin/
 
 override_dh_installinit:
 	dh_installinit --no-start --name=loudmld

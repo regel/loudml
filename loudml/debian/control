@@ -23,11 +23,3 @@ Depends:
   loudml-base (= ${binary:Version}),
 Description: Loud ML core package
  Loud ML core package.
-
-Package: loudml-internal
-Architecture: all
-Depends:
-  loudml (= ${binary:Version}),
-Description: Loud ML tools for internal usag
- Internal tools:
- - license management
