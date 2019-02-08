@@ -230,7 +230,7 @@ def _load_keras_model(model_b64):
         if opened_new_file:
             f = h5py.File(path, mode='r')
         else:
-            f = filepath
+            f = path
         training_config = f.attrs.get('training_config')
         optimizer_cls = None
         if training_config is None:

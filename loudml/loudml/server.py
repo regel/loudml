@@ -460,7 +460,7 @@ def model_train(model_name):
     global g_storage
     global g_training
 
-    model = g_storage.load_model(model_name)
+    g_storage.load_model(model_name)
     kwargs = {}
 
     kwargs['from_date'] = get_date_arg('from', is_mandatory=True)
@@ -958,27 +958,27 @@ def slash():
 
 
 @app.errorhandler(403)
-def not_found(e):
+def err_forbidden(e):
     return "forbidden", 403
 
 
 @app.errorhandler(404)
-def not_found(e):
+def err_not_found(e):
     return "unknown endpoint", 404
 
 
 @app.errorhandler(405)
-def not_found(e):
+def err_now_allowed(e):
     return "method not allowed", 405
 
 
 @app.errorhandler(410)
-def not_found(e):
+def err_gone(e):
     return "gone", 410
 
 
 @app.errorhandler(500)
-def not_found(e):
+def err_internal(e):
     return "internal server error", 500
 
 
