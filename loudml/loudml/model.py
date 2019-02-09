@@ -366,9 +366,6 @@ def load_model(settings, state=None, config=None):
     if model_type is None:
         raise errors.Invalid("model has no type")
 
-    if config and model_type not in config.limits['models']:
-        raise errors.Forbidden("Not allowed by license: " + model_type)
-
     try:
         model_cls = misc.load_entry_point('loudml.models', model_type)
     except ImportError:

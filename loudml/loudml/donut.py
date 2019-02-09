@@ -894,7 +894,6 @@ class DonutModel(Model):
         num_gpus=0,
         max_evals=None,
         progress_cb=None,
-        license=None,
         incremental=False,
         windows=[],
     ):
@@ -1069,7 +1068,6 @@ class DonutModel(Model):
         datasource,
         from_date,
         to_date,
-        license=None,
         num_cpus=1,
         num_gpus=0,
     ):
@@ -1208,7 +1206,6 @@ class DonutModel(Model):
         to_date,
         percent_interval=0.68,
         percent_noise=0,
-        license=None,
         num_cpus=1,
         num_gpus=0,
     ):
@@ -1447,7 +1444,6 @@ class DonutModel(Model):
         to_date,
         mse_rtol,
         _state={},
-        license=None,
         num_cpus=1,
         num_gpus=0,
     ):
@@ -1455,7 +1451,6 @@ class DonutModel(Model):
             datasource,
             from_date,
             to_date,
-            license=license,
             num_cpus=num_cpus,
             num_gpus=num_gpus,
         )
@@ -1465,7 +1460,6 @@ class DonutModel(Model):
         datasource,
         from_date,
         to_date,
-        license=None,
         num_cpus=1,
         num_gpus=0,
         x_dim=-1,

@@ -21,6 +21,8 @@ from collections import (
 )
 from numbers import Number
 
+from uuid import getnode
+
 from . import (
     errors,
 )
@@ -339,4 +341,22 @@ def chunks(iterable, size=1):
         yield chunk()         # in outer generator, yield next chunk
 
 
+def my_host_id():
+    """
+    Compute host identifier.
+
+    Identifier is based on:
+    - identifier computed by Python uuid library (usually MAC address)
+    - MD5 hashing
+
+    It is NOT based on:
+    - system UUID in DMI entries (requires root privileges and may not be
+      avalaible)
+    - root filesystem UUID (requires root privileges)
+    """
+
+    m = hashlib.md5()
+    m.update(str(getnode()).encode('ascii'))
+
+    return m.hexdigest()
 

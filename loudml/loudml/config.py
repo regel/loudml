@@ -13,10 +13,6 @@ from . import (
     errors,
 )
 
-from loudml.license import License
-
-DEFAULT_LICENSE_PATH = '/etc/loudml/license.lic'
-
 
 class Config:
     """
@@ -25,8 +21,6 @@ class Config:
 
     def __init__(self, data):
         self._data = data
-        self.limits = {}
-        self.license = None
 
         # TODO check configuration validity with voluptuous
 
@@ -34,13 +28,6 @@ class Config:
             datasource['name']: datasource
             for datasource in data.get('datasources', [])
         }
-
-        self._license = data.get('license', {})
-        if 'path' not in self._license:
-            self._license['path'] = None
-        if (self._license['path'] is None and
-                os.path.isfile(DEFAULT_LICENSE_PATH)):
-            self._license['path'] = DEFAULT_LICENSE_PATH
 
         self._storage = data.get('storage', {})
         if 'path' not in self._storage:
@@ -112,35 +99,9 @@ class Config:
         try:
             # XXX: return a copy to prevent modification by the caller
             datasource = copy.deepcopy(self.datasources[name])
-            datasource['allowed'] = copy.deepcopy(self.limits['datasources'])
             return datasource
         except KeyError:
             raise errors.DataSourceNotFound(name)
-
-    def load_license(self):
-        """
-        Enforce limitations described in license file
-
-        :raise Exception: when unable to validate license
-
-        If no license file is provided, defaults are used.
-        """
-        path = self._license['path']
-        self.license = License()
-
-        try:
-            if path is not None:
-                self.license.load(path)
-            self.license.global_check()
-            self.limits = self.license.payload['features']
-        except FileNotFoundError as e:
-            raise errors.LoudMLException(
-                "Unable to read license file '{}': {}".format(path, str(e)))
-        except Exception as e:
-            if path is None:
-                path = ''
-            raise errors.LoudMLException(
-                "License error '{}': {}".format(path, str(e)))
 
 
 def load_config(path):
@@ -156,7 +117,6 @@ def load_config(path):
         raise errors.LoudMLException(exn)
 
     config = Config(config_data)
-    config.load_license()
 
     return config
 

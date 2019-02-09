@@ -401,7 +401,6 @@ class PlotCommand(Command):
                 source,
                 args.from_date,
                 args.to_date,
-                license=self.config.license,
                 num_cpus=self.config.inference['num_cpus'],
                 num_gpus=self.config.inference['num_gpus'],
                 x_dim=args.x,
@@ -501,7 +500,6 @@ class TrainCommand(Command):
                 num_cpus=self.config.training['num_cpus'],
                 num_gpus=self.config.training['num_gpus'],
                 incremental=args.incremental,
-                license=self.config.license,
                 windows=windows,
             )
             print("loss: %f" % result['loss'])
@@ -635,7 +633,6 @@ class ForecastCommand(Command):
                 args.to_date,
                 percent_interval=args.p_val,
                 percent_noise=args.noise_val,
-                license=self.config.license,
                 num_cpus=self.config.inference['num_cpus'],
                 num_gpus=self.config.inference['num_gpus'],
             )
@@ -752,7 +749,6 @@ class PredictCommand(Command):
                     args.from_date,
                     args.to_date,
                     mse_rtol=self.config.server['mse_rtol'],
-                    license=self.config.license,
                     num_cpus=self.config.inference['num_cpus'],
                     num_gpus=self.config.inference['num_gpus'],
                 )
@@ -763,7 +759,6 @@ class PredictCommand(Command):
                     source,
                     args.from_date,
                     args.to_date,
-                    license=self.config.license,
                     num_cpus=self.config.inference['num_cpus'],
                     num_gpus=self.config.inference['num_gpus'],
                 )

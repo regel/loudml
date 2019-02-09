@@ -53,12 +53,10 @@ from .filestorage import (
 )
 from .misc import (
     make_bool,
+    my_host_id,
     load_entry_point,
     parse_timedelta,
     parse_constraint,
-)
-from .license import (
-    License,
 )
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
@@ -481,8 +479,6 @@ def model_train(model_name):
     if max_evals is not None:
         kwargs['max_evals'] = max_evals
 
-    kwargs['license'] = g_config.license
-
     job = TrainingJob(model_name, **kwargs)
     job.start()
 
@@ -804,7 +800,6 @@ def model_predict(model_name):
         save_prediction=request.args.get('save_prediction', default=False),
         datasink=request.args.get('datasink'),
         detect_anomalies=request.args.get('detect_anomalies', default=False),
-        license= g_config.license
     )
     job.start()
 
@@ -909,8 +904,6 @@ def model_forecast(model_name):
     if constraint:
         params['constraint'] = parse_constraint(constraint)
 
-    params['license'] = g_config.license
-
     job = ForecastJob(model.name, **params)
     job.start()
 
@@ -942,18 +935,13 @@ def model_forecast(model_name):
 #    return str(job.id)
 
 
-@app.route("/license")
-def license():
-    return jsonify(g_config.license.payload)
-
-
 @app.route("/")
 def slash():
     version = pkg_resources.get_distribution("loudml").version
     return jsonify({
         'version': version,
         'tagline': "The Disruptive Machine Learning API",
-        'host_id': License.my_host_id(),
+        'host_id': my_host_id(),
     })
 
 
