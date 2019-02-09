@@ -355,6 +355,29 @@ def get_template_info(name):
     return info
 
 
+class LoadNabResource(Resource):
+    def post(self):
+        global g_storage
+        global g_config
+ 
+        settings = get_json()
+        name = settings.get('datasource')
+        from_date = settings.get('from_date', 'now-30d')
+   
+        job = LoadJob(
+            from_date=from_date,
+            datasource=name,
+        )
+        job.start()
+    
+        if get_bool_arg('bg', default=False):
+            return str(job.id)
+
+        return jsonify(job.result())
+
+api.add_resource(LoadNabResource, "/_nab")
+
+
 class TemplatesResource(Resource):
     @catch_loudml_error
     def get(self):
@@ -709,6 +732,28 @@ def model_training_job(model_name):
         return "training job not found", 404
 
     return jsonify(job.desc)
+
+
+class LoadJob(Job):
+    """
+    Load data job
+    """
+    func = 'load'
+    job_type = 'fetch'
+
+    def __init__(self, from_date, datasource, **kwargs):
+        super().__init__()
+        self.from_date = from_date
+        self.datasource = datasource
+        self._kwargs = kwargs
+
+    @property
+    def args(self):
+        return [self.from_date, self.datasource]
+
+    @property
+    def kwargs(self):
+        return self._kwargs
 
 
 class PredictionJob(Job):

@@ -9,10 +9,18 @@ import json
 import numpy as np
 import pkg_resources
 import sys
+import os
 
 import itertools
 import multiprocessing
 import multiprocessing.pool
+
+import requests
+from io import StringIO
+import urllib.parse
+import csv
+import uuid
+import json
 
 from collections import (
     Set,
@@ -326,6 +334,125 @@ def list_from_np(array):
     Convert numpy array into a jsonifiable list
     """
     return [nan_to_none(x) for x in array]
+
+
+TEMPLATE = {
+    "template": "",
+    "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "codec":"best_compression"
+    },
+    "mappings": {},
+}
+
+MAPPING = {
+    "include_in_all": True,
+    "properties": {
+        "nab": {
+            "type": "keyword"
+        },
+        "timestamp": {
+            "type": "date",
+            "format": "epoch_millis"
+        },
+        "value": {
+            "type": "float"
+        },
+    }
+}
+
+def load_nab(source, from_date='now-30d'):
+    try:
+        tmpl = TEMPLATE
+        tmpl['mappings'][source.doc_type] = MAPPING
+        tmpl['template'] = source.index
+    except AttributeError:
+        pass
+    source.drop()
+    source.init(template_name="nab", template=tmpl)
+    from_ts = make_ts(from_date)
+    base_url = 'https://raw.githubusercontent.com/numenta/NAB/master/data/'
+    urls = [
+        'artificialNoAnomaly/art_daily_no_noise.csv',
+        'artificialNoAnomaly/art_daily_perfect_square_wave.csv',
+        'artificialNoAnomaly/art_daily_small_noise.csv',
+        'artificialNoAnomaly/art_flatline.csv',
+        'artificialNoAnomaly/art_noisy.csv',
+        'artificialWithAnomaly/art_daily_flatmiddle.csv',
+        'artificialWithAnomaly/art_daily_jumpsdown.csv',
+        'artificialWithAnomaly/art_daily_jumpsup.csv',
+        'artificialWithAnomaly/art_daily_nojump.csv',
+        'artificialWithAnomaly/art_increase_spike_density.csv',
+        'artificialWithAnomaly/art_load_balancer_spikes.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_24ae8d.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_53ea38.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_5f5533.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_77c1ca.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_825cc2.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_ac20cd.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_c6585a.csv',
+        'realAWSCloudwatch/ec2_cpu_utilization_fe7f93.csv',
+        'realAWSCloudwatch/ec2_disk_write_bytes_1ef3de.csv',
+        'realAWSCloudwatch/ec2_disk_write_bytes_c0d644.csv',
+        'realAWSCloudwatch/ec2_network_in_257a54.csv',
+        'realAWSCloudwatch/ec2_network_in_5abac7.csv',
+        'realAWSCloudwatch/elb_request_count_8c0756.csv',
+        'realAWSCloudwatch/grok_asg_anomaly.csv',
+        'realAWSCloudwatch/iio_us-east-1_i-a2eb1cd9_NetworkIn.csv',
+        'realAWSCloudwatch/rds_cpu_utilization_cc0c53.csv',
+        'realAWSCloudwatch/rds_cpu_utilization_e47b3b.csv',
+        'realKnownCause/ambient_temperature_system_failure.csv',
+        'realKnownCause/cpu_utilization_asg_misconfiguration.csv',
+        'realKnownCause/ec2_request_latency_system_failure.csv',
+        'realKnownCause/machine_temperature_system_failure.csv',
+        'realKnownCause/nyc_taxi.csv',
+        'realKnownCause/rogue_agent_key_hold.csv',
+        'realKnownCause/rogue_agent_key_updown.csv',
+    ]
+    labels_url = 'https://raw.githubusercontent.com/numenta/NAB/master/labels/combined_windows.json'
+
+    r = requests.get(labels_url)
+    windows = r.json()
+    # load remote content
+    for u in urls:
+        url = urllib.parse.urljoin(base_url, u)
+        r = requests.get(url)
+        content = StringIO(r.content.decode('utf-8'))
+        csv_reader = csv.reader(content, delimiter=',')
+        next(csv_reader, None) # skip the header
+        measurement = os.path.basename(os.path.splitext(u)[0])
+
+        delta = None
+        for row in csv_reader:
+            ts = make_ts(row[0])
+            if delta is None:
+                delta = ts - from_ts
+
+            ts -= delta
+            l = row[1]
+            source.insert_times_data(
+                ts=ts,
+                tags={ 'nab': measurement },
+                data={ 'value': float(l) },
+                measurement=measurement,
+            )
+
+        for window in windows[u]:
+            _id = str(uuid.uuid4())
+            start = make_ts(window[0]) - delta
+            end = make_ts(window[1]) - delta
+            points = source.insert_annotation(
+                ts_to_datetime(start),
+                'abnormal window',
+                'label',
+                _id=_id,
+                tags={'nab': measurement},
+            )
+            source.update_annotation(
+                ts_to_datetime(end),
+                points,
+            )
 
 
 def hash_dict(data):

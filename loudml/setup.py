@@ -75,6 +75,7 @@ setup(
             'list-models=loudml.cli:ListModelsCommand',
             'list-templates=loudml.cli:ListTemplatesCommand',
             'show-model=loudml.cli:ShowModelCommand',
+            'load-data=loudml.cli:LoadDataCommand',
             'train=loudml.cli:TrainCommand',
             'predict=loudml.cli:PredictCommand',
             'forecast=loudml.cli:ForecastCommand',

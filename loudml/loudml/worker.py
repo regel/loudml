@@ -15,6 +15,7 @@ from loudml import (
     errors,
 )
 from loudml.misc import (
+    load_nab,
     make_ts,
 )
 
@@ -241,6 +242,19 @@ class Worker:
         else:
             logging.info("job[%s] forecast done", self.job_id)
 
+    def load(
+        self,
+        from_date=None,
+        datasource=None,
+        **kwargs
+    ):
+        """
+        Load public data set
+        """
+        src_settings = self.config.get_datasource(datasource)
+        source = loudml.datasource.load_datasource(src_settings)
+        load_nab(source, from_date)
+        logging.info("data loaded")
 
     """
     # Example

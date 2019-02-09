@@ -28,6 +28,7 @@ from .metrics import (
     send_metrics,
 )
 from .misc import (
+    load_nab,
     parse_constraint,
     make_ts,
     ts_to_str,
@@ -72,6 +73,35 @@ class Command:
         """
         Execute command
         """
+
+class LoadDataCommand(Command):
+    """
+    Load public NAB data set
+    """
+
+    def add_args(self, parser):
+        parser.add_argument(
+            '-d', '--datasource',
+            help="Datasource",
+            type=str,
+        )
+        parser.add_argument(
+            '-f', '--from',
+            help="From date",
+            type=str,
+            dest='from_date',
+            default="now-30d",
+        )
+
+    def exec(self, args):
+        if not args.datasource:
+            raise LoudMLException(
+                "'datasource' argument is required",
+            )
+
+        source = get_datasource(self.config, args.datasource)
+        load_nab(source, args.from_date)
+
 
 class LoadCheckpointCommand(Command):
     """
