@@ -450,6 +450,46 @@ class InfluxDataSource(DataSource):
             retention_policy=self.retention_policy,
         )
 
+    def _build_annotations_query(
+        self,
+        measurement,
+        from_date=None,
+        to_date=None,
+        tags=None,
+    ):
+        """
+        Build queries according to requested time range
+        """
+        # TODO sanitize inputs to avoid injection!
+
+        time_pred = _build_time_predicates(from_date, to_date)
+        must = time_pred
+        for key, val in tags.items():
+            if isinstance(val, bool):
+                val = str(val)
+            elif isinstance(val, int):
+                val = str(val)
+
+            val = "'{}'".format(escape_quotes(val))
+            must.append("\"{}\"={}".format(
+              escape_doublequotes(key),
+              val),
+            )
+
+        must.append("\"{}\"={}".format(
+            "deleted",
+            "false"
+        ))
+
+        where = " where {}".format(" and ".join(must)) if len(must) else ""
+
+        yield "select * from \"{}\".\"{}\".\"{}\"{} ;".format(
+            escape_doublequotes(self.annotation_db_name),
+            "autogen",
+            escape_doublequotes(measurement),
+            where,
+        )
+
     def _build_times_queries(self, model, from_date=None, to_date=None):
         """
         Build queries according to requested features
