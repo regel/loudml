@@ -702,7 +702,7 @@ class ElasticsearchDataSource(DataSource):
         prediction,
     ):
         template = {
-          "template": model.name,
+          "template": self.index,
           "mappings": {
             self.doc_type: {
               "properties": {
@@ -735,11 +735,10 @@ class ElasticsearchDataSource(DataSource):
         index=None,
     ):
         template = self.gen_template(model, prediction)
-        self.init(template_name=model.name, template=template)
+        self.init(template_name=self.index, template=template)
 
         for bucket in prediction.format_buckets():
             data = bucket['predicted']
-            data['model'] = model.name
             tags = model.get_tags()
             stats = bucket.get('stats', None)
             if stats is not None:

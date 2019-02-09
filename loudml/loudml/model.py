@@ -290,7 +290,9 @@ class Model:
         return self._settings.get('default_datasink')
 
     def get_tags(self):
-        tags = {}
+        tags = {
+            'model': self.name,
+        }
         for feature in self.features:
             if feature.match_all:
                 for condition in feature.match_all:

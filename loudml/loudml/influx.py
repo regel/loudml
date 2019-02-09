@@ -762,7 +762,7 @@ class InfluxDataSource(DataSource):
                 data['is_anomaly'] = stats.get('anomaly', False)
 
             self.insert_times_data(
-                measurement='prediction_{}'.format(model.name), # Add id? timestamp?
+                measurement='loudml',
                 ts=bucket['timestamp'],
                 tags=tags,
                 data=data,
