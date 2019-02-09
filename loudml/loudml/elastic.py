@@ -379,6 +379,8 @@ class ElasticsearchDataSource(DataSource):
         aggs = {}
 
         for feature in model.features:
+            if feature.metric in ['mean', 'average']:
+                feature.metric = 'avg'
             if feature.metric in ['std_deviation', 'variance']:
                 sub_agg = 'extended_stats'
             else:
