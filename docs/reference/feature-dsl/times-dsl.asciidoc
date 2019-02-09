@@ -9,6 +9,7 @@ A `measurement` defines an object type in the data source:
 
 * For Elasticsearch data source, the `measurement` is not used. You can set the `doc_type` in `config.yml` data source settings. Default is `doc` if not set
 * For InfluxDB data source, the `measurement` is the series measurement name
+* For MongoDB data source, the `collection` is the series data collection
 
 Accepted parameters to define model features are:
 
@@ -16,11 +17,10 @@ Accepted parameters to define model features are:
 `name`:: Name given to this feature
 `field`:: TSDB column name
 `measurement`:: TSDB table to fetch data
+`collection`:: TSDB collection to fetch data
 `match_all`:: list of TSDB tag names and values that must be matched when fetching the data
 `metric`:: An aggregation operator supported by the TSDB
 `default`:: A default float value to replace NaN values returned by the TSDB, or `previous` in order to fill the series with previous non-NaN value
-`transform`:: `null`, or `diff` additional processing to apply to TSDB data in order to generate the feature
-`scores`:: `min_max`, or `standardize` additional processing to apply to TSDB data in order to generate the feature
 `anomaly_type`:: `low_high`, `low`, or `high` according to the type of abnormal values to detect
 
 The list below defines the aggregation operators can be used to
@@ -59,7 +59,7 @@ is using:
 
 * One minute aggregations, ie `bucket_interval` equals 1m
 * A forecast horizon equal to 5 `bucket_interval` ie 5 minutes
-* A proxy, the span equal to 10 `bucket_interval` ie 10 minutes
+* A window size, the span equal to 10 `bucket_interval` ie 10 minutes
 * A `low` anomaly type, since we want to detect dips in user traffic
 
 [source,js]
@@ -81,39 +81,35 @@ is using:
   "max_evals": 10,
   "name": "traffic-model",
   "offset": 30,
-  "forecast": 5,
+  "forecast": 1,
   "span": 20,
   "max_threshold": 90,
   "min_threshold": 50,
-  "type": "timeseries"
+  "type": "donut"
 }
 --------------------------------------------------
 
+== Advanced Example: Using Filters
 
-== Advanced Example: Abnormal Dips in User Traffic using Seasonality
+Building on the previous example we can use the `match_all` property
+to query the data whose `host` value equals `app.xyz.com`
 
-Building on the fist example, it is often common for user traffic to have
-regular patterns within a given day, and within a given week:
-
-* At night, a smooth decrease
-* During the day, one or more sharp increase and decrease eg at lunch time
-* During the week-ends or holidays, a totally different pattern
+One or more `match_all` conditions can be added to narrow down your search
+and will automatically send queries to your data sources with the right filters.
 
 An updated `user_traffic.json` file (Or .yml file if YAML format is used)
-will activate seasonality parameters to take it into account:
+will become:
 
-[source,js]
 --------------------------------------------------
 {
   "name": "traffic-model",
-  "seasonality": {
-      "daytime": true,
-      "weekday": true
-  },
   "bucket_interval": "1m",
   "default_datasource": "my-datasource",
   "features": [
     {
+      "match_all": [
+        {"tag": "host", "value": "app.xyz.com"}
+      ],
       "default": 0,
       "metric": "count",
       "field": "requests",
@@ -125,140 +121,11 @@ will activate seasonality parameters to take it into account:
   "interval": 60,
   "max_evals": 10,
   "offset": 30,
-  "forecast": 5,
+  "forecast": 1,
   "span": 20,
   "max_threshold": 90,
   "min_threshold": 50,
-  "type": "timeseries"
-}
---------------------------------------------------
-
-[[times-dsl-multiple-dimensions]]
-== Advanced Example: Abnormal Dips in User Traffic using 3 Dimensions
-
-Again, building on the previous example we could try to enhance the model
-accuracy, ie lower loss, and forecast the user traffic based on additional features:
-
-* Past user traffic, using past values as a proxy to guess the future values
-* Active users count at a given time
-* The click through rate, ie CTR, as measured in social media campaigns
-
-The features list becomes a dictionary with 3 optional lists, `i`, `o`, and `io`
-respectively for input, output, and input-output features:
-
-* Two dimensions will be used to ingest input data in the model, and therefore are declared in the `i` features list
-* One dimension, the user traffic, is both an input and the expected output therefore it is declared in the `io` features list
-
-Effectively, the following file gives you a model to forecast and detect
-anomalies in user traffic as a function of past user traffic, past active users,
-and past click through rate in advertising campaigns.
-
-An updated `user_traffic.json` file (Or .yml file if YAML format is used)
-will become:
-
---------------------------------------------------
-{
-  "name": "traffic-model",
-  "seasonality": {
-      "daytime": true,
-      "weekday": true
-  },
-  "bucket_interval": "1m",
-  "default_datasource": "my-datasource",
-  "features": {
-    "io": [{
-      "default": 0,
-      "metric": "count",
-      "field": "requests",
-      "measurement": "traffic",
-      "name": "count_all_requests",
-      "anomaly_type": "low"
-    }],
-    "i": [
-      {
-      "default": 0,
-      "metric": "max",
-      "field": "active_users",
-      "measurement": "traffic",
-      "name": "max_users"
-      },
-      {
-      "default": 0,
-      "metric": "mean",
-      "field": "click_through_rate",
-      "measurement": "social",
-      "name": "avg_ctr"
-      }
-    ]
-  },
-  "interval": 60,
-  "max_evals": 10,
-  "offset": 30,
-  "forecast": 5,
-  "span": 20,
-  "max_threshold": 90,
-  "min_threshold": 50,
-  "type": "timeseries"
-}
---------------------------------------------------
-
-== Advanced Example: Abnormal Dips in User Traffic using Filters
-
-Again, building on the previous example we can use the `match_all` property
-to query only GoogleAds click through rates from the social media measurement.
-
-One or more `match_all` conditions can be added and will automatically 
-change the queries to your data sources with the right filters.
-
-An updated `user_traffic.json` file (Or .yml file if YAML format is used)
-will become:
-
---------------------------------------------------
-{
-  "name": "traffic-model",
-  "seasonality": {
-      "daytime": true,
-      "weekday": true
-  },
-  "bucket_interval": "1m",
-  "default_datasource": "my-datasource",
-  "features": {
-    "io": [{
-      "default": 0,
-      "metric": "count",
-      "field": "requests",
-      "measurement": "traffic",
-      "name": "count_all_requests",
-      "anomaly_type": "low"
-    }],
-    "i": [
-      {
-      "default": 0,
-      "metric": "max",
-      "field": "active_users",
-      "measurement": "traffic",
-      "name": "max_users"
-      },
-      {
-      "default": 0,
-      "metric": "mean",
-      "field": "click_through_rate",
-      "measurement": "social",
-      "match_all": [
-        {"tag": "channel", "value": "GoogleAds"}
-      ],
-      "name": "avg_ctr_googleads"
-      }
-    ]
-  },
-  "interval": 60,
-  "max_evals": 10,
-  "offset": 30,
-  "forecast": 5,
-  "span": 20,
-  "max_threshold": 90,
-  "min_threshold": 50,
-  "type": "timeseries"
+  "type": "donut"
 }
 --------------------------------------------------
 

@@ -13,7 +13,9 @@
 [[glossary-data-source]] data-source ::
 
   Any component that implements our data source Python interfaces. This can be
-  a supported NoSQL database, or anything else that contains TSDB data.
+  a supported NoSQL database, a CSV file, or anything else that contains TSDB data.
+  Data sources can contain information in arbitrary tables or documents. They can be
+  queried using a time range to return timestamp and data relevant to the query.
 
 [[glossary-training]] training ::
 
@@ -41,11 +43,11 @@
   For example, with time series data, running inference means your model
   will predict future data based on present and past data: if your features
   are `avg(cpu_temperature),max(cpu_load)` and your `bucket_interval` is 60s
-  you will predict the temperature and load in the next minute.
+  you can predict the temperature and load in the next minute.
   You can run inference both using past history data, and present data.
 
 [[glossary-type]] type ::
 
   A type used to represent the _type_ of machine learning model you want to manipulate,
-  e.g. a `timeseries` type if learning the trend of numeric data.
+  e.g. a `donut` type if using the default unsupervised model provided in Loud ML.
 

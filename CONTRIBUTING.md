@@ -19,9 +19,11 @@ false positives due to changes between Python 2 and Python 3.
 ### PyDoc
 
 Public interfaces for new data sources, models, and the model server,
-can be found in the Python doc.
+can be found in source files:
 
-[![PyDoc](https://updateurl)](https://updateurl)
+* `datasource.py`
+* `model.py`
+* `server.py`
 
 ### Common development tasks
 

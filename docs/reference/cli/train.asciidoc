@@ -11,7 +11,7 @@ and operations.
 loudml train --from "now-30d" --to "now" avg_temp2
 --------------------------------------------------
 
-Training will print logs to `stdout` and report its loss and accuracy.
+Training will print logs to `stdout` and report its loss.
 
 From the training logs:
 
@@ -43,26 +43,13 @@ INFO:hyperopt.tpe:tpe_transform took 0.003772 seconds
 INFO:hyperopt.tpe:TPE using 9/9 trials with best loss 0.025540
 ...
 loss: 0.00042
-accuracy: 0.92445
 --------------------------------------------------
 
 [NOTE]
 ==================================================
 
 The training operation requires a long history to achieve a
-good (>0.9) accuracy. The more data, the longer training will be.
-Once you get good accuracy, you do not have to repeat this operation
-since data will be saved to the local filesystem.
-
-==================================================
-
-[WARNING]
-==================================================
-
-Low accuracy in training will cause low accuracy in inference. The low
-accuracies may be observed when using insufficient data. You might want
-to try again with more data, or by changing the settings when defining
-the features.
+good loss value. The more data, the longer training will be.
 
 ==================================================
 

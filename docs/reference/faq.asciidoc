@@ -8,7 +8,8 @@
 ML training is done on demand. Depending on the application you may want to
 train your model again to take into account new patterns in more recent data.
 Loud ML gives you the freedom to train your model according to your
-application requirements, at the chosen interval and frequency.
+application requirements, at the chosen interval and frequency. You can control
+and tune these settings in the `/etc/loudml/config.yml` file.
 
 === Are there limits to the size of the dataset I can use for training?
 
@@ -17,28 +18,24 @@ by DB queries must fit into your system memory.
 
 === What data sources can I easily use with Loud ML
 
-InfluxDB and Elasticsearch databases are natively supported. Other data sources
-will be added in the future.
+InfluxDB and Elasticsearch and other databases are natively supported. Other data sources
+can be submitted as pull request. Our contributing guide explains how: https://raw.githubusercontent.com/regel/loudml/master/CONTRIBUTING.md
 
 === What algorithms does Loud ML use to generate models?
 
 Loud ML uses ANN, ie artificial neural networks, for time series forecasting, time 
 series clustering, and removes all the complexity behind Tensorflow. All
-hyperparameters are calculated automatically in the training phase.
+hyperparameters are calculated automatically in the training phase. Loud ML provides
+out of the box the [Donut](https://arxiv.org/abs/1802.03903) unsupervised model.
 
 === On which infrastructure Loud ML runs on?
 
-You can install and setup Loud ML in your favorite infrastructure, based on
-official packages for Linux, or Docker containers.
-
-=== How many concurrent real-time API requests does Loud ML support?
-
-The concurrent API requests in your Loud ML instance is defined according to your
-license.
+You can install and setup Loud ML in your favorite infrastructure, local or remote,
+based on official packages for Linux, or Docker containers.
 
 === Can the time series model handle unobserved, missing values, or nan values?
 
-Yes, unobserved, missing values, and nan values are supported.
+Yes, unobserved, missing values, and nan values are supported in the Donut model.
 
 === Do I need to split data into train/test set for evaluation?
 
@@ -46,19 +43,17 @@ No, time-series in the training data are automatically split into training set a
 
 === Do I need to train one model per time series?
 
-We recommend using `fingerprints` if you need to cluster time series with similar properties.
+You can train one `donut` model per time series if there is no other information to reduce cardinality.
+
+Having more advanced models opens the possiblity to find correlations and use ML for more challenging questions in industrial IoT and other domains. For a quick chat with our experts: https://loudml.io/contact-us/[Contact Us]
 
 === Can I pass time-dependent features or scalar features?
 
-Yes, time-dependent co-variates can be defined in the `i` features list. You can also include features such as time of day and day of week that are generated internally when using the `seasonality` property.
+Yes, time-dependent co-variates can be defined in the `i` features list. 
 
 === How much data is required to train a model?
 
-Models need sufficient data in order to learn typical behavior. A single or small number of time-series are typically not sufficient for training the neural network (unless the time-series are very long). While a Loud ML model trained on a few hundreds data points will usually still generate sensible forecasts, standard forecasting methods such as ARIMA or ETS may be more accurate and stable. Where the ANN approach in Loudb ML starts to outperform the standard methods is when your dataset contains thousands of data points and thus can be significantly more accurate with more data.
-
-=== Can the forecast horizon be changed later?
-
-No, the forecast horizon (`forecast`) is fixed when a model is trained and it cannot be changed later.
+Models need sufficient data in order to learn typical behavior. A single or small number of time steps are typically not sufficient for training the neural network (unless the time series are very long). While a Loud ML model trained on a few hundreds data points will usually still generate sensible forecasts, standard forecasting methods such as ARIMA or ETS may be more accurate and stable. Where the ANN approach in Loud ML starts to outperform the standard methods is when your dataset contains thousands of data points and thus can be significantly more accurate with more data.
 
 === Can the time series in the dataset have different frequencies?
 
@@ -66,5 +61,5 @@ No, all time series in the dataset have to have the same frequency (your `bucket
 
 === What is `span` and how should I set it?
 
-The `span` corresponds to the number of data points the algorithm gets to see before making a prediction. Typical values are of the same order of magnitude as the `forecast` length. 
+The `span` corresponds to the number of data points the algorithm gets to see before making a prediction. The `donut` model uses a fixed window that slides over historical data to learn a meaningful representation.
 

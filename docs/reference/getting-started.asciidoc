@@ -4,29 +4,31 @@
 [partintro]
 --
 
-Loud ML is a new deep learning API that makes it simple to prepare, train, and deploy machine learning models for predictive analytics with your favorite database. The user selects the times series that they want to model and sets the model date ranges, then Loud ML will build the models and save them back into the desired database for analysis. Loud ML does all the work and removes the complexity of machine learning with Tensorflow.
-
-It is used as the underlying technology that powers applications with predictive capabilities, and shortest time to market.
+Loud ML is the first open source deep learning API that makes it simple to prepare, train, and deploy machine learning models and crunch the data stored in your favorite databases without moving the data. The user selects the times series that they want to model and sets the model date ranges, then Loud ML will build the models and save them for inference in production. Loud ML does all the work and removes the complexity of machine learning with Tensorflow.
 
 Here are a few sample use-cases that Loud ML is used for:
 
 * Detecting abnormal dips in user traffic and responding to incidents before they impact customers satisfaction
-* Detecting outliers in periodic fluctuations over changing baseline; eg., e-commerce transactions where the time of day, and even the season, implies varying changes in the data
+* Detecting outliers in seasonal fluctuations of e-commerce transactions
 * Spotting abnormal load in a distributed database
 * Dynamically spotting network traffic patterns and anticipating congestion before it impacts customer experience
-* Forecasting various quantities: for finance, for retail, for energy, and for supply chain optimization
-* Abnormal fraud pattern detection
-* Wizard magic, to reveal hidden features; eg, guessing footsteps when your only data is X,Y,Z acceleration. 
+* Forecasting capacity, usage, and load imbalance for energy producers and suppliers
+* Forecasting demand for inventory and supply chain optimization
+* Abnormal fraud pattern detection for mobile network operators
+* Predict network equipment failure for maintenance operations planning
+* Anticipate disk capacity and discover capacity issues before it hurts
+* Knowing the future load in advance and auto scaling virtual instances in the Cloud
+* Knowing the future load in advance and saving energy in data centers
 
 [NOTE]
 ==================================================
 
-Wizard magic is powered by `supervised` learning. All other cases are fully `unsupervised`
-since they do not require labelled data to forecast the output.
+Loud ML ships with `unsupervised` learning techniques that do not require labelled data and therefore can produce faster results.
+Donut [arXiv 1802.03903](https://arxiv.org/abs/1802.03903) combines the best of unsupervised and supervised learning: users can label abnormal data if they want to, although this label operation remains optional.
 
 ==================================================
 
-For the rest of this tutorial, you will be guided through the process of getting Loud ML up and running, taking a peek inside it, and performing basic operations like creating, training, and using your data to get accurate predictions. At the end of this tutorial, you should have a good idea of what Loud ML is, how it works, and hopefully be inspired to see how you can use it to build sophisticated applications that mine intelligence from your data.
+For the rest of this tutorial, you will be guided through the process of getting Loud ML up and running, taking a peek inside it, and performing basic operations like creating, training, and using your data to get accurate predictions. At the end of this tutorial, you should have a good idea of what Loud ML is, how it works, and hopefully be inspired to see how you can apply ML to your own data and application.
 --
 
 == Basic Concepts
@@ -54,17 +56,188 @@ A data source is an external system that supports data query and aggregation. Fo
 A machine learning model uses features to represent changes in the data. With Loud ML, these features are assigned by the user when creating the model. For example, a feature can be `avg(cpu_load)` to represent the average metric calculed on the document field named `cpu_load`. The features are defined at model creation time and are used both in <<training>> and <<inference>>.
 
 [float]
+[[baseline]]
+=== Baseline
+
+Data is dynamic and changes over time. A baseline provides a fit for expected normal value, and expected normal range for the data at a given point in time. A good fit is observed when the observed data is contained within a predicted range. For example, if a battery voltage is measured at 9.56V in the current temperature operating conditions and the baseline predicts 9.23V to 9.88V we shall assume normal operating conditions.
+
+[float]
 [[training]]
 === Training
 
-This is the magic part: your model will learn the features according to data history. This operation is called training. It can be CPU intensive and data hungry. The more data, the longer the training. Your training result is saved on the local filesystem, so it does not have to be repeated if not necessary. Training will output the model accuracy level as a percentage. The higher the accuracy, the better in order to use the model in production.
+Historical data is used to baseline normal patterns in the data. You are training a model to discover the baseline that fits and understands the data. Your training result is saved on the local filesystem, so it does not have to be repeated if not necessary. Training will output the model loss value ie the fitness between the baseline and the original data. A low loss value is a good fit indicator.
 
 [float]
 [[inference]]
 === Inference
 
-After training, you can perform inference. This means your model can repeat the operations that it knows (or the ones that have been discovered through training) using brand new data. For example, with time series data, running inference means your model will predict future data based on present and past data: if your features are avg(cpu_temperature) and max(cpu_load), and your `bucket_interval` is 60s, you will predict the temperature and load in the next minute.
+After training your model, you can perform inference. This means your model can repeat the operations that it knows (or the ones that have been discovered through training) using brand new data. For example, with time series data, running inference means your model will predict future data based on present and past data: if your features are `avg(cpu_temperature)` and `max(cpu_load)`, and your `bucket_interval` is 60s, you will predict the temperature and load in the next minute.
 
 You can run inference using both past history data (usually to verify the model accuracy), and present data.
 
+
+== Setup Your config.yml File
+
+The first step after installation is to define the data sources that Loud ML can use to find data. You can edit the file `/etc/loudml/config.yml` and add minimal settings such as the address, port, and name of your data source.
+
+We will define one `nab` data source pointing to a database of the same name.
+
+A `datasource` can act as a source where data is read, or a sink to write data depending on the context.
+
+[source,sh]
+--------------------------------------------------
+cat /etc/loudml/config.yml
+---
+datasources:
+ - name: nab
+   type: influxdb
+   addr: localhost
+   database: nab
+   create_database: true
+   retention_policy: autogen
+   max_series_per_request: 2000
+ - name: output
+   type: influxdb
+   addr: localhost
+   database: loudml
+   create_database: true
+   retention_policy: autogen
+   max_series_per_request: 2000
+--------------------------------------------------
+
+Or if your `config.yml` settings must specify Elasticsearch indexes:
+
+[source,sh]
+--------------------------------------------------
+cat /etc/loudml/config.yml
+---
+datasources:
+ - name: nab
+   type: elasticsearch
+   addr: localhost
+   index: nab
+   doc_type: doc
+ - name: output
+   type: elasticsearch
+   addr: localhost
+   index: loudml
+   doc_type: doc
+--------------------------------------------------
+
+[NOTE]
+==================================================
+
+Settings will differ according to the type of database used in your environment. But if your favorite database is missing, we've made it simple to submit a https://raw.githubusercontent.com/regel/loudml/master/CONTRIBUTING.md[pull request] on Github.
+
+==================================================
+
+== Historical Data
+
+Public real world data sets are useful for testing. We can load the popular https://github.com/numenta/NAB[NAB] data set using one command. The `-f` flag will offset the data so that it begins at the given point in time. The `-d` flag saves data to the chosen data store defined in your `config.yml` file.
+
+[source,sh]
+--------------------------------------------------
+loudml load-data -f now-30d -d nab
+--------------------------------------------------
+
+== First Model
+
+Data is loaded. Let's declare a first model in a JSON file. This model learns
+the average CPU utilization of an AWS instance auto scaling group. Our JSON
+file describes the parameters and features to pull and aggregate data from
+a data source. 
+
+[source,sh]
+--------------------------------------------------
+cat <<EOF | tee asg.json
+{
+    "default_datasource": "nab",
+    "default_datasink": "output",
+    "name": "nab_cpu_utilization_asg_misconfiguration_mean_value__5m",
+    "type": "donut",
+    "features": [
+        {
+            "metric": "mean",
+            "measurement": "cpu_utilization_asg_misconfiguration",
+            "field": "value",
+            "io": "io",
+            "name": "mean_value",
+            "match_all": [
+                {
+                    "tag": "nab",
+                    "value": "cpu_utilization_asg_misconfiguration"
+                }
+            ],
+            "default": null
+        }
+    ],
+    "bucket_interval": "5m",
+    "offset": "10s",
+    "interval": "60s",
+    "max_evals": 21,
+    "span": 24
+}
+EOF
+--------------------------------------------------
+
+We can use the CLI to create this model and ten days of historical data for training.
+
+[source,sh]
+--------------------------------------------------
+loudml create-model asg.json
+loudml train nab_cpu_utilization_asg_misconfiguration_mean_value__5m -f now-30d -t now-20d
+--------------------------------------------------
+
+== Evaluate
+
+We can use the `predict` command to compare original data against model predictions,
+using historical data. The `-s` flag saves data to the default data source, and
+facilitates data vizualization. The `-a` flag calculates a score to detect anomalies.
+
+Output data points are saved to a new measurement `prediction_nab_cpu_utilization_asg_misconfiguration_mean_value__5m` and each point contains the following information:
+* `mean_value`: the name chosen for our feature in the JSON model definition
+* `lower_mean_value`: the minimum normal value with 99.7 per cent confidence
+* `upper_mean_value`: the maximum normal value with 99.7 per cent confidence
+* `score`: anomaly score in range [0.0, 100.0]
+* `is_anomaly`: flag the data point as abnormal or not
+
+[source,sh]
+--------------------------------------------------
+loudml predict nab_cpu_utilization_asg_misconfiguration_mean_value__5m -f now-30d -t now -s -a
+--------------------------------------------------
+
+== Forecast Future Data
+
+We can use the `forecast` command to generate future data points. Again, the `-s` flag
+saves data to the default data source, and facilitates data vizualization.
+
+[source,sh]
+--------------------------------------------------
+loudml forecast nab_cpu_utilization_asg_misconfiguration_mean_value__5m -f now-5m -t now+6h -s
+--------------------------------------------------
+
+Output data points are saved to a new measurement `prediction_nab_cpu_utilization_asg_misconfiguration_mean_value__5m` and each point contains the following information:
+* `mean_value`: the name chosen for our feature in the JSON model definition
+* `lower_mean_value`: the minimum normal value with 99.7 per cent confidence
+* `upper_mean_value`: the maximum normal value with 99.7 per cent confidence
+
+== Detecting Outliers 
+
+Running ML in production requires the ability to automate training, inference, and
+forecast operations. Regular scheduled operations, and on demand inference are provided
+via the Loud ML daemon process.
+
+Jobs can be scheduled at a regular `interval` defined in JSON model settings, using the
+`_start` API eg to automate outlier detection for live streaming data:
+
+[source,sh]
+--------------------------------------------------
+systemctl start loudmld
+curl -X POST localhost:8077/models/nab_cpu_utilization_asg_misconfiguration_mean_value__5m/_start?detect_anomalies=true&save_prediction=true
+--------------------------------------------------
+
+Congratulations on making it this far. We hope this tutorial helps get you started
+on your Loud ML journey. Feel free to contribute and submit ideas, bug fixes, and https://raw.githubusercontent.com/regel/loudml/master/CONTRIBUTING.md[pull requests] to enhance the OSS version and the documentation.
+
+Twitter channel: https://twitter.com/loud_ml[@loud_ml]
 

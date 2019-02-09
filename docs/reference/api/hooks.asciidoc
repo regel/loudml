@@ -136,7 +136,7 @@ Now, since we want to detect request counts that are abnormally low, we set
   "span": 20,
   "max_threshold": 70,
   "min_threshold": 50,
-  "type": "timeseries"
+  "type": "donut"
 }
 --------------------------------------------------
 
