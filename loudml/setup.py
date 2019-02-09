@@ -43,7 +43,6 @@ setup(
         "hyperopt==0.1",
         "numpy>=1.10.0",
         "Pebble>=4.3.8",
-        "psutil>=2.2.1",
         "pycrypto>=2.6.1",
         "PyYAML>=3.11",
         "voluptuous>=0.10.5",

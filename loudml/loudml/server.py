@@ -17,10 +17,6 @@ import queue
 import sys
 import uuid
 
-import fcntl
-import psutil
-import inspect
-
 import loudml.config
 import loudml.model
 import loudml.worker
@@ -979,31 +975,6 @@ def err_internal(e):
     return "internal server error", 500
 
 
-def check_instance():
-    stack_data = inspect.stack()
-    app_path = stack_data[-1][0].f_code.co_filename
-    if app_path not in APP_INSTALL_PATHS:
-        logging.error("Unauthorized instance")
-        sys.exit(1)
-
-    fp = open(LOCK_FILE, 'w')
-    try:
-        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        running = 0
-        for p in psutil.process_iter():
-            cmd = p.cmdline()
-            if len(cmd) > 1 and cmd[1] in APP_INSTALL_PATHS:
-                running = running + 1
-
-        if running > 1:
-            logging.error("Another instance running")
-            sys.exit(1)
-
-    except IOError:
-        logging.error("Another instance running")
-        sys.exit(1)
-
-
 def restart_predict_jobs():
     """
     Restart prediction jobs
@@ -1058,8 +1029,6 @@ def main():
     logger.setLevel(logging.INFO)
 
     app.logger.setLevel(logging.INFO)
-
-    check_instance()
 
     try:
         g_config = loudml.config.load_config(args.config)
