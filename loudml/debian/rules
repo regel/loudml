@@ -10,34 +10,12 @@ export PYBUILD_DISABLE_python2 = 1
 %:
 	dh $@ --with python3,systemd --buildsystem=pybuild
 
-# Enable instances limitations
-override_dh_auto_configure:
-	dh_auto_configure
-
-# Keep bytecode instead of source code
-# Because cleaning done by dh_python3 is not configurable, the function
-# /usr/share/dh-python/dhpython/fs.py:is_unwanted_file() has to be edited to
-# always return False.
 _pyver := $(shell python3 --version | cut -d ' ' -f 2 | cut -d '.' -f -2)
-_pyvernum := $(shell echo $(_pyver) | sed 's/\.//')
 _pydir := debian/loudml/usr/lib/python$(_pyver)/dist-packages
 override_dh_install:
 	dh_install
 
-	mkdir -p debian/loudml
-	mv debian/python3-loudml/* debian/loudml/
-	rm -f ${_pydir}/loudml/*.py
-	for src in $$(find ${_pydir}/loudml/__pycache__/ -name "*.cpython-$(_pyvernum).pyc"); \
-	do \
-		dst=$$(basename $$src .cpython-$(_pyvernum).pyc).pyc; \
-		cp $$src ${_pydir}/loudml/$$dst; \
-	done
-	rm -f ${_pydir}/rmn_common/*.py
-	for src in $$(find ${_pydir}/rmn_common/__pycache__/ -name "*.cpython-$(_pyvernum).pyc"); \
-	do \
-		dst=$$(basename $$src .cpython-$(_pyvernum).pyc).pyc; \
-		cp $$src ${_pydir}/rmn_common/$$dst; \
-	done
+	# requires.txt causes issues with our vendoring system
 	find ${_pydir} -name requires.txt | xargs rm -f
 
 override_dh_installinit:

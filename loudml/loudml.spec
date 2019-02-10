@@ -4,7 +4,7 @@ Release:	1%{?dist}
 Summary:	Loud ML core package
 
 Group: Applications/System
-License: Proprietary
+License: MIT
 URL: www.loudml.com
 Source0: %{name}-%{version}.tar.gz
 
