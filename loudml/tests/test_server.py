@@ -22,8 +22,4 @@ class TestServer(unittest.TestCase):
         data = rv.get_json()
         self.assertIn('tagline', data)
 
-    def test_route_license(self):
-        rv = self.client.get('/license')
-        self.assertTrue(rv.is_json)
-        data = rv.get_json()
-        self.assertIn('features', data)
+

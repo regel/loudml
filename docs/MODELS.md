@@ -69,7 +69,6 @@ class GaussianModel(Model):
         num_gpus=0,
         max_evals=None,
         progress_cb=None,
-        license=None,
         incremental=False,
         windows=[],
     ):
