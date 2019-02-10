@@ -7,7 +7,7 @@ import io
 import pkg_resources
 import requests
 
-from loudml.license import License
+from loudml.misc import my_host_id
 
 
 # Workaround for ConfigParser requiring sections
@@ -34,7 +34,7 @@ def send_metrics(config, storage, user_agent="loudmld"):
      :param user_agent:  HTTP request user agent
      :type  user_agent:  str
     """
-    if not config['enabled']:
+    if not config['enable']:
         return
 
     os_release = MyConfigParser()
@@ -42,7 +42,7 @@ def send_metrics(config, storage, user_agent="loudmld"):
 
     url = 'http://telemetry.loudml.io/api'
     data = {
-        'host_id': License.my_host_id(),
+        'host_id': my_host_id(),
         'loudml': {
             'distribution': os_release.get("os-release", "NAME"),
             'nr_models': len(storage.list_models()),

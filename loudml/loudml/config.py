@@ -29,6 +29,10 @@ class Config:
             for datasource in data.get('datasources', [])
         }
 
+        self._metrics = data.get('metrics', {})
+        if 'enable' not in self._metrics:
+            self._metrics['enable'] = True
+
         self._storage = data.get('storage', {})
         if 'path' not in self._storage:
             self._storage['path'] = "/var/lib/loudml"
