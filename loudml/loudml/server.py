@@ -1038,18 +1038,21 @@ def main():
         logging.error(exn)
         sys.exit(1)
 
-    cron = CronTab(user='loudml')
-    cron.remove_all()
-    if g_config.training['incremental']['enable']:
-        for tab in g_config.training['incremental']['crons']:
-            job = cron.new(command='/usr/bin/loudml train \* -i -f {} -t {}'.format(tab['from'], tab['to']),
-                           comment='incremental training')
-            job.setall(tab['crontab'])
+    try:
+        cron = CronTab(user='loudml')
+        cron.remove_all()
+        if g_config.training['incremental']['enable']:
+            for tab in g_config.training['incremental']['crons']:
+                job = cron.new(command='/usr/bin/loudml train \* -i -f {} -t {}'.format(tab['from'], tab['to']),
+                               comment='incremental training')
+                job.setall(tab['crontab'])
 
-    for item in cron:
-        logging.info(item)
+        for item in cron:
+            logging.info(item)
 
-    cron.write()
+        cron.write()
+    except OSError:
+        logging.error("detected development environment - incremental training disabled")
 
     g_queue = multiprocessing.Queue()
     g_nice = g_config.training.get('nice', 0)
