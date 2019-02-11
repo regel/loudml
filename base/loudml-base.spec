@@ -30,7 +30,8 @@ exit 0
 
 %files
 %defattr(-,root,root,-)
-%{_libdir}/loudml/vendor
+%dir %{_libdir}/loudml/vendor
+%{_libdir}/loudml/vendor/*
 
 %doc
 
