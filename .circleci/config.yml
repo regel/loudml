@@ -1,56 +1,69 @@
-# Python CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-python/ for more details
-#
 version: 2
 jobs:
-  build:
+  test-go:
     docker:
-      # specify the version you desire here
-      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: circleci/python:3.6.1
-      
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-    working_directory: ~/repo
-
+      - image: circleci/golang:1.10
+    working_directory: /go/src/github.com/regel/loudml
     steps:
       - checkout
 
-      # Download and cache dependencies
+      - restore_cache:
+          key: dep-0.5.0
+      - run:
+          name: 'Download Go dependencies tool'
+          command: |
+            cd /tmp
+            wget -N https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64
+            chmod +x /tmp/dep
+      - save_cache:
+          name: 'dep-0.5.0'
+          key: dep-0.5.0
+          paths:
+            - '/tmp/dep'
+
+      - restore_cache:
+          key: telemetry-vendor-{{ checksum "telemetry/Gopkg.lock" }}
+      - run: 'cd telemetry && /tmp/dep ensure -v --vendor-only'
+      - save_cache:
+          name: 'telemetry vendored deps'
+          key: telemetry-vendor-{{ checksum "telemetry/Gopkg.lock" }}
+          paths:
+            - 'telemetry/vendor'
+
+      - run: 'cd telemetry && make test'
+
+  test-python-unit:
+    docker:
+      - image: circleci/python:3.6.1
+    working_directory: ~/repo
+    steps:
+      - checkout
+
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "requirements.txt" }}
+          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
-
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -r requirements.txt
-
+            pip install -r base/vendor/requirements.txt
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
-        
-      # run tests!
-      # this example uses Django's built-in test-runner
-      # other common Python testing frameworks include pytest and nose
-      # https://pytest.org
-      # https://nose.readthedocs.io
+          key: v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
       - run:
-          name: run tests
+          name: Unit tests
           command: |
             . venv/bin/activate
-            python manage.py test
+            cd loudml
+            make unittest
 
-      - store_artifacts:
-          path: test-reports
-          destination: test-reports
-          
+workflows:
+  version: 2
+  check:
+    jobs:
+      - test-go
+      - test-python-unit

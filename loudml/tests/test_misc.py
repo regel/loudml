@@ -112,7 +112,8 @@ class TestMisc(unittest.TestCase):
         })
 
         # XXX It seems that loading some python modules may change the result
-        self.assertTrue(622 <= size <= 646)
+        self.assertGreaterEqual(size, 574)
+        self.assertLessEqual(size, 646)
 
     def test_escape_quotes(self):
         self.assertEqual(escape_quotes("foo ' '"), "foo \\' \\'")
