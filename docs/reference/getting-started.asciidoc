@@ -195,9 +195,10 @@ using historical data. The `-s` flag saves data to the default data source, and
 facilitates data vizualization. The `-a` flag calculates a score to detect anomalies.
 
 Output data points are saved to a new measurement `prediction_nab_cpu_utilization_asg_misconfiguration_mean_value__5m` and each point contains the following information:
-* `mean_value`: the name chosen for our feature in the JSON model definition
-* `lower_mean_value`: the minimum normal value with 99.7 per cent confidence
-* `upper_mean_value`: the maximum normal value with 99.7 per cent confidence
+
+* `mean_value`: the predicted normal value named according to the JSON model definition
+* `lower_mean_value`: the minimum normal value with 99.7 percent confidence
+* `upper_mean_value`: the maximum normal value with 99.7 percent confidence
 * `score`: anomaly score in range [0.0, 100.0]
 * `is_anomaly`: flag the data point as abnormal or not
 
@@ -217,9 +218,10 @@ loudml forecast nab_cpu_utilization_asg_misconfiguration_mean_value__5m -f now-5
 --------------------------------------------------
 
 Output data points are saved to a new measurement `prediction_nab_cpu_utilization_asg_misconfiguration_mean_value__5m` and each point contains the following information:
-* `mean_value`: the name chosen for our feature in the JSON model definition
-* `lower_mean_value`: the minimum normal value with 99.7 per cent confidence
-* `upper_mean_value`: the maximum normal value with 99.7 per cent confidence
+
+* `mean_value`: the predicted normal value named according to the JSON model definition
+* `lower_mean_value`: the minimum normal value with 68 percent confidence
+* `upper_mean_value`: the maximum normal value with 68 percent confidence
 
 == Detecting Outliers 
 
