@@ -1,0 +1,66 @@
+[[release-notes-1.5.0]]
+== 1.5.0 Release Notes
+
+The changes listed below have been released for the first time in Loud ML 1.5.0.
+
+[NOTE]
+==================================================
+Please raise issues on https://github.com/regel/loudml/issues[Github] if you experience compatibility issues on your system.
+==================================================
+
+[[oss-1.5.0]]
+[float]
+=== Why we chose to go open source for Loud ML
+
+Karen Sandler has an abnormally big heart - literally. She needed a medical device to help her heart keep her alive, but she was worried about software bugs which might cause the device to malfunction. She investigated, and discovered flaws in device approval, software testing and security: hackers were able to access medical devices for hearts, trigger actions, pull private data and consume battery life. Software integrity has never been more important. 
+
+Our reliance on devices in every-day life is growing, with inventions for smart homes, smart workplaces and driverless cars appearing daily. Any malfunction or hack could be the difference between life and death. Factories absolutely must know when their production line begins to falter in order to avoid environmental health and safety issues and costly repairs to bespoke equipment. Businesses need reliable software to support their hardware. Open-source software is often the best solution. This also applies to the AI software industry.
+
+The team behind Loud ML loves finding solutions to challenging problems, and we also love solutions with integrity. Open-source software benefits from regular peer reviews, generally making it more stable and secure than proprietary software. We want Loud ML to ooze integrity, security and stability so businesses can rely on it. We believe open source is the best way to achieve this.
+
+Loud ML becomes the first open-source AI solution for ICT and IoT automation.
+
+[quote, Sebastien Leger]
+____
+
+
+Software is built into so many aspects of our life now that safety is paramount - and even more so now with AI. By going open source, we let the brightest minds enhance the quality of our software through audits, testing and contributions. 
+____
+
+
+[[overview-1.5.0]]
+[float]
+=== Overview
+
+New features you will love in this new release include:
+
+* https://arxiv.org/abs/1802.03903[Donut] model type. Thanks to the Alibaba group for publishing their 2018 research. ArXiv 1802.03903.
+* Saving your training checkpoints automatically and the ability to load a previous checkpoint
+* Reinforce your trained model using additional data
+* Schedule training jobs at a regular time of day to reinforce your trained model automatically.
+* Control your forecast using a 65% confidence interval or any other percentage, and measure the future uncertainty
+* New configuration options in `config.yml` to control CPU and GPU assigned to inference and training workload
+* We added a function to automatically load real world data in your TSDB and facilitate the user journey and first steps using Loud ML.
+
+[[breaking-1.5.0]]
+[float]
+=== Breaking changes
+
+Breaking changes have been made:
+
+* The `timeseries` model type, using supervised learning is removed. You can use the unsupervised `donut` model type as a drop in replacement in most cases
+* Users no longer need to define seasonality information in model settings. Unsupervised models can figure it out automatically
+* Output predictions and forecast data points are now written to a unique `loudml` measurement tagged with the model name
+* Support for non stationary data is removed. We need another way to apply derivatives to the input data
+* Support for multivariate data is removed. We need another way to manage models using more than one feature
+
+[[ack-1.5.0]]
+[float]
+=== Acknowledgements
+
+Thanks to our community for downloading the packages, sharing the Loud ML passion and for their future open-source contributions!
+
+You will find a https://raw.githubusercontent.com/regel/loudml/master/CONTRIBUTING.md[CONTRIBUTING] guide to get started and contribute new data source types and new model types.
+
+We hope that Loud ML will be a great support for data science students and inspire new talent to contribute to open-source AI.
+
