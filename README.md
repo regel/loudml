@@ -1,6 +1,6 @@
 ![x](https://raw.githubusercontent.com/regel/loudml/master/donut.png)
 
-# Loud ML - Reveal the hidden [![Docker pulls](https://img.shields.io/docker/pulls/loudml/community.svg)](https://hub.docker.com/r/loudml/community)
+# Loud ML - Reveal the hidden [![CircleCI](https://circleci.com/gh/regel/loudml-core.svg?style=svg)](https://circleci.com/gh/regel/loudml-core) [![Docker pulls](https://img.shields.io/docker/pulls/loudml/community.svg)](https://hub.docker.com/r/loudml/community)
 
 Loud ML is an open source inference engine for metrics and events, and the fastest way to embed machine learning in your time series application. This includes APIs for storing and querying data, processing it in the background for ML or detecting outliers for alerting purposes, and more. 
 
