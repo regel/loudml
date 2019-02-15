@@ -56,7 +56,7 @@ class TestCli(unittest.TestCase):
             script_dir,
             "..",
             "examples",
-            "model-timeseries-influx.yml",
+            "model-donut-asg.json",
         )
 
     def tearDown(self):
@@ -75,7 +75,6 @@ class TestCli(unittest.TestCase):
                 "forecast",
                 "train",
                 "show-model",
-                "load-data",
                 "plot",
                 "load-checkpoint",
                 "save-checkpoint",
@@ -91,9 +90,9 @@ class TestCli(unittest.TestCase):
 
         # List
         out = execute(base + ['list-models'])
-        self.assertEqual(out, "timeseries-influx")
+        self.assertEqual(out, "nab_cpu_utilization_asg_misconfiguration_mean_value__5m")
 
         # Delete
-        execute(base + ['delete-model', 'timeseries-influx'])
+        execute(base + ['delete-model', 'nab_cpu_utilization_asg_misconfiguration_mean_value__5m'])
         out = execute(base + ['list-models'])
         self.assertEqual(out, "")

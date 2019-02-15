@@ -1,0 +1,27 @@
+{
+    "default_datasource": "nab",
+    "default_datasink": "output",
+    "name": "nab_cpu_utilization_asg_misconfiguration_mean_value__5m",
+    "type": "donut",
+    "features": [
+        {
+            "metric": "mean",
+            "measurement": "cpu_utilization_asg_misconfiguration",
+            "field": "value",
+            "io": "io",
+            "name": "mean_value",
+            "match_all": [
+                {
+                    "tag": "nab",
+                    "value": "cpu_utilization_asg_misconfiguration"
+                }
+            ],
+            "default": null
+        }
+    ],
+    "bucket_interval": "5m",
+    "offset": "10s",
+    "interval": "60s",
+    "max_evals": 21,
+    "span": 24
+}
