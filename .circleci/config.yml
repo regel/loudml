@@ -14,7 +14,7 @@ jobs:
           command: |
             cd /tmp
             wget -N https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64
-            chmod +x /tmp/dep
+            chmod +x /tmp/dep-linux-amd64
       - save_cache:
           name: 'dep-0.5.0'
           key: dep-0.5.0
@@ -23,7 +23,7 @@ jobs:
 
       - restore_cache:
           key: telemetry-vendor-{{ checksum "telemetry/Gopkg.lock" }}
-      - run: 'cd telemetry && /tmp/dep ensure -v --vendor-only'
+      - run: 'cd telemetry && /tmp/dep-linux-amd64 ensure -v --vendor-only'
       - save_cache:
           name: 'telemetry vendored deps'
           key: telemetry-vendor-{{ checksum "telemetry/Gopkg.lock" }}
