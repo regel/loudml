@@ -56,9 +56,8 @@ good loss value. The more data, the longer training will be.
 [WARNING]
 ==================================================
 
-Past training data for this model will be overwritten. The API
-does not provide revision control, or backup, for past training
-operations.
+The training API provides revision control. Past training operations
+are saved and checkpoints are created automatically.
 
 ==================================================
 
