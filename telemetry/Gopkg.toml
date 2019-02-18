@@ -28,3 +28,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/osunac/go-httplogger"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/jasonlvhit/gocron"

@@ -14,6 +14,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/jasonlvhit/gocron"
+  packages = ["."]
+  revision = "6771d4b492ba2d5f57919c04b4cddb3735365120"
+
+[[projects]]
+  branch = "master"
   name = "github.com/osunac/go-httplogger"
   packages = ["."]
   revision = "c938b2e071fb6deaaa98bba52daa3fcf195474e0"
@@ -21,6 +27,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "24becc08cf93b14ceeea137aa4655605201258e30b514df0f45dc36338c5526f"
+  inputs-digest = "af1664c0a2b6abb710d26425847f06acf3b744a5f8e5de62d6b9e972316fa12d"
   solver-name = "gps-cdcl"
   solver-version = 1
