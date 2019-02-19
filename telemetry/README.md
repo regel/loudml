@@ -1,6 +1,11 @@
 # Telemetry
 
-This package collects information about a running instance of Loud ML.
+This program collects information about how Loud ML is used and saves it into
+a database.
+
+More into details, it collects:
+- count of `docker pull` images from Docker Hub;
+- user environment of running instances of Loud ML deamon.
 
 Because of regulation, personnal information cannot be stored in a database.
 This applies to e-mail for instance.
