@@ -18,6 +18,9 @@ dev:
 test:
 	$(MAKE) -C loudml test
 
+coverage:
+	$(MAKE) -C loudml coverage
+
 rpm:
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
 	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C base rpm
