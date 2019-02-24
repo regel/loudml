@@ -29,23 +29,8 @@ setup(
     test_suite='nose.collector',
 
     install_requires=[
-        "dictdiffer>=0.7.1",
-        'uuid',
-        'Jinja2==2.10',
-        'python-crontab==2.3.5',
-        "dateutils>=0.6.6",
-        "Flask>=0.12.1",
-        "Flask-restful>=0.3.5",
-        "gevent>=1.3.1",
-        "networkx==1.11",
-        "tensorflow==1.3.0",
-        "h5py>=2.7.0",
-        "hyperopt==0.1",
-        "numpy>=1.10.0",
-        "Pebble>=4.3.8",
-        "pycrypto>=2.6.1",
-        "PyYAML>=3.11",
-        "voluptuous>=0.10.5",
+# DO NOT ADD REQUIRES HERE
+# See base/vendor/requirements.txt.in
     ],
 
     extras_require={
