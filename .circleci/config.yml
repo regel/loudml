@@ -161,6 +161,70 @@ jobs:
             cd loudml
             make unittest
 
+  test-python-coverage:
+    docker:
+      - image: circleci/python:3.6.1
+    working_directory: ~/repo
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run:
+          name: Install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r base/vendor/requirements.txt
+            pip install nose
+            pip install coverage
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+      - run:
+          name: Coverage tests
+          command: |
+            . venv/bin/activate
+            cd loudml
+            make coverage
+      - persist_to_workspace:
+          root: ~/repo/loudml
+          paths:
+            - coverage.xml
+
+  test-sonar:
+    docker:
+      - image: circleci/openjdk:latest
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - checkout
+
+      - run:
+          name: Install sonar-scanner
+          command: |
+            sudo apt-get install -y unzip
+            sudo apt-get install -y curl
+            curl --insecure -O -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-linux.zip
+            unzip sonar-scanner-cli-3.3.0.1492-linux.zip
+
+      - run:
+          name: Sonar tests
+          command: |
+            sonar-scanner-3.3.0.1492-linux/bin/sonar-scanner \
+              -Dsonar.projectKey=regel_loudml \
+              -Dsonar.organization=regel-github \
+              -Dsonar.sources=loudml \
+              -Dsonar.python.coverage.reportPath=/tmp/workspace/coverage.xml \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.login=$SONAR_API_KEY
+
 workflows:
   version: 2
   check-datasources:
@@ -174,3 +238,10 @@ workflows:
     jobs:
       - test-go
       - test-python-unit
+  sonar:
+    jobs:
+      - test-python-coverage
+      - test-sonar:
+          requires:
+            - test-python-coverage
+

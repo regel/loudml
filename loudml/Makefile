@@ -20,7 +20,7 @@ test:
 	nosetests-3.4 -v tests/
 
 coverage:
-	nosetests-3.4 --with-coverage \
+	-nosetests-3.4 --with-coverage \
             --cover-xml --cover-xml-file=coverage.xml \
             -v tests/
 
