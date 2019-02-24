@@ -9,6 +9,8 @@
 *.swn
 /build
 __pycache__/
+loudml/.coverage
+loudml/coverage.xml
 debhelper-build-stamp
 base/debian/changelog
 base/debian/files
