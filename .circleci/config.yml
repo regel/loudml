@@ -1,5 +1,56 @@
+
+db_unit_test: &db_unit_test
+    steps:
+      - checkout
+
+      - run:
+          name: Wait for db
+          command: dockerize -wait tcp://$DATABASE_ADDR -timeout 1m
+
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run:
+          name: Install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r base/vendor/requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+      - run:
+          name: Unit tests
+          command: |
+            . venv/bin/activate
+            cd loudml
+            unittests="$UNITTESTS" make unittest
+
+es_unit_test: &es_unit_test
+    environment:
+      UNITTESTS: tests/test_elastic.py
+      ELASTICSEARCH_ADDR: localhost:9200
+      DATABASE_ADDR: localhost:9200
+    working_directory: ~/repo
+    <<: *db_unit_test
+
 version: 2
 jobs:
+  test-elastic6:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: elasticsearch:6.6.1
+    <<: *es_unit_test
+
+  test-elastic5:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: elasticsearch:5.6.15
+    <<: *es_unit_test
+
   test-go:
     docker:
       - image: circleci/golang:1.10
@@ -63,6 +114,10 @@ jobs:
 
 workflows:
   version: 2
+  check-datasources:
+    jobs:
+      - test-elastic6
+      - test-elastic5
   check:
     jobs:
       - test-go
