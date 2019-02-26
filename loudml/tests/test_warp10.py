@@ -336,6 +336,7 @@ BUCKETIZE
             atol=0,
         )
 
+    @unittest.skip("no mv support yet in donut model")
     def test_train_predict(self):
         model = DonutModel(dict(
             name='test',
