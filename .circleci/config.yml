@@ -1,5 +1,47 @@
 version: 2
 jobs:
+  test-mongo-4:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: mongo:4.1.8
+        environment:
+          MONGO_INITDB_ROOT_USERNAME: foo
+          MONGO_INITDB_ROOT_PASSWORD: bar
+    environment:
+      UNITTESTS: tests/test_mongo.py
+      MONGODB_DB: localhost:27017
+      MONGODB_USER: foo
+      MONGODB_PWD: bar
+    working_directory: ~/repo
+    steps:
+      - checkout
+
+      - run:
+          name: Wait for db
+          command: dockerize -wait tcp://$MONGODB_DB -timeout 1m
+
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run:
+          name: Install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r base/vendor/requirements.txt
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+      - run:
+          name: Unit tests
+          command: |
+            . venv/bin/activate
+            cd loudml
+            unittests="$UNITTESTS" make unittest
+
   test-go:
     docker:
       - image: circleci/golang:1.10
@@ -63,6 +105,10 @@ jobs:
 
 workflows:
   version: 2
+  check-mongo:
+    jobs:
+      - test-mongo-4
+
   check:
     jobs:
       - test-go
