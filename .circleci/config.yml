@@ -5,7 +5,10 @@ db_integration_test: &db_integration_test
 
       - run:
           name: Wait for db
-          command: dockerize -wait tcp://$DATABASE_ADDR -timeout 1m
+          command: |
+            if [ ! -z "$DATABASE_ADDR" ]; then
+              dockerize -wait tcp://$DATABASE_ADDR -timeout 1m
+            fi
 
       - restore_cache:
           keys:
@@ -35,7 +38,10 @@ db_coverage_test: &db_coverage_test
 
       - run:
           name: Wait for db
-          command: dockerize -wait tcp://$DATABASE_ADDR -timeout 1m
+          command: |
+            if [ ! -z "$DATABASE_ADDR" ]; then
+              dockerize -wait tcp://$DATABASE_ADDR -timeout 1m
+            fi
 
       - restore_cache:
           keys:
@@ -60,10 +66,11 @@ db_coverage_test: &db_coverage_test
             . venv/bin/activate
             cd loudml
             unittests="$UNITTESTS" make coverage
+            mv .coverage .coverage.$CIRCLE_JOB
       - persist_to_workspace:
           root: ~/repo/loudml
           paths:
-            - coverage.xml
+            - .coverage.*
 
 es_unit_test: &es_unit_test
     environment:
@@ -272,8 +279,37 @@ jobs:
   test-python-coverage:
     docker:
       - image: circleci/python:3.6.1
+    environment:
+      UNITTESTS: tests/
     working_directory: ~/repo
     <<: *db_coverage_test
+
+  combine-coverage:
+    docker:
+      - image: circleci/python:3.6.1
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - checkout
+
+      - run:
+          name: Install coverage tool
+          command: |
+            sudo pip install coverage
+
+      - run:
+          name: Coverage tests
+          command: |
+            cd /tmp/workspace
+            coverage combine
+            coverage xml -i
+
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths:
+            - coverage.xml
 
   test-sonar:
     docker:
@@ -325,7 +361,7 @@ workflows:
       - coverage-mongo4
       - coverage-warp10
       - coverage-influx1
-      - test-sonar:
+      - combine-coverage:
           requires:
             - test-python-coverage
             - coverage-elastic6
@@ -333,4 +369,7 @@ workflows:
             - coverage-mongo4
             - coverage-warp10
             - coverage-influx1
+      - test-sonar:
+          requires:
+            - combine-coverage
     
