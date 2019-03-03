@@ -57,6 +57,14 @@ warp_unit_test: &warp_unit_test
     working_directory: ~/repo
     <<: *db_unit_test
 
+influx_unit_test: &influx_unit_test
+    environment:
+      UNITTESTS: tests/test_influx.py
+      INFLUXDB_ADDR: localhost:8086
+      DATABASE_ADDR: localhost:8086
+    working_directory: ~/repo
+    <<: *db_unit_test
+
 version: 2
 jobs:
   test-elastic6:
@@ -85,6 +93,12 @@ jobs:
       - image: circleci/python:3.6.1
       - image: warp10io/warp10:2.0.3-ci
     <<: *warp_unit_test
+
+  test-influx1:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: influxdb:1.7.4
+    <<: *influx_unit_test
 
   test-go:
     docker:
@@ -155,6 +169,7 @@ workflows:
       - test-elastic5
       - test-mongo4
       - test-warp10
+      - test-influx1
   check:
     jobs:
       - test-go
