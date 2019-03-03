@@ -29,6 +29,42 @@ db_integration_test: &db_integration_test
             cd loudml
             make unittest unittests="$UNITTESTS"
 
+db_coverage_test: &db_coverage_test
+    steps:
+      - checkout
+
+      - run:
+          name: Wait for db
+          command: dockerize -wait tcp://$DATABASE_ADDR -timeout 1m
+
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run:
+          name: Install dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r base/vendor/requirements.txt
+            pip install nose
+            pip install coverage
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+      - run:
+          name: Coverage tests
+          command: |
+            . venv/bin/activate
+            cd loudml
+            unittests="$UNITTESTS" make coverage
+      - persist_to_workspace:
+          root: ~/repo/loudml
+          paths:
+            - coverage.xml
+
 es_unit_test: &es_unit_test
     environment:
       UNITTESTS: tests/test_elastic.py
@@ -65,6 +101,43 @@ influx_unit_test: &influx_unit_test
     working_directory: ~/repo
     <<: *db_integration_test
 
+es_coverage_test: &es_coverage_test
+    environment:
+      UNITTESTS: tests/test_elastic.py
+      ELASTICSEARCH_ADDR: localhost:9200
+      DATABASE_ADDR: localhost:9200
+    working_directory: ~/repo
+    <<: *db_coverage_test
+
+mongo_coverage_test: &mongo_coverage_test
+    environment:
+      UNITTESTS: tests/test_mongo.py
+      MONGODB_DB: localhost:27017
+      MONGODB_USER: foo
+      MONGODB_PWD: bar
+      DATABASE_ADDR: localhost:27017
+    working_directory: ~/repo
+    <<: *db_coverage_test
+
+warp_coverage_test: &warp_coverage_test
+    environment:
+      UNITTESTS: tests/test_warp10.py
+      WARP10_URL: http://127.0.0.1:8080/api/v0
+      WARP10_READ_TOKEN: readTokenCI
+      WARP10_WRITE_TOKEN: writeTokenCI
+      DATABASE_ADDR: 127.0.0.1:8080
+    working_directory: ~/repo
+    <<: *db_coverage_test
+
+influx_coverage_test: &influx_coverage_test
+    environment:
+      UNITTESTS: tests/test_influx.py
+      INFLUXDB_ADDR: localhost:8086
+      DATABASE_ADDR: localhost:8086
+    working_directory: ~/repo
+    <<: *db_coverage_test
+
+
 version: 2
 jobs:
   test-elastic6:
@@ -99,6 +172,41 @@ jobs:
       - image: circleci/python:3.6.1
       - image: influxdb:1.7.4
     <<: *influx_unit_test
+
+
+  coverage-elastic6:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: elasticsearch:6.6.1
+    <<: *es_coverage_test
+
+  coverage-elastic5:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: elasticsearch:5.6.15
+    <<: *es_coverage_test
+
+  coverage-mongo4:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: mongo:4.1.8
+        environment:
+          MONGO_INITDB_ROOT_USERNAME: foo
+          MONGO_INITDB_ROOT_PASSWORD: bar
+    <<: *mongo_coverage_test
+
+  coverage-warp10:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: warp10io/warp10:2.0.3-ci
+    <<: *warp_coverage_test
+
+  coverage-influx1:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: influxdb:1.7.4
+    <<: *influx_coverage_test
+
 
   test-go:
     docker:
@@ -165,36 +273,7 @@ jobs:
     docker:
       - image: circleci/python:3.6.1
     working_directory: ~/repo
-    steps:
-      - checkout
-
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-      - run:
-          name: Install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r base/vendor/requirements.txt
-            pip install nose
-            pip install coverage
-      - save_cache:
-          paths:
-            - ./venv
-          key: v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
-      - run:
-          name: Coverage tests
-          command: |
-            . venv/bin/activate
-            cd loudml
-            make coverage
-      - persist_to_workspace:
-          root: ~/repo/loudml
-          paths:
-            - coverage.xml
+    <<: *db_coverage_test
 
   test-sonar:
     docker:
@@ -241,7 +320,17 @@ workflows:
   sonar:
     jobs:
       - test-python-coverage
+      - coverage-elastic6
+      - coverage-elastic5
+      - coverage-mongo4
+      - coverage-warp10
+      - coverage-influx1
       - test-sonar:
           requires:
             - test-python-coverage
-
+            - coverage-elastic6
+            - coverage-elastic5
+            - coverage-mongo4
+            - coverage-warp10
+            - coverage-influx1
+    
