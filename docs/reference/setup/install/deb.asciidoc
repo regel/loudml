@@ -91,7 +91,6 @@ You can install the Loud ML Debian package with:
 [source,sh]
 --------------------------------------------------
 sudo apt-get update && sudo apt-get install loudml
-sudo apt-get update && sudo apt-get install loudml-elastic loudml-influx
 --------------------------------------------------
 
 [WARNING]
@@ -125,9 +124,7 @@ The Debian package for Loud ML v{version} can be downloaded from the website and
 ["source","sh",subs="attributes"]
 --------------------------------------------
 wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml/loudml_{version}_all.deb
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml-influx/loudml-influx_{version}_all.deb
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml-elastic/loudml-elastic_{version}_all.deb
-sudo dpkg -i loudml_{version}_all.deb loudml-influx_{version}_all.deb loudml-elastic_{version}_all.deb
+sudo dpkg -i loudml_{version}_all.deb 
 --------------------------------------------
 
 endif::[]

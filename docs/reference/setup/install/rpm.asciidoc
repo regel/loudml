@@ -70,9 +70,9 @@ And your repository is ready for use. You can now install Loud ML with one of th
 
 [source,sh]
 --------------------------------------------------
-sudo yum install loudml loudml-elastic loudml-influx<1>
-sudo dnf install loudml loudml-elastic loudml-influx<2>
-sudo zypper install loudml loudml-elastic loudml-influx<3>
+sudo yum install loudml<1>
+sudo dnf install loudml<2>
+sudo zypper install loudml<3>
 --------------------------------------------------
 <1> Use `yum` on CentOS and older Red Hat based distributions.
 <2> Use `dnf` on Fedora and other newer Red Hat distributions.
