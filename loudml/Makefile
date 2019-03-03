@@ -21,7 +21,6 @@ test:
 
 coverage:
 	-nosetests-3.4 --with-coverage \
-            --cover-xml --cover-xml-file=coverage.xml \
             -v $(unittests)
 
 unittest:
