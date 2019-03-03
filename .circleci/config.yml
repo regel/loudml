@@ -47,6 +47,16 @@ mongo_unit_test: &mongo_unit_test
     working_directory: ~/repo
     <<: *db_unit_test
 
+warp_unit_test: &warp_unit_test
+    environment:
+      UNITTESTS: tests/test_warp10.py
+      WARP10_URL: http://127.0.0.1:8080/api/v0
+      WARP10_READ_TOKEN: readTokenCI
+      WARP10_WRITE_TOKEN: writeTokenCI
+      DATABASE_ADDR: 127.0.0.1:8080
+    working_directory: ~/repo
+    <<: *db_unit_test
+
 version: 2
 jobs:
   test-elastic6:
@@ -69,6 +79,12 @@ jobs:
           MONGO_INITDB_ROOT_USERNAME: foo
           MONGO_INITDB_ROOT_PASSWORD: bar
     <<: *mongo_unit_test
+
+  test-warp10:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: warp10io/warp10:2.0.3-ci
+    <<: *warp_unit_test
 
   test-go:
     docker:
@@ -138,6 +154,7 @@ workflows:
       - test-elastic6
       - test-elastic5
       - test-mongo4
+      - test-warp10
   check:
     jobs:
       - test-go
