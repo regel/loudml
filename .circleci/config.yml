@@ -37,6 +37,16 @@ es_unit_test: &es_unit_test
     working_directory: ~/repo
     <<: *db_unit_test
 
+mongo_unit_test: &mongo_unit_test
+    environment:
+      UNITTESTS: tests/test_mongo.py
+      MONGODB_DB: localhost:27017
+      MONGODB_USER: foo
+      MONGODB_PWD: bar
+      DATABASE_ADDR: localhost:27017
+    working_directory: ~/repo
+    <<: *db_unit_test
+
 version: 2
 jobs:
   test-elastic6:
@@ -50,6 +60,15 @@ jobs:
       - image: circleci/python:3.6.1
       - image: elasticsearch:5.6.15
     <<: *es_unit_test
+
+  test-mongo4:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: mongo:4.1.8
+        environment:
+          MONGO_INITDB_ROOT_USERNAME: foo
+          MONGO_INITDB_ROOT_PASSWORD: bar
+    <<: *mongo_unit_test
 
   test-go:
     docker:
@@ -118,6 +137,7 @@ workflows:
     jobs:
       - test-elastic6
       - test-elastic5
+      - test-mongo4
   check:
     jobs:
       - test-go
