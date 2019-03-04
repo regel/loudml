@@ -372,4 +372,7 @@ workflows:
       - test-sonar:
           requires:
             - combine-coverage
-    
+          filters:
+            branches:
+              only: master
+
