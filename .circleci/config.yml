@@ -1,5 +1,5 @@
 
-db_unit_test: &db_unit_test
+db_integration_test: &db_integration_test
     steps:
       - checkout
 
@@ -27,7 +27,7 @@ db_unit_test: &db_unit_test
           command: |
             . venv/bin/activate
             cd loudml
-            unittests="$UNITTESTS" make unittest
+            make unittest unittests="$UNITTESTS"
 
 es_unit_test: &es_unit_test
     environment:
@@ -35,7 +35,7 @@ es_unit_test: &es_unit_test
       ELASTICSEARCH_ADDR: localhost:9200
       DATABASE_ADDR: localhost:9200
     working_directory: ~/repo
-    <<: *db_unit_test
+    <<: *db_integration_test
 
 mongo_unit_test: &mongo_unit_test
     environment:
@@ -45,7 +45,7 @@ mongo_unit_test: &mongo_unit_test
       MONGODB_PWD: bar
       DATABASE_ADDR: localhost:27017
     working_directory: ~/repo
-    <<: *db_unit_test
+    <<: *db_integration_test
 
 warp_unit_test: &warp_unit_test
     environment:
@@ -55,7 +55,7 @@ warp_unit_test: &warp_unit_test
       WARP10_WRITE_TOKEN: writeTokenCI
       DATABASE_ADDR: 127.0.0.1:8080
     working_directory: ~/repo
-    <<: *db_unit_test
+    <<: *db_integration_test
 
 influx_unit_test: &influx_unit_test
     environment:
@@ -63,7 +63,7 @@ influx_unit_test: &influx_unit_test
       INFLUXDB_ADDR: localhost:8086
       DATABASE_ADDR: localhost:8086
     working_directory: ~/repo
-    <<: *db_unit_test
+    <<: *db_integration_test
 
 version: 2
 jobs:
