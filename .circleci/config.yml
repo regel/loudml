@@ -162,7 +162,7 @@ jobs:
   test-mongo4:
     docker:
       - image: circleci/python:3.6.1
-      - image: mongo:4.1.8
+      - image: mongo:4.1.13
         environment:
           MONGO_INITDB_ROOT_USERNAME: foo
           MONGO_INITDB_ROOT_PASSWORD: bar
@@ -196,7 +196,7 @@ jobs:
   coverage-mongo4:
     docker:
       - image: circleci/python:3.6.1
-      - image: mongo:4.1.8
+      - image: mongo:4.1.13
         environment:
           MONGO_INITDB_ROOT_USERNAME: foo
           MONGO_INITDB_ROOT_PASSWORD: bar
