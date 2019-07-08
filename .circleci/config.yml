@@ -84,8 +84,6 @@ mongo_unit_test: &mongo_unit_test
     environment:
       UNITTESTS: tests/test_mongo.py
       MONGODB_DB: localhost:27017
-      MONGODB_USER: foo
-      MONGODB_PWD: bar
       DATABASE_ADDR: localhost:27017
     working_directory: ~/repo
     <<: *db_integration_test
@@ -120,8 +118,6 @@ mongo_coverage_test: &mongo_coverage_test
     environment:
       UNITTESTS: tests/test_mongo.py
       MONGODB_DB: localhost:27017
-      MONGODB_USER: foo
-      MONGODB_PWD: bar
       DATABASE_ADDR: localhost:27017
     working_directory: ~/repo
     <<: *db_coverage_test
@@ -163,9 +159,6 @@ jobs:
     docker:
       - image: circleci/python:3.6.1
       - image: mongo:4.1.13
-        environment:
-          MONGO_INITDB_ROOT_USERNAME: foo
-          MONGO_INITDB_ROOT_PASSWORD: bar
     <<: *mongo_unit_test
 
   test-warp10:
@@ -197,9 +190,6 @@ jobs:
     docker:
       - image: circleci/python:3.6.1
       - image: mongo:4.1.13
-        environment:
-          MONGO_INITDB_ROOT_USERNAME: foo
-          MONGO_INITDB_ROOT_PASSWORD: bar
     <<: *mongo_coverage_test
 
   coverage-warp10:
