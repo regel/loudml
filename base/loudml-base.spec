@@ -5,8 +5,8 @@ Summary:       Loud ML dependencies
 Group:         Applications/System
 License:       Open Source
 URL:           http://www.loudml.com
-Requires:      python34
-BuildRequires: python34
+Requires:      python36
+BuildRequires: python36
 AutoReqProv:   no
 
 # Disable debug package
@@ -18,7 +18,7 @@ Dependencies for Loud ML.
 
 
 %install
-/opt/redmint/bin/pip install -r %{srcdir}/vendor/requirements.txt -t %{buildroot}/%{_libdir}/loudml/vendor
+/opt/loudml/bin/pip install -r %{srcdir}/vendor/requirements.txt -t %{buildroot}/%{_libdir}/loudml/vendor
 find %{buildroot}/%{_libdir}/loudml/vendor -name __pycache__ | xargs rm -rf
 
 # rpmbuild tries to automatically optimize Python packages, but this fails

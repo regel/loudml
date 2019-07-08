@@ -17,7 +17,7 @@ dev:
 	./setup.py develop --no-deps
 
 test:
-	nosetests-3.4 -v tests/
+	nosetests -v tests/
 
 coverage:
 	-nosetests-3.4 --with-coverage \
