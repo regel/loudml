@@ -345,7 +345,11 @@ workflows:
       - test-python-unit
   sonar:
     jobs:
-      - test-python-coverage
+      - test-python-coverage:
+          filters:
+            branches:
+              only: master
+
       - coverage-elastic6
       - coverage-elastic5
       - coverage-mongo4
@@ -359,10 +363,12 @@ workflows:
             - coverage-mongo4
             - coverage-warp10
             - coverage-influx1
+          filters:
+            branches:
+              only: master
       - test-sonar:
           requires:
             - combine-coverage
           filters:
             branches:
               only: master
-
