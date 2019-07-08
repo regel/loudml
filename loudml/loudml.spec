@@ -8,15 +8,15 @@ License: MIT
 URL: www.loudml.com
 Source0: %{name}-%{version}.tar.gz
 
-BuildRequires: python34 python34-pip
-BuildRequires: python34-devel
+BuildRequires: python36 python36-pip
+BuildRequires: python36-devel
 BuildRequires: systemd
 BuildRequires: systemd-units
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-Requires: python34
-Requires: python34-setuptools
+Requires: python36
+Requires: python36-setuptools
 Requires: curl
 Requires: loudml-base == %{version}
 %{?systemd_requires}
