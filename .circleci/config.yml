@@ -153,6 +153,9 @@ jobs:
     docker:
       - image: circleci/python:3.6.1
       - image: elasticsearch:7.3.2
+        environment:
+          xpack.security.enabled: false
+          transport.host: localhost
     <<: *es_unit_test
 
   test-elastic6:
