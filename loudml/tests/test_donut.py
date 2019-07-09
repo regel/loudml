@@ -403,20 +403,20 @@ class TestTimes(unittest.TestCase):
             all_default,
         )
 
-        forecast_head = np.array([0.35, 0.67, 0.73, 0.70, 1.35])
-        forecast_tail = np.array([-0.09, -0.02, -0.05, 0.06, 0.08])
+        forecast_head = np.array([7.64, 7.85, 8.54, 8.49, 9.37])
+        forecast_tail = np.array([5.53, 6.03, 6.51, 7.01, 7.48])
 
-#        print(forecast.predicted)
-        delta = 1.0
+        # print(forecast.predicted)
+        delta = 1.5
         forecast_good = np.abs(forecast.predicted[:len(forecast_head)] - forecast_head) <= delta
-#        print(forecast_head)
-#        print(forecast.predicted[:len(forecast_head)])
-#        print(forecast_good)
+        # print(forecast_head)
+        # print(forecast.predicted[:len(forecast_head)])
+        # print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
         forecast_good = np.abs(forecast.predicted[-len(forecast_tail):] - forecast_tail) <= delta
-#        print(forecast_tail)
-#        print(forecast.predicted[-len(forecast_tail):])
-#        print(forecast_good)
+        # print(forecast_tail)
+        # print(forecast.predicted[-len(forecast_tail):])
+        # print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
 
     def test_predict_aligned(self):
