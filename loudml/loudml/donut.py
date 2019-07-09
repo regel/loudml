@@ -89,6 +89,14 @@ g_mc_batch_size = 256
 g_lambda = 0.01
 
 
+def set_seed():
+    if os.environ.get('RANDOM_SEED'):
+        from numpy.random import seed
+        s=int(os.environ.get('RANDOM_SEED'))
+        seed(s)
+        tf.random.set_random_seed(s)
+
+
 # reparameterization trick
 # instead of sampling from Q(z|X), sample eps = N(0,I)
 # z = z_mean + sqrt(var)*eps
@@ -905,7 +913,7 @@ class DonutModel(Model):
         """
         Train model
         """
-
+        set_seed()
         self.means, self.stds = None, None
         self.scores = None
 
@@ -1023,6 +1031,7 @@ class DonutModel(Model):
             # Already loaded
             return
 
+        set_seed()
         K.clear_session()
         self._set_xpu_config(num_cpus, num_gpus)
 
