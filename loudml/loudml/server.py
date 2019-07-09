@@ -17,6 +17,7 @@ import queue
 import schedule
 import sys
 import uuid
+import traceback
 
 import loudml.config
 import loudml.model
@@ -71,6 +72,7 @@ g_training_pool = None
 g_pool = None
 g_nice = 0
 g_queue = None
+g_timer = None
 g_running_models = {}
 
 # Do not change: pid file to ensure we're running single instance
@@ -193,6 +195,7 @@ class Job:
             logging.error("job[%s] canceled", self.id)
         except Exception as exn:
             self.error = str(exn)
+            traceback.print_exc()
             self.state = 'failed'
             logging.error("job[%s] failed: %s", self.id, self.error)
 
@@ -242,6 +245,7 @@ def read_messages():
     global g_queue
 
     while True:
+        schedule.run_pending()
         try:
             msg = g_queue.get(block=False)
 
@@ -285,6 +289,16 @@ def get_bool_arg(param, default=False):
         raise errors.Invalid("invalid value for parameter '{}'".format(param))
 
 
+def get_bool_form(param, default=False):
+    """
+    Read boolean URL parameter
+    """
+    try:
+        return make_bool(request.form.get(param, default))
+    except ValueError:
+        raise errors.Invalid("invalid value for parameter '{}'".format(param))
+
+
 def get_int_arg(param, default=None):
     """
     Read integer URL parameter
@@ -303,6 +317,20 @@ def get_date_arg(param, default=None, is_mandatory=False):
     """
     try:
         value = request.args[param]
+    except KeyError:
+        if is_mandatory:
+            raise errors.Invalid("'{}' parameter is required".format(param))
+        return default
+
+    return schemas.validate(schemas.Timestamp(), value, name=param)
+
+
+def get_date_form(param, default=None, is_mandatory=False):
+    """
+    Read date URL parameter
+    """
+    try:
+        value = request.form[param]
     except KeyError:
         if is_mandatory:
             raise errors.Invalid("'{}' parameter is required".format(param))
@@ -359,21 +387,22 @@ class LoadNabResource(Resource):
     def post(self):
         global g_storage
         global g_config
- 
+
         settings = get_json()
         name = settings.get('datasource')
         from_date = settings.get('from_date', 'now-30d')
-   
+
         job = LoadJob(
             from_date=from_date,
             datasource=name,
         )
         job.start()
-    
+
         if get_bool_arg('bg', default=False):
             return str(job.id)
 
         return jsonify(job.result())
+
 
 api.add_resource(LoadNabResource, "/_nab")
 
@@ -415,7 +444,10 @@ class ModelsResource(Resource):
             _vars = request.get_json()
             model = g_storage.load_template(tmpl, config=g_config, **_vars)
         else:
-            model = loudml.model.load_model(settings=request.json, config=g_config)
+            model = loudml.model.load_model(
+                settings=request.json,
+                config=g_config
+            )
 
         g_storage.create_model(model, g_config)
 
@@ -463,7 +495,13 @@ class ModelResource(Resource):
 
         changes = g_storage.save_model(model, save_state=False)
         for change, param, desc in changes:
-            logging.info("model '%s' %s %s %s", model_name, change, param, desc)
+            logging.info(
+                "model '%s' %s %s %s",
+                model_name,
+                change,
+                param,
+                desc
+            )
             if change == 'change' and param == 'interval':
                 previous_val, next_val = desc
                 g_lock.acquire()
@@ -618,6 +656,7 @@ def _remove_datasource_secrets(datasource):
 class DataSourcesResource(Resource):
     @catch_loudml_error
     def get(self):
+        global g_config
         res = []
         for datasource in g_config.datasources.values():
             _remove_datasource_secrets(datasource)
@@ -628,6 +667,7 @@ class DataSourcesResource(Resource):
 class DataSourceResource(Resource):
     @catch_loudml_error
     def get(self, datasource_name):
+        global g_config
         datasource = g_config.get_datasource(datasource_name)
         _remove_datasource_secrets(datasource)
         return jsonify(datasource)
@@ -702,7 +742,10 @@ class TrainingJob(Job):
         """
         super()._done_cb(result)
         if self.state == 'done' and self.autostart:
-            logging.info("scheduling autostart for model '%s'", self.model_name)
+            logging.info(
+                "scheduling autostart for model '%s'",
+                self.model_name
+            )
             model = g_storage.load_model(self.model_name)
             params = self._kwargs_start.copy()
             params.pop('from_date')
@@ -969,7 +1012,7 @@ def model_forecast(model_name):
 #
 # Example of job
 #
-#class DummyJob(Job):
+# class DummyJob(Job):
 #    func = 'do_things'
 #    job_type = 'dummy'
 #
@@ -982,8 +1025,8 @@ def model_forecast(model_name):
 #        return [self.value]
 #
 # Example of endpoint that submits jobs
-#@app.route("/do-things")
-#def do_things():
+# @app.route("/do-things")
+# def do_things():
 #    job = DummyJob(int(request.args.get('value', 0)))
 #    job.start()
 #    return str(job.id)
@@ -1049,17 +1092,68 @@ def restart_predict_jobs():
             logging.error("cannot restart job for model '%s'", model.name)
 
 
-def main():
-    """
-    Loud ML server
-    """
-
+def g_app_init(path):
     global g_config
     global g_training_pool
     global g_nice
     global g_pool
     global g_queue
     global g_storage
+    global g_timer
+
+    g_config = loudml.config.load_config(path)
+    g_storage = FileStorage(g_config.storage['path'])
+    g_queue = multiprocessing.Queue()
+    g_nice = g_config.training.get('nice', 0)
+    g_training_pool = pebble.ProcessPool(
+        max_workers=g_config.server.get('workers', 1),
+        max_tasks=g_config.server.get('maxtasksperchild', 1),
+        initializer=loudml.worker.init_worker,
+        initargs=[path, g_queue],
+    )
+    g_pool = pebble.ProcessPool(
+        max_workers=g_config.server.get('workers', 1),
+        max_tasks=g_config.server.get('maxtasksperchild', 1),
+        initializer=loudml.worker.init_worker,
+        initargs=[path, g_queue],
+    )
+    g_timer = RepeatingTimer(1, read_messages)
+    g_timer.start()
+
+    def daemon_send_metrics():
+        send_metrics(g_config.metrics, g_storage, user_agent="loudmld")
+
+    daemon_send_metrics()
+    schedule.every().hour.do(daemon_send_metrics)
+
+
+def g_app_stop():
+    global g_timer
+    global g_pool
+    global g_training_pool
+    global g_config
+    global g_nice
+    global g_queue
+
+    schedule.clear('bg')
+    g_timer.cancel()
+    g_pool.stop()
+    g_pool.join()
+    g_training_pool.stop()
+    g_training_pool.join()
+    g_config = None
+    g_nice = 0
+    g_pool = None
+    g_queue = None
+    g_timer = None
+
+
+def main():
+    """
+    Loud ML server
+    """
+
+    global g_config
 
     parser = argparse.ArgumentParser(
         description=main.__doc__,
@@ -1080,8 +1174,7 @@ def main():
     app.logger.setLevel(logging.INFO)
 
     try:
-        g_config = loudml.config.load_config(args.config)
-        g_storage = FileStorage(g_config.storage['path'])
+        g_app_init(args.config)
         loudml.config.load_plugins(args.config)
     except errors.LoudMLException as exn:
         logging.error(exn)
@@ -1092,7 +1185,7 @@ def main():
         cron.remove_all()
         if g_config.training['incremental']['enable']:
             for tab in g_config.training['incremental']['crons']:
-                job = cron.new(command='/usr/bin/loudml train \* -i -f {} -t {}'.format(tab['from'], tab['to']),
+                job = cron.new(command='/usr/bin/loudml train \* -i -f {} -t {}'.format(tab['from'], tab['to']),  # noqa W605
                                comment='incremental training')
                 job.setall(tab['crontab'])
 
@@ -1101,36 +1194,14 @@ def main():
 
         cron.write()
     except OSError:
-        logging.error("detected development environment - incremental training disabled")
-
-    g_queue = multiprocessing.Queue()
-    g_nice = g_config.training.get('nice', 0)
-    g_training_pool = pebble.ProcessPool(
-        max_workers=g_config.server.get('workers', 1),
-        max_tasks=g_config.server.get('maxtasksperchild', 1),
-        initializer=loudml.worker.init_worker,
-        initargs=[args.config, g_queue],
-    )
-    g_pool = pebble.ProcessPool(
-        max_workers=g_config.server.get('workers', 1),
-        max_tasks=g_config.server.get('maxtasksperchild', 1),
-        initializer=loudml.worker.init_worker,
-        initargs=[args.config, g_queue],
-    )
-
-    timer = RepeatingTimer(1, read_messages)
-    timer.start()
+        logging.error(
+            "detected development environment - incremental training disabled"
+        )
 
     listen_addr = g_config.server['listen']
     host, port = listen_addr.split(':')
 
     restart_predict_jobs()
-
-    def daemon_send_metrics():
-        send_metrics(g_config.metrics, g_storage, user_agent="loudmld")
-
-    daemon_send_metrics()
-    schedule.every().hour.do(daemon_send_metrics)
 
     try:
         http_server = WSGIServer((host, int(port)), app)
@@ -1142,8 +1213,4 @@ def main():
         pass
 
     logging.info("stopping")
-    timer.cancel()
-    g_training_pool.stop()
-    g_training_pool.join()
-    g_pool.stop()
-    g_pool.join()
+    g_app_stop()

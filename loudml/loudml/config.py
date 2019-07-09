@@ -100,6 +100,19 @@ class Config:
         # XXX: return a copy to prevent modification by the caller
         return copy.deepcopy(self._server)
 
+    def put_datasource(self, source):
+        """
+        Add data source configuration by name
+        """
+        name = source['name']
+        self._datasources[name] = source
+
+    def del_datasource(self, name):
+        """
+        Del data source configuration by name
+        """
+        del self._datasources[name]
+
     def get_datasource(self, name):
         """
         Get data source configuration by name
@@ -118,7 +131,7 @@ def load_config(path):
     """
     try:
         with open(path) as config_file:
-            config_data = yaml.load(config_file)
+            config_data = yaml.safe_load(config_file)
     except OSError as exn:
         raise errors.LoudMLException(exn)
     except yaml.YAMLError as exn:
