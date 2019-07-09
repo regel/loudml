@@ -31,6 +31,8 @@ db_integration_test: &db_integration_test
             . venv/bin/activate
             cd loudml
             make unittest unittests="$UNITTESTS"
+          environment:
+            RANDOM_SEED: 3428
 
 db_coverage_test: &db_coverage_test
     steps:
@@ -67,6 +69,8 @@ db_coverage_test: &db_coverage_test
             cd loudml
             unittests="$UNITTESTS" make coverage
             mv .coverage .coverage.$CIRCLE_JOB
+          environment:
+            RANDOM_SEED: 3428
       - persist_to_workspace:
           root: ~/repo/loudml
           paths:
@@ -265,6 +269,8 @@ jobs:
             . venv/bin/activate
             cd loudml
             make unittest
+          environment:
+            RANDOM_SEED: 3428
 
   test-python-coverage:
     docker:
