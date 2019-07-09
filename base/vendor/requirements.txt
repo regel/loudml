@@ -8,8 +8,8 @@ absl-py==0.7.1            # via tensorflow
 aniso8601==7.0.0          # via flask-restful
 argparse==1.4.0           # via dateutils
 astor==0.8.0              # via tensorflow
-boto3==1.9.183
-botocore==1.12.183        # via boto3, s3transfer
+boto3==1.9.184
+botocore==1.12.184        # via boto3, s3transfer
 certifi==2019.6.16        # via requests
 chardet==3.0.4            # via requests
 click==7.0                # via flask
@@ -19,9 +19,9 @@ dateutils==0.6.6
 decorator==4.4.0          # via networkx
 dictdiffer==0.8.0
 docutils==0.14            # via botocore
-elasticsearch==7.0.2
+elasticsearch==6.3.1
 flask-restful==0.3.7
-flask==1.1.0
+flask==1.1.1
 future==0.17.1            # via hyperopt
 gast==0.2.2               # via tensorflow
 gevent==1.4.0
