@@ -1,3 +1,17 @@
+from loudml.mongo import (
+    MongoDataSource,
+)
+from loudml.donut import (
+    DonutModel,
+)
+from loudml.model import Model
+from loudml.randevents import SinEventGenerator
+from loudml.misc import (
+    ts_to_str,
+)
+from loudml import (
+    errors,
+)
 import loudml.vendor
 
 import datetime
@@ -9,23 +23,6 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml import (
-    errors,
-)
-
-from loudml.misc import (
-    ts_to_str,
-)
-
-from loudml.randevents import SinEventGenerator
-
-from loudml.model import Model
-from loudml.donut import (
-    DonutModel,
-)
-from loudml.mongo import (
-    MongoDataSource,
-)
 
 class TestMongo(unittest.TestCase):
     def setUp(self):
@@ -166,11 +163,11 @@ class TestMongo(unittest.TestCase):
         t0 = self.t0
         data = [
             # (foo, timestamp)
-            (33, t0 - 1), # excluded
+            (33, t0 - 1),  # excluded
             # empty
             (120, t0 + 1), (312, t0 + 2),
             (18, t0 + 7),
-            (78, t0 + 10), # excluded
+            (78, t0 + 10),  # excluded
         ]
         for foo, ts in data:
             self.source.insert_times_data(

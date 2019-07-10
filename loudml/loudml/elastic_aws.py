@@ -33,7 +33,8 @@ from . import (
 )
 
 from loudml.datasource import DataSource
-from loudml.elastic import ElasticsearchDataSource 
+from loudml.elastic import ElasticsearchDataSource
+
 
 class ElasticsearchAWSDataSource(ElasticsearchDataSource):
     """
@@ -85,21 +86,22 @@ class ElasticsearchAWSDataSource(ElasticsearchDataSource):
             service = 'es'
             if self.get_boto_credentials:
                 credentials = boto3.Session().get_credentials()
-                awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, self.region, service)
+                awsauth = AWS4Auth(credentials.access_key,
+                                   credentials.secret_key, self.region, service)
             elif not (self.aws_access_key is None or self.aws_secret_key is None):
-                awsauth = AWS4Auth(self.aws_access_key, self.aws_secret_key, self.region, service)
+                awsauth = AWS4Auth(self.aws_access_key,
+                                   self.aws_secret_key, self.region, service)
             else:
                 exn = 'invalid configuration: AWS credentials not found'
                 raise errors.DataSourceError(self.name, exn)
 
             self._es = Elasticsearch(
-                hosts = [{'host': self.host, 'port': 443}],
-                http_auth = awsauth,
-                use_ssl = True,
-                verify_certs = True,
-                connection_class = RequestsHttpConnection
+                hosts=[{'host': self.host, 'port': 443}],
+                http_auth=awsauth,
+                use_ssl=True,
+                verify_certs=True,
+                connection_class=RequestsHttpConnection
             )
-
 
         # urllib3 & elasticsearch modules log exceptions, even if they are
         # caught! Disable this.
@@ -109,4 +111,3 @@ class ElasticsearchAWSDataSource(ElasticsearchDataSource):
         es_logger.setLevel(logging.CRITICAL)
 
         return self._es
-

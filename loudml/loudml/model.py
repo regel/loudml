@@ -185,13 +185,13 @@ class Model:
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
         Optional('features'): Any(None,
-            All([Feature.SCHEMA], Length(min=1)),
-            Schema({
-                Optional('i'): All([Feature.SCHEMA], Length(min=1)),
-                Optional('o'): All([Feature.SCHEMA], Length(min=1)),
-                Optional('io'): All([Feature.SCHEMA], Length(min=1)),
-            }),
-        ),
+                                  All([Feature.SCHEMA], Length(min=1)),
+                                  Schema({
+                                      Optional('i'): All([Feature.SCHEMA], Length(min=1)),
+                                      Optional('o'): All([Feature.SCHEMA], Length(min=1)),
+                                      Optional('io'): All([Feature.SCHEMA], Length(min=1)),
+                                  }),
+                                  ),
         Optional('bucket_interval'): schemas.TimeDelta(
             min=0, min_included=False,
         ),
@@ -220,7 +220,8 @@ class Model:
             Feature(**feature) for feature in settings['features']
         ]
         self.timestamp_field = settings.get('timestamp_field', 'timestamp')
-        self.bucket_interval = misc.parse_timedelta(settings.get('bucket_interval', 0)).total_seconds()
+        self.bucket_interval = misc.parse_timedelta(
+            settings.get('bucket_interval', 0)).total_seconds()
 
         self.max_threshold = self.settings.get('max_threshold')
         if self.max_threshold is None:
@@ -272,7 +273,8 @@ class Model:
         from_ts = misc.make_ts(from_date)
         to_ts = misc.make_ts(to_date)
 
-        from_ts = math.floor(from_ts / self.bucket_interval) * self.bucket_interval
+        from_ts = math.floor(
+            from_ts / self.bucket_interval) * self.bucket_interval
         to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
 
         return DateRange(from_ts, to_ts)

@@ -18,6 +18,7 @@ from loudml.misc import (
     parse_timedelta,
 )
 
+
 class TestMisc(unittest.TestCase):
     def test_timedelta(self):
         def to_sec(string):
@@ -125,10 +126,10 @@ class TestMisc(unittest.TestCase):
         res = hash_dict({
             'a': {
                 'b': [
-                     {'str': 'foo'},
-                     {'int': 42},
-                     {'float': 84.84},
-                     {'bool': True},
+                    {'str': 'foo'},
+                    {'int': 42},
+                    {'float': 84.84},
+                    {'bool': True},
                 ],
                 'c': None,
             }

@@ -63,3 +63,7 @@ repo: rpmrepo
 .PHONY: docker
 docker:
 	$(MAKE) -C docker
+
+.PHONY: fmt
+fmt:
+	find loudml -type f -name "*.py" | xargs autopep8 -i

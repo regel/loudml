@@ -25,6 +25,7 @@ from . import (
     schemas,
 )
 
+
 class DataSource(metaclass=ABCMeta):
     """
     Abstract class for Loud ML storage
@@ -193,6 +194,7 @@ class DataSource(metaclass=ABCMeta):
         tags=None,
     ):
         return []
+
 
 def load_datasource(settings):
     """

@@ -89,7 +89,7 @@ class Worker:
         windows = source.list_anomalies(
             kwargs['from_date'],
             kwargs['to_date'],
-            tags={ 'model': model_name },
+            tags={'model': model_name},
         )
         model.train(
             source,

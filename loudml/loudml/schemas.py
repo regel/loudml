@@ -24,15 +24,15 @@ from .misc import (
 )
 
 key = All(
-   str,
-   Length(min=1),
-   Match("^[a-zA-Z0-9-_@]+$"),
+    str,
+    Length(min=1),
+    Match("^[a-zA-Z0-9-_@]+$"),
 )
 
 dotted_key = All(
-   str,
-   Length(min=1),
-   Match("^[a-zA-Z0-9-_@.]+$"),
+    str,
+    Length(min=1),
+    Match("^[a-zA-Z0-9-_@.]+$"),
 )
 
 seasonality = Schema({
@@ -41,6 +41,7 @@ seasonality = Schema({
 })
 
 score = Any(All(Any(int, float), Range(min=0, max=100)), None)
+
 
 class TimeDelta:
     """
@@ -53,6 +54,7 @@ class TimeDelta:
     def __call__(self, v):
         parse_timedelta(v, **self._kwargs)
         return v
+
 
 @message('expected absolute or relative date', cls=Invalid)
 def Timestamp(v):

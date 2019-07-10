@@ -27,19 +27,23 @@ from .misc import (
     make_ts,
 )
 
+
 def check_tag(k, v):
     if type(k) is not str or type(v) is not str:
         raise errors.Invalid("warp10: tags key/value must be strings")
+
 
 def check_tags(tags):
     for k, v in tags.items():
         check_tag(k, v)
 
+
 def build_tags(tags=None):
     lst = ["'{}' '{}'".format(*item) for item in tags.items()] if tags \
-          else []
+        else []
 
     return "{{ {} }}".format(','.join(lst))
+
 
 def metric_to_bucketizer(metric):
     if metric == 'avg':
@@ -48,6 +52,7 @@ def metric_to_bucketizer(metric):
         bucketizer = metric
     return "bucketizer.{}".format(bucketizer)
 
+
 def catch_query_error(func):
     def wrapper(self, *args, **kwargs):
         try:
@@ -55,6 +60,7 @@ def catch_query_error(func):
         except warp10client.client.CallException as exn:
             raise errors.DataSourceError(self.name, str(exn))
     return wrapper
+
 
 class Warp10DataSource(DataSource):
     """
@@ -192,8 +198,10 @@ class Warp10DataSource(DataSource):
     ):
         period = model.build_date_range(from_date, to_date)
 
-        nb_buckets = int((period.to_ts - period.from_ts) / model.bucket_interval)
-        buckets = np.full((nb_buckets, len(model.features)), np.nan, dtype=float)
+        nb_buckets = int((period.to_ts - period.from_ts) /
+                         model.bucket_interval)
+        buckets = np.full((nb_buckets, len(model.features)),
+                          np.nan, dtype=float)
 
         script = self.build_multi_fetch(
             model,
@@ -234,7 +242,7 @@ class Warp10DataSource(DataSource):
             raise errors.NoData()
 
         result = []
-        from_ts = ts = from_us  / 1e6
+        from_ts = ts = from_us / 1e6
 
         for bucket in buckets:
             result.append(((ts - from_ts), list(bucket), ts))

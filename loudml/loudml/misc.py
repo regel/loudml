@@ -269,7 +269,8 @@ def deepsizeof(obj_0):
         if hasattr(obj, '__dict__'):
             size += inner(vars(obj))
         if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
-            size += sum(inner(getattr(obj, s)) for s in obj.__slots__ if hasattr(obj, s))
+            size += sum(inner(getattr(obj, s))
+                        for s in obj.__slots__ if hasattr(obj, s))
         return size
     return inner(obj_0)
 
@@ -308,7 +309,8 @@ def parse_constraint(constraint):
         raise errors.Invalid("invalid format for 'constraint' parameter")
 
     if _type not in ('low', 'high'):
-        raise errors.Invalid("invalid threshold type for 'constraint' parameter")
+        raise errors.Invalid(
+            "invalid threshold type for 'constraint' parameter")
 
     try:
         threshold = float(threshold)
@@ -341,7 +343,7 @@ TEMPLATE = {
     "settings": {
         "number_of_shards": 1,
         "number_of_replicas": 0,
-        "codec":"best_compression"
+        "codec": "best_compression"
     },
     "mappings": {},
 }
@@ -361,6 +363,7 @@ MAPPING = {
         },
     }
 }
+
 
 def load_nab(source, from_date='now-30d'):
     try:
@@ -420,7 +423,7 @@ def load_nab(source, from_date='now-30d'):
         r = requests.get(url)
         content = StringIO(r.content.decode('utf-8'))
         csv_reader = csv.reader(content, delimiter=',')
-        next(csv_reader, None) # skip the header
+        next(csv_reader, None)  # skip the header
         measurement = os.path.basename(os.path.splitext(u)[0])
 
         delta = None
@@ -433,8 +436,8 @@ def load_nab(source, from_date='now-30d'):
             l = row[1]
             source.insert_times_data(
                 ts=ts,
-                tags={ 'nab': measurement },
-                data={ 'value': float(l) },
+                tags={'nab': measurement},
+                data={'value': float(l)},
                 measurement=measurement,
             )
 
@@ -505,4 +508,3 @@ def my_host_id():
     m.update(str(getnode()).encode('ascii'))
 
     return m.hexdigest()
-

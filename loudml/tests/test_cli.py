@@ -79,7 +79,7 @@ class TestCli(unittest.TestCase):
                 "load-checkpoint",
                 "save-checkpoint",
                 "list-checkpoints",
-                ]),
+            ]),
         )
 
     def test_create_list_delete(self):
@@ -90,9 +90,11 @@ class TestCli(unittest.TestCase):
 
         # List
         out = execute(base + ['list-models'])
-        self.assertEqual(out, "nab_cpu_utilization_asg_misconfiguration_mean_value__5m")
+        self.assertEqual(
+            out, "nab_cpu_utilization_asg_misconfiguration_mean_value__5m")
 
         # Delete
-        execute(base + ['delete-model', 'nab_cpu_utilization_asg_misconfiguration_mean_value__5m'])
+        execute(base + ['delete-model',
+                        'nab_cpu_utilization_asg_misconfiguration_mean_value__5m'])
         out = execute(base + ['list-models'])
         self.assertEqual(out, "")

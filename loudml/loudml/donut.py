@@ -10,6 +10,48 @@ the encoder can be used to  generate latent vectors.
 """
 
 
+from .model import (
+    Model,
+    DateRange,
+)
+from .misc import (
+    datetime_to_str,
+    list_from_np,
+    make_datetime,
+    make_ts,
+    nan_to_none,
+    parse_timedelta,
+    ts_to_datetime,
+)
+from . import (
+    errors,
+    schemas,
+)
+from voluptuous import (
+    All,
+    Any,
+    Required,
+    Optional,
+    Range,
+)
+from hyperopt import (
+    fmin,
+    STATUS_OK,
+    STATUS_FAIL,
+    tpe,
+    Trials,
+)
+from hyperopt import space_eval
+from hyperopt import hp
+import h5py  # Read training_config.optimizer_config
+from tensorflow.contrib.keras.api.keras import regularizers
+from tensorflow.contrib.keras.api.keras.losses import mean_squared_error
+from tensorflow.contrib.keras.api.keras.models import Model as _Model
+from tensorflow.contrib.keras.api.keras.layers import Lambda, Input, Dense
+from tensorflow.contrib.keras.api.keras.callbacks import EarlyStopping
+from tensorflow.contrib.keras.api.keras.models import load_model
+from tensorflow.contrib.keras.api.keras import backend as K
+import tensorflow as tf
 import datetime
 import json
 import logging
@@ -21,60 +63,18 @@ import itertools
 from scipy.stats import norm
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.ERROR)
-from tensorflow.contrib.keras.api.keras import backend as K
-from tensorflow.contrib.keras.api.keras.models import load_model
-from tensorflow.contrib.keras.api.keras.callbacks import EarlyStopping
-from tensorflow.contrib.keras.api.keras.layers import Lambda, Input, Dense
-from tensorflow.contrib.keras.api.keras.models import Model as _Model
-from tensorflow.contrib.keras.api.keras.losses import mean_squared_error
-from tensorflow.contrib.keras.api.keras import regularizers
 
-import h5py  # Read training_config.optimizer_config
-
-from hyperopt import hp
-from hyperopt import space_eval
-from hyperopt import (
-    fmin,
-    STATUS_OK,
-    STATUS_FAIL,
-    tpe,
-    Trials,
-)
-
-from voluptuous import (
-    All,
-    Any,
-    Required,
-    Optional,
-    Range,
-)
-
-from . import (
-    errors,
-    schemas,
-)
-from .misc import (
-    datetime_to_str,
-    list_from_np,
-    make_datetime,
-    make_ts,
-    nan_to_none,
-    parse_timedelta,
-    ts_to_datetime,
-)
-from .model import (
-    Model,
-    DateRange,
-)
 
 DEFAULT_SEASONALITY = {
     'daytime': False,
     'weekday': False,
 }
 
-float_formatter = lambda x: "%.2f" % x
+
+def float_formatter(x): return "%.2f" % x
+
+
 np.set_printoptions(formatter={'float_kind': float_formatter})
 
 _verbose = 0
@@ -92,7 +92,7 @@ g_lambda = 0.01
 def set_seed():
     if os.environ.get('RANDOM_SEED'):
         from numpy.random import seed
-        s=int(os.environ.get('RANDOM_SEED'))
+        s = int(os.environ.get('RANDOM_SEED'))
         seed(s)
         tf.random.set_random_seed(s)
 
@@ -144,7 +144,8 @@ def _get_encoder(_keras_model):
     z_mean = _keras_model.get_layer('z_mean').output
     z_log_var = _keras_model.get_layer('z_log_var').output
     z = _keras_model.get_layer('z').output
-    model = _Model([main_input, aux_input], [z_mean, z_log_var, z], name='encoder')
+    model = _Model([main_input, aux_input], [
+                   z_mean, z_log_var, z], name='encoder')
     return model
 
 
@@ -288,7 +289,8 @@ class TimeSeriesPrediction:
         """
 
         if self.anomaly_indices is None:
-            raise errors.NotFound("anomaly detection has not been performed yet")
+            raise errors.NotFound(
+                "anomaly detection has not been performed yet")
         return [self._format_bucket(i) for i in self.anomaly_indices]
 
     def format_series(self):
@@ -303,9 +305,11 @@ class TimeSeriesPrediction:
         observed[feature.name] = list_from_np(self.observed)
         predicted[feature.name] = list_from_np(self.predicted)
         if self.lower is not None:
-            predicted['lower_{}'.format(feature.name)] = list_from_np(self.lower)
+            predicted['lower_{}'.format(
+                feature.name)] = list_from_np(self.lower)
         if self.upper is not None:
-            predicted['upper_{}'.format(feature.name)] = list_from_np(self.upper)
+            predicted['upper_{}'.format(
+                feature.name)] = list_from_np(self.upper)
 
         result = {
             'timestamps': self.timestamps,
@@ -381,7 +385,7 @@ class TimeSeriesPrediction:
             self.predicted,
             self.lower,
             self.upper,
-            )
+        )
         self.mse = np.nanmean(self.mses, axis=None)
 
     def plot(self, feature_name):
@@ -421,7 +425,8 @@ def generator(x, missing, batch_size, model):
             )
 
         for _ in range(g_mcmc_count):
-            x_decoded, _ = model.predict([batch_x, batch_missing], batch_size=g_mc_batch_size)
+            x_decoded, _ = model.predict(
+                [batch_x, batch_missing], batch_size=g_mc_batch_size)
             batch_x[batch_missing > 0] = x_decoded[batch_missing > 0]
 
         yield ([batch_x, batch_missing], None)
@@ -453,8 +458,10 @@ class DonutModel(Model):
         super().__init__(settings, state)
 
         settings = self.validate(settings)
-        self.bucket_interval = parse_timedelta(settings.get('bucket_interval')).total_seconds()
-        self.interval = parse_timedelta(settings.get('interval')).total_seconds()
+        self.bucket_interval = parse_timedelta(
+            settings.get('bucket_interval')).total_seconds()
+        self.interval = parse_timedelta(
+            settings.get('interval')).total_seconds()
         self.offset = parse_timedelta(settings.get('offset')).total_seconds()
 
         self.span = settings.get('span')
@@ -473,11 +480,13 @@ class DonutModel(Model):
             self.min_span = self.span
             self.max_span = self.span
 
-        self.grace_period = parse_timedelta(settings['grace_period']).total_seconds()
+        self.grace_period = parse_timedelta(
+            settings['grace_period']).total_seconds()
 
         self.current_eval = None
         if len(self.features) > 1:
-            raise errors.LoudMLException("This model type supports one unique feature")
+            raise errors.LoudMLException(
+                "This model type supports one unique feature")
 
     def enum_features(self, is_input=None, is_output=None):
         j = 0
@@ -498,7 +507,8 @@ class DonutModel(Model):
         if (self.max_span - self.min_span) <= 0:
             space = self.span
         else:
-            space = self.min_span + hp.randint(label, (self.max_span - self.min_span))
+            space = self.min_span + \
+                hp.randint(label, (self.max_span - self.min_span))
         return space
 
     def set_run_params(self, params=None):
@@ -617,7 +627,8 @@ class DonutModel(Model):
         abnormal=None,
     ):
         if max_evals is None:
-            max_evals = self.settings.get('max_evals', 21)  # latent_dim*intermediate_dim
+            # latent_dim*intermediate_dim
+            max_evals = self.settings.get('max_evals', 21)
 
         self.current_eval = 0
 
@@ -651,7 +662,8 @@ class DonutModel(Model):
             # VAE model = encoder + decoder
             # build encoder model
             main_input = Input(shape=input_shape)
-            aux_input = Input(shape=input_shape)  # bool vector to flag missing data points
+            # bool vector to flag missing data points
+            aux_input = Input(shape=input_shape)
             aux_output = Lambda(lambda x: x)(aux_input)
             x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
@@ -661,16 +673,18 @@ class DonutModel(Model):
 
             # use reparameterization trick to push the sampling out as input
             # note that "output_shape" isn't necessary with the TensorFlow backend
-            z = Lambda(sampling, output_shape=(latent_dim,), name='z')([z_mean, z_log_var])
-            
+            z = Lambda(sampling, output_shape=(latent_dim,),
+                       name='z')([z_mean, z_log_var])
+
             # build decoder model
             x = Dense(intermediate_dim,
                       kernel_regularizer=regularizers.l2(0.01),
                       activation='relu', name='dense_1')(z)
             main_output = Dense(W, activation='linear', name='dense_2')(x)
-             
+
             # instantiate Donut model
-            keras_model = _Model([main_input, aux_input], [main_output, aux_output], name='donut')
+            keras_model = _Model([main_input, aux_input], [
+                                 main_output, aux_output], name='donut')
             add_loss(keras_model, W)
             optimizer_cls = None
             if params.optimizer == 'adam':
@@ -724,10 +738,10 @@ class DonutModel(Model):
 
         space = hp.choice('case', [
             {
-              'span': self.get_hp_span('span'),
-              'latent_dim': hp.choice('latent_dim', [3, 5, 8]),
-              'intermediate_dim': hp.choice('i1', [21, 34, 55, 89, 144, 233, 377]),
-              'optimizer': hp.choice('optimizer', ['adam']),
+                'span': self.get_hp_span('span'),
+                'latent_dim': hp.choice('latent_dim', [3, 5, 8]),
+                'intermediate_dim': hp.choice('i1', [21, 34, 55, 89, 144, 233, 377]),
+                'optimizer': hp.choice('optimizer', ['adam']),
             }
         ])
 
@@ -744,7 +758,8 @@ class DonutModel(Model):
                 trials=trials,
             )
         except ValueError:
-            raise errors.NoData("training failed, try to increase the time range")
+            raise errors.NoData(
+                "training failed, try to increase the time range")
 
         # Get the values of the optimal parameters
         best_params = space_eval(space, best)
@@ -876,7 +891,7 @@ class DonutModel(Model):
                     is_nan = np.logical_or(
                         np.isnan(x[i:j]),
                         abnormal[i:j],
-                        )
+                    )
 
                 missing.append(is_nan)
                 _x = np.copy(x[i:j])
@@ -891,7 +906,8 @@ class DonutModel(Model):
         Splits data to training and testing parts
         """
         ntrn = round(len(dataset) * train_size)
-        X_train_missing, X_train = self._format_dataset(dataset[0:ntrn], abnormal=abnormal)
+        X_train_missing, X_train = self._format_dataset(
+            dataset[0:ntrn], abnormal=abnormal)
         X_test_missing, X_test = self._format_dataset(dataset[ntrn:])
         return (X_train_missing, X_train), (X_test_missing, X_test)
 
@@ -946,7 +962,8 @@ class DonutModel(Model):
             dataset[i] = val
 
         if i is None:
-            raise errors.NoData("no data found for time range {}".format(period))
+            raise errors.NoData(
+                "no data found for time range {}".format(period))
 
         self.apply_defaults(dataset)
 
@@ -999,14 +1016,14 @@ class DonutModel(Model):
             'loss': score,
         }
         self.unload()
-        #prediction = self.predict(
+        # prediction = self.predict(
         #    datasource,
         #    from_date,
         #    to_date,
         #    num_cpus=num_cpus,
         #    num_gpus=num_gpus,
-        #)
-        #prediction.stat()
+        # )
+        # prediction.stat()
 
         return {
             'loss': score,
@@ -1091,7 +1108,8 @@ class DonutModel(Model):
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
-        predict_len = int((period.to_ts - period.from_ts) / self.bucket_interval)
+        predict_len = int((period.to_ts - period.from_ts) /
+                          self.bucket_interval)
 
         logging.info("predict(%s) range=%s", self.name, period)
 
@@ -1153,8 +1171,10 @@ class DonutModel(Model):
         x_ = X_test.copy()
         # MCMC
         for _ in range(g_mcmc_count):
-            z_mean, _, _ = self._encoder_model.predict([x_, missing], batch_size=g_mc_batch_size)
-            x_decoded = self._decoder_model.predict(z_mean, batch_size=g_mc_batch_size)
+            z_mean, _, _ = self._encoder_model.predict(
+                [x_, missing], batch_size=g_mc_batch_size)
+            x_decoded = self._decoder_model.predict(
+                z_mean, batch_size=g_mc_batch_size)
             x_[missing] = x_decoded[missing]
 
         y = np.full((predict_len,), np.nan, dtype=float)
@@ -1168,7 +1188,8 @@ class DonutModel(Model):
                 [np.tile(x, [g_mc_count, 1]), no_missing_point],
                 batch_size=g_mc_batch_size,
             )
-            x_decoded = self._decoder_model.predict(Z, batch_size=g_mc_batch_size)
+            x_decoded = self._decoder_model.predict(
+                Z, batch_size=g_mc_batch_size)
             std = np.std(x_decoded[:, -1])
             y_low[j] = x[-1] - 3 * std
             y_high[j] = x[-1] + 3 * std
@@ -1229,7 +1250,8 @@ class DonutModel(Model):
         period = self.build_date_range(from_date, to_date)
 
         # This is the number of buckets that the function MUST return
-        forecast_len = int((period.to_ts - period.from_ts) / self.bucket_interval)
+        forecast_len = int(
+            (period.to_ts - period.from_ts) / self.bucket_interval)
 
         logging.info("forecast(%s) range=%s", self.name, period)
 
@@ -1303,7 +1325,8 @@ class DonutModel(Model):
                     [np.array([x]), np.array([missing])],
                     batch_size=g_mc_batch_size,
                 )
-                x_decoded = self._decoder_model.predict(z_mean, batch_size=g_mc_batch_size)
+                x_decoded = self._decoder_model.predict(
+                    z_mean, batch_size=g_mc_batch_size)
                 x[missing] = x_decoded[0][missing]
 
             # uncertainty is modeled using a random uniform noise distribution
@@ -1312,10 +1335,12 @@ class DonutModel(Model):
             x *= 1 + expand
             # MC integration
             _, _, Z = self._encoder_model.predict(
-                [np.tile(x, [g_mc_count, 1]), np.tile(missing, [g_mc_count, 1])],
+                [np.tile(x, [g_mc_count, 1]), np.tile(
+                    missing, [g_mc_count, 1])],
                 batch_size=g_mc_batch_size,
             )
-            x_decoded = self._decoder_model.predict(Z, batch_size=g_mc_batch_size)
+            x_decoded = self._decoder_model.predict(
+                Z, batch_size=g_mc_batch_size)
             std = np.std(x_decoded[:, -1])
             y_low[j] = x[-1] - p * std
             y_high[j] = x[-1] + p * std
@@ -1580,16 +1605,20 @@ class DonutModel(Model):
                 for i, _ in enumerate(z_mean)
             ])
             # (x-min(x))/(max(x)-min(x)). RGBA values should be within 0-1 range
-            zc = (zc - np.min(zc, axis=0)) / (np.max(zc, axis=0) - np.min(zc, axis=0))
+            zc = (zc - np.min(zc, axis=0)) / \
+                (np.max(zc, axis=0) - np.min(zc, axis=0))
             if latent_dim > 5:
                 ax.set_zlabel("z[{}]".format(excl[3]))
-                ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim], z_mean[:, excl[3]], c=zc)
+                ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim],
+                           z_mean[:, excl[3]], c=zc)
             else:
                 zc[:, 0] = 0
                 ax.set_zlabel("z[{}]".format(excl[0]))
-                ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim], z_mean[:, excl[0]], c=zc)
+                ax.scatter(z_mean[:, x_dim], z_mean[:, y_dim],
+                           z_mean[:, excl[0]], c=zc)
         else:
-            plt.scatter(z_mean[:, x_dim], z_mean[:, y_dim], c=z_mean[:, excl[0]])
+            plt.scatter(z_mean[:, x_dim], z_mean[:, y_dim],
+                        c=z_mean[:, excl[0]])
             plt.colorbar()
 
         plt.xlabel("z[{}]".format(x_dim))

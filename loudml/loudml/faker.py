@@ -27,6 +27,7 @@ from .randevents import (
     TriangleEventGenerator,
 )
 
+
 def generate_data(
     ts_generator,
     from_date,
@@ -58,6 +59,7 @@ def generate_data(
             yield ts, {
                 field: random.lognormvariate(10, 1),
             }
+
 
 def dump_to_json(generator):
     import json
@@ -321,7 +323,7 @@ def main():
             trend=arg.trend,
             period=arg.period,
             sigma=arg.sigma,
-    )
+        )
 
     from_date = make_datetime(arg.from_date)
     to_date = make_datetime(arg.to_date)

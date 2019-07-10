@@ -1,3 +1,28 @@
+from loudml.api import Hook
+from loudml import (
+    errors,
+)
+from loudml.misc import (
+    make_datetime,
+    make_ts,
+    dt_get_daytime,
+    dt_get_weekday,
+    ts_to_str,
+    str_to_datetime,
+)
+from loudml.filestorage import TempStorage
+from loudml.memdatasource import MemDataSource
+from loudml.model import Feature
+from loudml.donut import (
+    DonutModel,
+    TimeSeriesPrediction,
+    _format_windows,
+)
+from loudml.randevents import (
+    FlatEventGenerator,
+    SinEventGenerator,
+    TriangleEventGenerator,
+)
 import loudml.vendor
 
 import datetime
@@ -9,45 +34,17 @@ import unittest
 
 import numpy as np
 
-def nan_equal(a,b):
+
+def nan_equal(a, b):
     try:
-        np.testing.assert_equal(a,b)
+        np.testing.assert_equal(a, b)
     except AssertionError:
         return False
     return True
 
+
 logging.getLogger('tensorflow').disabled = True
 
-import loudml.vendor
-
-from loudml.randevents import (
-    FlatEventGenerator,
-    SinEventGenerator,
-    TriangleEventGenerator,
-)
-from loudml.donut import (
-    DonutModel,
-    TimeSeriesPrediction,
-    _format_windows,
-)
-from loudml.model import Feature
-
-from loudml.memdatasource import MemDataSource
-from loudml.filestorage import TempStorage
-from loudml.misc import (
-    make_datetime,
-    make_ts,
-    dt_get_daytime,
-    dt_get_weekday,
-    ts_to_str,
-    str_to_datetime,
-)
-
-from loudml import (
-    errors,
-)
-
-from loudml.api import Hook
 
 FEATURE_COUNT_FOO = {
     'name': 'count_foo',
@@ -64,6 +61,7 @@ FEATURE_AVG_FOO = {
 }
 
 FEATURES = [FEATURE_COUNT_FOO]
+
 
 class TestHook(Hook):
     def __init__(self, model, storage, *args, **kwargs):
@@ -90,9 +88,9 @@ class TestHook(Hook):
         for feature_name, ano in anomalies.items():
             logging.error(
                 "feature '{}' is too {} (score = {:.1f})".format(
-                     self.feature_to_str(feature_name),
-                     ano['type'],
-                     ano['score']
+                    self.feature_to_str(feature_name),
+                    ano['type'],
+                    ano['score']
                 )
             )
 
@@ -122,7 +120,7 @@ class TestTimes(unittest.TestCase):
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES,
-            grace_period="140m", # = 7 points
+            grace_period="140m",  # = 7 points
             max_threshold=99.7,
             min_threshold=68,
             max_evals=10,
@@ -133,7 +131,8 @@ class TestTimes(unittest.TestCase):
         to_date = datetime.datetime.now().timestamp()
 
         # Be sure that date range is aligned
-        self.to_date = math.floor(to_date / self.model.bucket_interval) * self.model.bucket_interval
+        self.to_date = math.floor(
+            to_date / self.model.bucket_interval) * self.model.bucket_interval
         self.from_date = self.to_date - 3600 * 24 * 7 * 3
 
         for ts in self.generator.generate_ts(self.from_date, self.to_date, step_ms=600000):
@@ -141,7 +140,6 @@ class TestTimes(unittest.TestCase):
                 'timestamp': ts,
                 'foo': random.normalvariate(10, 1)
             })
-
 
     def _require_training(self):
         if self.model.is_trained:
@@ -284,8 +282,6 @@ class TestTimes(unittest.TestCase):
             [10.0, 12.0, 0.0],
         ])
 
-
-
     def test_train(self):
         self._require_training()
         self.assertTrue(self.model.is_trained)
@@ -298,19 +294,19 @@ class TestTimes(unittest.TestCase):
             for j in range(3):
                 source.insert_times_data({
                     'timestamp': i*6 + j,
-                    'foo': 1.0 if (i >= 10 and i < 20) else math.sin(j) 
+                    'foo': 1.0 if (i >= 10 and i < 20) else math.sin(j)
                 })
             for j in range(3):
                 source.insert_times_data({
                     'timestamp': i*6 + j + 3,
-                    'foo': 1.0 if (i >= 10 and i < 20) else math.sin(-j) 
+                    'foo': 1.0 if (i >= 10 and i < 20) else math.sin(-j)
                 })
 
-        abnormal=[
-        # list windows containing abnormal data 
-            #date --date=@$((6*10)) --utc
-            #date --date=@$((6*20)) --utc
-            ['1970-01-01T00:01:00.000Z', '1970-01-01T00:02:00.000Z'], #    [6*10, 6*20],
+        abnormal = [
+            # list windows containing abnormal data
+            # date --date=@$((6*10)) --utc
+            # date --date=@$((6*20)) --utc
+            ['1970-01-01T00:01:00.000Z', '1970-01-01T00:02:00.000Z'],  # [6*10, 6*20],
         ]
         model = DonutModel(dict(
             name='test',
@@ -326,13 +322,13 @@ class TestTimes(unittest.TestCase):
         loss1 = result['loss']
         print("loss: %f" % result['loss'])
         #prediction = model.predict(source, from_date, to_date)
-        #prediction.plot('avg_foo')
+        # prediction.plot('avg_foo')
 
         result = model.train(source, from_date, to_date, windows=abnormal)
         loss2 = result['loss']
         print("loss: %f" % result['loss'])
         #prediction = model.predict(source, from_date, to_date)
-        #prediction.plot('avg_foo')
+        # prediction.plot('avg_foo')
         self.assertTrue(loss2 < loss1)
         self.assertTrue(loss2 > 0)
 
@@ -349,7 +345,7 @@ class TestTimes(unittest.TestCase):
 
         self.assertEqual(model.span, "auto")
         model.train(self.source, self.from_date, self.to_date)
-        #print(model._span)
+        # print(model._span)
         self.assertTrue(10 <= model._span <= 15)
 
     def test_forecast(self):
@@ -408,12 +404,14 @@ class TestTimes(unittest.TestCase):
 
         # print(forecast.predicted)
         delta = 1.5
-        forecast_good = np.abs(forecast.predicted[:len(forecast_head)] - forecast_head) <= delta
+        forecast_good = np.abs(forecast.predicted[:len(
+            forecast_head)] - forecast_head) <= delta
         # print(forecast_head)
         # print(forecast.predicted[:len(forecast_head)])
         # print(forecast_good)
         self.assertEqual(np.all(forecast_good), True)
-        forecast_good = np.abs(forecast.predicted[-len(forecast_tail):] - forecast_tail) <= delta
+        forecast_good = np.abs(
+            forecast.predicted[-len(forecast_tail):] - forecast_tail) <= delta
         # print(forecast_tail)
         # print(forecast.predicted[-len(forecast_tail):])
         # print(forecast_good)
@@ -489,9 +487,9 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=[
                 {
-                   'name': 'count_foo',
-                   'metric': 'count',
-                   'field': 'foo',
+                    'name': 'count_foo',
+                    'metric': 'count',
+                    'field': 'foo',
                 },
             ],
             max_threshold=30,
@@ -524,7 +522,6 @@ class TestTimes(unittest.TestCase):
                 prediction.predicted[i],
                 delta=0.22,
             )
-
 
     def test_detect_anomalies(self):
         self._require_training()
@@ -566,7 +563,7 @@ class TestTimes(unittest.TestCase):
             source,
             from_date,
             to_date,
-            mse_rtol=0, # unused
+            mse_rtol=0,  # unused
         )
 
         self.model.detect_anomalies(prediction)
@@ -610,7 +607,6 @@ class TestTimes(unittest.TestCase):
             [buckets[i] for i in [17, 18, 19]],
         )
 
-
     def test_thresholds(self):
         source = MemDataSource()
         to_date = datetime.datetime.now().replace(
@@ -644,10 +640,10 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=[
                 {
-                   'name': 'avg_foo',
-                   'metric': 'avg',
-                   'field': 'foo',
-                   'default': 0,
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': 'foo',
+                    'default': 0,
                 },
             ],
             max_threshold=99.7,
@@ -696,7 +692,6 @@ class TestTimes(unittest.TestCase):
             6 * 3600,
         )
 
-
     def test_thresholds2(self):
         source = MemDataSource()
         to_date = datetime.datetime.now().replace(
@@ -730,11 +725,11 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=[
                 {
-                   'name': 'avg_foo',
-                   'metric': 'avg',
-                   'field': 'foo',
-                   'default': 0,
-                   'anomaly_type': 'low',
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': 'foo',
+                    'default': 0,
+                    'anomaly_type': 'low',
                 },
             ],
             max_threshold=99.7,
@@ -777,12 +772,18 @@ class TestTimes(unittest.TestCase):
 
         buckets = prediction.format_buckets()
         # 68–95–99.7 rule
-        self.assertEqual(buckets[7]['stats']['anomalies']['avg_foo']['type'], 'low')
-        self.assertAlmostEqual(buckets[7]['stats']['anomalies']['avg_foo']['score'], 100, delta=35)
-        self.assertEqual(buckets[8]['stats']['anomalies']['avg_foo']['type'], 'low')
-        self.assertAlmostEqual(buckets[8]['stats']['anomalies']['avg_foo']['score'], 100, delta=5)
-        self.assertEqual(buckets[9]['stats']['anomalies']['avg_foo']['type'], 'low')
-        self.assertAlmostEqual(buckets[9]['stats']['anomalies']['avg_foo']['score'], 100, delta=2)
+        self.assertEqual(buckets[7]['stats']['anomalies']
+                         ['avg_foo']['type'], 'low')
+        self.assertAlmostEqual(
+            buckets[7]['stats']['anomalies']['avg_foo']['score'], 100, delta=35)
+        self.assertEqual(buckets[8]['stats']['anomalies']
+                         ['avg_foo']['type'], 'low')
+        self.assertAlmostEqual(
+            buckets[8]['stats']['anomalies']['avg_foo']['score'], 100, delta=5)
+        self.assertEqual(buckets[9]['stats']['anomalies']
+                         ['avg_foo']['type'], 'low')
+        self.assertAlmostEqual(
+            buckets[9]['stats']['anomalies']['avg_foo']['score'], 100, delta=2)
 
         self.assertEqual(len(hook.events), 2)
         event0, event1 = hook.events
@@ -814,8 +815,8 @@ class TestTimes(unittest.TestCase):
                 source.insert_times_data({
                     'timestamp': ts,
                     'foo': random.randrange(45, 55),
-#                    'bar': random.randrange(45, 55),
-#                    'baz': random.randrange(45, 55),
+                    #                    'bar': random.randrange(45, 55),
+                    #                    'baz': random.randrange(45, 55),
 
                 })
                 ts += 3600
@@ -828,10 +829,10 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=[
                 {
-                   'name': 'avg_foo',
-                   'metric': 'avg',
-                   'field': 'foo',
-                   'anomaly_type': 'low',
+                    'name': 'avg_foo',
+                    'metric': 'avg',
+                    'field': 'foo',
+                    'anomaly_type': 'low',
                 },
             ],
             max_threshold=99.7,
@@ -853,8 +854,8 @@ class TestTimes(unittest.TestCase):
             source.insert_times_data({
                 'timestamp': ts,
                 'foo': values[0],
-#                'bar': values[1],
-#                'baz': values[2],
+                #                'bar': values[1],
+                #                'baz': values[2],
             })
             ts += 3600
 
@@ -895,9 +896,9 @@ class TestTimes(unittest.TestCase):
             for j in range(0, 24):
                 source.insert_times_data({
                     'timestamp': ts,
-#                    'foo': random.randrange(45, 55),
+                    #                    'foo': random.randrange(45, 55),
                     'bar': random.randrange(45, 55),
-#                    'baz': random.randrange(45, 55),
+                    #                    'baz': random.randrange(45, 55),
 
                 })
                 ts += 3600
@@ -910,10 +911,10 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=[
                 {
-                   'name': 'avg_bar',
-                   'metric': 'avg',
-                   'field': 'bar',
-                   'anomaly_type': 'high',
+                    'name': 'avg_bar',
+                    'metric': 'avg',
+                    'field': 'bar',
+                    'anomaly_type': 'high',
                 },
             ],
             max_threshold=99.7,
@@ -934,9 +935,9 @@ class TestTimes(unittest.TestCase):
         for values in data:
             source.insert_times_data({
                 'timestamp': ts,
-#                'foo': values[0],
+                #                'foo': values[0],
                 'bar': values[1],
-#                'baz': values[2],
+                #                'baz': values[2],
             })
             ts += 3600
 
@@ -977,8 +978,8 @@ class TestTimes(unittest.TestCase):
             for j in range(0, 24):
                 source.insert_times_data({
                     'timestamp': ts,
-#                    'foo': random.randrange(45, 55),
-#                    'bar': random.randrange(45, 55),
+                    #                    'foo': random.randrange(45, 55),
+                    #                    'bar': random.randrange(45, 55),
                     'baz': random.randrange(45, 55),
 
                 })
@@ -992,10 +993,10 @@ class TestTimes(unittest.TestCase):
             interval=60,
             features=[
                 {
-                   'name': 'avg_baz',
-                   'metric': 'avg',
-                   'field': 'baz',
-                   'anomaly_type': 'low_high',
+                    'name': 'avg_baz',
+                    'metric': 'avg',
+                    'field': 'baz',
+                    'anomaly_type': 'low_high',
                 },
             ],
             max_threshold=99.7,
@@ -1016,8 +1017,8 @@ class TestTimes(unittest.TestCase):
         for values in data:
             source.insert_times_data({
                 'timestamp': ts,
-#                'foo': values[0],
-#                'bar': values[1],
+                #                'foo': values[0],
+                #                'bar': values[1],
                 'baz': values[2],
             })
             ts += 3600
@@ -1039,6 +1040,3 @@ class TestTimes(unittest.TestCase):
         anomalies = buckets[2]['stats']['anomalies']
         self.assertEqual(len(anomalies), 1)
         self.assertEqual(anomalies['avg_baz']['type'], 'low')
-
-
-

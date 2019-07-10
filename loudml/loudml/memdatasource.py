@@ -13,12 +13,14 @@ from .misc import (
 )
 from .datasource import DataSource
 
+
 def make_float(s):
     try:
-        val=float(s)
+        val = float(s)
     except ValueError:
-        val=s
+        val = s
     return val
+
 
 class OrderedEntry:
     """
@@ -68,6 +70,7 @@ class TimeBucket(Bucket):
     """
     Time-series bucket
     """
+
     def format_key(self):
         return '%s (%s)' % (self.key, ts_to_str(self.key))
 
@@ -88,7 +91,7 @@ class MemDataSource(DataSource):
         reader = csv.DictReader(fp, **kwargs)
         for row in reader:
             timestamp = row[timestamp_field]
-            data = {key:make_float(val) for key, val in row.items()}
+            data = {key: make_float(val) for key, val in row.items()}
             data['timestamp'] = make_ts(timestamp)
             self.insert_times_data(data)
 
@@ -131,7 +134,8 @@ class MemDataSource(DataSource):
 
         nb = len(bucket.data)
         if nb:
-            values = [entry.data[field] for entry in bucket.data if field in entry.data]
+            values = [entry.data[field]
+                      for entry in bucket.data if field in entry.data]
             _min = min(values)
         else:
             _min = None
@@ -146,7 +150,8 @@ class MemDataSource(DataSource):
 
         nb = len(bucket.data)
         if nb:
-            values = [entry.data[field] for entry in bucket.data if field in entry.data]
+            values = [entry.data[field]
+                      for entry in bucket.data if field in entry.data]
             _max = max(values)
         else:
             _max = None
@@ -161,7 +166,8 @@ class MemDataSource(DataSource):
 
         nb = len(bucket.data)
         if nb:
-            values = [entry.data[field] for entry in bucket.data if field in entry.data]
+            values = [entry.data[field]
+                      for entry in bucket.data if field in entry.data]
             avg = sum(values) / nb
         else:
             avg = None
@@ -187,7 +193,8 @@ class MemDataSource(DataSource):
         from_ts = make_ts(from_date)
         to_ts = make_ts(to_date)
 
-        lo = bisect.bisect_left(self.data, OrderedEntry(from_ts)) if from_date else 0
+        lo = bisect.bisect_left(
+            self.data, OrderedEntry(from_ts)) if from_date else 0
         bucket_start = from_ts
 
         i = lo
