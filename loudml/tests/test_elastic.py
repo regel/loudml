@@ -1,3 +1,11 @@
+from loudml.donut import (
+    TimeSeriesPrediction,
+)
+from loudml.model import Model
+from loudml.elastic import ElasticsearchDataSource
+import loudml.errors as errors
+import loudml.datasource
+import loudml.config
 import loudml.vendor
 
 import copy
@@ -10,23 +18,13 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
-import loudml.config
-import loudml.datasource
-import loudml.errors as errors
-
-from loudml.elastic import ElasticsearchDataSource
-
-from loudml.model import Model
-from loudml.donut import (
-    TimeSeriesPrediction,
-)
 
 TEMPLATE = {
     "template": "test-*",
     "settings": {
         "number_of_shards": 1,
         "number_of_replicas": 0,
-        "codec":"best_compression"
+        "codec": "best_compression"
     },
     "mappings": {},
 }
@@ -89,6 +87,7 @@ FEATURES_MATCH_ALL_TAG2 = [
     },
 ]
 
+
 class TestElasticDataSource(unittest.TestCase):
     def setUp(self):
         bucket_interval = 3
@@ -141,7 +140,7 @@ class TestElasticDataSource(unittest.TestCase):
         self.source.init(template_name="test", template=template)
 
         self.model = Model(dict(
-            name='times-model', # not test-model due to TEMPLATE
+            name='times-model',  # not test-model due to TEMPLATE
             offset=30,
             span=300,
             bucket_interval=bucket_interval,
@@ -152,11 +151,11 @@ class TestElasticDataSource(unittest.TestCase):
 
         data = [
             # (foo, bar|baz, timestamp)
-            (1, 33, t0 - 1), # excluded
+            (1, 33, t0 - 1),  # excluded
             (2, 120, t0), (3, 312, t0 + 1),
             # empty
             (4, 18, t0 + 7),
-            (5, 78, t0 + 9), # excluded
+            (5, 78, t0 + 9),  # excluded
         ]
         for foo, bar, ts in data:
             self.source.insert_times_data(
@@ -322,5 +321,3 @@ class TestElasticDataSource(unittest.TestCase):
             rtol=0,
             atol=0,
         )
-
-

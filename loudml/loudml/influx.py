@@ -41,6 +41,8 @@ from loudml.datasource import DataSource
 g_aggregators = {}
 
 # Fingerprints code assumes that we return something equivalent to Elasticsearch
+
+
 def get_metric(name):
     if name.lower() == 'avg':
         return 'avg'
@@ -63,6 +65,7 @@ def get_metric(name):
     else:
         return name
 
+
 def ts_to_ns(ts):
     """
     Convert second timestamp to integer nanosecond timestamp
@@ -70,11 +73,13 @@ def ts_to_ns(ts):
     # XXX Due to limited mantis in float numbers, do not multiply directly by 1e9
     return int(int(ts * 1e6) * int(1e3))
 
+
 def make_ts_ns(mixed):
     """
     Build a nanosecond timestamp from a mixed input (second timestamp or string)
     """
     return ts_to_ns(make_ts(mixed))
+
 
 def format_bool(string):
     if string.lower() == 'true':
@@ -83,6 +88,7 @@ def format_bool(string):
         return 'False'
     else:
         return string
+
 
 def aggregator(*aliases):
     """
@@ -99,65 +105,81 @@ def aggregator(*aliases):
         return wrapper
     return decorated
 
+
 @aggregator('avg', 'mean', 'average')
 def _build_avg_agg(feature):
     return "MEAN(\"{}\")".format(feature.field)
+
 
 @aggregator('count')
 def _build_count_agg(feature):
     return "COUNT(\"{}\")".format(feature.field)
 
+
 @aggregator('deriv', 'derivative')
 def _build_derivative_agg(feature):
     return "DERIVATIVE(\"{}\")".format(feature.field)
+
 
 @aggregator('integral')
 def _build_integral_agg(feature):
     return "INTEGRAL(\"{}\")".format(feature.field)
 
+
 @aggregator('max')
 def _build_mode_agg(feature):
     return "MAX(\"{}\")".format(feature.field)
+
 
 @aggregator('med', 'median')
 def _build_median_agg(feature):
     return "MEDIAN(\"{}\")".format(feature.field)
 
+
 @aggregator('min')
 def _build_min_agg(feature):
     return "MIN(\"{}\")".format(feature.field)
+
 
 @aggregator('mode')
 def _build_mode_agg(feature):
     return "MODE(\"{}\")".format(feature.field)
 
+
 @aggregator('5percentile')
 def _build_5percentile_agg(feature):
     return "PERCENTILE(\"{}\", 5)".format(feature.field)
+
 
 @aggregator('10percentile')
 def _build_10percentile_agg(feature):
     return "PERCENTILE(\"{}\", 10)".format(feature.field)
 
+
 @aggregator('90percentile')
 def _build_90percentile_agg(feature):
     return "PERCENTILE(\"{}\", 90)".format(feature.field)
+
 
 @aggregator('95percentile')
 def _build_95percentile_agg(feature):
     return "PERCENTILE(\"{}\", 95)".format(feature.field)
 
+
 @aggregator('spread')
 def _build_spread_agg(feature):
     return "SPREAD(\"{}\")".format(feature.field)
+
 
 @aggregator('stddev', 'std_dev')
 def _build_stddev_agg(feature):
     return "STDDEV(\"{}\")".format(feature.field)
 
+
 @aggregator('sum')
 def _build_sum_agg(feature):
     return "SUM(\"{}\")".format(feature.field)
+
 
 def _build_agg(feature):
     """
@@ -177,12 +199,14 @@ def _build_agg(feature):
     agg = aggregator(feature)
     return "{} as \"{}\"".format(agg, escape_doublequotes(feature.name))
 
+
 def _build_count_agg2(feature):
     """
     Build requested aggregation
     """
     agg = _build_count_agg(feature)
     return "{} as \"count_{}\"".format(agg, feature.field)
+
 
 def _build_sum_agg2(feature):
     """
@@ -198,9 +222,10 @@ def _sum_of_squares(feature):
     """
 
     return "SUM(\"squares_{}\") as \"sum_squares_{}\"".format(
-               feature.field,
-               feature.field,
-           )
+        feature.field,
+        feature.field,
+    )
+
 
 def _build_time_predicates(
     from_date=None,
@@ -227,6 +252,7 @@ def _build_time_predicates(
 
     return must
 
+
 def _build_tags_predicates(match_all=None):
     """
     Build tags predicates for 'where' clause
@@ -240,8 +266,8 @@ def _build_tags_predicates(match_all=None):
             )
             val = condition['value']
             predicate = "{}='{}'".format(
-              quoted_tag,
-              escape_quotes(str(val)),
+                quoted_tag,
+                escape_quotes(str(val)),
             )
 
             if isinstance(val, bool) or isinstance(val, int):
@@ -255,6 +281,7 @@ def _build_tags_predicates(match_all=None):
 
     return must
 
+
 def _build_key_predicate(tag, val=None):
     """
     Build key predicate for 'where' clause
@@ -263,11 +290,12 @@ def _build_key_predicate(tag, val=None):
 
     if val:
         must.append("\"{}\"='{}'".format(
-          escape_doublequotes(tag),
-          escape_quotes(format_bool(val)),
+            escape_doublequotes(tag),
+            escape_quotes(format_bool(val)),
         ))
 
     return must
+
 
 def catch_query_error(func):
     def wrapper(self, *args, **kwargs):
@@ -279,6 +307,7 @@ def catch_query_error(func):
         ) as exn:
             raise errors.DataSourceError(self.name, str(exn))
     return wrapper
+
 
 class InfluxDataSource(DataSource):
     """
@@ -472,8 +501,8 @@ class InfluxDataSource(DataSource):
 
             val = "'{}'".format(escape_quotes(val))
             must.append("\"{}\"={}".format(
-              escape_doublequotes(key),
-              val),
+                escape_doublequotes(key),
+                val),
             )
 
         must.append("\"{}\"={}".format(
@@ -529,13 +558,13 @@ class InfluxDataSource(DataSource):
         time_pred = _build_time_predicates(from_date, to_date)
 
         must = time_pred + _build_tags_predicates(agg.match_all) \
-               + _build_key_predicate(model.key, key_val)
+            + _build_key_predicate(model.key, key_val)
 
         where = " where {}".format(" and ".join(must)) if len(must) else ""
 
         yield "select {} from {}\"{}\"{} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
-            ','.join(list(set([_build_agg(feature) for feature in agg.features] + \
-                              [_build_count_agg2(feature) for feature in agg.features] + \
+            ','.join(list(set([_build_agg(feature) for feature in agg.features] +
+                              [_build_count_agg2(feature) for feature in agg.features] +
                               [_build_sum_agg2(feature) for feature in agg.features]))),
             self._from_prefix,
             escape_doublequotes(agg.measurement),
@@ -552,7 +581,8 @@ class InfluxDataSource(DataSource):
 
         if len(sum_of_squares) > 0:
             yield "select {} from ( select \"{}\"*\"{}\" as \"squares_{}\" from \"{}\"{} ) where {} group by \"{}\",time({}ms) fill(0) slimit {} soffset {};".format(
-                ','.join(list(set([_sum_of_squares(feature) for feature in sum_of_squares]))),
+                ','.join(list(set([_sum_of_squares(feature)
+                                   for feature in sum_of_squares]))),
                 escape_doublequotes(feature.field),
                 escape_doublequotes(feature.field),
                 escape_doublequotes(feature.field),
@@ -609,7 +639,8 @@ class InfluxDataSource(DataSource):
                             'key_as_string': timeval,
                         }
                         for feature in agg.features:
-                            agg_name = build_agg_name(agg.measurement, feature.field)
+                            agg_name = build_agg_name(
+                                agg.measurement, feature.field)
                             bucket[agg_name] = {
                                 'count': 0.0,
                                 'min': 0.0,
@@ -623,10 +654,12 @@ class InfluxDataSource(DataSource):
                         buckets.append(bucket)
 
                     for feature in agg.features:
-                        agg_name = build_agg_name(agg.measurement, feature.field)
+                        agg_name = build_agg_name(
+                            agg.measurement, feature.field)
                         agg_val = point.get(feature.name)
                         if agg_val is not None:
-                            bucket[agg_name][get_metric(feature.metric)] = float(agg_val)
+                            bucket[agg_name][get_metric(
+                                feature.metric)] = float(agg_val)
 
                         agg_val = point.get("count_{}".format(feature.field))
                         if agg_val is not None:
@@ -636,15 +669,15 @@ class InfluxDataSource(DataSource):
                         if agg_val is not None:
                             bucket[agg_name]['sum'] = float(agg_val)
 
-                        agg_val = point.get("sum_squares_{}".format(feature.field))
+                        agg_val = point.get(
+                            "sum_squares_{}".format(feature.field))
                         if agg_val is not None:
                             bucket[agg_name]['sum_of_squares'] = float(agg_val)
-    
+
                 if len(results) == (i+1):
                     yield(key, buckets)
                 else:
                     buckets_dict[key] = buckets
-
 
     def get_quadrant_data(
         self,
@@ -658,13 +691,14 @@ class InfluxDataSource(DataSource):
 
 #        result = self.influxdb.query("SHOW SERIES CARDINALITY")
         total_series = None
-        result = self.influxdb.query("SHOW TAG VALUES CARDINALITY WITH KEY = \"{}\"".format(model.key))
+        result = self.influxdb.query(
+            "SHOW TAG VALUES CARDINALITY WITH KEY = \"{}\"".format(model.key))
         for (_, tags), points in result.items():
             point = next(points)
             total_series = int(point['count'])
 
         if total_series is None:
-           raise errors.NoData()
+            raise errors.NoData()
 
         output = itertools.chain()
         gens = []
@@ -771,9 +805,9 @@ class InfluxDataSource(DataSource):
 
 
 # Using database chronograf
-#> select * from annotations
+# > select * from annotations
 #name: annotations
-#time  deleted  id  modified_time_ns  start_time  text  type
+# time  deleted  id  modified_time_ns  start_time  text  type
 
     def insert_annotation(
         self,
@@ -792,7 +826,7 @@ class InfluxDataSource(DataSource):
             'text': desc,
             'id': _id,
         }
-        # tag type easier to view annotations using TICK 1.7.x 
+        # tag type easier to view annotations using TICK 1.7.x
         _tags = {
             'type': _type,
         }
@@ -820,7 +854,6 @@ class InfluxDataSource(DataSource):
         points[0]['fields']['deleted'] = False
         self.annotationdb.write_points(points)
         return points
-
 
     def list_anomalies(
         self,
@@ -856,5 +889,3 @@ class InfluxDataSource(DataSource):
                 ])
 
         return windows
-
-

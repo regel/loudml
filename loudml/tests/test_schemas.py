@@ -6,6 +6,7 @@ from loudml import (
     schemas,
 )
 
+
 class TestSchemas(unittest.TestCase):
     def valid(self, value):
         schemas.validate(self.schema, value)

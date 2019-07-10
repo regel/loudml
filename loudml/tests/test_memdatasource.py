@@ -1,3 +1,7 @@
+from loudml.misc import (
+    nan_to_none,
+)
+from loudml.donut import DonutModel
 import datetime
 import logging
 import numpy as np
@@ -10,10 +14,6 @@ from loudml.memdatasource import MemDataSource
 
 logging.getLogger('tensorflow').disabled = True
 
-from loudml.donut import DonutModel
-from loudml.misc import (
-    nan_to_none,
-)
 
 FEATURES = [
     {
@@ -23,6 +23,7 @@ FEATURES = [
         'default': 0,
     },
 ]
+
 
 class TestMemDataSource(unittest.TestCase):
     def setUp(self):
@@ -40,11 +41,11 @@ class TestMemDataSource(unittest.TestCase):
         ))
         data = [
             # (foo, timestamp)
-            (1, 0), # excluded
+            (1, 0),  # excluded
             (2, 1), (3, 2),
             # empty
             (4, 8),
-            (5, 10), # excluded
+            (5, 10),  # excluded
         ]
         for entry in data:
             self.source.insert_times_data({
@@ -72,4 +73,3 @@ class TestMemDataSource(unittest.TestCase):
             foo_avg.append(nan_to_none(line[1][0]))
 
         self.assertEqual(foo_avg, [2.5, None, 4.0])
-

@@ -25,8 +25,10 @@ from .misc import (
 )
 from loudml.datasource import DataSource
 
+
 def _tk(key):
     return "$" + key
+
 
 def _build_query(feature, timestamp_field, boundaries):
     field = feature.field
@@ -70,6 +72,7 @@ def _build_query(feature, timestamp_field, boundaries):
         }}
     ]
 
+
 def catch_query_error(func):
     def wrapper(self, *args, **kwargs):
         try:
@@ -79,6 +82,7 @@ def catch_query_error(func):
         ) as exn:
             raise errors.DataSourceError(self.name, str(exn))
     return wrapper
+
 
 class MongoDataSource(DataSource):
     """
@@ -223,13 +227,17 @@ class MongoDataSource(DataSource):
         bucket_interval = int(model.bucket_interval)
         timestamp_field = model.timestamp_field
 
-        from_ts = int(math.floor(make_ts(from_date) / bucket_interval) * bucket_interval)
-        to_ts = int(math.ceil(make_ts(to_date) / bucket_interval) * bucket_interval)
+        from_ts = int(math.floor(make_ts(from_date) /
+                                 bucket_interval) * bucket_interval)
+        to_ts = int(math.ceil(make_ts(to_date) /
+                              bucket_interval) * bucket_interval)
 
-        boundaries = list(range(from_ts, to_ts + bucket_interval, bucket_interval))
+        boundaries = list(
+            range(from_ts, to_ts + bucket_interval, bucket_interval))
 
         nb_buckets = len(boundaries)
-        buckets = np.full((nb_buckets, len(model.features)), np.nan, dtype=float)
+        buckets = np.full((nb_buckets, len(model.features)),
+                          np.nan, dtype=float)
 
         nb_buckets_found = 0
 

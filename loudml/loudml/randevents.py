@@ -11,34 +11,42 @@ from abc import (
     abstractmethod,
 )
 
+
 def periodic_saw_variate(ts, period):
     """
     Sawtooth variate function with user defined period
     """
-    t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
+    t0 = datetime.datetime.fromtimestamp(ts).replace(
+        hour=0, minute=0, second=0).timestamp()
     return (ts - t0) / period
+
 
 def periodic_sin_variate(ts, period):
     """
     Sinusoid variate function with user defined period
     """
-    t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
+    t0 = datetime.datetime.fromtimestamp(ts).replace(
+        hour=0, minute=0, second=0).timestamp()
     return math.sin(2 * math.pi * (ts - t0) / float(period))
+
 
 def periodic_triangle_variate(ts, period):
     """
     Triangle variate function with user defined period
     """
-    t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0).timestamp()
+    t0 = datetime.datetime.fromtimestamp(ts).replace(
+        hour=0, minute=0, second=0).timestamp()
 
     x = (ts - t0) / period
     return 2 * x if x < 0.5 else 2 * (1 - x)
+
 
 def randfloat(lo, hi):
     """
     Return random float between `lo` and `hi`
     """
     return lo + random.random() * (hi - lo)
+
 
 class EventGenerator(metaclass=ABCMeta):
     """
@@ -127,7 +135,7 @@ class PatternGenerator(EventGenerator):
 
     MARGIN = 6
     PATTERN = \
-"""
+        """
               e
    w y       p
   a   o     a
@@ -157,10 +165,13 @@ d       r s
         self._values = [0] * self.MARGIN + values + [0] * self.MARGIN
 
     def variate(self, ts):
-        t0 = datetime.datetime.fromtimestamp(ts).replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
-        x = int(len(self._values) * (ts - t0) / (self.period)) % len(self._values)
+        t0 = datetime.datetime.fromtimestamp(ts).replace(
+            hour=0, minute=0, second=0, microsecond=0).timestamp()
+        x = int(len(self._values) * (ts - t0) /
+                (self.period)) % len(self._values)
 
         return self.base + self.amplitude * self._values[x]
+
 
 class LoudMLEventGenerator(PatternGenerator):
     """
@@ -169,7 +180,7 @@ class LoudMLEventGenerator(PatternGenerator):
 
     MARGIN = 6
     PATTERN = \
-"""
+        """
 XX                                                    XX         XXX               XXX
 XX                                                    XX        X   X             X   X
 XX                                                    XX        X   X             X   X
@@ -195,7 +206,7 @@ class CamelEventGenerator(PatternGenerator):
 
     MARGIN = 0
     PATTERN = \
-"""
+        """
                              XXX
                  XX         X   X
                XX  XX       X    X
@@ -209,6 +220,7 @@ class CamelEventGenerator(PatternGenerator):
    XXX                                   XXX
 XXX                                         XXX
 """
+
 
 def example():
     """

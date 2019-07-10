@@ -1,3 +1,18 @@
+from loudml.warp10 import (
+    Warp10DataSource,
+)
+from loudml.donut import (
+    DonutModel,
+)
+from loudml.model import Model
+from loudml.randevents import SinEventGenerator
+from loudml.misc import (
+    list_from_np,
+    ts_to_str,
+)
+from loudml import (
+    errors,
+)
 import loudml.vendor
 
 import datetime
@@ -9,25 +24,6 @@ import time
 import unittest
 
 logging.getLogger('tensorflow').disabled = True
-
-from loudml import (
-    errors,
-)
-
-from loudml.misc import (
-    list_from_np,
-    ts_to_str,
-)
-
-from loudml.randevents import SinEventGenerator
-
-from loudml.model import Model
-from loudml.donut import (
-    DonutModel,
-)
-from loudml.warp10 import (
-    Warp10DataSource,
-)
 
 
 class TestWarp10(unittest.TestCase):
@@ -107,7 +103,7 @@ class TestWarp10(unittest.TestCase):
         )
         self.assertEqual(
             res,
-"""
+            """
 [
 [
 [
@@ -141,13 +137,12 @@ bucketizer.count
 BUCKETIZE
 ]
 """.strip().format(
-               self.source.read_token,
-               self.prefix,
-               self.source.read_token,
-               self.prefix,
+                self.source.read_token,
+                self.prefix,
+                self.source.read_token,
+                self.prefix,
             )
         )
-
 
     def test_write_read(self):
         t0 = self.t0
@@ -249,11 +244,11 @@ BUCKETIZE
 
         data = [
             # (foo, timestamp)
-            (33, t0 - 1), # excluded
+            (33, t0 - 1),  # excluded
             # empty
             (120, t0 + 1), (312, t0 + 2),
             (18, t0 + 7),
-            (78, t0 + 10), # excluded
+            (78, t0 + 10),  # excluded
         ]
         for foo, ts in data:
             self.source.insert_times_data(
@@ -395,7 +390,8 @@ BUCKETIZE
             from_date=pred_from,
             to_date=pred_to,
         )
-        self.source.save_timeseries_prediction(prediction, model, tags=self.tag)
+        self.source.save_timeseries_prediction(
+            prediction, model, tags=self.tag)
 
         # Fake model just for extracting saved prediction
         model2 = Model(dict(
@@ -421,7 +417,7 @@ BUCKETIZE
 
         res = self.source.get_times_data(
             model2,
-            pred_from ,
+            pred_from,
             pred_to,
             tags=self.tag,
         )

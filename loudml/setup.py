@@ -29,8 +29,8 @@ setup(
     test_suite='nose.collector',
 
     install_requires=[
-# DO NOT ADD REQUIRES HERE
-# See base/vendor/requirements.txt.in
+        # DO NOT ADD REQUIRES HERE
+        # See base/vendor/requirements.txt.in
     ],
 
     extras_require={

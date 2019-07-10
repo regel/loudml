@@ -76,8 +76,8 @@ class Hook:
 
         if isinstance(features, dict):
             features = features.get('i', []) \
-                     + features.get('o', []) \
-                     + features.get('io', [])
+                + features.get('o', []) \
+                + features.get('io', [])
 
         for feature in features:
             self.features[feature['name']] = feature

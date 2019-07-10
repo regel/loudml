@@ -74,6 +74,7 @@ class Command:
         Execute command
         """
 
+
 class LoadDataCommand(Command):
     """
     Load public NAB data set
@@ -128,6 +129,7 @@ class LoadCheckpointCommand(Command):
         storage = FileStorage(self.config.storage['path'])
         storage.set_current_ckpt(args.model_name, args.checkpoint)
 
+
 class SaveCheckpointCommand(Command):
     """
     Save new checkpoint
@@ -153,6 +155,7 @@ class SaveCheckpointCommand(Command):
         storage = FileStorage(self.config.storage['path'])
         model = storage.load_model(args.model_name)
         storage.save_state(model, args.checkpoint)
+
 
 class ListCheckpointsCommand(Command):
     """
@@ -185,6 +188,7 @@ class ListCheckpointsCommand(Command):
         else:
             for ckpt_name in storage.list_checkpoints(args.model_name):
                 print(ckpt_name)
+
 
 class CreateModelCommand(Command):
     """
@@ -244,12 +248,12 @@ class CreateModelCommand(Command):
         storage = FileStorage(self.config.storage['path'])
         if args.template is not None:
             params = self._load_model_json(args.model_file)
-            model = storage.load_template(args.template, config=self.config, **params)
+            model = storage.load_template(
+                args.template, config=self.config, **params)
         else:
             model_settings = self.load_model_file(args.model_file)
             model = loudml.model.load_model(settings=model_settings,
                                             config=self.config)
-
 
         if args.force and storage.model_exists(model.name):
             storage.delete_model(model.name)
@@ -365,6 +369,7 @@ class ShowModelCommand(Command):
                 print(yaml.dump(model.preview, default_flow_style=False))
             else:
                 print(json.dumps(model.preview, indent=4))
+
 
 class PlotCommand(Command):
     """
@@ -525,7 +530,7 @@ class TrainCommand(Command):
             windows = source.list_anomalies(
                 args.from_date,
                 args.to_date,
-                tags={'model': args.model_name },
+                tags={'model': args.model_name},
             )
             result = model.train(
                 source,
@@ -569,6 +574,7 @@ def _save_timeseries_prediction(
 
     sink.save_timeseries_prediction(prediction, model)
 
+
 class ForecastCommand(Command):
     """
     Forecast the next measurements
@@ -606,7 +612,7 @@ class ForecastCommand(Command):
             '-p',
             help="percentage of confidence interval",
             type=float,
-            default=0.68, # = +/-1 STD
+            default=0.68,  # = +/-1 STD
             dest='p_val',
         )
         parser.add_argument(
@@ -760,7 +766,6 @@ class PredictCommand(Command):
         Dump data to stdout
         """
         print(json.dumps(data, indent=4))
-
 
     def exec(self, args):
         storage = FileStorage(self.config.storage['path'])

@@ -1,3 +1,20 @@
+from loudml.filestorage import TempStorage
+from loudml.randevents import SinEventGenerator
+from loudml.donut import DonutModel
+from loudml.model import Model
+from loudml.memdatasource import MemDataSource
+from loudml.influx import (
+    _build_time_predicates,
+    _build_tags_predicates,
+    InfluxDataSource,
+)
+from loudml.misc import (
+    escape_quotes,
+    escape_doublequotes,
+    nan_to_none,
+    make_ts,
+)
+import loudml.errors as errors
 import loudml.vendor
 
 import copy
@@ -13,27 +30,6 @@ import math
 import json
 
 logging.getLogger('tensorflow').disabled = True
-
-import loudml.errors as errors
-
-from loudml.misc import (
-    escape_quotes,
-    escape_doublequotes,
-    nan_to_none,
-    make_ts,
-)
-
-from loudml.influx import (
-    _build_time_predicates,
-    _build_tags_predicates,
-    InfluxDataSource,
-)
-from loudml.memdatasource import MemDataSource
-
-from loudml.model import Model
-from loudml.donut import DonutModel
-from loudml.randevents import SinEventGenerator
-from loudml.filestorage import TempStorage
 
 
 FEATURES = [
@@ -93,6 +89,7 @@ if 'INFLUXDB_ADDR' in os.environ:
 else:
     ADDR = 'localhost'
 
+
 class TestInfluxQuick(unittest.TestCase):
     def setUp(self):
         bucket_interval = 3
@@ -126,11 +123,11 @@ class TestInfluxQuick(unittest.TestCase):
 
         data = [
             # (foo, bar, timestamp)
-            (1, 33, t0 - 1), # excluded
+            (1, 33, t0 - 1),  # excluded
             (2, 120, t0), (3, 312, t0 + 1),
             # empty
             (4, 18, t0 + 7),
-            (5, 78, t0 + 9), # excluded
+            (5, 78, t0 + 9),  # excluded
         ]
         for foo, bar, ts in data:
             self.source.insert_times_data(
@@ -229,12 +226,13 @@ class TestInfluxQuick(unittest.TestCase):
         self.assertEqual(
             queries,
             [
-                "select MEAN(\"foo\") as \"avg_foo\" from \"measure1\" "\
+                "select MEAN(\"foo\") as \"avg_foo\" from \"measure1\" "
                 "where {} group by time(3000ms);".format(where),
-                "select COUNT(\"bar\") as \"count_bar\" from \"measure2\" "\
+                "select COUNT(\"bar\") as \"count_bar\" from \"measure2\" "
                 "where {} group by time(3000ms);".format(where),
-                "select MEAN(\"baz\") as \"avg_baz\" from \"measure1\" "\
-                "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(where),
+                "select MEAN(\"baz\") as \"avg_baz\" from \"measure1\" "
+                "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(
+                    where),
             ],
         )
 
@@ -254,12 +252,13 @@ class TestInfluxQuick(unittest.TestCase):
         self.assertEqual(
             queries,
             [
-                "select MEAN(\"foo\") as \"avg_foo\" from {}\"measure1\" "\
+                "select MEAN(\"foo\") as \"avg_foo\" from {}\"measure1\" "
                 "where {} group by time(3000ms);".format(from_prefix, where),
-                "select COUNT(\"bar\") as \"count_bar\" from {}\"measure2\" "\
+                "select COUNT(\"bar\") as \"count_bar\" from {}\"measure2\" "
                 "where {} group by time(3000ms);".format(from_prefix, where),
-                "select MEAN(\"baz\") as \"avg_baz\" from {}\"measure1\" "\
-                "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(from_prefix, where),
+                "select MEAN(\"baz\") as \"avg_baz\" from {}\"measure1\" "
+                "where {} and \"mytag\"='myvalue' group by time(3000ms);".format(
+                    from_prefix, where),
             ],
         )
 
@@ -288,7 +287,7 @@ class TestInfluxQuick(unittest.TestCase):
             to_date=self.t0 + 8,
         )
 
-        # _source to write aggregate data to RAM 
+        # _source to write aggregate data to RAM
         _source = MemDataSource()
         _features = copy.deepcopy(self.model.features)
         for _, feature in enumerate(self.model.features):
@@ -409,10 +408,8 @@ class TestInfluxLong(unittest.TestCase):
         ))
 
         # Train
-        model.train(self.source, from_date=self.from_date, to_date=self.to_date)
+        model.train(self.source, from_date=self.from_date,
+                    to_date=self.to_date)
 
         # Check
         self.assertTrue(model.is_trained)
-
-
-

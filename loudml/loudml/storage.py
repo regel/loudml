@@ -21,6 +21,7 @@ from . import (
     errors,
 )
 
+
 class Storage(metaclass=ABCMeta):
     """
     Abstract class for Loud ML storage

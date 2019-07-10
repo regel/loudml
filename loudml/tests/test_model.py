@@ -12,6 +12,7 @@ from loudml.model import (
     Model,
 )
 
+
 class TestModel(unittest.TestCase):
     def invalid_feature(self, **kwargs):
         with self.assertRaises(errors.Invalid):
@@ -327,7 +328,9 @@ class TestModel(unittest.TestCase):
 
         agg_ids = [feature.agg_id for feature in model.features]
         self.assertEqual(agg_ids[0], 'm')
-        self.assertEqual(agg_ids[1], 'm_ced1b023686195d411caee8450821ff77ed0c5eb')
+        self.assertEqual(
+            agg_ids[1], 'm_ced1b023686195d411caee8450821ff77ed0c5eb')
         self.assertEqual(agg_ids[2], agg_ids[1])
-        self.assertEqual(agg_ids[3], 'm_7359bacde7a306a62e35501cc9bb905e6b2c6f72')
+        self.assertEqual(
+            agg_ids[3], 'm_7359bacde7a306a62e35501cc9bb905e6b2c6f72')
         self.assertEqual(agg_ids[4], 'all')

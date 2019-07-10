@@ -44,17 +44,20 @@ from loudml.misc import (
 # Limit ES aggregations output to 500 MB
 PARTITION_MAX_SIZE = 500 * 1024 * 1024
 
+
 def ts_to_ms(ts):
     """
     Convert second timestamp to integer millisecond timestamp
     """
     return int(ts * 1e3)
 
+
 def make_ts_ms(mixed):
     """
     Build a millisecond timestamp from a mixed input (second timestamp or string)
     """
     return ts_to_ms(make_ts(mixed))
+
 
 def _date_range_to_ms(from_date=None, to_date=None):
     """
@@ -64,6 +67,7 @@ def _date_range_to_ms(from_date=None, to_date=None):
         None if from_date is None else int(make_ts(from_date) * 1000),
         None if to_date is None else int(make_ts(to_date) * 1000),
     )
+
 
 def _build_match_all(match_all=None):
     """
@@ -82,13 +86,14 @@ def _build_match_all(match_all=None):
             val = "'{}'".format(escape_quotes(val))
 
         yield {
-          "script": {
             "script": {
-              "lang": "painless",
-              "inline": "doc['{}'].value=={}".format(key, val)
+                "script": {
+                    "lang": "painless",
+                    "inline": "doc['{}'].value=={}".format(key, val)
+                }
             }
-          }
         }
+
 
 def _build_date_range(field, from_ms=None, to_ms=None):
     """
@@ -109,6 +114,7 @@ def _build_date_range(field, from_ms=None, to_ms=None):
         field: date_range,
     }}
 
+
 def _build_extended_bounds(from_ms=None, to_ms=None):
     """
     Build extended_bounds
@@ -121,6 +127,7 @@ def _build_extended_bounds(from_ms=None, to_ms=None):
         bounds['max'] = to_ms
 
     return bounds
+
 
 class ElasticsearchDataSource(DataSource):
     """
@@ -200,7 +207,8 @@ class ElasticsearchDataSource(DataSource):
             self._es = Elasticsearch(
                 [addr],
                 timeout=self.timeout,
-                http_auth=(self.dbuser, self.dbuser_password) if self.dbuser else None,
+                http_auth=(
+                    self.dbuser, self.dbuser_password) if self.dbuser else None,
                 use_ssl=self.use_ssl,
                 verify_certs=self.verify_ssl,
                 ca_certs=self.ca_certs,
@@ -413,14 +421,14 @@ class ElasticsearchDataSource(DataSource):
         to_ms=None,
     ):
         body = {
-          "size": 0,
-          "aggs": {
-            "count": {
-              "cardinality": {
-                "field": model.key,
-              }
+            "size": 0,
+            "aggs": {
+                "count": {
+                    "cardinality": {
+                        "field": model.key,
+                    }
+                }
             }
-          }
         }
 
         must = []
@@ -448,9 +456,9 @@ class ElasticsearchDataSource(DataSource):
         fields = [feature.field for feature in agg.features]
         for field in set(fields):
             res.update({
-              build_agg_name(agg.measurement, field): {
-                "extended_stats": {"field": field}
-              }
+                build_agg_name(agg.measurement, field): {
+                    "extended_stats": {"field": field}
+                }
             })
         return res
 
@@ -476,7 +484,7 @@ class ElasticsearchDataSource(DataSource):
                     "terms": {
                         "field": model.key,
                         "size": model.max_keys,
-                        "collect_mode" : "breadth_first",
+                        "collect_mode": "breadth_first",
                         "include": {
                             "partition": partition,
                             "num_partitions": num_partition,
@@ -489,7 +497,7 @@ class ElasticsearchDataSource(DataSource):
                                 "interval": "%ds" % (model.bucket_interval),
                                 "min_doc_count": 0,
                                 "time_zone": "UTC",
-                                "format": "yyyy-MM-dd'T'HH:mm:ss'Z'", # key_as_string format
+                                "format": "yyyy-MM-dd'T'HH:mm:ss'Z'",  # key_as_string format
                                 "extended_bounds": _build_extended_bounds(from_ms, to_ms-1),
                             },
                             "aggs": cls.build_quadrant_aggs(model, aggregation),
@@ -574,24 +582,24 @@ class ElasticsearchDataSource(DataSource):
         """
 
         body = {
-          "size": 0,
-          "aggs": {
-            "histogram": {
-              "date_histogram": {
-                "field": model.timestamp_field,
-                "extended_bounds": _build_extended_bounds(from_ms, to_ms - 1000*model.bucket_interval),
-                "interval": "%ds" % model.bucket_interval,
-                "min_doc_count": 0,
-                "time_zone": "UTC",
-                "format": "yyyy-MM-dd'T'HH:mm:ss'Z'", # key_as_string format
-                "order": {
-                  "_key": "asc"
+            "size": 0,
+            "aggs": {
+                "histogram": {
+                    "date_histogram": {
+                        "field": model.timestamp_field,
+                        "extended_bounds": _build_extended_bounds(from_ms, to_ms - 1000*model.bucket_interval),
+                        "interval": "%ds" % model.bucket_interval,
+                        "min_doc_count": 0,
+                        "time_zone": "UTC",
+                        "format": "yyyy-MM-dd'T'HH:mm:ss'Z'",  # key_as_string format
+                        "order": {
+                            "_key": "asc"
+                        }
+                    },
+                    "aggs": {
+                    },
                 }
-              },
-              "aggs": {
-              },
             }
-          }
         }
 
         must = []
@@ -702,16 +710,16 @@ class ElasticsearchDataSource(DataSource):
         prediction,
     ):
         template = {
-          "template": self.index,
-          "mappings": {
-            self.doc_type: {
-              "properties": {
-                "timestamp": {"type": "date", "format": "epoch_millis"},
-                "score": {"type": "float"},
-                "is_anomaly": {"type": "boolean"},
-              }
+            "template": self.index,
+            "mappings": {
+                self.doc_type: {
+                    "properties": {
+                        "timestamp": {"type": "date", "format": "epoch_millis"},
+                        "score": {"type": "float"},
+                        "is_anomaly": {"type": "boolean"},
+                    }
+                }
             }
-          }
         }
         properties = {}
         for tag in model.get_tags():

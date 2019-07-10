@@ -30,10 +30,11 @@ from .storage import (
 from dictdiffer import diff
 
 OBJECT_KEY_SCHEMA = schemas.All(
-   str,
-   Length(min=1),
-   Match("^[a-zA-Z0-9-_@.]+$"),
+    str,
+    Length(min=1),
+    Match("^[a-zA-Z0-9-_@.]+$"),
 )
+
 
 class FileStorage(Storage):
     """
@@ -61,7 +62,7 @@ class FileStorage(Storage):
 
     def get_next_ckpt_name(self, model_path):
         path = next(iter(sorted(glob.glob(os.path.join(model_path, '*.ckpt')),
-            key=lambda f: os.stat(f).st_mtime, reverse=True)), None)
+                                key=lambda f: os.stat(f).st_mtime, reverse=True)), None)
 
         if path is None:
             return self.get_ckpt_name(0)
@@ -102,7 +103,7 @@ class FileStorage(Storage):
         return os.path.join(self.model_dir, model_name)
 
     def _write_json(self, path, data):
-        tmp_fd, tmp_path = tempfile.mkstemp(prefix=path + ".");
+        tmp_fd, tmp_path = tempfile.mkstemp(prefix=path + ".")
         with open(tmp_path, 'w') as fd:
             json.dump(data, fd)
             os.fsync(fd)
@@ -122,11 +123,13 @@ class FileStorage(Storage):
     def _write_model_state(self, model_path, state=None, ckpt_name=None):
         if ckpt_name is None:
             try:
-                state_path = os.readlink(os.path.join(model_path, "state.json"))
+                state_path = os.readlink(
+                    os.path.join(model_path, "state.json"))
             except OSError:
                 # convert state.json file
                 ckpt_name = self.get_ckpt_name(0)
-                state_path = os.path.join(model_path, "{}.ckpt".format(ckpt_name))
+                state_path = os.path.join(
+                    model_path, "{}.ckpt".format(ckpt_name))
                 os.rename(os.path.join(model_path, "state.json"), state_path)
         else:
             state_path = os.path.join(model_path, "{}.ckpt".format(ckpt_name))
@@ -161,7 +164,8 @@ class FileStorage(Storage):
         if os.path.exists(model_path):
             raise errors.ModelExists()
 
-        self._write_model(model_path, model.settings, model.state, save_state=False)
+        self._write_model(model_path, model.settings,
+                          model.state, save_state=False)
 
     def save_model(self, model, save_state=True, save_ckpt=True):
         model_path = self.model_path(model.name)
@@ -182,7 +186,8 @@ class FileStorage(Storage):
         return diff(old_settings, model.settings, expand=True)
 
     def save_state(self, model, ckpt_name=None):
-        self._write_model_state(self.model_path(model.name), model.state, ckpt_name)
+        self._write_model_state(self.model_path(
+            model.name), model.state, ckpt_name)
 
     def _set_current_ckpt(self, model_path, ckpt_name):
         state_path = os.path.join(model_path, "state.json")
@@ -388,7 +393,6 @@ class FileStorage(Storage):
         model_path = self.model_path(model_name)
         schemas.validate(OBJECT_KEY_SCHEMA, key)
         return os.path.join(model_path, "objects", key + ".json")
-
 
     def set_model_object(self, model_name, key, data):
         """Save model object"""

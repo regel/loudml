@@ -1,3 +1,9 @@
+from loudml.filestorage import FileStorage
+from loudml.donut import DonutModel
+from loudml import (
+    errors,
+)
+import loudml.vendor
 import datetime
 import logging
 import tempfile
@@ -5,14 +11,6 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
-import loudml.vendor
-
-from loudml import (
-    errors,
-)
-
-from loudml.donut import DonutModel
-from loudml.filestorage import FileStorage
 
 FEATURES = [
     {
@@ -22,6 +20,7 @@ FEATURES = [
         'default': 0,
     },
 ]
+
 
 class TestFileStorage(unittest.TestCase):
     def test_create_and_list(self):
