@@ -365,7 +365,11 @@ jobs:
             git checkout -B ${CIRCLE_BRANCH}
             git add html
             git commit -m "Update html documentation [skip ci]"
-            git push origin ${CIRCLE_BRANCH}
+            if [ "$CIRCLE_BRANCH" != "master" ]; then
+              git push -f origin ${CIRCLE_BRANCH}
+            else
+              git push origin master
+            fi
             zip -r html.zip html
       - store_artifacts:
           path: ~/tmp/loudml-docs/html.zip
