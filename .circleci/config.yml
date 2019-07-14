@@ -364,7 +364,7 @@ jobs:
             git config user.name "circleci"
             git checkout -B ${CIRCLE_BRANCH}
             git add html
-            git commit -m "Update html documentation [skip ci]"
+            git commit -m "Update html. Deployed to netlify.com"
             if [ "$CIRCLE_BRANCH" != "master" ]; then
               git push -f origin ${CIRCLE_BRANCH}
             else
