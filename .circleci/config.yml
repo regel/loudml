@@ -336,6 +336,41 @@ jobs:
               -Dsonar.host.url=https://sonarcloud.io \
               -Dsonar.login=$SONAR_API_KEY
 
+  deploy_docs:
+    docker:
+      - image: circleci/python:3.6.1
+    working_directory: ~/tmp
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y libpath-tiny-perl libdigest-perl-md5-perl libxml2-utils xsltproc
+      - add_ssh_keys:
+          fingerprints:
+            - "fe:f4:5e:6b:19:bc:81:6d:19:0c:ae:76:39:a0:c1:ff"
+      - run:
+          name: Clone loudml-docs repo
+          command: |
+            mkdir -p ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+            git clone git@github.com:regel/loudml-docs
+      - run:
+          name: Build and commit
+          command: |
+            cd loudml-docs
+            ./build_docs.pl --all
+            git config user.email "packaging@loudml.io"
+            git config user.name "circleci"
+            git checkout -B ${CIRCLE_BRANCH}
+            git add html
+            git commit -m "Update html documentation [skip ci]"
+            git push origin ${CIRCLE_BRANCH}
+            zip -r html.zip html
+      - store_artifacts:
+          path: ~/tmp/loudml-docs/html.zip
+          destination: html.zip
+
 workflows:
   version: 2
   check-datasources:
@@ -345,6 +380,9 @@ workflows:
       - test-mongo4
       - test-warp10
       - test-influx1
+  doc:
+    jobs:
+      - deploy_docs
   check:
     jobs:
       - test-go
