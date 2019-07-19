@@ -1,6 +1,6 @@
 ![x](https://raw.githubusercontent.com/regel/loudml/master/donut.png)
 
-# Loud ML - Reveal the hidden [![CircleCI](https://circleci.com/gh/regel/loudml.svg?style=svg)](https://circleci.com/gh/regel/loudml) [![Docker pulls](https://img.shields.io/docker/pulls/loudml/community.svg)](https://hub.docker.com/r/loudml/community) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=regel_loudml&metric=coverage)](https://sonarcloud.io/dashboard?id=regel_loudml)
+# Loud ML - Reveal the hidden [![CircleCI](https://circleci.com/gh/regel/loudml.svg?style=svg)](https://circleci.com/gh/regel/loudml) [![Docker pulls](https://img.shields.io/docker/pulls/loudml/community.svg)](https://hub.docker.com/r/loudml/community) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=regel_loudml&metric=coverage)](https://sonarcloud.io/dashboard?id=regel_loudml) [![Netlify Status](https://api.netlify.com/api/v1/badges/aee0d77f-54ac-413e-bb7f-34a154f47765/deploy-status)](https://app.netlify.com/sites/flamboyant-cori-981ea4/deploys)
 
 Loud ML is an open source inference engine for metrics and events, and the fastest way to embed machine learning in your time series application. This includes APIs for storing and querying data, processing it in the background for ML or detecting outliers for alerting purposes, and more. 
 
