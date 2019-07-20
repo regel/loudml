@@ -27,9 +27,9 @@ Ensure Python3 is installed on your system before installing the `loudml` packag
 
 [source,sh]
 --------------------------------------------------
-sudo yum install python34<1>
-sudo dnf install python34<2>
-sudo zypper install python34<3>
+sudo yum install python36<1>
+sudo dnf install python36<2>
+sudo zypper install python36<3>
 --------------------------------------------------
 <1> Use `yum` on CentOS and older Red Hat based distributions.
 <2> Use `dnf` on Fedora and other newer Red Hat distributions.
