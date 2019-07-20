@@ -1,4 +1,4 @@
-:version:               1.4.2
+:version:               1.5.0
 :release:               1
 :major-version:         1.x
 :tensorflow_version:    1.3.0
