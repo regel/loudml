@@ -8,8 +8,8 @@ absl-py==0.7.1            # via tensorboard, tensorflow, tensorflow-estimator
 aniso8601==7.0.0          # via flask-restful
 argparse==1.4.0           # via dateutils
 astor==0.8.0              # via tensorflow
-boto3==1.9.199
-botocore==1.12.199        # via boto3, s3transfer
+boto3==1.9.200
+botocore==1.12.200        # via boto3, s3transfer
 certifi==2019.6.16        # via requests
 chardet==3.0.4            # via requests
 click==7.0                # via flask
@@ -39,7 +39,7 @@ keras-preprocessing==1.1.0  # via tensorflow
 kiwisolver==1.1.0         # via matplotlib
 markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2
-matplotlib==3.1.1
+matplotlib==3.0.3
 mock==3.0.5               # via tensorflow-estimator
 networkx==1.11
 numpy==1.16.4
