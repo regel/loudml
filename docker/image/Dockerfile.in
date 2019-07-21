@@ -1,6 +1,6 @@
 FROM debian:stretch-slim
 
-LABEL maintainer="packaging@redmintnetwork.fr"
+LABEL maintainer="packaging@loudml.io"
 EXPOSE 8077
 
 COPY --chown=_apt:root repo /repo
