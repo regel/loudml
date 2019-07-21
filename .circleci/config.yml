@@ -375,48 +375,70 @@ jobs:
           path: ~/tmp/loudml-docs/html.zip
           destination: html.zip
 
+  build-rpm:
+    docker:
+      - image: centos:7.6.1810
+    working_directory: ~/tmp
+    steps:
+      - checkout
+      - run:
+          name: Add local user
+          command: |
+            adduser loudml
+      - run:
+          name: Change permissions
+          command: |
+            mv ~/tmp /tmp/loudml
+            chown -R loudml /tmp/loudml
+      - run:
+          name: Install dependencies
+          command: |
+            yum install -y rpmdevtools
+            yum install -y epel-release
+            yum install -y gcc
+            yum install -y python36-devel python36-pip python36-virtualenv make git
+      - run:
+          name: Install pip in /opt
+          command: |
+            virtualenv-3 -p python3 /opt/loudml
+            /opt/loudml/bin/pip install -U pip
+            /opt/loudml/bin/pip --version
+            chown -R loudml /opt/loudml
+      - run:
+          name: Run make
+          command: |
+            su loudml -c 'cd /tmp/loudml ; make rpm'
+      - store_artifacts:
+          path: /tmp/loudml/build/rpmrepo
+          destination: packages
+
+  build-deb:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    working_directory: ~/tmp
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update && \
+                sudo apt-get install devscripts build-essential lintian && \
+                sudo apt-get install dh-systemd  && \
+                sudo apt-get install python-all python-setuptools python3-pip python3-all python3-setuptools
+      - run:
+          name: Run make
+          command: |
+            make deb
+            mkdir /tmp/deb
+            cp loudml*_all.deb /tmp/deb
+      - store_artifacts:
+          path: /tmp/deb
+          destination: packages
+
+
 workflows:
   version: 2
-  check-datasources:
+  nightly@master:
     jobs:
-      - test-elastic6
-      - test-elastic5
-      - test-mongo4
-      - test-warp10
-      - test-influx1
-  doc:
-    jobs:
-      - deploy_docs
-  check:
-    jobs:
-      - test-go
-      - test-python-unit
-  sonar:
-    jobs:
-      - test-python-coverage:
-          filters:
-            branches:
-              only: master
-
-      - coverage-elastic6
-      - coverage-elastic5
-      - coverage-mongo4
-      - coverage-warp10
-      - coverage-influx1
-      - combine-coverage:
-          requires:
-            - test-python-coverage
-            - coverage-elastic6
-            - coverage-elastic5
-            - coverage-mongo4
-            - coverage-warp10
-            - coverage-influx1
-          filters:
-            branches:
-              only: master
-      - test-sonar:
-          requires:
-            - combine-coverage
-          filters:
-            branches:
-              only: master
+      - build-rpm
+      - build-deb
