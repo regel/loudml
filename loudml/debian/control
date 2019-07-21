@@ -1,7 +1,7 @@
 Source: loudml
 Section: unknown
 Priority: optional
-Maintainer: Red Mint Network <packaging@redmintnetwork.com>
+Maintainer: Loud ML <packaging@loudml.io>
 Build-Depends:
   debhelper (>= 9),
   dh-python,
