@@ -391,13 +391,10 @@ workflows:
     jobs:
       - test-go
       - test-python-unit
-  sonar:
-    jobs:
-      - test-python-coverage:
-          filters:
-            branches:
-              only: master
 
+  nightly@master:
+    jobs:
+      - test-python-coverage
       - coverage-elastic6
       - coverage-elastic5
       - coverage-mongo4
@@ -411,12 +408,14 @@ workflows:
             - coverage-mongo4
             - coverage-warp10
             - coverage-influx1
-          filters:
-            branches:
-              only: master
       - test-sonar:
           requires:
             - combine-coverage
+
+    triggers:
+      - schedule:
+          cron: "0 7 * * *"
           filters:
             branches:
-              only: master
+              only:
+                - master
