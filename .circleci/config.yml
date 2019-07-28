@@ -427,7 +427,7 @@ jobs:
           name: Install dependencies
           command: |
             sudo apt-get update && \
-                sudo apt-get install devscripts build-essential lintian && \
+                sudo apt-get install devscripts build-essential lintian reprepro && \
                 sudo apt-get install dh-systemd  && \
                 sudo apt-get install python-all python-setuptools python3-pip python3-all python3-setuptools
       - run:
@@ -439,7 +439,32 @@ jobs:
       - store_artifacts:
           path: /tmp/deb
           destination: packages
-
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.03.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            sudo mv /tmp/docker/* /usr/bin
+      - run:
+          name: Build Docker image
+          command: |
+            repo_src=local tag="loudml/loudml:$(./scripts/version)" \
+                make -C docker/image
+      - run:
+          name: Tag the image
+          command: |
+            docker tag \
+                $(docker images --no-trunc | grep loudml | grep sha256 | tr -s " " | cut -d " " -f 3) \
+                loudml/loudml:latest
+      - run:
+          name: Build Docker GPU image
+          command: |
+            repo_src=local tag="loudml/loudml:$(./scripts/version)-gpu" gpu=1 \
+                make -C docker/image
 
 workflows:
   version: 2
