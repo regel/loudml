@@ -10,17 +10,17 @@ tag := loudml:buildbot
 else ifeq ($(repo_src),local)
 
 repo_url := "file:///repo"
-tag := loudml:local
+tag ?= loudml:local
 
 else ifeq ($(repo_src),release)
 
 repo_url := "http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/"
-tag := loudml/community
+tag ?= loudml/loudml
 
 else ifeq ($(repo_src),staging)
 
-repo_url := "http://staging.redmintnetwork.fr.s3-website-eu-west-1.amazonaws.com/repo/deb/"
-tag := loudml:staging
+repo_url := "http://loudml-staging.s3-website-eu-west-1.amazonaws.com/repo/deb/"
+tag ?= loudml:staging
 
 else
 
@@ -28,7 +28,7 @@ $(error Set repo_src to either 'buildbot', 'local', 'staging' or 'release')
 
 endif
 
-repo_def:="deb $(repo_url) stretch main"
+repo_def:="deb [trusted=yes] $(repo_url) stretch main"
 
 ifeq ($(repo_src),buildbot)
 image: repo
@@ -39,7 +39,11 @@ image: Dockerfile
 	echo "$(repo_def)" > loudml-1.x.list
 	docker build -t $(tag) .
 
+ifeq ($(gpu),)
 Dockerfile: Dockerfile.in
+else
+Dockerfile: Dockerfile-gpu.in
+endif
 ifeq ($(repo_src),buildbot)
 	cp -f "$<" "$@"
 else ifeq ($(repo_src),local)
