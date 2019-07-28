@@ -1,0 +1,17 @@
+---
+datasources: []
+
+storage:
+  path: /var/lib/loudml
+
+server:
+  listen: 0.0.0.0:8077
+
+inference:
+  num_cpus: 1
+  num_gpus: 0
+
+training:
+  num_cpus: 1
+  num_gpus: 1
+  batch_size: 256
