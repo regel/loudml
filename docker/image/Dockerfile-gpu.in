@@ -9,9 +9,8 @@ COPY loudml-1.x.list /etc/apt/sources.list.d/loudml-1.x.list
 RUN apt-get update \
     && apt-get install -y --allow-unauthenticated \
                loudml loudml-base \
-    && apt-get purge -y
-
-RUN rm -rf /usr/lib/loudml/vendor/tensorflow
+    && apt-get purge -y \
+    && rm -rf /usr/lib/loudml/vendor/tensorflow
 
 COPY loudml-gpu.yml /etc/loudml/config.yml
 CMD /usr/bin/loudmld
