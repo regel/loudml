@@ -480,7 +480,7 @@ jobs:
       - run:
           name: Push images on Docker Hub
           command: |
-            docker login --username "${DOCKER_ID_USER}" "${DOCKER_PASSWORD}"
+            echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_ID_USER}" --password-stdin
             docker push "loudml/loudml:latest-devel"
             docker push "loudml/loudml:latest-devel-gpu"
 
