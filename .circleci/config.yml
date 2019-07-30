@@ -387,6 +387,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Fix requirements.txt timestamp
+          command: touch base/vendor/requirements.txt
+      - run:
           name: Add local user
           command: |
             adduser loudml
@@ -423,6 +426,9 @@ jobs:
     working_directory: ~/tmp
     steps:
       - checkout
+      - run:
+          name: Fix requirements.txt timestamp
+          command: touch base/vendor/requirements.txt
       - run:
           name: Install dependencies
           command: |
