@@ -25,3 +25,4 @@ requests-aws4auth>=0.9
 influxdb>=5.0.0
 pymongo
 daiquiri>=1.5.0
+git+git://github.com/regel/python-warp10client.git

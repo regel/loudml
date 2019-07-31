@@ -4,7 +4,6 @@ PIP_COMPILE ?= pip-compile
 
 vendor/requirements.txt: vendor/requirements.txt.in
 	$(PIP_COMPILE) -U -o $@ $<
-	echo "git+git://github.com/regel/python-warp10client.git" >> $@
 
 rpm: $(NAME).rpm
 

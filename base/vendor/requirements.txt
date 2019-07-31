@@ -65,9 +65,9 @@ termcolor==1.1.0          # via tensorflow
 tqdm==4.32.2              # via hyperopt
 urllib3==1.25.3           # via botocore, elasticsearch, requests
 voluptuous==0.10.5
+git+git://github.com/regel/python-warp10client.git
 werkzeug==0.15.5          # via flask, tensorboard
 wheel==0.33.4             # via tensorboard, tensorflow
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools==41.0.1        # via kiwisolver, markdown, protobuf
-git+git://github.com/regel/python-warp10client.git
