@@ -8,8 +8,8 @@ absl-py==0.7.1            # via tensorflow
 aniso8601==7.0.0          # via flask-restful
 argparse==1.4.0           # via dateutils
 astor==0.8.0              # via tensorflow
-boto3==1.9.191
-botocore==1.12.191        # via boto3, s3transfer
+boto3==1.9.199
+botocore==1.12.199        # via boto3, s3transfer
 certifi==2019.6.16        # via requests
 chardet==3.0.4            # via requests
 click==7.0                # via flask
@@ -18,7 +18,7 @@ daiquiri==1.5.0
 dateutils==0.6.6
 decorator==4.4.0          # via networkx
 dictdiffer==0.8.0
-docutils==0.15            # via botocore
+docutils==0.14            # via botocore
 elasticsearch==6.3.1
 flask-restful==0.3.7
 flask==1.1.1
@@ -47,7 +47,7 @@ pebble==4.3.10
 protobuf==3.9.0           # via tensorboard, tensorflow
 pycrypto==2.6.1
 pymongo==3.8.0
-pyparsing==2.4.0          # via matplotlib
+pyparsing==2.4.2          # via matplotlib
 python-crontab==2.3.5
 python-dateutil==2.8.0    # via botocore, dateutils, influxdb, matplotlib, python-crontab
 pytz==2019.1              # via dateutils, flask-restful, influxdb
@@ -63,9 +63,9 @@ tensorflow==1.12.0
 termcolor==1.1.0          # via tensorflow
 urllib3==1.25.3           # via botocore, elasticsearch, requests
 voluptuous==0.10.5
+git+git://github.com/regel/python-warp10client.git
 werkzeug==0.15.5          # via flask, tensorboard
 wheel==0.33.4             # via tensorboard, tensorflow
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools==41.0.1        # via kiwisolver, markdown, protobuf
-git+git://github.com/regel/python-warp10client.git
