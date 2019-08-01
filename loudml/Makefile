@@ -1,7 +1,7 @@
 NAME := loudml
 unittests ?= $(addprefix tests/, \
 	test_config.py test_metrics.py test_misc.py test_model.py test_schemas.py \
-	test_server.py)
+	test_base.py test_memdatasource.py test_donut.py)
 
 install:
 	./setup.py install $(INSTALL_OPTS)
