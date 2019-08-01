@@ -91,9 +91,9 @@ g_lambda = 0.01
 
 def set_seed():
     if os.environ.get('RANDOM_SEED'):
-        from numpy.random import seed
         s = int(os.environ.get('RANDOM_SEED'))
-        seed(s)
+        np.random.seed(s)
+        random.seed(s)
         tf.random.set_random_seed(s)
 
 
@@ -191,6 +191,10 @@ class HyperParameters:
     def __init__(self, params=None):
         if params:
             self.assign(params)
+
+    def __str__(self):
+        attrs = vars(self)
+        return ', '.join("%s: %s" % item for item in attrs.items())
 
     def assign(self, params):
         """
@@ -602,16 +606,22 @@ class DonutModel(Model):
         self.max_threshold = 99.7
 
     def _set_xpu_config(self, num_cpus, num_gpus):
-        config = tf.ConfigProto(
-            allow_soft_placement=True,
-            device_count={'CPU': num_cpus, 'GPU': num_gpus},
-        )
-        config.gpu_options.allow_growth = True
-#        config.log_device_placement = True
-#        config.intra_op_parallelism_threads=num_cores
-#        config.inter_op_parallelism_threads=num_cores
+        if os.environ.get('PYTHONHASHSEED'):
+            config = tf.ConfigProto(
+                intra_op_parallelism_threads=1,
+                inter_op_parallelism_threads=1,
+            )
+        else:
+            config = tf.ConfigProto(
+                allow_soft_placement=True,
+                device_count={'CPU': num_cpus, 'GPU': num_gpus},
+            )
+        if os.environ.get('CUDA_VISIBLE_DEVICES'):
+            config.gpu_options.allow_growth = True
+            config.log_device_placement = True
 
-        sess = tf.Session(config=config)
+        sess = tf.Session(graph=tf.get_default_graph(), config=config)
+        set_seed()
         K.set_session(sess)
 
     def _train_on_dataset(
@@ -750,12 +760,17 @@ class DonutModel(Model):
 
         # Run the hyperparameter search using the tpe algorithm
         try:
+            fmin_state = None
+            if os.environ.get('RANDOM_SEED'):
+                fmin_state = np.random.RandomState(
+                    int(os.environ.get('RANDOM_SEED')))
             best = fmin(
                 objective,
                 space,
                 algo=tpe.suggest,
                 max_evals=max_evals,
                 trials=trials,
+                rstate=fmin_state,
             )
         except ValueError:
             raise errors.NoData(
@@ -929,7 +944,6 @@ class DonutModel(Model):
         """
         Train model
         """
-        set_seed()
         self.means, self.stds = None, None
         self.scores = None
 
@@ -1048,7 +1062,6 @@ class DonutModel(Model):
             # Already loaded
             return
 
-        set_seed()
         K.clear_session()
         self._set_xpu_config(num_cpus, num_gpus)
 
