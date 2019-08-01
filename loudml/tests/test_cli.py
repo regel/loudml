@@ -79,6 +79,8 @@ class TestCli(unittest.TestCase):
                 "load-checkpoint",
                 "save-checkpoint",
                 "list-checkpoints",
+                "list-templates",
+                "load-data",
             ]),
         )
 
