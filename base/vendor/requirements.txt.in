@@ -9,13 +9,13 @@ PyYAML>=3.11
 schedule>=0.6.0
 ##### core
 dateutils>=0.6.6
-h5py==2.8.0
-hyperopt==0.1
+h5py==2.9.0
+hyperopt>=0.1
 networkx==1.11
-numpy>=1.10.0
+numpy==1.16.4
 matplotlib>=2.2.3
 pycrypto>=2.6.1
-tensorflow==1.12.0
+tensorflow==1.13.2
 voluptuous==0.10.5
 dictdiffer>=0.7.1
 ##### datasources
