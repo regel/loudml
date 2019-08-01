@@ -130,7 +130,7 @@ def add_loss(model, W):
     # beta = K.print_tensor(beta, message='beta = ')
     reconstruction_loss = mean_squared_error(inputs, outputs)
     reconstruction_loss *= W
-    kl_loss = 1 + z_log_var - beta * K.square(z_mean) - K.exp(z_log_var)
+    kl_loss = 1 + z_log_var - beta * K.square(z_mean) - beta * K.exp(z_log_var)
     kl_loss = K.sum(kl_loss, axis=-1)
     kl_loss *= -0.5
     vae_loss = K.mean(reconstruction_loss + kl_loss)
