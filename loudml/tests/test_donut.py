@@ -1,29 +1,19 @@
+import loudml.vendor  # noqa
+
 from loudml.api import Hook
-from loudml import (
-    errors,
-)
 from loudml.misc import (
-    make_datetime,
     make_ts,
-    dt_get_daytime,
-    dt_get_weekday,
-    ts_to_str,
-    str_to_datetime,
 )
 from loudml.filestorage import TempStorage
 from loudml.memdatasource import MemDataSource
-from loudml.model import Feature
 from loudml.donut import (
     DonutModel,
-    TimeSeriesPrediction,
     _format_windows,
 )
 from loudml.randevents import (
     FlatEventGenerator,
     SinEventGenerator,
-    TriangleEventGenerator,
 )
-import loudml.vendor
 
 import datetime
 import logging
@@ -110,6 +100,14 @@ class TestTimes(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        for env_var in ['RANDOM_SEED', 'PYTHONHASHSEED']:
+            if not os.environ.get(env_var):
+                raise Exception('{} environment variable not set'.format(
+                    env_var))
+
+        np.random.seed(int(os.environ['RANDOM_SEED']))
+        random.seed(int(os.environ['RANDOM_SEED']))
+
         self.source = MemDataSource()
         self.storage = TempStorage()
 
@@ -123,7 +121,7 @@ class TestTimes(unittest.TestCase):
             grace_period="140m",  # = 7 points
             max_threshold=99.7,
             min_threshold=68,
-            max_evals=10,
+            max_evals=3,
         ))
 
         self.generator = SinEventGenerator(base=3, amplitude=3, sigma=0.01)
@@ -281,10 +279,6 @@ class TestTimes(unittest.TestCase):
             [8.0, 10.0, 12.0],
             [10.0, 12.0, 0.0],
         ])
-
-    def test_train(self):
-        self._require_training()
-        self.assertTrue(self.model.is_trained)
 
     def test_train_abnormal(self):
         source = MemDataSource()
