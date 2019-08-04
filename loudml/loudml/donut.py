@@ -50,6 +50,7 @@ from tensorflow.contrib.keras.api.keras.models import Model as _Model
 from tensorflow.contrib.keras.api.keras.layers import Lambda, Input, Dense
 from tensorflow.contrib.keras.api.keras.callbacks import EarlyStopping
 from tensorflow.contrib.keras.api.keras.models import load_model
+from tensorflow.python.keras.utils import generic_utils
 from tensorflow.contrib.keras.api.keras import backend as K
 import tensorflow as tf
 import datetime
@@ -60,6 +61,7 @@ import sys
 import random
 import numpy as np
 import itertools
+import math
 from scipy.stats import norm
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -154,8 +156,9 @@ def _get_decoder(_keras_model):
     _, latent_dim = _keras_model.get_layer('z').output.get_shape()
     latent_dim = int(latent_dim)
     latent_inputs = Input(shape=(int(latent_dim),), name='z_sampling')
-    x = _keras_model.get_layer('dense_1')(latent_inputs)
-    output = _keras_model.get_layer('dense_2')(x)
+    x = _keras_model.get_layer('decoder_dense_0')(latent_inputs)
+    x = _keras_model.get_layer('decoder_dense_1')(x)
+    output = _keras_model.get_layer('decoder_dense_2')(x)
     new_model = _Model(latent_inputs, output, name='decoder')
     return new_model
 
@@ -250,7 +253,7 @@ def _load_keras_model(model_b64):
         training_config = f.attrs.get('training_config')
         optimizer_cls = None
         if training_config is None:
-            optimizer_cls = tf.keras.optimizers.Adam()
+            optimizer_cls = tf.keras.optimizers.Adam(clipnorm=10.)
         else:
             training_config = json.loads(training_config.decode('utf-8'))
             optimizer_config = training_config['optimizer_config']
@@ -434,6 +437,28 @@ def generator(x, missing, batch_size, model):
             batch_x[batch_missing > 0] = x_decoded[batch_missing > 0]
 
         yield ([batch_x, batch_missing], None)
+
+
+def convert_to_generator_like(data,
+                              batch_size,
+                              epochs=1,
+                              shuffle=False):
+    num_samples = len(data[0])
+
+    def _gen(data):
+        """Makes a generator out of Numpy arrays"""
+        index_array = np.arange(num_samples)
+        for _ in range(epochs):
+            if shuffle:
+                np.random.shuffle(index_array)
+            batches = generic_utils.make_batches(num_samples, batch_size)
+            for (batch_start, batch_end) in batches:
+                batch_ids = index_array[batch_start:batch_end]
+                batch_x = data[0][batch_ids]
+                batch_missing = data[1][batch_ids]
+                yield([batch_x, batch_missing], None)
+
+    return _gen(data)
 
 
 class DonutModel(Model):
@@ -629,7 +654,7 @@ class DonutModel(Model):
         dataset,
         train_size=0.67,
         batch_size=64,
-        num_epochs=100,
+        num_epochs=250,
         num_cpus=1,
         num_gpus=0,
         max_evals=None,
@@ -676,8 +701,11 @@ class DonutModel(Model):
             aux_input = Input(shape=input_shape)
             aux_output = Lambda(lambda x: x)(aux_input)
             x = Dense(intermediate_dim,
-                      kernel_regularizer=regularizers.l2(0.01),
+                      kernel_regularizer=regularizers.l2(0.001),
                       activation='relu')(main_input)
+            x = Dense(intermediate_dim,
+                      kernel_regularizer=regularizers.l2(0.001),
+                      activation='relu')(x)
             z_mean = Dense(latent_dim, name='z_mean')(x)
             z_log_var = Dense(latent_dim, name='z_log_var')(x)
 
@@ -688,9 +716,12 @@ class DonutModel(Model):
 
             # build decoder model
             x = Dense(intermediate_dim,
-                      kernel_regularizer=regularizers.l2(0.01),
-                      activation='relu', name='dense_1')(z)
-            main_output = Dense(W, activation='linear', name='dense_2')(x)
+                      kernel_regularizer=regularizers.l2(0.001),
+                      activation='relu', name='decoder_dense_0')(z)
+            x = Dense(intermediate_dim,
+                      kernel_regularizer=regularizers.l2(0.001),
+                      activation='relu', name='decoder_dense_1')(x)
+            main_output = Dense(W, activation='linear', name='decoder_dense_2')(x)
 
             # instantiate Donut model
             keras_model = _Model([main_input, aux_input], [
@@ -698,7 +729,7 @@ class DonutModel(Model):
             add_loss(keras_model, W)
             optimizer_cls = None
             if params.optimizer == 'adam':
-                optimizer_cls = tf.keras.optimizers.Adam()
+                optimizer_cls = tf.keras.optimizers.Adam(clipnorm=10.)
 
             keras_model.compile(
                 optimizer=optimizer_cls,
@@ -713,9 +744,15 @@ class DonutModel(Model):
             keras_model.fit_generator(
                 generator(X_train, X_miss, batch_size, keras_model),
                 epochs=num_epochs,
-                steps_per_epoch=len(X_train) / batch_size,
+                steps_per_epoch=int(math.ceil(len(X_train) / batch_size)),
                 verbose=_verbose,
-                validation_data=([X_test, X_miss_val], None),
+                validation_data=convert_to_generator_like(
+                    (X_test, X_miss_val),
+                    batch_size=batch_size,
+                    epochs=num_epochs,
+                    shuffle=False,
+                ),
+                validation_steps=int(math.ceil(len(X_test) / batch_size)),
                 callbacks=[_stop],
                 workers=0,  # https://github.com/keras-team/keras/issues/5511
             )
@@ -746,11 +783,17 @@ class DonutModel(Model):
                 logging.warning("iteration failed: %s", exn)
                 return {'loss': None, 'status': STATUS_FAIL}
 
+        latent_dims = [3, 5, 8]
+        if max_evals > len(latent_dims):
+            neurons = [21, 34, 55, 89, 144, 233]
+        else:
+            neurons = [100]
+
         space = hp.choice('case', [
             {
                 'span': self.get_hp_span('span'),
-                'latent_dim': hp.choice('latent_dim', [3, 5, 8]),
-                'intermediate_dim': hp.choice('i1', [21, 34, 55, 89, 144, 233, 377]),
+                'latent_dim': hp.choice('latent_dim', latent_dims),
+                'intermediate_dim': hp.choice('i1', neurons),
                 'optimizer': hp.choice('optimizer', ['adam']),
             }
         ])
@@ -789,7 +832,7 @@ class DonutModel(Model):
         dataset,
         train_size=0.67,
         batch_size=64,
-        num_epochs=100,
+        num_epochs=250,
         progress_cb=None,
         abnormal=None,
     ):
@@ -933,7 +976,7 @@ class DonutModel(Model):
         to_date="now",
         train_size=0.67,
         batch_size=256,
-        num_epochs=100,
+        num_epochs=250,
         num_cpus=1,
         num_gpus=0,
         max_evals=None,
