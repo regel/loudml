@@ -18,15 +18,15 @@ class TestBase(unittest.TestCase):
 
     def test_numpy(self):
         import numpy as np
-        self.assertEqual(np.version.version, "1.16.1")
+        self.assertEqual(np.version.version, "1.16.4")
 
     def test_scipy(self):
         import scipy
-        self.assertEqual(scipy.__version__, "1.2.0")
+        self.assertEqual(scipy.__version__, "1.3.0")
 
     def test_tf(self):
         import tensorflow as tf
-        self.assertEqual(tf.__version__, "1.12.0")
+        self.assertEqual(tf.__version__, "1.13.2")
 
         # Simple hello world using TensorFlow
 
