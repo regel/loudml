@@ -367,11 +367,13 @@ jobs:
             git config user.name "circleci"
             git checkout -B ${CIRCLE_BRANCH}
             git add html
-            git commit -m "Update html. Deployed to netlify.com"
-            if [ "$CIRCLE_BRANCH" != "master" ]; then
-              git push -f origin ${CIRCLE_BRANCH}
-            else
-              git push origin master
+            if LC_ALL=C git status|grep "Untracked files\|modified"; then
+              git commit -m "Update html. Deployed to netlify.com"
+              if [ "$CIRCLE_BRANCH" != "master" ]; then
+                git push -f origin ${CIRCLE_BRANCH}
+              else
+                git push origin master
+              fi
             fi
             zip -r html.zip html
       - store_artifacts:
