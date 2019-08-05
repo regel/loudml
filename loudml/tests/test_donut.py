@@ -139,6 +139,10 @@ class TestTimes(unittest.TestCase):
                 'foo': random.normalvariate(10, 1)
             })
 
+    def _checkRange(self, val, low, up):
+        self.assertGreaterEqual(val, low)
+        self.assertLessEqual(val, up)
+
     def _require_training(self):
         if self.model.is_trained:
             return
@@ -334,13 +338,12 @@ class TestTimes(unittest.TestCase):
             bucket_interval=20 * 60,
             interval=60,
             features=FEATURES,
-            max_evals=40,
+            max_evals=10,
         ))
 
         self.assertEqual(model.span, "auto")
         model.train(self.source, self.from_date, self.to_date)
-        # print(model._span)
-        self.assertTrue(10 <= model._span <= 15)
+        self._checkRange(model._span, 10, 20)
 
     def test_forecast(self):
         model = DonutModel(dict(
