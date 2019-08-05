@@ -353,7 +353,7 @@ class TestTimes(unittest.TestCase):
             features=[
                 FEATURE_COUNT_FOO,
             ],
-            max_evals=21,
+            max_evals=3,
         ))
         source = MemDataSource()
         generator = SinEventGenerator(base=3, amplitude=3, sigma=0.01)
