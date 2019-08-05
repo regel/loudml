@@ -32,7 +32,7 @@ db_integration_test: &db_integration_test
             cd loudml
             make unittest unittests="$UNITTESTS"
           environment:
-            RANDOM_SEED: 3428
+            RANDOM_SEED: 10
             PYTHONHASHSEED: 0
 
 db_coverage_test: &db_coverage_test
@@ -71,7 +71,7 @@ db_coverage_test: &db_coverage_test
             unittests="$UNITTESTS" make coverage
             mv .coverage .coverage.$CIRCLE_JOB
           environment:
-            RANDOM_SEED: 3428
+            RANDOM_SEED: 10
             PYTHONHASHSEED: 0
       - persist_to_workspace:
           root: ~/repo/loudml
@@ -272,7 +272,7 @@ jobs:
             cd loudml
             make unittest
           environment:
-            RANDOM_SEED: 3428
+            RANDOM_SEED: 10
             PYTHONHASHSEED: 0
 
   test-python-coverage:
