@@ -784,7 +784,7 @@ class DonutModel(Model):
                 return {'loss': None, 'status': STATUS_FAIL}
 
         latent_dims = [3, 5, 8]
-        if max_evals > len(latent_dims):
+        if max_evals > len(latent_dims) and self.span != 'auto':
             neurons = [21, 34, 55, 89, 144, 233]
         else:
             neurons = [100]
