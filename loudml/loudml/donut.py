@@ -641,7 +641,7 @@ class DonutModel(Model):
                 allow_soft_placement=True,
                 device_count={'CPU': num_cpus, 'GPU': num_gpus},
             )
-        if os.environ.get('CUDA_VISIBLE_DEVICES'):
+        if num_gpus > 0:
             config.gpu_options.allow_growth = True
             config.log_device_placement = True
 
