@@ -466,6 +466,19 @@ jobs:
             docker tag \
                 $(docker images --no-trunc | grep loudml | grep sha256 | tr -s " " | cut -d " " -f 3) \
                 loudml/loudml:latest-devel
+
+      - run:
+          name: Build Docker noAVX image
+          command: |
+            repo_src=local tag="loudml/loudml:$(./scripts/version)-noavx" noavx=1 \
+                make -C docker/image
+      - run:
+          name: Tag the image
+          command: |
+            docker images --no-trunc
+            docker tag \
+                $(docker images --no-trunc | grep loudml | grep noavx[^-] | grep sha256 | tr -s " " | cut -d " " -f 3) \
+                loudml/loudml:latest-devel-noavx
       - run:
           name: Build Docker GPU image
           command: |
@@ -482,6 +495,7 @@ jobs:
           command: |
             echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_ID_USER}" --password-stdin
             docker push "loudml/loudml:latest-devel"
+            docker push "loudml/loudml:latest-devel-noavx"
             docker push "loudml/loudml:latest-devel-gpu"
 
 workflows:

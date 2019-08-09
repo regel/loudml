@@ -39,13 +39,18 @@ image: Dockerfile
 	echo "$(repo_def)" > loudml-1.x.list
 	docker build -t $(tag) .
 
-ifeq ($(gpu),)
-Dockerfile: Dockerfile.in
-else
+ifneq ($(gpu),)
 requirements.txt.in: ../../base/vendor/requirements.txt.in
 	grep -v tensorflow $< > $@
 
 Dockerfile: gpu.Dockerfile.in requirements.txt.in
+else ifneq ($(noavx),)
+requirements.txt.in: ../../base/vendor/requirements.txt.in
+	grep -v tensorflow $< > $@
+
+Dockerfile: noavx.Dockerfile.in requirements.txt.in
+else
+Dockerfile: Dockerfile.in
 endif
 ifeq ($(repo_src),buildbot)
 	cp -f "$<" "$@"
