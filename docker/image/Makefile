@@ -45,7 +45,7 @@ else
 requirements.txt.in: ../../base/vendor/requirements.txt.in
 	grep -v tensorflow $< > $@
 
-Dockerfile: Dockerfile-gpu.in requirements.txt.in
+Dockerfile: gpu.Dockerfile.in requirements.txt.in
 endif
 ifeq ($(repo_src),buildbot)
 	cp -f "$<" "$@"
