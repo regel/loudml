@@ -791,7 +791,6 @@ class PredictCommand(Command):
                     source,
                     args.from_date,
                     args.to_date,
-                    mse_rtol=self.config.server['mse_rtol'],
                     num_cpus=self.config.inference['num_cpus'],
                     num_gpus=self.config.inference['num_gpus'],
                 )

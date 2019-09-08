@@ -4,7 +4,6 @@ Loud ML worker
 
 import logging
 import signal
-import math
 import os
 
 import loudml.config
@@ -16,7 +15,6 @@ from loudml import (
 )
 from loudml.misc import (
     load_nab,
-    make_ts,
 )
 
 from loudml.filestorage import (
@@ -145,12 +143,10 @@ class Worker:
         source = loudml.datasource.load_datasource(src_settings)
 
         if model.type in ['timeseries', 'donut']:
-            mse_rtol = self.config.server['mse_rtol']
             _state = model.get_run_state()
             if detect_anomalies:
                 prediction = model.predict2(
                     source,
-                    mse_rtol=mse_rtol,
                     _state=_state,
                     num_cpus=self.config.inference['num_cpus'],
                     num_gpus=self.config.inference['num_gpus'],
