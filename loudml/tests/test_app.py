@@ -1,9 +1,5 @@
 import loudml.vendor  # noqa: F401
 
-from loudml.server import app
-from loudml.server import g_app_init
-from loudml.server import g_app_stop
-
 from loudml.influx import (
     InfluxDataSource,
 )
@@ -11,6 +7,7 @@ from loudml.influx import (
 from loudml.randevents import SinEventGenerator
 
 import unittest
+import requests
 
 import datetime
 import logging
@@ -18,8 +15,6 @@ import os
 import random
 import math
 import json
-import tempfile
-import shutil
 import time
 
 logging.getLogger('tensorflow').disabled = True
@@ -43,32 +38,9 @@ FEATURE_AVG_FOO = {
 
 FEATURES = [FEATURE_COUNT_FOO]
 
-CONFIG = """
----
-datasources:
- - name: nose
-   type: influxdb
-   addr: {}
-   database: {}
-   create_database: true
-   retention_policy: autogen
-   max_series_per_request: 2000
-
-storage:
-  path: {}
-
-server:
-  listen: localhost:8077
-"""
-
-if 'INFLUXDB_ADDR' in os.environ:
-    ADDR = os.environ['INFLUXDB_ADDR']
-else:
-    ADDR = 'localhost'
-
 
 def read_job_id(res):
-    job_id = res.data.decode('utf-8').strip('\n').replace('\"', '')
+    job_id = res.strip('\n').replace('\"', '')
     return job_id
 
 
@@ -88,10 +60,13 @@ class AppTests(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._jwt = None
 
     def setUp(self):
-        self.app = app.test_client()
-        self.app.testing = True
+        if 'LOUDML_ADDR' in os.environ:
+            self.loudml_addr = os.environ['LOUDML_ADDR']
+        else:
+            self.loudml_addr = 'localhost:8077'
 
         self.bucket_interval = 20 * 60
 
@@ -101,9 +76,14 @@ class AppTests(unittest.TestCase):
 
         self.db = 'test-{}'.format(t0)
         logging.info("creating database %s", self.db)
+        if 'INFLUXDB_ADDR' in os.environ:
+            addr = os.environ['INFLUXDB_ADDR']
+        else:
+            addr = 'localhost'
+
         self.source = InfluxDataSource({
-            'name': 'nose',
-            'addr': ADDR,
+            'name': 'nosetests',
+            'addr': addr,
             'database': self.db,
         })
         self.source.drop()
@@ -128,47 +108,152 @@ class AppTests(unittest.TestCase):
 
         self.source.commit()
 
-        self.dirpath = tempfile.mkdtemp()
-        configyml = os.path.join(self.dirpath, 'config.yml')
-        cfg = open(configyml, 'w')
-        cfg.write(CONFIG.format(ADDR, self.db, self.dirpath))
-        cfg.close()
-
-        g_app_init(configyml)
-
     def tearDown(self):
-        g_app_stop()
         self.source.drop()
-        shutil.rmtree(self.dirpath)
+
+    def get(self, url, data=None, **kwargs):
+        headers = kwargs.pop('headers', {})
+        if self._jwt:
+            headers['Authorization'] = 'Bearer {}'.format(self._jwt)
+        return requests.get(
+            self.get_url(url),
+            data=data,
+            headers=headers,
+            **kwargs
+        )
+
+    def post(self, url, data=None, **kwargs):
+        headers = kwargs.pop('headers', {})
+        if self._jwt:
+            headers['Authorization'] = 'Bearer {}'.format(self._jwt)
+        return requests.post(
+            self.get_url(url),
+            data=data,
+            headers=headers,
+            **kwargs
+        )
+
+    def patch(self, url, data=None, **kwargs):
+        headers = kwargs.pop('headers', {})
+        if self._jwt:
+            headers['Authorization'] = 'Bearer {}'.format(self._jwt)
+        return requests.patch(
+            self.get_url(url),
+            data=data,
+            headers=headers,
+            **kwargs
+        )
+
+    def delete(self, url, data=None, **kwargs):
+        headers = kwargs.pop('headers', {})
+        if self._jwt:
+            headers['Authorization'] = 'Bearer {}'.format(self._jwt)
+        return requests.delete(
+            self.get_url(url),
+            data=data,
+            headers=headers,
+            **kwargs
+        )
+
+    def put(self, url, data=None, content_type=None, **kwargs):
+        headers = kwargs.pop('headers', {})
+        if self._jwt:
+            headers['Authorization'] = 'Bearer {}'.format(self._jwt)
+        if content_type:
+            headers['Content-Type'] = content_type
+        return requests.put(
+            self.get_url(url),
+            data=data,
+            headers=headers,
+            **kwargs
+        )
+
+    def get_url(self, url):
+        if 'USE_SSL' in os.environ:
+            scheme = 'https://'
+        else:
+            scheme = 'http://'
+
+        return scheme + self.loudml_addr + url
 
     def _wait_job(self, job_id):
         state = None
         while not state_is_done(state):
             time.sleep(5)
-            result = self.app.get(
+            response = self.get(
                 '/jobs/{}'.format(job_id)
             )
-            res = json.loads(result.data.decode('utf-8'))
-            print(res)
+            res = response.json()
+            # print(res)
             state = res['state']
         return state
 
     def _get_models(self):
-        result = self.app.get(
+        response = self.get(
             '/models',
         )
-        self.assertEqual(result.status_code, 200)
-        d = json.loads(result.data.decode('utf-8'))
-        return d
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def _get_sources(self):
+        response = self.get(
+            '/datasources',
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.json()
+
+    def _require_source(self):
+        sources = {
+            source['name']: source
+            for source in self._get_sources()
+        }
+        if self.db in sources:
+            return
+
+        if 'INFLUXDB_ADDR' in os.environ:
+            addr = os.environ['INFLUXDB_ADDR']
+        else:
+            addr = 'localhost:8086'
+
+        source = {
+            'name': self.db,
+            'type': 'influxdb',
+            'addr': addr,
+            'database': self.db,
+            'create_database': 'true',
+            'retention_policy': 'autogen',
+            'max_series_per_request': 2000,
+        }
+        response = self.put(
+            '/datasources',
+            content_type='application/json',
+            data=json.dumps(source),
+        )
+        self.assertEqual(response.status_code, 201)
+        sources = {
+            source['name']: source
+            for source in self._get_sources()
+        }
+        self.assertTrue(self.db in sources)
+
+    def _del_model(self, model_name):
+        response = self.delete(
+            '/models/{}'.format(model_name),
+        )
+        self.assertTrue(response.status_code in [200, 404])
 
     def _require_model(self):
-        d = self._get_models()
-        if len(d) > 0 and d[0]['name'] == 'test-model':
-            return
+        self._require_source()
+        models = {
+            model['settings']['name']: model
+            for model in self._get_models()
+        }
+        if 'test-model' in models:
+            return models['test-model']
 
         model = dict(
             name='test-model',
-            default_datasource='nose',
+            default_datasource=self.db,
             offset=30,
             span=24 * 3,
             bucket_interval=self.bucket_interval,
@@ -181,39 +266,41 @@ class AppTests(unittest.TestCase):
         )
         model['type'] = 'donut'
 
-        result = self.app.put(
+        response = self.put(
             '/models',
-            follow_redirects=True,
             content_type='application/json',
             data=json.dumps(model),
         )
-        self.assertEqual(result.status_code, 201)
-        d = self._get_models()
-        self.assertEqual(len(d), 1)
-        self.assertEqual(d[0]['settings']['name'], 'test-model')
-        return d[0]
+        self.assertEqual(response.status_code, 201)
+        models = {
+            model['settings']['name']: model
+            for model in self._get_models()
+        }
+        self.assertTrue('test-model' in models)
+        return models['test-model']
 
     def _require_training(self):
         model = self._require_model()
         if model['state']['trained']:
             return
-        result = self.app.post(
+        response = self.post(
             '/models/{}/_train?from={}&to={}'.format(
                 'test-model',
                 str(self.from_date),
                 str(self.to_date),
             ),
         )
-        job_id = read_job_id(result)
+        job_id = read_job_id(response.text)
         status = self._wait_job(job_id)
         self.assertEqual(status, 'done')
 
-    def test_train(self):
+    def test_training(self):
+        self._del_model('test-model')
         self._require_training()
 
     def test_home(self):
-        result = self.app.get('/')
-        self.assertEqual(result.status_code, 200)
-        d = json.loads(result.data.decode('utf-8'))
-        self.assertIsNotNone(d.get('host_id'))
-        self.assertIsNotNone(d.get('version'))
+        response = self.get('/')
+        self.assertEqual(response.status_code, 200)
+        home = response.json()
+        self.assertIsNotNone(home.get('host_id'))
+        self.assertIsNotNone(home.get('version'))
