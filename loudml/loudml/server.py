@@ -156,7 +156,7 @@ class Job:
         """
         return self.state in ['done', 'failed', 'canceled']
 
-    def start(self):
+    def start(self, config):
         """
         Submit job to worker pool
         """
@@ -166,7 +166,7 @@ class Job:
         self.state = 'waiting'
         self._future = g_pool.schedule(
             loudml.worker.run,
-            args=[self.id, 0, self.func] + self.args,
+            args=[self.id, 0, self.func, config] + self.args,
             kwargs=self.kwargs,
         )
         self._future.add_done_callback(self._done_cb)
@@ -409,7 +409,7 @@ class LoadNabResource(Resource):
             from_date=from_date,
             datasource=name,
         )
-        job.start()
+        job.start(g_config)
 
         if get_bool_arg('bg', default=False):
             return str(job.id)
@@ -537,6 +537,7 @@ api.add_resource(ModelResource, "/models/<model_name>")
 def model_train(model_name):
     global g_storage
     global g_training
+    global g_config
 
     g_storage.load_model(model_name)
     kwargs = {}
@@ -560,7 +561,7 @@ def model_train(model_name):
         kwargs['max_evals'] = max_evals
 
     job = TrainingJob(model_name, **kwargs)
-    job.start()
+    job.start(g_config)
 
     g_training[model_name] = job
 
@@ -676,6 +677,14 @@ class DataSourcesResource(Resource):
             res.append(datasource)
         return jsonify(res)
 
+    @catch_loudml_error
+    def put(self):
+        global g_config
+
+        new = request.get_json()
+        g_config.put_datasource(new)
+        return ('', 201)
+
 
 class DataSourceResource(Resource):
     @catch_loudml_error
@@ -684,6 +693,23 @@ class DataSourceResource(Resource):
         datasource = g_config.get_datasource(datasource_name)
         _remove_datasource_secrets(datasource)
         return jsonify(datasource)
+
+    @catch_loudml_error
+    def patch(self, datasource_name):
+        global g_config
+
+        data = request.get_json()
+        data['name'] = datasource_name
+        g_config.put_datasource(data)
+        logging.info("datasource '%s' changed", datasource_name)
+        return ('', 204)
+
+    @catch_loudml_error
+    def delete(self, datasource_name):
+        global g_config
+        g_config.del_datasource(datasource_name)
+        logging.info("datasource '%s' deleted", datasource_name)
+        return ('', 204)
 
 
 api.add_resource(DataSourcesResource, "/datasources")
@@ -732,7 +758,7 @@ class TrainingJob(Job):
         }
         self._kwargs = kwargs
 
-    def start(self):
+    def start(self, config):
         """
         Submit training job to worker pool
         """
@@ -744,7 +770,7 @@ class TrainingJob(Job):
         self.state = 'waiting'
         self._future = g_training_pool.schedule(
             loudml.worker.run,
-            args=[self.id, g_nice, self.func] + self.args,
+            args=[self.id, g_nice, self.func, config] + self.args,
             kwargs=self.kwargs,
         )
         self._future.add_done_callback(self._done_cb)
@@ -858,6 +884,7 @@ def _model_start(model, params):
     """
     Start periodic prediction
     """
+    global g_config
     g_lock.acquire()
     if model.name in g_running_models:
         g_lock.release()
@@ -884,7 +911,7 @@ def _model_start(model, params):
             **kwargs
         )
 
-        job.start()
+        job.start(g_config)
 
     from_date = params.pop('from_date', None)
     create_job(from_date, save_run_state=False, detect_anomalies=False)
@@ -909,7 +936,7 @@ def model_predict(model_name):
         datasink=request.args.get('datasink'),
         detect_anomalies=request.args.get('detect_anomalies', default=False),
     )
-    job.start()
+    job.start(g_config)
 
     if get_bool_arg('bg', default=False):
         return str(job.id)
@@ -999,6 +1026,7 @@ def model_stop(model_name):
 @catch_loudml_error
 def model_forecast(model_name):
     global g_storage
+    global g_config
 
     params = {
         'save_prediction': get_bool_arg('save_prediction'),
@@ -1015,7 +1043,7 @@ def model_forecast(model_name):
         params['constraint'] = parse_constraint(constraint)
 
     job = ForecastJob(model.name, **params)
-    job.start()
+    job.start(g_config)
 
     if get_bool_arg('bg', default=False):
         return str(job.id)
@@ -1122,13 +1150,13 @@ def g_app_init(path):
         max_workers=g_config.server.get('workers', 1),
         max_tasks=g_config.server.get('maxtasksperchild', 1),
         initializer=loudml.worker.init_worker,
-        initargs=[path, g_queue],
+        initargs=[g_queue],
     )
     g_pool = pebble.ProcessPool(
         max_workers=g_config.server.get('workers', 1),
         max_tasks=g_config.server.get('maxtasksperchild', 1),
         initializer=loudml.worker.init_worker,
-        initargs=[path, g_queue],
+        initargs=[g_queue],
     )
     g_timer = RepeatingTimer(1, read_messages)
     g_timer.start()

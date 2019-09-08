@@ -29,14 +29,13 @@ class Worker:
     Loud ML worker
     """
 
-    def __init__(self, config_path, msg_queue):
-        self.config = loudml.config.load_config(config_path)
-        self.storage = FileStorage(self.config.storage['path'])
+    def __init__(self, msg_queue):
+        self.storage = None
         self._msg_queue = msg_queue
         self.job_id = None
         signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-    def run(self, job_id, nice, func_name, *args, **kwargs):
+    def run(self, job_id, nice, func_name, config, *args, **kwargs):
         """
         Run requested task and return the result
         """
@@ -48,6 +47,8 @@ class Worker:
         })
         logging.info("job[%s] starting, nice=%d", job_id, nice)
         self.job_id = job_id
+        self.config = config
+        self.storage = FileStorage(config.storage['path'])
         curnice = os.nice(0)
         os.nice(int(nice) - curnice)
 
@@ -60,6 +61,8 @@ class Worker:
             raise exn
         finally:
             self.job_id = None
+            self.config = None
+            self.storage = None
 
         return res
 
@@ -265,9 +268,9 @@ class Worker:
     """
 
 
-def init_worker(config_path, msg_queue):
+def init_worker(msg_queue):
     global g_worker
-    g_worker = Worker(config_path, msg_queue)
+    g_worker = Worker(msg_queue)
 
 
 def run(job_id, nice, func_name, *args, **kwargs):
