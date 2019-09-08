@@ -68,6 +68,8 @@ class Config:
             self._server['workers'] = multiprocessing.cpu_count()
         if 'maxtasksperchild' not in self._server:
             self._server['maxtasksperchild'] = 100
+        if 'jobs_max_ttl' not in self._server:
+            self._server['jobs_max_ttl'] = 60
 
     @property
     def datasources(self):

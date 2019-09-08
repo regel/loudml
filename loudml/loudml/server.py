@@ -8,7 +8,7 @@ from crontab import CronTab
 
 import argparse
 import concurrent.futures
-import datetime
+from datetime import datetime, timedelta
 import logging
 import multiprocessing
 import pebble
@@ -18,6 +18,7 @@ import schedule
 import sys
 import uuid
 import traceback
+import pytz
 
 import loudml.config
 import loudml.model
@@ -116,6 +117,8 @@ class Job:
         self._result = None
         self.error = None
         self.progress = None
+        self.created_dt = datetime.now(pytz.utc)
+        self.done_dt = None
         self._future = None
         self.model_name = None
 
@@ -134,6 +137,9 @@ class Job:
             desc['error'] = self.error
         if self.progress:
             desc['progress'] = self.progress
+        if self.created_dt:
+            dt = self.done_dt or datetime.now(pytz.utc)
+            desc['elapsed'] = str(dt - self.created_dt)
         return desc
 
     @property
@@ -157,7 +163,6 @@ class Job:
         global g_pool
         global g_jobs
 
-        g_jobs[self.id] = self
         self.state = 'waiting'
         self._future = g_pool.schedule(
             loudml.worker.run,
@@ -165,6 +170,7 @@ class Job:
             kwargs=self.kwargs,
         )
         self._future.add_done_callback(self._done_cb)
+        g_jobs[self.id] = self
 
     def cancel(self):
         """
@@ -180,6 +186,10 @@ class Job:
         logging.info("job[%s] canceling...", self.id)
         self._future.cancel()
 
+    def set_final_state(self, state):
+        self.done_dt = datetime.now(pytz.utc)
+        self.state = state
+
     def _done_cb(self, result):
         """
         Callback executed when job is done
@@ -187,16 +197,19 @@ class Job:
 
         try:
             self._result = self._future.result()
-            self.state = 'done'
-            logging.info("job[%s] done", self.id)
+            self.set_final_state('done')
+            logging.info(
+                "job[%s] done. Took %s",
+                self.id,
+                str(self.done_dt - self.created_dt))
         except concurrent.futures.CancelledError:
             self.error = "job canceled"
-            self.state = 'canceled'
+            self.set_final_state('canceled')
             logging.error("job[%s] canceled", self.id)
         except Exception as exn:
             self.error = str(exn)
             traceback.print_exc()
-            self.state = 'failed'
+            self.set_final_state('failed')
             logging.error("job[%s] failed: %s", self.id, self.error)
 
     def result(self):
@@ -856,7 +869,7 @@ def _model_start(model, params):
         if detect_anomalies is not None:
             kwargs['detect_anomalies'] = detect_anomalies
 
-        to_date = datetime.datetime.now().timestamp() - model.offset
+        to_date = datetime.now(pytz.utc).timestamp() - model.offset
 
         if model.type in ['timeseries', 'donut']:
             if from_date is None:
@@ -1125,6 +1138,21 @@ def g_app_init(path):
 
     daemon_send_metrics()
     schedule.every().hour.do(daemon_send_metrics)
+
+    def daemon_clear_jobs():
+        global g_jobs
+        duration = g_config.server.get('jobs_max_ttl')
+        now_dt = datetime.now(pytz.utc)
+        expired = [
+            job.id
+            for job in g_jobs.values()
+            if (job.is_stopped() and
+                (now_dt - job.done_dt) > timedelta(seconds=duration))
+        ]
+        for i in expired:
+            del g_jobs[i]
+
+    schedule.every().minute.do(daemon_clear_jobs)
 
 
 def g_app_stop():
