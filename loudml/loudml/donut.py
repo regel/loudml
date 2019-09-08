@@ -1535,7 +1535,6 @@ class DonutModel(Model):
         datasource,
         from_date,
         to_date,
-        mse_rtol,
         _state={},
         num_cpus=1,
         num_gpus=0,

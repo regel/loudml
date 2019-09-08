@@ -560,7 +560,6 @@ class TestTimes(unittest.TestCase):
             source,
             from_date,
             to_date,
-            mse_rtol=0,  # unused
         )
 
         self.model.detect_anomalies(prediction)

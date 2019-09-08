@@ -86,7 +86,6 @@ Accepted `loudmld` server configuration parameters are:
 
 [horizontal]
 `listen`:: TCP server will listen on this address and port number
-`mse_rtol`:: relative tolerance parameter, default equals 4.0 
 
 Finally, you can define your data sources; ie, how Loud ML will connect to
 your databases and find all information required for machine learning.
