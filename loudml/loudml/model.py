@@ -3,7 +3,6 @@ Loud ML model
 """
 
 import copy
-import math
 import numpy as np
 
 from voluptuous import (
@@ -70,29 +69,6 @@ def flatten_features(features):
     return inout + out_only + in_only
 
 
-class DateRange:
-    def __init__(self, from_date, to_date):
-        self.from_ts = misc.make_ts(from_date)
-        self.to_ts = misc.make_ts(to_date)
-
-        if self.to_ts < self.from_ts:
-            raise errors.Invalid("invalid date range: {}".format(self))
-
-    @property
-    def from_str(self):
-        return misc.ts_to_str(self.from_ts)
-
-    @property
-    def to_str(self):
-        return misc.ts_to_str(self.to_ts)
-
-    def __str__(self):
-        return "{}-{}".format(
-            self.from_str,
-            self.to_str,
-        )
-
-
 class Feature:
     """
     Model feature
@@ -102,6 +78,7 @@ class Feature:
         Required('name'): All(schemas.key, Length(max=256)),
         Required('metric'): All(schemas.key, Length(max=256)),
         Required('field'): All(schemas.dotted_key, Length(max=256)),
+        'bucket': Any(None, schemas.key),
         'measurement': Any(None, schemas.dotted_key),
         'collection': Any(None, schemas.key),
         'match_all': Any(None, Schema([
@@ -117,7 +94,8 @@ class Feature:
         'low_watermark': Any(None, int, float),
         'high_watermark': Any(None, int, float),
         'script': Any(None, str),
-        Optional('anomaly_type', default='low_high'): Any('low', 'high', 'low_high'),
+        Optional('anomaly_type', default='low_high'):
+            Any('low', 'high', 'low_high'),
         'transform': Any(None, "diff"),
         'scores': Any(None, "min_max", "normalize", "standardize"),
     })
@@ -127,6 +105,7 @@ class Feature:
         name=None,
         metric=None,
         field=None,
+        bucket=None,
         measurement=None,
         collection=None,
         match_all=None,
@@ -143,6 +122,7 @@ class Feature:
 
         self.name = name
         self.metric = metric
+        self.bucket = bucket
         self.measurement = measurement
         self.collection = collection
         self.field = field
@@ -184,18 +164,18 @@ class Model:
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
-        Optional('features'): Any(None,
-                                  All([Feature.SCHEMA], Length(min=1)),
-                                  Schema({
-                                      Optional('i'): All([Feature.SCHEMA], Length(min=1)),
-                                      Optional('o'): All([Feature.SCHEMA], Length(min=1)),
-                                      Optional('io'): All([Feature.SCHEMA], Length(min=1)),
-                                  }),
-                                  ),
+        Optional('features'):
+            Any(None,
+                All([Feature.SCHEMA], Length(min=1)),
+                Schema({
+                    Optional('i'): All([Feature.SCHEMA], Length(min=1)),
+                    Optional('o'): All([Feature.SCHEMA], Length(min=1)),
+                    Optional('io'): All([Feature.SCHEMA], Length(min=1)),
+                }),
+                ),
         Optional('bucket_interval'): schemas.TimeDelta(
             min=0, min_included=False,
         ),
-        'timestamp_field': schemas.key,
         'routing': Any(None, schemas.key),
         'threshold': schemas.score,
         'max_threshold': schemas.score,
@@ -219,7 +199,6 @@ class Model:
         self.features = [
             Feature(**feature) for feature in settings['features']
         ]
-        self.timestamp_field = settings.get('timestamp_field', 'timestamp')
         self.bucket_interval = misc.parse_timedelta(
             settings.get('bucket_interval', 0)).total_seconds()
 
@@ -263,33 +242,13 @@ class Model:
 
         return res
 
-    def build_date_range(self, from_date, to_date):
-        """
-        Fixup date range to be sure that is a multiple of bucket_interval
-
-        return timestamps
-        """
-
-        from_ts = misc.make_ts(from_date)
-        to_ts = misc.make_ts(to_date)
-
-        from_ts = math.floor(
-            from_ts / self.bucket_interval) * self.bucket_interval
-        to_ts = math.ceil(to_ts / self.bucket_interval) * self.bucket_interval
-
-        return DateRange(from_ts, to_ts)
-
     @property
     def type(self):
         return self.settings['type']
 
     @property
-    def default_datasource(self):
-        return self._settings.get('default_datasource')
-
-    @property
-    def default_datasink(self):
-        return self._settings.get('default_datasink')
+    def default_bucket(self):
+        return self._settings.get('default_bucket')
 
     def get_tags(self):
         tags = {

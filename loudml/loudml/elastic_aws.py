@@ -3,15 +3,10 @@ Elasticsearch module for Loud ML
 for connecting to Amazon Elasticsearch Service
 """
 
-import datetime
 import logging
-
-import elasticsearch.exceptions
-import urllib3.exceptions
 
 from elasticsearch import (
     Elasticsearch,
-    TransportError,
     RequestsHttpConnection,
 )
 
@@ -24,7 +19,6 @@ from voluptuous import (
     All,
     Length,
     Boolean,
-    Schema,
 )
 
 from . import (
@@ -32,17 +26,17 @@ from . import (
     schemas,
 )
 
-from loudml.datasource import DataSource
-from loudml.elastic import ElasticsearchDataSource
+from loudml.bucket import Bucket
+from loudml.elastic import ElasticsearchBucket
 
 
-class ElasticsearchAWSDataSource(ElasticsearchDataSource):
+class ElasticsearchAWSBucket(ElasticsearchBucket):
     """
-    Elasticsearch datasource on AWS
-    Documentation: https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-indexing-programmatic.html
+    Elasticsearch bucket on AWS
+    Documentation: https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-indexing-programmatic.html  # noqa
     """
 
-    SCHEMA = DataSource.SCHEMA.extend({
+    SCHEMA = Bucket.SCHEMA.extend({
         # eg, my-test-domain.us-east-1.es.amazonaws.com
         Required('host'): str,
         Required('region'): str,
@@ -86,14 +80,23 @@ class ElasticsearchAWSDataSource(ElasticsearchDataSource):
             service = 'es'
             if self.get_boto_credentials:
                 credentials = boto3.Session().get_credentials()
-                awsauth = AWS4Auth(credentials.access_key,
-                                   credentials.secret_key, self.region, service)
-            elif not (self.aws_access_key is None or self.aws_secret_key is None):
-                awsauth = AWS4Auth(self.aws_access_key,
-                                   self.aws_secret_key, self.region, service)
+                awsauth = AWS4Auth(
+                    credentials.access_key,
+                    credentials.secret_key,
+                    self.region,
+                    service
+                )
+            elif not (self.aws_access_key is None
+                      or self.aws_secret_key is None):
+                awsauth = AWS4Auth(
+                    self.aws_access_key,
+                    self.aws_secret_key,
+                    self.region,
+                    service
+                )
             else:
                 exn = 'invalid configuration: AWS credentials not found'
-                raise errors.DataSourceError(self.name, exn)
+                raise errors.BucketError(self.name, exn)
 
             self._es = Elasticsearch(
                 hosts=[{'host': self.host, 'port': 443}],

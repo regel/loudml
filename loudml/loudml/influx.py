@@ -2,8 +2,6 @@
 InfluxDB module for Loud ML
 """
 import logging
-import json
-import os
 import itertools
 
 import influxdb.exceptions
@@ -16,7 +14,6 @@ from voluptuous import (
     All,
     Length,
     Boolean,
-    Schema,
 )
 
 from influxdb import (
@@ -36,7 +33,7 @@ from loudml.misc import (
     ts_to_str,
     build_agg_name,
 )
-from loudml.datasource import DataSource
+from loudml.bucket import Bucket
 
 g_aggregators = {}
 
@@ -127,7 +124,7 @@ def _build_integral_agg(feature):
 
 
 @aggregator('max')
-def _build_mode_agg(feature):
+def _build_max_agg(feature):
     return "MAX(\"{}\")".format(feature.field)
 
 
@@ -305,16 +302,16 @@ def catch_query_error(func):
             influxdb.exceptions.InfluxDBClientError,
             requests.exceptions.RequestException,
         ) as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+            raise errors.BucketError(self.name, str(exn))
     return wrapper
 
 
-class InfluxDataSource(DataSource):
+class InfluxBucket(Bucket):
     """
-    Elasticsearch datasource
+    InfluxDB bucket
     """
 
-    SCHEMA = DataSource.SCHEMA.extend({
+    SCHEMA = Bucket.SCHEMA.extend({
         Required('addr'): str,
         Required('database'): schemas.key,
         Optional('create_database', default=True): Boolean(),
@@ -447,7 +444,6 @@ class InfluxDataSource(DataSource):
         data,
         measurement='generic',
         tags=None,
-        timestamp_field=None,
         *args,
         **kwargs
     ):
@@ -519,7 +515,13 @@ class InfluxDataSource(DataSource):
             where,
         )
 
-    def _build_times_queries(self, model, from_date=None, to_date=None):
+    def _build_times_queries(
+        self,
+        bucket_interval,
+        features,
+        from_date=None,
+        to_date=None,
+    ):
         """
         Build queries according to requested features
         """
@@ -527,7 +529,7 @@ class InfluxDataSource(DataSource):
 
         time_pred = _build_time_predicates(from_date, to_date)
 
-        for feature in model.features:
+        for feature in features:
             must = time_pred + _build_tags_predicates(feature.match_all)
 
             where = " where {}".format(" and ".join(must)) if len(must) else ""
@@ -537,7 +539,7 @@ class InfluxDataSource(DataSource):
                 self._from_prefix,
                 escape_doublequotes(feature.measurement),
                 where,
-                int(model.bucket_interval * 1000),
+                int(bucket_interval * 1000),
             )
 
     def _build_quad_queries(
@@ -720,14 +722,15 @@ class InfluxDataSource(DataSource):
     @catch_query_error
     def get_times_data(
         self,
-        model,
+        bucket_interval,
+        features,
         from_date=None,
         to_date=None,
     ):
-        features = model.features
         nb_features = len(features)
 
-        queries = self._build_times_queries(model, from_date, to_date)
+        queries = self._build_times_queries(
+            bucket_interval, features, from_date, to_date)
         queries = ''.join(queries)
         results = self.influxdb.query(queries)
 
@@ -748,7 +751,7 @@ class InfluxDataSource(DataSource):
                 else:
                     bucket = {
                         'time': timeval,
-                        'mod': int(str_to_ts(timeval)) % model.bucket_interval,
+                        'mod': int(str_to_ts(timeval)) % bucket_interval,
                         'values': {},
                     }
                     buckets.append(bucket)
@@ -783,26 +786,6 @@ class InfluxDataSource(DataSource):
             result.append(((ts - t0) / 1000, X, timeval))
 
         return result
-
-    def save_timeseries_prediction(self, prediction, model):
-        logging.info("saving '%s' prediction to '%s'", model.name, self.name)
-
-        for bucket in prediction.format_buckets():
-            data = bucket['predicted']
-            tags = model.get_tags()
-            stats = bucket.get('stats', None)
-            if stats is not None:
-                data['score'] = float(stats.get('score'))
-                data['is_anomaly'] = stats.get('anomaly', False)
-
-            self.insert_times_data(
-                measurement='loudml',
-                ts=bucket['timestamp'],
-                tags=tags,
-                data=data,
-            )
-        self.commit()
-
 
 # Using database chronograf
 # > select * from annotations

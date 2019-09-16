@@ -1,4 +1,4 @@
-import loudml.vendor
+import loudml.vendor  # noqa
 
 import argparse
 import logging
@@ -12,8 +12,8 @@ from . import (
 from .config import (
     load_config,
 )
-from .datasource import (
-    load_datasource,
+from .bucket import (
+    load_bucket,
 )
 from .misc import (
     make_datetime,
@@ -44,14 +44,14 @@ def generate_data(
         to_date,
         step_ms=step_ms,
     ):
-        if ano == False and errors > 0:
+        if not ano and errors > 0:
             val = random.random()
             if val < errors:
                 ano = True
                 total_burst_ms = 0
                 previous_ts = ts
 
-        if ano == True and total_burst_ms < burst_ms:
+        if ano and total_burst_ms < burst_ms:
             total_burst_ms += (ts - previous_ts) * 1000.0
             previous_ts = ts
         else:
@@ -82,13 +82,13 @@ def build_tag_dict(tags=None):
     return tag_dict
 
 
-def init_datasource(arg, tags=None):
+def init_bucket(arg, tags=None):
     config = load_config(arg.config)
-    src_settings = config.get_datasource(arg.output)
-    datasource = load_datasource(src_settings)
+    src_settings = config.get_bucket(arg.output)
+    bucket = load_bucket(src_settings)
 
     if arg.clear:
-        datasource.drop()
+        bucket.drop()
 
     kwargs = {}
 
@@ -119,11 +119,11 @@ def init_datasource(arg, tags=None):
             }
         }
 
-    datasource.init(**kwargs)
-    return datasource
+    bucket.init(**kwargs)
+    return bucket
 
 
-def dump_to_datasource(generator, datasource, tags=None, **kwargs):
+def dump_to_bucket(generator, bucket, tags=None, **kwargs):
     dyn_tags = {}
 
     if tags:
@@ -141,7 +141,7 @@ def dump_to_datasource(generator, datasource, tags=None, **kwargs):
             for k, v in dyn_tags.items():
                 tags[k] = random.randint(0, v)
 
-        datasource.insert_times_data(
+        bucket.insert_times_data(
             ts=ts,
             data=data,
             tags=tags,
@@ -167,7 +167,7 @@ def main():
     parser.add_argument(
         '-o', '--output',
         type=str,
-        help="Name of destination datasource",
+        help="Name of destination bucket",
     )
     parser.add_argument(
         '-m', '--measurement',
@@ -283,7 +283,7 @@ def main():
 
     if arg.output:
         try:
-            datasource = init_datasource(arg, tags=tags)
+            bucket = init_bucket(arg, tags=tags)
         except errors.LoudMLException as exn:
             logging.error(exn)
             return 1
@@ -351,6 +351,6 @@ def main():
             kwargs['doc_type'] = arg.doc_type
 
         try:
-            dump_to_datasource(generator, datasource, tags=tags, **kwargs)
+            dump_to_bucket(generator, bucket, tags=tags, **kwargs)
         except errors.LoudMLException as exn:
             logging.error(exn)

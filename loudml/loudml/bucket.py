@@ -11,12 +11,12 @@ from abc import (
 from voluptuous import (
     ALLOW_EXTRA,
     All,
-    Any,
     Length,
     Optional,
     Range,
     Required,
     Schema,
+    Any,
 )
 
 from . import (
@@ -26,9 +26,9 @@ from . import (
 )
 
 
-class DataSource(metaclass=ABCMeta):
+class Bucket(metaclass=ABCMeta):
     """
-    Abstract class for Loud ML storage
+    Abstract class for Loud ML time series data storage
     """
 
     SCHEMA = Schema({
@@ -38,12 +38,17 @@ class DataSource(metaclass=ABCMeta):
             int,
             Range(min=1),
         ),
+        'timestamp_field': Any(None, schemas.key),
     }, extra=ALLOW_EXTRA)
 
     def __init__(self, cfg):
         self._cfg = self.validate(cfg)
         self._pending = []
         self._last_commit = datetime.datetime.now()
+
+    @property
+    def timestamp_field(self):
+        return self.cfg.get('timestamp_field') or 'timestamp'
 
     @classmethod
     def validate(cls, cfg):
@@ -88,7 +93,7 @@ class DataSource(metaclass=ABCMeta):
 
     def must_commit(self):
         """
-        Tell if pending data must be sent to the datasource
+        Tell if pending data must be sent to the bucket
         """
         nb_pending = self.nb_pending()
 
@@ -123,11 +128,12 @@ class DataSource(metaclass=ABCMeta):
     @abstractmethod
     def get_times_data(
         self,
-        model,
+        bucket_interval,
+        features,
         from_date=None,
         to_date=None,
     ):
-        """Get numeric data"""
+        """Get TSDB data"""
 
     @abstractmethod
     def insert_data(self, data):
@@ -148,11 +154,24 @@ class DataSource(metaclass=ABCMeta):
         Insert time-indexed entry
         """
 
-    @abstractmethod
-    def save_timeseries_prediction(self, prediction):
+    def save_timeseries_prediction(self, prediction, tags=None):
         """
-        Save time-series prediction to the datasource
+        Save time-series prediction to the bucket
         """
+        for bucket in prediction.format_buckets():
+            data = bucket['predicted']
+            bucket_tags = tags or {}
+            stats = bucket.get('stats', None)
+            if stats is not None:
+                data['score'] = float(stats.get('score'))
+                bucket_tags['is_anomaly'] = stats.get('anomaly', False)
+
+            self.insert_times_data(
+                ts=bucket['timestamp'],
+                tags=bucket_tags,
+                data=data,
+            )
+        self.commit()
 
     def insert_annotation(
         self,
@@ -185,7 +204,7 @@ class DataSource(metaclass=ABCMeta):
         to_date,
         size=10,
     ):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def list_anomalies(
         self,
@@ -196,13 +215,13 @@ class DataSource(metaclass=ABCMeta):
         return []
 
 
-def load_datasource(settings):
+def load_bucket(settings):
     """
-    Load datasource
+    Load bucket
     """
     src_type = settings['type']
 
-    datasource_cls = misc.load_entry_point('loudml.datasources', src_type)
-    if datasource_cls is None:
-        raise errors.UnsupportedDataSource(src_type)
-    return datasource_cls(settings)
+    bucket_cls = misc.load_entry_point('loudml.buckets', src_type)
+    if bucket_cls is None:
+        raise errors.UnsupportedBucket(src_type)
+    return bucket_cls(settings)

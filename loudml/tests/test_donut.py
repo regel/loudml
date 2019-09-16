@@ -5,7 +5,7 @@ from loudml.misc import (
     make_ts,
 )
 from loudml.filestorage import TempStorage
-from loudml.memdatasource import MemDataSource
+from loudml.membucket import MemBucket
 from loudml.donut import (
     DonutModel,
     _format_windows,
@@ -108,7 +108,7 @@ class TestTimes(unittest.TestCase):
         np.random.seed(int(os.environ['RANDOM_SEED']))
         random.seed(int(os.environ['RANDOM_SEED']))
 
-        self.source = MemDataSource()
+        self.source = MemBucket()
         self.storage = TempStorage()
 
         self.model = DonutModel(dict(
@@ -285,7 +285,7 @@ class TestTimes(unittest.TestCase):
         ])
 
     def test_train_abnormal(self):
-        source = MemDataSource()
+        source = MemBucket()
         from_date = '1970-01-01T00:00:00.000Z'
         to_date = '1970-01-01T00:10:00.000Z'
         for i in range(100):
@@ -358,7 +358,7 @@ class TestTimes(unittest.TestCase):
             ],
             max_evals=3,
         ))
-        source = MemDataSource()
+        source = MemBucket()
         generator = SinEventGenerator(base=3, amplitude=3, sigma=0.01)
 
         # Align date range to day interval
@@ -440,7 +440,7 @@ class TestTimes(unittest.TestCase):
             )
 
     def test_predict_with_nan(self):
-        source = MemDataSource()
+        source = MemBucket()
         storage = TempStorage()
 
         to_date = datetime.datetime.now().replace(
@@ -523,7 +523,7 @@ class TestTimes(unittest.TestCase):
     def test_detect_anomalies(self):
         self._require_training()
 
-        source = MemDataSource()
+        source = MemBucket()
 
         bucket_interval = self.model.bucket_interval
 
@@ -604,7 +604,7 @@ class TestTimes(unittest.TestCase):
         )
 
     def test_thresholds(self):
-        source = MemDataSource()
+        source = MemBucket()
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
@@ -689,7 +689,7 @@ class TestTimes(unittest.TestCase):
         )
 
     def test_thresholds2(self):
-        source = MemDataSource()
+        source = MemBucket()
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
@@ -791,7 +791,7 @@ class TestTimes(unittest.TestCase):
         )
 
     def test_low(self):
-        source = MemDataSource()
+        source = MemBucket()
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
@@ -873,7 +873,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(len(anomalies), 0)
 
     def test_high(self):
-        source = MemDataSource()
+        source = MemBucket()
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,
@@ -955,7 +955,7 @@ class TestTimes(unittest.TestCase):
         self.assertEqual(len(anomalies), 0)
 
     def test_low_high(self):
-        source = MemDataSource()
+        source = MemBucket()
         to_date = datetime.datetime.now().replace(
             hour=0,
             minute=0,

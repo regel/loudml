@@ -2,9 +2,8 @@ from loudml.donut import (
     TimeSeriesPrediction,
 )
 from loudml.model import Model
-from loudml.elastic import ElasticsearchDataSource
-import loudml.errors as errors
-import loudml.datasource
+from loudml.elastic import ElasticsearchBucket
+import loudml.bucket
 import loudml.config
 import loudml.vendor
 
@@ -18,43 +17,6 @@ import unittest
 
 logging.getLogger('tensorflow').disabled = True
 
-
-TEMPLATE = {
-    "template": "test-*",
-    "settings": {
-        "number_of_shards": 1,
-        "number_of_replicas": 0,
-        "codec": "best_compression"
-    },
-    "mappings": {},
-}
-
-MAPPING = {
-    "include_in_all": True,
-    "properties": {
-        "timestamp": {
-            "type": "date"
-        },
-        "foo": {
-            "type": "integer"
-        },
-        "bar": {
-            "type": "integer"
-        },
-        "baz": {
-            "type": "integer"
-        },
-        "tag_kw": {
-            "type": "keyword"
-        },
-        "tag_int": {
-            "type": "integer"
-        },
-        "tag_bool": {
-            "type": "boolean"
-        },
-    }
-}
 
 FEATURES = [
     {
@@ -88,7 +50,7 @@ FEATURES_MATCH_ALL_TAG2 = [
 ]
 
 
-class TestElasticDataSource(unittest.TestCase):
+class TestElasticBucket(unittest.TestCase):
     def setUp(self):
         bucket_interval = 3
 
@@ -115,29 +77,34 @@ class TestElasticDataSource(unittest.TestCase):
             )
 
             settings['index'] = self.index
-            self.source = loudml.datasource.load_datasource(settings)
+            self.source = loudml.bucket.load_bucket(settings)
 
             settings = copy.deepcopy(settings)
             settings['index'] = self.sink_index
-            self.sink = loudml.datasource.load_datasource(settings)
+            self.sink = loudml.bucket.load_bucket(settings)
         else:
             settings = {
                 'name': 'test',
                 'addr': os.environ['ELASTICSEARCH_ADDR'],
                 'index': self.index,
-                'doc_type': 'custom',
+                'doc_type': 'nosetests',
             }
-            self.source = ElasticsearchDataSource(settings)
+            self.source = ElasticsearchBucket(settings)
 
             settings = copy.deepcopy(settings)
             settings['index'] = self.sink_index
-            self.sink = ElasticsearchDataSource(settings)
+            self.sink = ElasticsearchBucket(settings)
 
-        template = TEMPLATE
-        template['mappings'][self.source.doc_type] = MAPPING
-
+        data_schema = {
+            "foo": {"type": "integer"},
+            "bar": {"type": "integer"},
+            "baz": {"type": "integer"},
+            "tag_kw": {"type": "keyword"},
+            "tag_int": {"type": "integer"},
+            "tag_bool": {"type": "boolean"},
+        }
         self.source.drop()
-        self.source.init(template_name="test", template=template)
+        self.source.init(data_schema=data_schema)
 
         self.model = Model(dict(
             name='times-model',  # not test-model due to TEMPLATE
@@ -218,7 +185,8 @@ class TestElasticDataSource(unittest.TestCase):
 
     def test_get_times_data(self):
         res = self.source.get_times_data(
-            self.model,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
@@ -250,7 +218,9 @@ class TestElasticDataSource(unittest.TestCase):
             observed=np.array([4.1, 1.9]),
         )
 
-        self.sink.save_timeseries_prediction(prediction, self.model)
+        self.sink.init(data_schema=prediction.get_schema())
+        self.sink.save_timeseries_prediction(
+            prediction, tags=self.model.get_tags())
         self.sink.refresh()
 
         res = self.sink.search(
@@ -262,7 +232,9 @@ class TestElasticDataSource(unittest.TestCase):
         hits = res['hits']['hits']
         self.assertEqual(len(hits), 2)
 
-        for i, hit in enumerate(sorted(hits, key=lambda x: x['_source']['timestamp'])):
+        for i, hit in enumerate(sorted(
+            hits, key=lambda x: x['_source']['timestamp'])
+        ):
             source = hit['_source']
             self.assertEqual(source, {
                 'avg_foo': predicted[i],
@@ -281,7 +253,8 @@ class TestElasticDataSource(unittest.TestCase):
             threshold=30,
         ))
         res = self.source.get_times_data(
-            model,
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
@@ -307,7 +280,8 @@ class TestElasticDataSource(unittest.TestCase):
         ))
 
         res = self.source.get_times_data(
-            model,
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )

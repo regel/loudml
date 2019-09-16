@@ -1,5 +1,6 @@
+import loudml.vendor  # noqa
 from loudml.warp10 import (
-    Warp10DataSource,
+    Warp10Bucket,
 )
 from loudml.donut import (
     DonutModel,
@@ -8,12 +9,10 @@ from loudml.model import Model
 from loudml.randevents import SinEventGenerator
 from loudml.misc import (
     list_from_np,
-    ts_to_str,
 )
 from loudml import (
     errors,
 )
-import loudml.vendor
 
 import datetime
 import logging
@@ -29,7 +28,7 @@ logging.getLogger('tensorflow').disabled = True
 class TestWarp10(unittest.TestCase):
     def setUp(self):
         self.prefix = "test-{}".format(datetime.datetime.now().timestamp())
-        self.source = Warp10DataSource({
+        self.source = Warp10Bucket({
             'name': 'test',
             'url': os.environ['WARP10_URL'],
             'read_token': os.environ['WARP10_READ_TOKEN'],
@@ -155,9 +154,10 @@ BUCKETIZE
         self.source.commit()
 
         res = self.source.get_times_data(
-            self.model,
-            t0 - 5 * self.model.bucket_interval,
-            t0 - 4 * self.model.bucket_interval,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
+            from_date=t0 - 5 * self.model.bucket_interval,
+            to_date=t0 - 4 * self.model.bucket_interval,
             tags=self.tag,
         )
 
@@ -196,9 +196,10 @@ BUCKETIZE
         period_len = 3 * self.model.bucket_interval
 
         res = self.source.get_times_data(
-            self.model,
-            t0 - period_len,
-            t0,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
+            from_date=t0 - period_len,
+            to_date=t0,
             tags=self.tag,
         )
 
@@ -216,9 +217,10 @@ BUCKETIZE
     def test_no_data(self):
         with self.assertRaises(errors.NoData):
             self.source.get_times_data(
-                self.model,
-                "2017-01-01T00:00:00Z",
-                "2017-01-31T00:00:00Z",
+                bucket_interval=self.model.bucket_interval,
+                features=self.model.features,
+                from_date="2017-01-01T00:00:00Z",
+                to_date="2017-01-31T00:00:00Z",
             )
 
     def test_match_all(self):
@@ -282,7 +284,8 @@ BUCKETIZE
         time.sleep(5)
 
         res = self.source.get_times_data(
-            model,
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=t0,
             to_date=t0 + 3 * model.bucket_interval,
         )
@@ -316,7 +319,8 @@ BUCKETIZE
         ))
 
         res = self.source.get_times_data(
-            model,
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=self.t0,
             to_date=t0 + 3 * model.bucket_interval,
         )
@@ -386,12 +390,12 @@ BUCKETIZE
         pred_from = to_date - 3 * model.bucket_interval
         pred_to = to_date
         prediction = model.predict(
-            datasource=self.source,
+            bucket=self.source,
             from_date=pred_from,
             to_date=pred_to,
         )
         self.source.save_timeseries_prediction(
-            prediction, model, tags=self.tag)
+            prediction, tags=self.tag)
 
         # Fake model just for extracting saved prediction
         model2 = Model(dict(
@@ -404,21 +408,22 @@ BUCKETIZE
                 {
                     'name': 'count_foo',
                     'metric': 'avg',
-                    'field': "prediction.{}.count_foo".format(model.name),
+                    'field': "{}.count_foo".format(model.name),
                 },
                 {
                     'name': 'avg_foo',
                     'metric': 'avg',
-                    'field': "prediction.{}.avg_foo".format(model.name),
+                    'field': "{}.avg_foo".format(model.name),
                 },
             ],
             max_evals=1,
         ))
 
         res = self.source.get_times_data(
-            model2,
-            pred_from,
-            pred_to,
+            bucket_interval=model2.bucket_interval,
+            features=model2.features,
+            from_date=pred_from,
+            to_date=pred_to,
             tags=self.tag,
         )
 

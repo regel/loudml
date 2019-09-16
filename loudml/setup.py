@@ -55,12 +55,12 @@ setup(
         'loudml.hooks': [
             'annotations=loudml.annotations:AnnotationHook',
         ],
-        'loudml.datasources': [
-            'influxdb=loudml.influx:InfluxDataSource',
-            'elasticsearch=loudml.elastic:ElasticsearchDataSource',
-            'elasticsearch_aws=loudml.elastic_aws:ElasticsearchAWSDataSource',
-            'warp10=loudml.warp10:Warp10DataSource',
-            'mongodb=loudml.mongo:MongoDataSource',
+        'loudml.buckets': [
+            'influxdb=loudml.influx:InfluxBucket',
+            'elasticsearch=loudml.elastic:ElasticsearchBucket',
+            'elasticsearch_aws=loudml.elastic_aws:ElasticsearchAWSBucket',
+            'warp10=loudml.warp10:Warp10Bucket',
+            'mongodb=loudml.mongo:MongoBucket',
         ],
     },
 )
