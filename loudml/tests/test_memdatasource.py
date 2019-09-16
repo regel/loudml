@@ -1,16 +1,12 @@
+import loudml.vendor  # noqa
 from loudml.misc import (
     nan_to_none,
 )
 from loudml.donut import DonutModel
-import datetime
 import logging
-import numpy as np
-import os
 import unittest
 
-import loudml.vendor
-import loudml.errors as errors
-from loudml.memdatasource import MemDataSource
+from loudml.membucket import MemBucket
 
 logging.getLogger('tensorflow').disabled = True
 
@@ -25,9 +21,9 @@ FEATURES = [
 ]
 
 
-class TestMemDataSource(unittest.TestCase):
+class TestMemBucket(unittest.TestCase):
     def setUp(self):
-        self.source = MemDataSource()
+        self.source = MemBucket()
 
         self.model = DonutModel(dict(
             name='test',
@@ -66,7 +62,12 @@ class TestMemDataSource(unittest.TestCase):
         )
 
     def test_get_times_data(self):
-        res = self.source.get_times_data(self.model, from_date=1, to_date=9)
+        res = self.source.get_times_data(
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
+            from_date=1,
+            to_date=9,
+        )
 
         foo_avg = []
         for line in res:

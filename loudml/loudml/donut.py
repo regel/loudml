@@ -12,9 +12,9 @@ the encoder can be used to  generate latent vectors.
 
 from .model import (
     Model,
-    DateRange,
 )
 from .misc import (
+    DateRange,
     datetime_to_str,
     list_from_np,
     make_datetime,
@@ -290,6 +290,29 @@ class TimeSeriesPrediction:
         self.mses = None
         self.mse = None
 
+    def get_schema(
+        self,
+    ):
+        data_schema = {
+            "timestamp": {
+                "type": "date",
+                "format": "epoch_millis",
+            },
+            "score": {
+                "type": "float"
+            },
+            "is_anomaly": {
+                "type": "boolean"
+            },
+        }
+        for tag in self.model.get_tags():
+            data_schema[tag] = {"type": "keyword"}
+
+        for field in self.get_field_names():
+            data_schema[field] = {"type": "float"}
+
+        return data_schema
+
     def get_anomalies(self):
         """
         Return anomalies
@@ -479,7 +502,6 @@ class DonutModel(Model):
         Optional('seasonality', default=DEFAULT_SEASONALITY): schemas.seasonality,
         Optional('forecast'): Any(None, "auto", All(int, Range(min=1))),
         Optional('grace_period', default=0): schemas.TimeDelta(min=0, min_included=True),
-        'default_datasink': schemas.key,
     })
 
     def __init__(self, settings, state=None):
@@ -971,7 +993,7 @@ class DonutModel(Model):
 
     def train(
         self,
-        datasource,
+        bucket,
         from_date,
         to_date="now",
         train_size=0.67,
@@ -990,7 +1012,8 @@ class DonutModel(Model):
         self.means, self.stds = None, None
         self.scores = None
 
-        period = self.build_date_range(from_date, to_date)
+        period = DateRange.build_date_range(
+            from_date, to_date, self.bucket_interval)
         logging.info(
             "train(%s) range=%s train_size=%f batch_size=%d epochs=%d)",
             self.name,
@@ -1011,7 +1034,12 @@ class DonutModel(Model):
         )
 
         # Fill dataset
-        data = datasource.get_times_data(self, period.from_ts, period.to_ts)
+        data = bucket.get_times_data(
+            bucket_interval=self.bucket_interval,
+            features=self.features,
+            from_date=period.from_ts,
+            to_date=period.to_ts,
+        )
         # FIXME: query abnormal points flagged
 
         i = None
@@ -1074,7 +1102,7 @@ class DonutModel(Model):
         }
         self.unload()
         # prediction = self.predict(
-        #    datasource,
+        #    bucket,
         #    from_date,
         #    to_date,
         #    num_cpus=num_cpus,
@@ -1151,7 +1179,7 @@ class DonutModel(Model):
 
     def predict(
         self,
-        datasource,
+        bucket,
         from_date,
         to_date,
         num_cpus=1,
@@ -1161,7 +1189,8 @@ class DonutModel(Model):
         global g_mc_count
         global g_mc_batch_size
 
-        period = self.build_date_range(from_date, to_date)
+        period = DateRange.build_date_range(
+            from_date, to_date, self.bucket_interval)
 
         # This is the number of buckets that the function MUST return
         predict_len = int((period.to_ts - period.from_ts) /
@@ -1187,7 +1216,12 @@ class DonutModel(Model):
 
         # Fill dataset
         logging.info("extracting data for range=%s", hist)
-        data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
+        data = bucket.get_times_data(
+            bucket_interval=self.bucket_interval,
+            features=self.features,
+            from_date=hist.from_ts,
+            to_date=hist.to_ts,
+        )
 
         # Only a subset of history will be used for computing the prediction
         X_until = None  # right bound for prediction
@@ -1291,7 +1325,7 @@ class DonutModel(Model):
 
     def forecast(
         self,
-        datasource,
+        bucket,
         from_date,
         to_date,
         percent_interval=0.68,
@@ -1303,7 +1337,8 @@ class DonutModel(Model):
         global g_mc_count
         global g_mc_batch_size
 
-        period = self.build_date_range(from_date, to_date)
+        period = DateRange.build_date_range(
+            from_date, to_date, self.bucket_interval)
 
         # This is the number of buckets that the function MUST return
         forecast_len = int(
@@ -1329,7 +1364,12 @@ class DonutModel(Model):
 
         # Fill dataset
         logging.info("extracting data for range=%s", hist)
-        data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
+        data = bucket.get_times_data(
+            bucket_interval=self.bucket_interval,
+            features=self.features,
+            from_date=hist.from_ts,
+            to_date=hist.to_ts,
+        )
 
         # Only a subset of history will be used for computing the prediction
         X_until = None  # right bound for prediction
@@ -1532,7 +1572,7 @@ class DonutModel(Model):
 
     def predict2(
         self,
-        datasource,
+        bucket,
         from_date,
         to_date,
         _state={},
@@ -1540,7 +1580,7 @@ class DonutModel(Model):
         num_gpus=0,
     ):
         return self.predict(
-            datasource,
+            bucket,
             from_date,
             to_date,
             num_cpus=num_cpus,
@@ -1549,7 +1589,7 @@ class DonutModel(Model):
 
     def plot_results(
         self,
-        datasource,
+        bucket,
         from_date,
         to_date,
         num_cpus=1,
@@ -1572,7 +1612,8 @@ class DonutModel(Model):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
 
-        period = self.build_date_range(from_date, to_date)
+        period = DateRange.build_date_range(
+            from_date, to_date, self.bucket_interval)
 
         logging.info("plot_results(%s) range=%s", self.name, period)
 
@@ -1594,7 +1635,12 @@ class DonutModel(Model):
 
         # Fill dataset
         logging.info("extracting data for range=%s", hist)
-        data = datasource.get_times_data(self, hist.from_ts, hist.to_ts)
+        data = bucket.get_times_data(
+            bucket_interval=self.bucket_interval,
+            features=self.features,
+            from_date=hist.from_ts,
+            to_date=hist.to_ts,
+        )
 
         # Only a subset of history will be used for computing the prediction
         X_until = None  # right bound for prediction

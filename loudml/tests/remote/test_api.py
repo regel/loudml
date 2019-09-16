@@ -1,7 +1,7 @@
 import loudml.vendor  # noqa: F401
 
 from loudml.influx import (
-    InfluxDataSource,
+    InfluxBucket,
 )
 
 from loudml.randevents import SinEventGenerator
@@ -81,7 +81,7 @@ class AppTests(unittest.TestCase):
         else:
             addr = 'localhost'
 
-        self.source = InfluxDataSource({
+        self.source = InfluxBucket({
             'name': 'nosetests',
             'addr': addr,
             'database': self.db,
@@ -122,10 +122,12 @@ class AppTests(unittest.TestCase):
             **kwargs
         )
 
-    def post(self, url, data=None, **kwargs):
+    def post(self, url, data=None, content_type=None, **kwargs):
         headers = kwargs.pop('headers', {})
         if self._jwt:
             headers['Authorization'] = 'Bearer {}'.format(self._jwt)
+        if content_type:
+            headers['Content-Type'] = content_type
         return requests.post(
             self.get_url(url),
             data=data,
@@ -197,7 +199,7 @@ class AppTests(unittest.TestCase):
 
     def _get_sources(self):
         response = self.get(
-            '/datasources',
+            '/buckets',
         )
         self.assertEqual(response.status_code, 200)
         return response.json()
@@ -224,8 +226,8 @@ class AppTests(unittest.TestCase):
             'retention_policy': 'autogen',
             'max_series_per_request': 2000,
         }
-        response = self.put(
-            '/datasources',
+        response = self.post(
+            '/buckets',
             content_type='application/json',
             data=json.dumps(source),
         )
@@ -253,7 +255,7 @@ class AppTests(unittest.TestCase):
 
         model = dict(
             name='test-model',
-            default_datasource=self.db,
+            default_bucket=self.db,
             offset=30,
             span=24 * 3,
             bucket_interval=self.bucket_interval,
@@ -266,7 +268,7 @@ class AppTests(unittest.TestCase):
         )
         model['type'] = 'donut'
 
-        response = self.put(
+        response = self.post(
             '/models',
             content_type='application/json',
             data=json.dumps(model),

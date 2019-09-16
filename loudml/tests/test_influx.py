@@ -1,33 +1,27 @@
+import loudml.vendor  # noqa
 from loudml.filestorage import TempStorage
 from loudml.randevents import SinEventGenerator
 from loudml.donut import DonutModel
 from loudml.model import Model
-from loudml.memdatasource import MemDataSource
+from loudml.membucket import MemBucket
 from loudml.influx import (
     _build_time_predicates,
     _build_tags_predicates,
-    InfluxDataSource,
+    InfluxBucket,
 )
 from loudml.misc import (
-    escape_quotes,
-    escape_doublequotes,
     nan_to_none,
     make_ts,
 )
 import loudml.errors as errors
-import loudml.vendor
 
 import copy
 import datetime
-from datetime import timezone
 import logging
 import numpy as np
 import os
 import random
-import time
 import unittest
-import math
-import json
 
 logging.getLogger('tensorflow').disabled = True
 
@@ -104,7 +98,7 @@ class TestInfluxQuick(unittest.TestCase):
 
         self.db = 'test-{}'.format(t0)
         logging.info("creating database %s", self.db)
-        self.source = InfluxDataSource({
+        self.source = InfluxBucket({
             'name': 'test',
             'addr': ADDR,
             'database': self.db,
@@ -176,11 +170,11 @@ class TestInfluxQuick(unittest.TestCase):
 
     def test_validation(self):
         with self.assertRaises(errors.Invalid):
-            InfluxDataSource({
+            InfluxBucket({
                 'addr': 'localhost',
             })
         with self.assertRaises(errors.Invalid):
-            InfluxDataSource({
+            InfluxBucket({
                 'database': 'foo',
             })
 
@@ -219,7 +213,8 @@ class TestInfluxQuick(unittest.TestCase):
     def test_build_times_queries(self):
         where = "time >= 1515404366123400000 and time < 1515423565456000000"
         queries = list(self.source._build_times_queries(
-            self.model,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
             from_date=1515404366.1234,
             to_date="2018-01-08T14:59:25.456Z",
         ))
@@ -236,7 +231,7 @@ class TestInfluxQuick(unittest.TestCase):
             ],
         )
 
-        source = InfluxDataSource({
+        source = InfluxBucket({
             'name': 'test',
             'addr': ADDR,
             'database': self.db,
@@ -244,7 +239,8 @@ class TestInfluxQuick(unittest.TestCase):
         })
 
         queries = list(source._build_times_queries(
-            self.model,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
             from_date=1515404366.1234,
             to_date="2018-01-08T14:59:25.456Z",
         ))
@@ -265,7 +261,8 @@ class TestInfluxQuick(unittest.TestCase):
     def test_get_times_data(self):
         logging.info("[%d %d]", self.t0, self.t0)
         res = self.source.get_times_data(
-            self.model,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
@@ -282,13 +279,14 @@ class TestInfluxQuick(unittest.TestCase):
 
     def test_get_times_data2(self):
         res = self.source.get_times_data(
-            self.model,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
 
         # _source to write aggregate data to RAM
-        _source = MemDataSource()
+        _source = MemBucket()
         _features = copy.deepcopy(self.model.features)
         for _, feature in enumerate(self.model.features):
             feature.metric = 'avg'
@@ -303,7 +301,8 @@ class TestInfluxQuick(unittest.TestCase):
             _source.insert_times_data(bucket)
 
         res2 = _source.get_times_data(
-            self.model,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
@@ -323,7 +322,8 @@ class TestInfluxQuick(unittest.TestCase):
             features=FEATURES_MATCH_ALL_TAG1,
         ))
         res = self.source.get_times_data(
-            model,
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
@@ -348,7 +348,8 @@ class TestInfluxQuick(unittest.TestCase):
         ))
 
         res = self.source.get_times_data(
-            model,
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
@@ -368,7 +369,7 @@ class TestInfluxLong(unittest.TestCase):
     def setUp(self):
 
         self.db = "test-{}".format(int(datetime.datetime.now().timestamp()))
-        self.source = InfluxDataSource({
+        self.source = InfluxBucket({
             'name': 'test',
             'addr': ADDR,
             'database': self.db,

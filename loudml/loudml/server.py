@@ -32,6 +32,7 @@ from flask import (
     Flask,
     jsonify,
     request,
+    Response,
 )
 from flask_restful import (
     Api,
@@ -44,8 +45,8 @@ from . import (
     errors,
     schemas,
 )
-from .datasource import (
-    load_datasource,
+from .bucket import (
+    load_bucket,
 )
 from .filestorage import (
     FileStorage,
@@ -54,11 +55,13 @@ from .metrics import (
     send_metrics,
 )
 from .misc import (
+    clear_fields,
     make_bool,
     my_host_id,
     load_entry_point,
     parse_timedelta,
     parse_constraint,
+    parse_expression,
 )
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
@@ -82,6 +85,14 @@ APP_INSTALL_PATHS = [
     "/bin/loudmld",  # With RPM, binaries are also installed here
 ]
 LOCK_FILE = "/var/tmp/loudmld.lock"
+
+
+def get_job_desc(job_id, fields=None, include_fields=None):
+    global g_jobs
+    desc = g_jobs[job_id].desc
+    if fields:
+        clear_fields(desc, fields, include_fields)
+    return desc
 
 
 class RepeatingTimer(object):
@@ -350,9 +361,21 @@ def get_date_arg(param, default=None, is_mandatory=False):
     return schemas.validate(schemas.Timestamp(), value, name=param)
 
 
+def get_int_form(param, default=None):
+    """
+    Read integer FORM parameter
+    """
+    try:
+        return int(request.form[param])
+    except KeyError:
+        return default
+    except ValueError:
+        raise errors.Invalid("invalid value for parameter '{}'".format(param))
+
+
 def get_date_form(param, default=None, is_mandatory=False):
     """
-    Read date URL parameter
+    Read date FORM parameter
     """
     try:
         value = request.form[param]
@@ -375,7 +398,7 @@ def get_json(is_mandatory=True):
     return data
 
 
-def get_model_info(name):
+def get_model_info(name, fields, include_fields):
     global g_storage
     global g_training
 
@@ -396,6 +419,8 @@ def get_model_info(name):
 
         info['training'] = training
 
+    if fields:
+        clear_fields(info, fields, include_fields)
     return info
 
 
@@ -406,30 +431,6 @@ def get_template_info(name):
     info['params'] = list(g_storage.find_undeclared_variables(name))
 
     return info
-
-
-class LoadNabResource(Resource):
-    def post(self):
-        global g_storage
-        global g_config
-
-        settings = get_json()
-        name = settings.get('datasource')
-        from_date = settings.get('from_date', 'now-30d')
-
-        job = LoadJob(
-            from_date=from_date,
-            datasource=name,
-        )
-        job.start(g_config)
-
-        if get_bool_arg('bg', default=False):
-            return str(job.id)
-
-        return jsonify(job.result())
-
-
-api.add_resource(LoadNabResource, "/_nab")
 
 
 class TemplatesResource(Resource):
@@ -449,18 +450,44 @@ api.add_resource(TemplatesResource, "/templates")
 class ModelsResource(Resource):
     @catch_loudml_error
     def get(self):
-        models = []
+        page = get_int_arg('page', default=0)
+        per_page = get_int_arg('per_page', default=50)
+        if per_page > 100 or per_page <= 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('per_page')
+            )
+        if page < 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('page')
+            )
 
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        list_sort_field, list_sort_order = request.args.get(
+            'sort', 'name:1').split(':')
+
+        models = []
         for name in g_storage.list_models():
             try:
-                models.append(get_model_info(name))
+                model = get_model_info(name, fields, include_fields)
+                models.append(model)
             except errors.UnsupportedModel:
                 continue
 
-        return jsonify(models)
+        models = sorted(
+            models,
+            key=lambda k: k['settings'].get(list_sort_field),
+            reverse=bool(int(list_sort_order) == -1),
+        )
+        return jsonify(
+            models[page*per_page:(page+1)*per_page])
 
     @catch_loudml_error
-    def put(self):
+    def post(self):
         global g_config
         global g_storage
 
@@ -481,68 +508,94 @@ class ModelsResource(Resource):
 
 class ModelResource(Resource):
     @catch_loudml_error
-    def get(self, model_name):
-        return jsonify(get_model_info(model_name))
+    def get(self, model_names):
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        return jsonify([
+            get_model_info(model_name, fields, include_fields)
+            for model_name in model_names.split(';')
+        ])
 
     @catch_loudml_error
-    def delete(self, model_name):
+    def delete(self, model_names):
         global g_storage
         global g_running_models
         global g_training
 
-        g_lock.acquire()
+        for model_name in model_names.split(';'):
+            g_lock.acquire()
+            try:
+                timer = g_running_models.pop(model_name, None)
+                if timer:
+                    timer.cancel()
 
-        try:
-            timer = g_running_models.pop(model_name, None)
-            if timer:
-                timer.cancel()
+                job = g_training.get(model_name)
+                if job and not job.is_stopped():
+                    job.cancel()
 
-            job = g_training.get(model_name)
-            if job and not job.is_stopped():
-                job.cancel()
+                g_storage.delete_model(model_name)
+            finally:
+                g_lock.release()
 
-            g_storage.delete_model(model_name)
-        finally:
-            g_lock.release()
-
-        logging.info("model '%s' deleted", model_name)
-        return "success"
+            logging.info("model '%s' deleted", model_name)
+        return ('', 204)
 
     @catch_loudml_error
-    def post(self, model_name):
+    def head(self, model_names):
+        global g_storage
+        names = set(model_names.split(';'))
+        saved_models = set(g_storage.list_models())
+        if len(names & saved_models) == len(names):
+            return Response(
+                status=200,
+            )
+        else:
+            return Response(
+                status=404,
+            )
+
+    @catch_loudml_error
+    def patch(self, model_names):
         global g_config
         global g_storage
         global g_running_models
 
         settings = get_json()
-        settings['name'] = model_name
-        model = loudml.model.load_model(settings=settings, config=g_config)
 
-        changes = g_storage.save_model(model, save_state=False)
-        for change, param, desc in changes:
-            logging.info(
-                "model '%s' %s %s %s",
-                model_name,
-                change,
-                param,
-                desc
-            )
-            if change == 'change' and param == 'interval':
-                previous_val, next_val = desc
-                g_lock.acquire()
-                timer = g_running_models.get(model_name)
-                if timer is not None:
-                    timer.cancel()
-                    timer.interval = parse_timedelta(next_val).total_seconds()
-                    timer.start()
-                g_lock.release()
+        for model_name in model_names.split(';'):
+            settings['name'] = model_name
+            model = loudml.model.load_model(settings=settings, config=g_config)
 
-        logging.info("model '%s' updated", model_name)
-        return "success"
+            changes = g_storage.save_model(model, save_state=False)
+            for change, param, desc in changes:
+                logging.info(
+                    "model '%s' %s %s %s",
+                    model_name,
+                    change,
+                    param,
+                    desc
+                )
+                if change == 'change' and param == 'interval':
+                    previous_val, next_val = desc
+                    g_lock.acquire()
+                    timer = g_running_models.get(model_name)
+                    if timer is not None:
+                        timer.cancel()
+                        timer.interval = parse_timedelta(
+                            next_val).total_seconds()
+                        timer.start()
+                    g_lock.release()
+
+            logging.info("model '%s' updated", model_name)
+        return ('', 204)
 
 
 api.add_resource(ModelsResource, "/models")
-api.add_resource(ModelResource, "/models/<model_name>")
+api.add_resource(ModelResource, "/models/<model_names>")
 
 
 @app.route("/models/<model_name>/_train", methods=['POST'])
@@ -560,24 +613,28 @@ def model_train(model_name):
         kwargs.update({
             'autostart': True,
             'save_prediction': get_bool_arg('save_prediction'),
-            'datasink': request.args.get('datasink'),
+            'output_bucket': request.args.get('output_bucket'),
             'detect_anomalies': get_bool_arg('detect_anomalies'),
         })
 
-    datasource = request.args.get('datasource')
-    if datasource is not None:
-        kwargs['datasource'] = datasource
+    bucket = request.args.get('input')
+    if bucket is not None:
+        kwargs['bucket'] = bucket
 
     max_evals = get_int_arg('max_evals')
     if max_evals is not None:
         kwargs['max_evals'] = max_evals
+
+    epochs = get_int_arg('epochs')
+    if epochs is not None:
+        kwargs['num_epochs'] = epochs
 
     job = TrainingJob(model_name, **kwargs)
     job.start(g_config)
 
     g_training[model_name] = job
 
-    return jsonify(job.id)
+    return jsonify(job.id), 202
 
 
 class HooksResource(Resource):
@@ -588,7 +645,7 @@ class HooksResource(Resource):
         return jsonify(g_storage.list_model_hooks(model_name))
 
     @catch_loudml_error
-    def put(self, model_name):
+    def post(self, model_name):
         global g_storage
 
         data = get_json()
@@ -672,83 +729,273 @@ def hook_test(model_name, hook_name):
     return "ok", 200
 
 
-def _remove_datasource_secrets(datasource):
-    datasource.pop('password', None)
-    datasource.pop('dbuser_password', None)
-    datasource.pop('write_token', None)
-    datasource.pop('read_token', None)
+def _remove_bucket_secrets(bucket):
+    bucket.pop('password', None)
+    bucket.pop('dbuser_password', None)
+    bucket.pop('write_token', None)
+    bucket.pop('read_token', None)
 
 
-class DataSourcesResource(Resource):
+class BucketsResource(Resource):
     @catch_loudml_error
     def get(self):
         global g_config
-        res = []
-        for datasource in g_config.datasources.values():
-            _remove_datasource_secrets(datasource)
-            res.append(datasource)
-        return jsonify(res)
+        page = get_int_arg('page', default=0)
+        per_page = get_int_arg('per_page', default=50)
+        if per_page > 100 or per_page <= 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('per_page')
+            )
+        if page < 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('page')
+            )
+
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        list_sort_field, list_sort_order = request.args.get(
+            'sort', 'name:1').split(':')
+
+        buckets = []
+        for bucket in g_config.buckets.values():
+            _remove_bucket_secrets(bucket)
+            if fields:
+                clear_fields(bucket, fields, include_fields)
+            buckets.append(bucket)
+
+        buckets = sorted(
+            buckets,
+            key=lambda k: k.get(list_sort_field),
+            reverse=bool(int(list_sort_order) == -1),
+        )
+        return jsonify(
+            buckets[page*per_page:(page+1)*per_page])
 
     @catch_loudml_error
-    def put(self):
+    def post(self):
         global g_config
 
         new = request.get_json()
-        g_config.put_datasource(new)
+        g_config.put_bucket(new)
         return ('', 201)
 
 
-class DataSourceResource(Resource):
+class BucketResource(Resource):
     @catch_loudml_error
-    def get(self, datasource_name):
+    def get(self, bucket_names):
         global g_config
-        datasource = g_config.get_datasource(datasource_name)
-        _remove_datasource_secrets(datasource)
-        return jsonify(datasource)
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        buckets = []
+        for bucket_name in bucket_names.split(';'):
+            bucket = g_config.get_bucket(bucket_name)
+            _remove_bucket_secrets(bucket)
+            if fields:
+                clear_fields(bucket, fields, include_fields)
+            buckets.append(bucket)
+
+        return jsonify(buckets)
 
     @catch_loudml_error
-    def patch(self, datasource_name):
+    def patch(self, bucket_names):
         global g_config
 
         data = request.get_json()
-        data['name'] = datasource_name
-        g_config.put_datasource(data)
-        logging.info("datasource '%s' changed", datasource_name)
+        for bucket_name in bucket_names.split(';'):
+            data['name'] = bucket_name
+            g_config.patch_bucket(data)
+            logging.info("bucket '%s' changed", bucket_name)
         return ('', 204)
 
     @catch_loudml_error
-    def delete(self, datasource_name):
+    def delete(self, bucket_names):
         global g_config
-        g_config.del_datasource(datasource_name)
-        logging.info("datasource '%s' deleted", datasource_name)
+        for bucket_name in bucket_names.split(';'):
+            g_config.del_bucket(bucket_name)
+            logging.info("bucket '%s' deleted", bucket_name)
         return ('', 204)
 
+    @catch_loudml_error
+    def head(self, bucket_names):
+        global g_config
+        names = set(bucket_names.split(';'))
+        saved_buckets = set(g_config.list_buckets())
+        if len(names & saved_buckets) == len(names):
+            return Response(
+                status=200,
+            )
+        else:
+            return Response(
+                status=404,
+            )
 
-api.add_resource(DataSourcesResource, "/datasources")
-api.add_resource(DataSourceResource, "/datasources/<datasource_name>")
+
+api.add_resource(BucketsResource, "/buckets")
+api.add_resource(BucketResource, "/buckets/<bucket_names>")
+
+
+@app.route("/buckets/<bucket_name>/_clear", methods=['POST'])
+def bucket_clear(bucket_name):
+    global g_config
+    settings = g_config.get_bucket(bucket_name)
+    bucket = load_bucket(settings)
+    bucket.drop()
+    return ('', 204)
+
+
+@app.route("/buckets/<bucket_name>/_write", methods=['POST'])
+def bucket_write(bucket_name):
+    global g_config
+    _ = g_config.get_bucket(bucket_name)
+
+    points = get_json()
+    job = WriteBucketJob(
+        bucket_name=bucket_name,
+        points=points,
+        **request.args
+    )
+    job.start(g_config)
+    return str(job.id), 202
+
+
+@app.route("/buckets/<bucket_name>/_read", methods=['POST'])
+def bucket_read(bucket_name):
+    global g_config
+    _ = g_config.get_bucket(bucket_name)
+
+    from_date = get_date_arg('from', is_mandatory=True)
+    to_date = get_date_arg('to', is_mandatory=True)
+    bucket_interval = parse_timedelta(
+        request.args.get('bucket_interval', 0)).total_seconds()
+    if not bucket_interval:
+        raise errors.Invalid(
+            "invalid value for parameter 'bucket_interval'")
+
+    features = []
+    for feature in request.args.get('features', '').split(';'):
+        field = None
+        metric = None
+        measurement = 'doc'
+        for index, val in parse_expression("({})".format(feature)):
+            if index > 1:
+                raise errors.Invalid(
+                    "invalid value for parameter 'features'")
+            if index == 0:
+                metric = val.split('(')[0]
+            elif index == 1:
+                if '.' in val:
+                    measurement, field = val.split('.')
+                else:
+                    field = val
+        if not field or not metric:
+            raise errors.Invalid(
+                "invalid value for parameter 'features'")
+        features.append(
+            loudml.model.Feature(
+                name='{}_{}'.format(metric, field),
+                measurement=measurement,
+                field=field,
+                metric=metric,
+            )
+        )
+
+    job = ReadBucketJob(
+        bucket_name=bucket_name,
+        from_date=from_date,
+        to_date=to_date,
+        bucket_interval=bucket_interval,
+        features=features,
+    )
+    job.start(g_config)
+    return str(job.id), 202
 
 
 class JobsResource(Resource):
     @catch_loudml_error
     def get(self):
         global g_jobs
-        return jsonify([job.desc for job in g_jobs.values()])
+        page = get_int_arg('page', default=0)
+        per_page = get_int_arg('per_page', default=50)
+        if per_page > 100 or per_page <= 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('per_page')
+            )
+        if page < 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('page')
+            )
+
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        list_sort_field, list_sort_order = request.args.get(
+            'sort', 'name:1').split(':')
+
+        jobs = []
+        for entry in g_jobs.values():
+            job = entry.desc
+            if fields:
+                clear_fields(job, fields, include_fields)
+            jobs.append(job)
+
+        jobs = sorted(
+            jobs,
+            key=lambda k: k.get(list_sort_field),
+            reverse=bool(int(list_sort_order) == -1),
+        )
+        return jsonify(
+            jobs[page*per_page:(page+1)*per_page])
 
 
 class JobResource(Resource):
     @catch_loudml_error
-    def get(self, job_id):
+    def get(self, job_ids):
         global g_jobs
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
 
-        job = g_jobs.get(job_id)
-        if job is None:
-            return "job not found", 404
+        wanted = set(job_ids.split(';'))
 
-        return jsonify(job.desc)
+        jobs = [
+            get_job_desc(job_id, fields, include_fields)
+            for job_id in (wanted & set(g_jobs.keys()))
+        ]
+        if not len(jobs):
+            return "job(s) not found", 404
+
+        return jsonify(jobs)
+
+    @catch_loudml_error
+    def head(self, job_ids):
+        global g_jobs
+        ids = set(job_ids.split(';'))
+        found_ids = set(g_jobs.keys())
+        if len(ids & found_ids) == len(ids):
+            return Response(
+                status=200,
+            )
+        else:
+            return Response(
+                status=404,
+            )
 
 
 api.add_resource(JobsResource, "/jobs")
-api.add_resource(JobResource, "/jobs/<job_id>")
+api.add_resource(JobResource, "/jobs/<job_ids>")
 
 
 class TrainingJob(Job):
@@ -764,7 +1011,7 @@ class TrainingJob(Job):
         self.autostart = kwargs.pop('autostart', False)
         self._kwargs_start = {
             'save_prediction': kwargs.pop('save_prediction', False),
-            'datasink': kwargs.pop('datasink', None),
+            'output_bucket': kwargs.pop('output_bucket', None),
             'detect_anomalies': kwargs.pop('detect_anomalies', False),
             'from_date': kwargs.get('from_date', None),
         }
@@ -828,22 +1075,63 @@ def model_training_job(model_name):
     return jsonify(job.desc)
 
 
-class LoadJob(Job):
+class ReadBucketJob(Job):
     """
-    Load data job
+    Read data from bucket
     """
-    func = 'load'
-    job_type = 'fetch'
+    func = 'read_from_bucket'
+    job_type = 'read'
 
-    def __init__(self, from_date, datasource, **kwargs):
+    def __init__(
+        self,
+        bucket_name,
+        from_date,
+        to_date,
+        bucket_interval,
+        features,
+    ):
         super().__init__()
+        self.bucket_name = bucket_name
         self.from_date = from_date
-        self.datasource = datasource
+        self.to_date = to_date
+        self.bucket_interval = bucket_interval
+        self.features = features
+
+    @property
+    def args(self):
+        return [
+            self.bucket_name,
+            self.from_date,
+            self.to_date,
+            self.bucket_interval,
+            self.features,
+        ]
+
+
+class WriteBucketJob(Job):
+    """
+    Write data points to bucket
+    """
+    func = 'write_to_bucket'
+    job_type = 'write'
+
+    def __init__(
+        self,
+        bucket_name,
+        points,
+        **kwargs
+    ):
+        super().__init__()
+        self.bucket_name = bucket_name
+        self.points = points
         self._kwargs = kwargs
 
     @property
     def args(self):
-        return [self.from_date, self.datasource]
+        return [
+            self.bucket_name,
+            self.points,
+        ]
 
     @property
     def kwargs(self):
@@ -945,13 +1233,13 @@ def model_predict(model_name):
         from_date=get_date_arg('from', is_mandatory=True),
         to_date=get_date_arg('to', is_mandatory=True),
         save_prediction=request.args.get('save_prediction', default=False),
-        datasink=request.args.get('datasink'),
+        output_bucket=request.args.get('output_bucket'),
         detect_anomalies=request.args.get('detect_anomalies', default=False),
     )
     job.start(g_config)
 
     if get_bool_arg('bg', default=False):
-        return str(job.id)
+        return str(job.id), 202
 
     return jsonify(job.result())
 
@@ -967,8 +1255,8 @@ def model_top(model_name):
 
     model = g_storage.load_model(model_name)
 
-    src_settings = g_config.get_datasource(model.default_datasource)
-    source = load_datasource(src_settings)
+    src_settings = g_config.get_bucket(model.default_bucket)
+    source = load_bucket(src_settings)
 
     res = source.get_top_abnormal_keys(
         model,
@@ -986,7 +1274,7 @@ def model_start(model_name):
 
     params = {
         'save_prediction': get_bool_arg('save_prediction'),
-        'datasink': request.args.get('datasink'),
+        'output_bucket': request.args.get('output_bucket'),
         'detect_anomalies': get_bool_arg('detect_anomalies'),
     }
 
@@ -1042,7 +1330,7 @@ def model_forecast(model_name):
 
     params = {
         'save_prediction': get_bool_arg('save_prediction'),
-        'datasink': request.args.get('datasink'),
+        'output_bucket': request.args.get('output_bucket'),
     }
 
     model = g_storage.load_model(model_name)
@@ -1058,7 +1346,7 @@ def model_forecast(model_name):
     job.start(g_config)
 
     if get_bool_arg('bg', default=False):
-        return str(job.id)
+        return str(job.id), 202
 
     return jsonify(job.result())
 
@@ -1082,7 +1370,7 @@ def model_forecast(model_name):
 # def do_things():
 #    job = DummyJob(int(request.args.get('value', 0)))
 #    job.start()
-#    return str(job.id)
+#    return str(job.id), 202
 
 
 @app.route("/")

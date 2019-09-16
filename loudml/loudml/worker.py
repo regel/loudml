@@ -7,14 +7,11 @@ import signal
 import os
 
 import loudml.config
-import loudml.datasource
+import loudml.bucket
 import loudml.model
-
+from loudml.misc import make_ts
 from loudml import (
     errors,
-)
-from loudml.misc import (
-    load_nab,
 )
 
 from loudml.filestorage import (
@@ -66,16 +63,16 @@ class Worker:
 
         return res
 
-    def train(self, model_name, datasource=None, **kwargs):
+    def train(self, model_name, bucket=None, **kwargs):
         """
         Train model
         """
 
         model = self.storage.load_model(model_name)
 
-        src_name = datasource or model.default_datasource
-        src_settings = self.config.get_datasource(src_name)
-        source = loudml.datasource.load_datasource(src_settings)
+        bucket_name = bucket or model.default_bucket
+        bucket_settings = self.config.get_bucket(bucket_name)
+        bucket = loudml.bucket.load_bucket(bucket_settings)
 
         def progress_cb(current_eval, max_evals):
             self._msg_queue.put({
@@ -87,15 +84,16 @@ class Worker:
                     'max_evals': max_evals,
                 },
             })
-        windows = source.list_anomalies(
+        windows = bucket.list_anomalies(
             kwargs['from_date'],
             kwargs['to_date'],
             tags={'model': model_name},
         )
+        num_epochs = kwargs.pop('num_epochs', self.config.training['epochs'])
         model.train(
-            source,
+            bucket,
             batch_size=self.config.training['batch_size'],
-            num_epochs=self.config.training['epochs'],
+            num_epochs=num_epochs,
             num_cpus=self.config.training['num_cpus'],
             num_gpus=self.config.training['num_gpus'],
             progress_cb=progress_cb,
@@ -108,25 +106,114 @@ class Worker:
         self,
         model,
         prediction,
-        source,
-        datasink=None,
+        input_bucket,
+        output_bucket=None,
     ):
-        if datasink is None:
-            datasink = model.default_datasink
+        if output_bucket is None:
+            output_bucket = model.default_bucket
 
-        if datasink is None or datasink == source.name:
-            sink = source
+        if output_bucket is None or output_bucket == input_bucket.name:
+            bucket = input_bucket
         else:
             try:
-                sink_settings = self.config.get_datasource(
-                    datasink
+                bucket_settings = self.config.get_bucket(
+                    output_bucket
                 )
-                sink = loudml.datasource.load_datasource(sink_settings)
+                bucket = loudml.bucket.load_bucket(bucket_settings)
             except errors.LoudMLException as exn:
-                logging.error("cannot load data sink: %s", str(exn))
+                logging.error("cannot load bucket: %s", str(exn))
                 return
 
-        sink.save_timeseries_prediction(prediction, model)
+        bucket.init(data_schema=prediction.get_schema())
+        bucket.save_timeseries_prediction(prediction, tags=model.get_tags())
+
+    def read_from_bucket(
+        self,
+        bucket_name,
+        from_date,
+        to_date,
+        bucket_interval,
+        features,
+    ):
+        """
+        Run query in the bucket TSDB and return data
+        """
+        bucket_settings = self.config.get_bucket(bucket_name)
+        bucket = loudml.bucket.load_bucket(bucket_settings)
+
+        data = bucket.get_times_data(
+            bucket_interval=bucket_interval,
+            features=features,
+            from_date=from_date,
+            to_date=to_date,
+        )
+        timestamps = []
+        obs = {
+            feature.name: []
+            for feature in features
+        }
+        for (_, values, timeval) in data:
+            timestamps.append(make_ts(timeval))
+            for (feature, val) in zip(features, values):
+                obs[feature.name].append(float(val))
+
+        return {
+            'timestamps': timestamps,
+            'observed': obs,
+        }
+
+    def write_to_bucket(
+        self,
+        bucket_name,
+        points,
+        **kwargs
+    ):
+        """
+        Writes data points to the bucket TSDB
+        """
+        bucket_settings = self.config.get_bucket(bucket_name)
+        bucket = loudml.bucket.load_bucket(bucket_settings)
+
+        fields = [
+            list(point.keys())
+            for point in points
+        ]
+        flat_fields = [
+            field for sub_fields in fields for field in sub_fields
+        ]
+        fields = set(flat_fields) - set(['timestamp', 'tags'])
+
+        tags = [
+            list(point['tags'].keys())
+            for point in points
+            if 'tags' in point
+        ]
+        flat_tags = [
+            tag for sub_tags in tags for tag in sub_tags
+        ]
+        tags = set(flat_tags)
+
+        data_schema = {}
+        data_schema.update({
+            tag: {"type": "keyword"}
+            for tag in tags
+        })
+        data_schema.update({
+            field: {"type": "float"}
+            for field in fields
+        })
+        bucket.init(data_schema=data_schema)
+        for point in points:
+            ts = make_ts(point.pop('timestamp'))
+            tags = point.pop('tags', None)
+            bucket.insert_times_data(
+                ts=ts,
+                data=point,
+                tags=tags,
+                **kwargs
+            )
+
+        bucket.commit()
 
     def predict(
         self,
@@ -134,7 +221,7 @@ class Worker:
         save_run_state=True,
         save_prediction=False,
         detect_anomalies=False,
-        datasink=None,
+        output_bucket=None,
         **kwargs
     ):
         """
@@ -142,14 +229,14 @@ class Worker:
         """
 
         model = self.storage.load_model(model_name)
-        src_settings = self.config.get_datasource(model.default_datasource)
-        source = loudml.datasource.load_datasource(src_settings)
+        bucket_settings = self.config.get_bucket(model.default_bucket)
+        bucket = loudml.bucket.load_bucket(bucket_settings)
 
         if model.type in ['timeseries', 'donut']:
             _state = model.get_run_state()
             if detect_anomalies:
                 prediction = model.predict2(
-                    source,
+                    bucket,
                     _state=_state,
                     num_cpus=self.config.inference['num_cpus'],
                     num_gpus=self.config.inference['num_gpus'],
@@ -157,7 +244,7 @@ class Worker:
                 )
             else:
                 prediction = model.predict(
-                    source,
+                    bucket,
                     num_cpus=self.config.inference['num_cpus'],
                     num_gpus=self.config.inference['num_gpus'],
                     **kwargs
@@ -168,7 +255,7 @@ class Worker:
             if detect_anomalies:
                 hooks = self.storage.load_model_hooks(
                     model.settings,
-                    source,
+                    bucket,
                 )
                 model.detect_anomalies(prediction, hooks)
             if save_run_state:
@@ -178,8 +265,8 @@ class Worker:
                 self._save_timeseries_prediction(
                     model,
                     prediction,
-                    source,
-                    datasink,
+                    bucket,
+                    output_bucket,
                 )
 
             fmt = kwargs.get('format', 'series')
@@ -198,7 +285,7 @@ class Worker:
         self,
         model_name,
         save_prediction=False,
-        datasink=None,
+        output_bucket=None,
         **kwargs
     ):
         """
@@ -206,13 +293,13 @@ class Worker:
         """
 
         model = self.storage.load_model(model_name)
-        src_settings = self.config.get_datasource(model.default_datasource)
-        source = loudml.datasource.load_datasource(src_settings)
+        bucket_settings = self.config.get_bucket(model.default_bucket)
+        bucket = loudml.bucket.load_bucket(bucket_settings)
 
         constraint = kwargs.pop('constraint', None)
 
         forecast = model.forecast(
-            source,
+            bucket,
             num_cpus=self.config.inference['num_cpus'],
             num_gpus=self.config.inference['num_gpus'],
             **kwargs
@@ -233,27 +320,13 @@ class Worker:
                 self._save_timeseries_prediction(
                     model,
                     forecast,
-                    source,
-                    datasink,
+                    bucket,
+                    output_bucket,
                 )
 
             return forecast.format_series()
         else:
             logging.info("job[%s] forecast done", self.job_id)
-
-    def load(
-        self,
-        from_date=None,
-        datasource=None,
-        **kwargs
-    ):
-        """
-        Load public data set
-        """
-        src_settings = self.config.get_datasource(datasource)
-        source = loudml.datasource.load_datasource(src_settings)
-        load_nab(source, from_date)
-        logging.info("data loaded")
 
     """
     # Example

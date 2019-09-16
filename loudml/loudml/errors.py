@@ -16,24 +16,24 @@ class Conflict(LoudMLException):
     code = 409
 
 
-class DataSourceError(LoudMLException):
-    """Error occured on data source query"""
+class BucketError(LoudMLException):
+    """Error occured on bucket query"""
     code = 500
 
-    def __init__(self, datasource, error=None):
-        self.datasource = datasource
+    def __init__(self, bucket, error=None):
+        self.bucket = bucket
         self.error = error or self.__doc__
 
     def __str__(self):
-        return "datasource[{}]: {}".format(self.datasource, self.error)
+        return "bucket[{}]: {}".format(self.bucket, self.error)
 
 
-class DataSourceNotFound(DataSourceError):
-    """Data source not found"""
+class BucketNotFound(BucketError):
+    """Bucket not found"""
     code = 404
 
     def __str__(self):
-        return "{} (name = '{}')".format(self.error, self.datasource)
+        return "{} (name = '{}')".format(self.error, self.bucket)
 
 
 class Invalid(LoudMLException):
@@ -87,16 +87,16 @@ class ModelNotTrained(LoudMLException):
     code = 400
 
 
-class UnsupportedDataSource(LoudMLException):
-    """Unsupported data source"""
+class UnsupportedBucket(LoudMLException):
+    """Unsupported bucket type"""
     code = 501
 
-    def __init__(self, datasource_type, error=None):
-        self.datasource_type = datasource_type
+    def __init__(self, bucket_type, error=None):
+        self.bucket_type = bucket_type
         self.error = error or self.__doc__
 
     def __str__(self):
-        return "{} (type = '{}')".format(self.error, self.datasource_type)
+        return "{} (type = '{}')".format(self.error, self.bucket_type)
 
 
 class UnsupportedMetric(LoudMLException):

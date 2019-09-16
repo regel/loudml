@@ -1,18 +1,15 @@
+import loudml.vendor  # noqa
 from loudml.mongo import (
-    MongoDataSource,
+    MongoBucket,
 )
 from loudml.donut import (
     DonutModel,
 )
 from loudml.model import Model
 from loudml.randevents import SinEventGenerator
-from loudml.misc import (
-    ts_to_str,
-)
 from loudml import (
     errors,
 )
-import loudml.vendor
 
 import datetime
 import logging
@@ -34,6 +31,7 @@ class TestMongo(unittest.TestCase):
             'name': 'test',
             'addr': os.environ.get('MONGODB_ADDR', "localhost:27017"),
             'database': db,
+            'collection': 'coll',
         }
 
         username = os.environ.get('MONGODB_USER')
@@ -46,7 +44,8 @@ class TestMongo(unittest.TestCase):
             if auth_source:
                 settings['auth_source'] = auth_source
 
-        self.source = MongoDataSource(settings)
+        self.bucket_cfg = settings
+        self.source = MongoBucket(settings)
 
         self.model = Model(dict(
             name="test-model",
@@ -58,13 +57,11 @@ class TestMongo(unittest.TestCase):
                 {
                     'name': 'avg_foo',
                     'metric': 'avg',
-                    'collection': 'coll',
                     'field': 'foo',
                 },
                 {
                     'name': 'count_bar',
                     'metric': 'count',
-                    'collection': 'coll',
                     'field': 'bar',
                     'default': 0,
                 },
@@ -82,30 +79,28 @@ class TestMongo(unittest.TestCase):
         self.source.drop()
 
     def test_validate_config(self):
-        MongoDataSource({
+        MongoBucket({
             'name': 'test',
             'addr': "localhost:27017",
             'database': "mydb",
             'username': 'obelix',
             'password': 'sangliers',
+            'collection': 'coll',
         })
 
     def test_write_read(self):
         t0 = self.t0
 
         self.source.insert_times_data(
-            collection='coll',
             ts=t0 - 7000,
             data={'foo': 0.7},
         )
         self.source.insert_times_data(
             ts=t0 - 3800,
-            collection='coll',
             data={'bar': 42},
         )
         self.source.insert_times_data(
             ts=t0 - 1400,
-            collection='coll',
             data={
                 'foo': 0.8,
                 'bar': 33,
@@ -113,7 +108,6 @@ class TestMongo(unittest.TestCase):
         )
         self.source.insert_times_data(
             ts=t0 - 1200,
-            collection='coll',
             data={
                 'foo': 0.4,
                 'bar': 64,
@@ -122,9 +116,10 @@ class TestMongo(unittest.TestCase):
         self.source.commit()
 
         res = self.source.get_times_data(
-            self.model,
-            t0 - 7200,
-            t0,
+            bucket_interval=self.model.bucket_interval,
+            features=self.model.features,
+            from_date=t0 - 7200,
+            to_date=t0,
         )
 
         bucket = res[0][1]
@@ -136,12 +131,17 @@ class TestMongo(unittest.TestCase):
     def test_no_data(self):
         with self.assertRaises(errors.NoData):
             self.source.get_times_data(
-                self.model,
-                "2017-01-01T00:00:00Z",
-                "2017-01-31T00:00:00Z",
+                bucket_interval=self.model.bucket_interval,
+                features=self.model.features,
+                from_date="2017-01-01T00:00:00Z",
+                to_date="2017-01-31T00:00:00Z",
             )
 
     def test_match_all(self):
+        settings = self.bucket_cfg
+        settings['collection'] = 'coll1'
+        source = MongoBucket(settings)
+
         model = Model(dict(
             name="test-model",
             offset=30,
@@ -152,7 +152,6 @@ class TestMongo(unittest.TestCase):
                 {
                     'name': 'avg_foo',
                     'metric': 'avg',
-                    'collection': 'coll1',
                     'field': 'foo',
                     'match_all': [
                         {'tag': 'tag_1', 'value': 'tag_A'},
@@ -170,15 +169,13 @@ class TestMongo(unittest.TestCase):
             (78, t0 + 10),  # excluded
         ]
         for foo, ts in data:
-            self.source.insert_times_data(
-                collection='coll1',
+            source.insert_times_data(
                 ts=ts,
                 data={
                     'foo': foo,
                 }
             )
-            self.source.insert_times_data(
-                collection='coll1',
+            source.insert_times_data(
                 ts=ts,
                 tags={
                     'tag_1': 'tag_A',
@@ -188,8 +185,7 @@ class TestMongo(unittest.TestCase):
                     'foo': foo,
                 }
             )
-            self.source.insert_times_data(
-                collection='coll1',
+            source.insert_times_data(
                 ts=ts,
                 tags={
                     'tag_1': 'tag_B',
@@ -199,9 +195,10 @@ class TestMongo(unittest.TestCase):
                     'foo': -foo,
                 }
             )
-        self.source.commit()
-        res = self.source.get_times_data(
-            model,
+        source.commit()
+        res = source.get_times_data(
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=t0,
             to_date=t0 + 3 * model.bucket_interval,
         )
@@ -222,7 +219,6 @@ class TestMongo(unittest.TestCase):
             interval=60,
             features=[
                 {
-                    'collection': 'coll1',
                     'name': 'avg_foo',
                     'metric': 'avg',
                     'field': 'foo',
@@ -232,8 +228,9 @@ class TestMongo(unittest.TestCase):
                 },
             ],
         ))
-        res = self.source.get_times_data(
-            model,
+        res = source.get_times_data(
+            bucket_interval=model.bucket_interval,
+            features=model.features,
             from_date=self.t0,
             to_date=self.t0 + 8,
         )
@@ -259,14 +256,12 @@ class TestMongo(unittest.TestCase):
                 {
                     'name': 'count_foo',
                     'metric': 'count',
-                    'collection': 'coll',
                     'field': 'foo',
                     'default': 0,
                 },
                 {
                     'name': 'avg_foo',
                     'metric': 'avg',
-                    'collection': 'coll',
                     'field': 'foo',
                     'default': 5,
                 },
@@ -305,11 +300,12 @@ class TestMongo(unittest.TestCase):
         pred_from = to_date - 3 * model.bucket_interval
         pred_to = to_date
         prediction = model.predict(
-            datasource=self.source,
+            bucket=self.source,
             from_date=pred_from,
             to_date=pred_to,
         )
-        self.source.save_timeseries_prediction(prediction, model)
+        self.source.save_timeseries_prediction(
+            prediction, tags=model.get_tags())
 
         boundaries = list(range(
             int(pred_from),
@@ -317,7 +313,7 @@ class TestMongo(unittest.TestCase):
             int(model.bucket_interval),
         ))
 
-        res = self.source.db['prediction_test'].aggregate([
+        res = self.source.db['loudml'].aggregate([
             {'$bucket': {
                 'groupBy': '$timestamp',
                 'boundaries': boundaries,

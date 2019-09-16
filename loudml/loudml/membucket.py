@@ -11,7 +11,7 @@ from .misc import (
     ts_to_str,
     make_ts,
 )
-from .datasource import DataSource
+from loudml.bucket import Bucket
 
 
 def make_float(s):
@@ -50,7 +50,7 @@ class OrderedEntry:
         return str(self.value)
 
 
-class Bucket:
+class DataBucket:
     """
     Data bucket
     """
@@ -66,7 +66,7 @@ class Bucket:
         return str(self.key)
 
 
-class TimeBucket(Bucket):
+class TimeBucket(DataBucket):
     """
     Time-series bucket
     """
@@ -75,7 +75,7 @@ class TimeBucket(Bucket):
         return '%s (%s)' % (self.key, ts_to_str(self.key))
 
 
-class MemDataSource(DataSource):
+class MemBucket(Bucket):
     """
     In-memory data source
     """
@@ -241,7 +241,7 @@ class MemDataSource(DataSource):
         to_date=None,
         key=None,
     ):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def _get_times_data(
         self,
@@ -280,11 +280,14 @@ class MemDataSource(DataSource):
 
     def get_times_data(
         self,
-        model,
+        bucket_interval,
+        features,
         from_date=None,
         to_date=None,
     ):
-        return self._get_times_data(model.features, model.bucket_interval, from_date, to_date)
-
-    def save_timeseries_prediction(self, prediction, model):
-        raise NotImplemented()
+        return self._get_times_data(
+            features,
+            bucket_interval,
+            from_date,
+            to_date,
+        )

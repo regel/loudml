@@ -23,7 +23,7 @@ from .misc import (
     make_ts,
     parse_addr,
 )
-from loudml.datasource import DataSource
+from loudml.bucket import Bucket
 
 
 def _tk(key):
@@ -80,18 +80,19 @@ def catch_query_error(func):
         except (
             pymongo.errors.PyMongoError
         ) as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+            raise errors.BucketError(self.name, str(exn))
     return wrapper
 
 
-class MongoDataSource(DataSource):
+class MongoBucket(Bucket):
     """
-    MongoDB datasource
+    MongoDB bucket
     """
 
-    SCHEMA = DataSource.SCHEMA.extend({
+    SCHEMA = Bucket.SCHEMA.extend({
         Required('addr'): str,
         Required('database'): str,
+        Required('collection'): schemas.key,
         Optional('username'): All(schemas.key, Length(max=256)),
         Optional('password'): str,
         Optional('auth_source'): str,
@@ -104,6 +105,10 @@ class MongoDataSource(DataSource):
         self._db = None
         self._pending = {}
         self._nb_pending = 0
+
+    @property
+    def collection(self):
+        return self.cfg['collection']
 
     @property
     def client(self):
@@ -142,8 +147,8 @@ class MongoDataSource(DataSource):
         return self._db
 
     @catch_query_error
-    def init(self, db=None, *args, **kwargs):
-        raise NotImplemented()
+    def init(self, *args, **kwargs):
+        return
 
     @catch_query_error
     def drop(self, db=None):
@@ -164,25 +169,19 @@ class MongoDataSource(DataSource):
     def insert_data(
         self,
         data,
-        collection='generic',
         tags=None,
     ):
-        if collection is None:
-            raise errors.Invalid("cannot insert data: no collection given")
-
         if tags is not None:
             for tag, tag_val in tags.items():
                 data[tag] = tag_val
 
-        self.enqueue(collection, pymongo.InsertOne(data))
+        self.enqueue(self.collection, pymongo.InsertOne(data))
 
     def insert_times_data(
         self,
         ts,
         data,
-        collection=None,
         tags=None,
-        timestamp_field='timestamp',
         *args,
         **kwargs
     ):
@@ -193,8 +192,8 @@ class MongoDataSource(DataSource):
         ts = make_ts(ts)
 
         data = data.copy()
-        data[timestamp_field] = ts
-        self.insert_data(data, tags=tags, collection=collection)
+        data[self.timestamp_field] = ts
+        self.insert_data(data, tags=tags)
 
     @catch_query_error
     def send_bulk(self, pending):
@@ -215,17 +214,17 @@ class MongoDataSource(DataSource):
         limit=0,
         offset=0,
     ):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     @catch_query_error
     def get_times_data(
         self,
-        model,
+        bucket_interval,
+        features,
         from_date,
         to_date,
     ):
-        bucket_interval = int(model.bucket_interval)
-        timestamp_field = model.timestamp_field
+        bucket_interval = int(bucket_interval)
 
         from_ts = int(math.floor(make_ts(from_date) /
                                  bucket_interval) * bucket_interval)
@@ -236,17 +235,14 @@ class MongoDataSource(DataSource):
             range(from_ts, to_ts + bucket_interval, bucket_interval))
 
         nb_buckets = len(boundaries)
-        buckets = np.full((nb_buckets, len(model.features)),
+        buckets = np.full((nb_buckets, len(features)),
                           np.nan, dtype=float)
 
         nb_buckets_found = 0
 
-        for i, feature in enumerate(model.features):
-            metric = feature.metric
-            field = feature.field
-
-            query = _build_query(feature, timestamp_field, boundaries)
-            resp = self.db[feature.collection].aggregate(query)
+        for i, feature in enumerate(features):
+            query = _build_query(feature, self.timestamp_field, boundaries)
+            resp = self.db[self.collection].aggregate(query)
 
             for entry in resp:
                 ts = entry['_id']
@@ -271,25 +267,3 @@ class MongoDataSource(DataSource):
             ts += bucket_interval
 
         return result
-
-    def save_timeseries_prediction(self, prediction, model):
-        collection = "prediction_" + model.name
-
-        logging.info("saving '%s' prediction to '%s.%s'",
-                     model.name, self.cfg['database'], collection)
-
-        for bucket in prediction.format_buckets():
-            data = bucket['predicted']
-            tags = model.get_tags()
-            stats = bucket.get('stats', None)
-            if stats is not None:
-                data['score'] = float(stats.get('score'))
-                tags['is_anomaly'] = stats.get('anomaly', False)
-
-            self.insert_times_data(
-                collection=collection,
-                ts=bucket['timestamp'],
-                tags=tags,
-                data=data,
-            )
-        self.commit()

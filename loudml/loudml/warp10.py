@@ -2,9 +2,9 @@
 Warp10 module for Loud ML
 """
 
+import loudml.vendor  # noqa
 import json
 import logging
-import loudml.vendor
 import math
 import numpy as np
 
@@ -18,13 +18,11 @@ from voluptuous import (
 )
 from . import (
     errors,
-    schemas,
 )
-from .datasource import DataSource
+from .bucket import Bucket
 from .misc import (
-    datetime_to_str,
-    make_datetime,
     make_ts,
+    DateRange,
 )
 
 
@@ -58,16 +56,16 @@ def catch_query_error(func):
         try:
             return func(self, *args, **kwargs)
         except warp10client.client.CallException as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+            raise errors.BucketError(self.name, str(exn))
     return wrapper
 
 
-class Warp10DataSource(DataSource):
+class Warp10Bucket(Bucket):
     """
-    Warp10 datasource
+    Warp10 bucket
     """
 
-    SCHEMA = DataSource.SCHEMA.extend({
+    SCHEMA = Bucket.SCHEMA.extend({
         Optional('url', default='http://localhost:8080'): Url(),
         Required('read_token'): str,
         Required('write_token'): str,
@@ -107,7 +105,7 @@ class Warp10DataSource(DataSource):
         })
 
     def insert_data(self, data):
-        raise NotImplemented("Warp10 is a pure time-series database")
+        raise NotImplementedError("Warp10 is a pure time-series database")
 
     def insert_times_data(
         self,
@@ -148,7 +146,7 @@ class Warp10DataSource(DataSource):
         self.warp10.set(metrics)
 
     def get_quadrant_data(self, **kwargs):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def build_fetch(self, feature, from_str, to_str, tags=None):
         tags = {} if tags is None else dict(tags)
@@ -169,8 +167,15 @@ class Warp10DataSource(DataSource):
             to_str,
         )
 
-    def build_multi_fetch(self, model, from_str, to_str, tags=None):
-        bucket_span = int(model.bucket_interval * 1e6)
+    def build_multi_fetch(
+        self,
+        bucket_interval,
+        features,
+        from_str,
+        to_str,
+        tags=None
+    ):
+        bucket_span = int(bucket_interval * 1e6)
 
         scripts = [
             "[\n{}\n{}\n0\n{}\n0\n]\nBUCKETIZE".format(
@@ -183,28 +188,31 @@ class Warp10DataSource(DataSource):
                 metric_to_bucketizer(feature.metric),
                 bucket_span,
             )
-            for feature in model.features
+            for feature in features
         ]
         return "[\n{}\n]".format("\n".join(scripts))
 
     @catch_query_error
     def get_times_data(
         self,
-        model,
+        bucket_interval,
+        features,
         from_date,
         to_date,
         tags=None,
         **kwargs
     ):
-        period = model.build_date_range(from_date, to_date)
+        period = DateRange.build_date_range(
+            from_date, to_date, bucket_interval)
 
         nb_buckets = int((period.to_ts - period.from_ts) /
-                         model.bucket_interval)
-        buckets = np.full((nb_buckets, len(model.features)),
+                         bucket_interval)
+        buckets = np.full((nb_buckets, len(features)),
                           np.nan, dtype=float)
 
         script = self.build_multi_fetch(
-            model,
+            bucket_interval,
+            features,
             period.from_str,
             period.to_str,
             tags=tags,
@@ -214,7 +222,7 @@ class Warp10DataSource(DataSource):
 
         from_us = period.from_ts * 1e6
         to_us = period.to_ts * 1e6
-        bucket_interval_us = int(model.bucket_interval * 1e6)
+        bucket_interval_us = int(bucket_interval * 1e6)
 
         has_data = False
 
@@ -226,8 +234,8 @@ class Warp10DataSource(DataSource):
             values = item['v']
 
             for ts_us, value in values:
-                # XXX: Warp10 buckets are labeled with the right timestamp but Loud ML
-                # use the left one.
+                # XXX: Warp10 buckets are labeled with the right timestamp
+                # but Loud ML uses the left one.
                 ts_us -= bucket_interval_us
 
                 if ts_us < from_us or ts_us >= to_us:
@@ -246,33 +254,29 @@ class Warp10DataSource(DataSource):
 
         for bucket in buckets:
             result.append(((ts - from_ts), list(bucket), ts))
-            ts += model.bucket_interval
+            ts += bucket_interval
 
         return result
 
-    def save_timeseries_prediction(self, prediction, model, tags=None):
-        prefix = "prediction." + model.name
-
-        logging.info("saving '%s' prediction to '%s'",
-                     model.name, self.build_name(prefix))
-
+    def save_timeseries_prediction(self, prediction, tags=None):
+        prefix = prediction.model.name
+        logging.info("saving prediction to '%s'",
+                     self.build_name(prefix))
         for bucket in prediction.format_buckets():
             data = bucket['predicted']
-            all_tags = model.get_tags()
-            if tags:
-                all_tags.update(tags)
+            bucket_tags = tags or {}
             stats = bucket.get('stats', None)
             if stats is not None:
                 data['score'] = float(stats.get('score'))
-                tags['is_anomaly'] = stats.get('anomaly', False)
+                bucket_tags['is_anomaly'] = stats.get('anomaly', False)
 
             # XXX As Warp10 uses the end date to identify buckets, use the same
             # convention
-            ts = bucket['timestamp'] + model.bucket_interval
+            ts = bucket['timestamp'] + prediction.model.bucket_interval
 
             self.insert_times_data(
                 ts=ts,
-                tags=all_tags,
+                tags=bucket_tags,
                 data={"{}.{}".format(prefix, k): v for k, v in data.items()},
             )
         self.commit()

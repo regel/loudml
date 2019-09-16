@@ -5,6 +5,7 @@ Elasticsearch module for Loud ML
 import datetime
 import logging
 import math
+import re
 
 import elasticsearch.exceptions
 import urllib3.exceptions
@@ -14,7 +15,6 @@ import numpy as np
 from elasticsearch import (
     Elasticsearch,
     helpers,
-    TransportError,
 )
 
 from voluptuous import (
@@ -24,7 +24,7 @@ from voluptuous import (
     Length,
     Boolean,
     IsFile,
-    Schema,
+    Range,
 )
 
 from . import (
@@ -32,10 +32,9 @@ from . import (
     schemas,
 )
 
-from loudml.datasource import DataSource
+from loudml.bucket import Bucket
 from loudml.misc import (
     escape_quotes,
-    deepsizeof,
     make_ts,
     parse_addr,
     build_agg_name,
@@ -43,6 +42,10 @@ from loudml.misc import (
 
 # Limit ES aggregations output to 500 MB
 PARTITION_MAX_SIZE = 500 * 1024 * 1024
+
+
+def version(v):
+    return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
 
 
 def ts_to_ms(ts):
@@ -76,6 +79,14 @@ def _build_match_all(match_all=None):
 
     if match_all is None:
         return
+
+    inline = """
+if (doc['{field}'].size()==0) {{
+    return false
+}} else {{
+    return doc['{field}'].value=={value}
+}}
+"""
     for condition in match_all:
         key = condition['tag']
         val = condition['value']
@@ -89,7 +100,7 @@ def _build_match_all(match_all=None):
             "script": {
                 "script": {
                     "lang": "painless",
-                    "inline": "doc['{}'].value=={}".format(key, val)
+                    "inline": inline.format(field=key, value=val)
                 }
             }
         }
@@ -129,12 +140,12 @@ def _build_extended_bounds(from_ms=None, to_ms=None):
     return bounds
 
 
-class ElasticsearchDataSource(DataSource):
+class ElasticsearchBucket(Bucket):
     """
-    Elasticsearch datasource
+    Elasticsearch bucket
     """
 
-    SCHEMA = DataSource.SCHEMA.extend({
+    SCHEMA = Bucket.SCHEMA.extend({
         Required('addr'): str,
         Required('index'): str,
         Optional('doc_type', default='doc'): str,
@@ -146,6 +157,8 @@ class ElasticsearchDataSource(DataSource):
         Optional('client_key'): IsFile(),
         Optional('use_ssl', default=False): Boolean(),
         Optional('verify_ssl', default=False): Boolean(),
+        Optional('number_of_shards', default=1): All(int, Range(min=1)),
+        Optional('number_of_replicas', default=0): All(int, Range(min=0)),
     })
 
     def __init__(self, cfg):
@@ -153,6 +166,14 @@ class ElasticsearchDataSource(DataSource):
         super().__init__(cfg)
         self._es = None
         self._touched_indices = []
+
+    @property
+    def number_of_shards(self):
+        return int(self.cfg.get('number_of_shards') or 1)
+
+    @property
+    def number_of_replicas(self):
+        return int(self.cfg.get('number_of_replicas') or 0)
 
     @property
     def addr(self):
@@ -225,16 +246,55 @@ class ElasticsearchDataSource(DataSource):
 
         return self._es
 
-    def init(self, template_name=None, template=None, *args, **kwargs):
+    def init(self, data_schema=None, *args, **kwargs):
         """
-        Create index and put template
+        Create index and write mapping
         """
+        if data_schema and self.timestamp_field:
+            data_schema[self.timestamp_field] = {
+                "type": "date",
+                "format": "epoch_millis",
+            }
+        if data_schema:
+            info = self.es.info()
+            mapping = {
+                "properties": data_schema
+            }
+            if not self.es.indices.exists(
+                index=self.index,
+            ):
+                params = {}
+                if version(info['version']['number']) >= version('7.0.0'):
+                    params['include_type_name'] = 'true'
+                mappings = {
+                    'mappings': {
+                        self.doc_type: {
+                            "properties": data_schema
+                        }
+                    },
+                    'settings': {
+                        "number_of_shards": self.number_of_shards,
+                        "number_of_replicas": self.number_of_replicas,
+                        "codec": "best_compression",
+                    }
+                }
+                self.es.indices.create(
+                    index=self.index,
+                    body=mappings,
+                    params=params,
+                )
+            params = {
+                'allow_no_indices': 'true',
+                'ignore_unavailable': 'true',
+            }
+            if version(info['version']['number']) >= version('7.0.0'):
+                params['include_type_name'] = 'true'
 
-        if template is not None:
-            self.es.indices.put_template(
-                name=template_name,
-                body=template,
-                ignore=400,
+            self.es.indices.put_mapping(
+                doc_type=self.doc_type,
+                body=mapping,
+                index=self.index,
+                params=params,
             )
 
     def drop(self, index=None):
@@ -330,7 +390,6 @@ class ElasticsearchDataSource(DataSource):
         index=None,
         doc_type=None,
         doc_id=None,
-        timestamp_field='timestamp',
         *args,
         **kwargs
     ):
@@ -339,7 +398,7 @@ class ElasticsearchDataSource(DataSource):
         """
         ts = make_ts(ts)
 
-        data[timestamp_field] = ts_to_ms(ts)
+        data[self.timestamp_field] = ts_to_ms(ts)
 
         if tags is not None:
             for tag, tag_val in tags.items():
@@ -347,7 +406,7 @@ class ElasticsearchDataSource(DataSource):
 
         self.insert_data(
             data,
-            index=index,
+            index=index or self.index,
             doc_type=doc_type or self.doc_type,
             doc_id=doc_id,
             timestamp=int(ts),
@@ -376,17 +435,17 @@ class ElasticsearchDataSource(DataSource):
         except elasticsearch.exceptions.TransportError as exn:
             raise errors.TransportError(str(exn))
         except urllib3.exceptions.HTTPError as exn:
-            raise errors.DataSourceError(self.name, str(exn))
+            raise errors.BucketError(self.name, str(exn))
 
     @staticmethod
-    def _build_aggs(model):
+    def _build_aggs(features):
         """
         Build Elasticsearch aggregations
         """
 
         aggs = {}
 
-        for feature in model.features:
+        for feature in features:
             if feature.metric in ['mean', 'average']:
                 feature.metric = 'avg'
             if feature.metric in ['std_deviation', 'variance']:
@@ -432,7 +491,7 @@ class ElasticsearchDataSource(DataSource):
         }
 
         must = []
-        date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
+        date_range = _build_date_range(self.timestamp_field, from_ms, to_ms)
         if date_range is not None:
             must.append(date_range)
 
@@ -573,9 +632,11 @@ class ElasticsearchDataSource(DataSource):
     @classmethod
     def _build_times_query(
         cls,
-        model,
+        bucket_interval,
+        features,
         from_ms,
         to_ms,
+        timestamp_field,
     ):
         """
         Build Elasticsearch query for time-series
@@ -586,9 +647,9 @@ class ElasticsearchDataSource(DataSource):
             "aggs": {
                 "histogram": {
                     "date_histogram": {
-                        "field": model.timestamp_field,
-                        "extended_bounds": _build_extended_bounds(from_ms, to_ms - 1000*model.bucket_interval),
-                        "interval": "%ds" % model.bucket_interval,
+                        "field": timestamp_field,
+                        "extended_bounds": _build_extended_bounds(from_ms, to_ms - 1000*bucket_interval),
+                        "interval": "%ds" % bucket_interval,
                         "min_doc_count": 0,
                         "time_zone": "UTC",
                         "format": "yyyy-MM-dd'T'HH:mm:ss'Z'",  # key_as_string format
@@ -604,11 +665,11 @@ class ElasticsearchDataSource(DataSource):
 
         must = []
 
-        date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
+        date_range = _build_date_range(timestamp_field, from_ms, to_ms)
         if date_range is not None:
             must.append(date_range)
 
-        for feature in model.features:
+        for feature in features:
             match_all = _build_match_all(feature.match_all)
             for condition in match_all:
                 must.append(condition)
@@ -620,7 +681,7 @@ class ElasticsearchDataSource(DataSource):
                 }
             }
 
-        aggs = cls._build_aggs(model)
+        aggs = cls._build_aggs(features)
 
         for x in sorted(aggs):
             body['aggs']['histogram']['aggs'][x] = aggs[x]
@@ -644,41 +705,41 @@ class ElasticsearchDataSource(DataSource):
 
     def get_times_data(
         self,
-        model,
+        bucket_interval,
+        features,
         from_date=None,
         to_date=None,
     ):
-        features = model.features
-
         from_ms, to_ms = _date_range_to_ms(from_date, to_date)
 
         body = self._build_times_query(
-            model,
+            bucket_interval,
+            features,
             from_ms=from_ms,
             to_ms=to_ms,
+            timestamp_field=self.timestamp_field,
         )
 
         es_res = self.search(
             body,
-            routing=model.routing,
+            routing=None,
         )
 
         hits = es_res['hits']['total']
         if hits == 0:
-            logging.info("Aggregations for model %s: Missing data", model.name)
             return
 
         # TODO: last bucket may contain incomplete data when to_date == now
         """
         now = datetime.datetime.now().timestamp()
         epoch_ms = 1000 * int(now)
-        min_bound_ms = 1000 * int(now / model.bucket_interval) * model.bucket_interval
+        min_bound_ms = 1000 * int(now / bucket_interval) * bucket_interval
         """
 
         t0 = None
 
         for bucket in es_res['aggregations']['histogram']['buckets']:
-            X = np.full(model.nb_features, np.nan, dtype=float)
+            X = np.full(len(features), np.nan, dtype=float)
             timestamp = int(bucket['key'])
             timeval = bucket['key_as_string']
 
@@ -690,7 +751,7 @@ class ElasticsearchDataSource(DataSource):
             try:
                 # The last interval contains partial data
                 if timestamp == min_bound_ms:
-                    R = float(epoch_ms - min_bound_ms) / (1000 * model.bucket_interval)
+                    R = float(epoch_ms - min_bound_ms) / (1000 * bucket_interval)
                     X = R * X + (1-R) * X_prev
             except NameError:
                 # X_prev not defined. No interleaving required.
@@ -703,61 +764,3 @@ class ElasticsearchDataSource(DataSource):
                 t0 = timestamp
 
             yield (timestamp - t0) / 1000, X, timeval
-
-    def gen_template(
-        self,
-        model,
-        prediction,
-    ):
-        template = {
-            "template": self.index,
-            "mappings": {
-                self.doc_type: {
-                    "properties": {
-                        "timestamp": {"type": "date", "format": "epoch_millis"},
-                        "score": {"type": "float"},
-                        "is_anomaly": {"type": "boolean"},
-                    }
-                }
-            }
-        }
-        properties = {}
-        for tag in model.get_tags():
-            properties[tag] = {"type": "keyword"}
-
-        for field in prediction.get_field_names():
-            properties[field] = {"type": "float"}
-
-        if model.timestamp_field is not None:
-            properties[model.timestamp_field] = {
-                "type": "date",
-                "format": "epoch_millis",
-            }
-        template['mappings'][self.doc_type]['properties'].update(properties)
-        return template
-
-    def save_timeseries_prediction(
-        self,
-        prediction,
-        model,
-        index=None,
-    ):
-        template = self.gen_template(model, prediction)
-        self.init(template_name=self.index, template=template)
-
-        for bucket in prediction.format_buckets():
-            data = bucket['predicted']
-            tags = model.get_tags()
-            stats = bucket.get('stats', None)
-            if stats is not None:
-                data['score'] = float(stats.get('score'))
-                tags['is_anomaly'] = stats.get('anomaly', False)
-
-            self.insert_times_data(
-                index=self.index or index,
-                ts=bucket['timestamp'],
-                tags=tags,
-                data=data,
-                timestamp_field=model.timestamp_field,
-            )
-        self.commit()

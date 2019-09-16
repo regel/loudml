@@ -8,6 +8,7 @@ import pkg_resources
 import multiprocessing
 import voluptuous
 import yaml
+from itertools import chain
 
 from . import (
     errors,
@@ -24,9 +25,12 @@ class Config:
 
         # TODO check configuration validity with voluptuous
 
-        self._datasources = {
-            datasource['name']: datasource
-            for datasource in data.get('datasources', [])
+        self._buckets = {
+            bucket['name']: bucket
+            for bucket in list(chain(
+                data.get('buckets', []),
+                data.get('datasources', []),
+            ))
         }
 
         self._metrics = data.get('metrics', {})
@@ -74,7 +78,12 @@ class Config:
     @property
     def datasources(self):
         # XXX: return a copy to prevent modification by the caller
-        return copy.deepcopy(self._datasources)
+        return copy.deepcopy(self._buckets)
+
+    @property
+    def buckets(self):
+        # XXX: return a copy to prevent modification by the caller
+        return copy.deepcopy(self._buckets)
 
     @property
     def training(self):
@@ -100,29 +109,32 @@ class Config:
         # XXX: return a copy to prevent modification by the caller
         return copy.deepcopy(self._server)
 
-    def put_datasource(self, source):
-        """
-        Add data source configuration by name
-        """
-        name = source['name']
-        self._datasources[name] = source
+    def list_buckets(self):
+        return list(self.buckets.keys())
 
-    def del_datasource(self, name):
+    def put_bucket(self, bucket):
         """
-        Del data source configuration by name
+        Add bucket configuration by name
         """
-        del self._datasources[name]
+        name = bucket['name']
+        self._buckets[name] = bucket
 
-    def get_datasource(self, name):
+    def del_bucket(self, name):
         """
-        Get data source configuration by name
+        Del bucket configuration by name
+        """
+        del self._buckets[name]
+
+    def get_bucket(self, name):
+        """
+        Get bucket configuration by name
         """
         try:
             # XXX: return a copy to prevent modification by the caller
-            datasource = copy.deepcopy(self.datasources[name])
-            return datasource
+            bucket = copy.deepcopy(self.buckets[name])
+            return bucket
         except KeyError:
-            raise errors.DataSourceNotFound(name)
+            raise errors.BucketNotFound(name)
 
 
 def load_config(path):
