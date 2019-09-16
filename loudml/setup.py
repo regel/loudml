@@ -19,7 +19,6 @@ setup(
 
     packages=[
         'loudml',
-        'rmn_common',
     ],
 
     setup_requires=[
@@ -49,22 +48,6 @@ setup(
         'console_scripts': [
             'loudmld=loudml.server:main',
             'loudml-faker=loudml.faker:main',
-            'loudml=loudml.cli:main',
-        ],
-        'loudml.commands': [
-            'list-checkpoints=loudml.cli:ListCheckpointsCommand',
-            'save-checkpoint=loudml.cli:SaveCheckpointCommand',
-            'load-checkpoint=loudml.cli:LoadCheckpointCommand',
-            'create-model=loudml.cli:CreateModelCommand',
-            'delete-model=loudml.cli:DeleteModelCommand',
-            'list-models=loudml.cli:ListModelsCommand',
-            'list-templates=loudml.cli:ListTemplatesCommand',
-            'show-model=loudml.cli:ShowModelCommand',
-            'load-data=loudml.cli:LoadDataCommand',
-            'train=loudml.cli:TrainCommand',
-            'predict=loudml.cli:PredictCommand',
-            'forecast=loudml.cli:ForecastCommand',
-            'plot=loudml.cli:PlotCommand',
         ],
         'loudml.models': [
             'donut=loudml.donut:DonutModel',
