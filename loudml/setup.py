@@ -47,7 +47,6 @@ setup(
     entry_points={
         'console_scripts': [
             'loudmld=loudml.server:main',
-            'loudml-faker=loudml.faker:main',
         ],
         'loudml.models': [
             'donut=loudml.donut:DonutModel',
