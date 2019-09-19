@@ -124,7 +124,7 @@ class Job:
 
     @property
     def desc(self):
-        done = None
+        done_ratio = None
         desc = {
             'id': self.id,
             'type': self.job_type,
@@ -138,18 +138,18 @@ class Job:
             desc['error'] = self.error
         if self.progress:
             desc['progress'] = self.progress
-            done = float(
+            done_ratio = float(
                 self.progress['eval']) / float(self.progress['max_evals'])
-            if done > 1.0:
-                done = 1.0
+            if done_ratio > 1.0:
+                done_ratio = 1.0
         if self.created_dt:
             dt = self.done_dt or datetime.now(pytz.utc)
             duration = (dt - self.created_dt)
             desc['duration'] = duration.total_seconds()
             desc['start_date'] = self.created_dt.strftime('%c')
-            if done:
+            if done_ratio:
                 desc['remaining_time'] = duration.total_seconds() * (
-                    1.0 - done)
+                    1.0 - done_ratio)
         if self.done_dt:
             desc['end_date'] = self.done_dt.strftime('%c')
         return desc
