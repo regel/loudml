@@ -204,19 +204,6 @@ class MongoBucket(Bucket):
             self.db[collection].bulk_write(requests)
 
     @catch_query_error
-    def get_quadrant_data(
-        self,
-        model,
-        agg,
-        from_date=None,
-        to_date=None,
-        key=None,
-        limit=0,
-        offset=0,
-    ):
-        raise NotImplementedError()
-
-    @catch_query_error
     def get_times_data(
         self,
         bucket_interval,

@@ -234,15 +234,6 @@ class MemBucket(Bucket):
 
         return agg_val
 
-    def get_quadrant_data(
-        self,
-        model,
-        from_date=None,
-        to_date=None,
-        key=None,
-    ):
-        raise NotImplementedError()
-
     def _get_times_data(
         self,
         features,

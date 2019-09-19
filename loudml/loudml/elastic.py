@@ -4,7 +4,6 @@ Elasticsearch module for Loud ML
 
 import datetime
 import logging
-import math
 import re
 
 import elasticsearch.exceptions
@@ -37,11 +36,7 @@ from loudml.misc import (
     escape_quotes,
     make_ts,
     parse_addr,
-    build_agg_name,
 )
-
-# Limit ES aggregations output to 500 MB
-PARTITION_MAX_SIZE = 500 * 1024 * 1024
 
 
 def version(v):
@@ -57,7 +52,8 @@ def ts_to_ms(ts):
 
 def make_ts_ms(mixed):
     """
-    Build a millisecond timestamp from a mixed input (second timestamp or string)
+    Build a millisecond timestamp from a mixed input
+    (second timestamp or string)
     """
     return ts_to_ms(make_ts(mixed))
 
@@ -229,7 +225,8 @@ class ElasticsearchBucket(Bucket):
                 [addr],
                 timeout=self.timeout,
                 http_auth=(
-                    self.dbuser, self.dbuser_password) if self.dbuser else None,
+                    self.dbuser,
+                    self.dbuser_password) if self.dbuser else None,
                 use_ssl=self.use_ssl,
                 verify_certs=self.verify_ssl,
                 ca_certs=self.ca_certs,
@@ -473,162 +470,6 @@ class ElasticsearchBucket(Bucket):
 
         return aggs
 
-    def get_field_cardinality(
-        self,
-        model,
-        from_ms=None,
-        to_ms=None,
-    ):
-        body = {
-            "size": 0,
-            "aggs": {
-                "count": {
-                    "cardinality": {
-                        "field": model.key,
-                    }
-                }
-            }
-        }
-
-        must = []
-        date_range = _build_date_range(self.timestamp_field, from_ms, to_ms)
-        if date_range is not None:
-            must.append(date_range)
-
-        if len(must) > 0:
-            body['query'] = {
-                'bool': {
-                    'must': must,
-                }
-            }
-
-        es_res = self.search(
-            body,
-            routing=model.routing,
-        )
-
-        return int(es_res['aggregations']['count']['value'])
-
-    @staticmethod
-    def build_quadrant_aggs(model, agg):
-        res = {}
-        fields = [feature.field for feature in agg.features]
-        for field in set(fields):
-            res.update({
-                build_agg_name(agg.measurement, field): {
-                    "extended_stats": {"field": field}
-                }
-            })
-        return res
-
-    @staticmethod
-    def read_quadrant_aggs(key, time_buckets):
-        return key, time_buckets
-
-    @classmethod
-    def _build_quadrant_query(
-        cls,
-        model,
-        aggregation,
-        from_ms=None,
-        to_ms=None,
-        key=None,
-        partition=0,
-        num_partition=1,
-    ):
-        body = {
-            "size": 0,
-            "aggs": {
-                "key": {
-                    "terms": {
-                        "field": model.key,
-                        "size": model.max_keys,
-                        "collect_mode": "breadth_first",
-                        "include": {
-                            "partition": partition,
-                            "num_partitions": num_partition,
-                        },
-                    },
-                    "aggs": {
-                        "quadrant_data": {
-                            "date_histogram": {
-                                "field": model.timestamp_field,
-                                "interval": "%ds" % (model.bucket_interval),
-                                "min_doc_count": 0,
-                                "time_zone": "UTC",
-                                "format": "yyyy-MM-dd'T'HH:mm:ss'Z'",  # key_as_string format
-                                "extended_bounds": _build_extended_bounds(from_ms, to_ms-1),
-                            },
-                            "aggs": cls.build_quadrant_aggs(model, aggregation),
-                        }
-                    }
-                }
-            }
-        }
-
-        must = []
-
-        date_range = _build_date_range(model.timestamp_field, from_ms, to_ms)
-        if date_range is not None:
-            must.append(date_range)
-
-        if key is not None:
-            must.append({"match": {model.key: key}})
-
-        match_all = _build_match_all(aggregation.match_all)
-        for condition in match_all:
-            must.append(condition)
-
-        if len(must) > 0:
-            body['query'] = {
-                "bool": {
-                    "must": must
-                }
-            }
-
-        return body
-
-    def get_quadrant_data(
-        self,
-        model,
-        aggregation,
-        from_date=None,
-        to_date=None,
-        key=None,
-    ):
-        from_ms, to_ms = _date_range_to_ms(from_date, to_date)
-
-        if key is None:
-            num_series = self.get_field_cardinality(model, from_ms, to_ms)
-            num_partition = math.ceil(num_series / self.max_series_per_request)
-        else:
-            num_partition = 1
-
-        for partition in range(0, num_partition):
-            logging.info("running aggregations for model '%s', partition %d/%d",
-                         model.name, partition, num_partition)
-
-            body = self._build_quadrant_query(
-                model,
-                aggregation,
-                from_ms=from_ms,
-                to_ms=to_ms,
-                key=key,
-                partition=partition,
-                num_partition=num_partition,
-            )
-
-            es_res = self.search(
-                body,
-                routing=model.routing,
-            )
-
-            for bucket in es_res['aggregations']['key']['buckets']:
-                yield self.read_quadrant_aggs(
-                    bucket['key'],
-                    bucket['quadrant_data']['buckets'],
-                )
-
     @classmethod
     def _build_times_query(
         cls,
@@ -648,11 +489,12 @@ class ElasticsearchBucket(Bucket):
                 "histogram": {
                     "date_histogram": {
                         "field": timestamp_field,
-                        "extended_bounds": _build_extended_bounds(from_ms, to_ms - 1000*bucket_interval),
+                        "extended_bounds": _build_extended_bounds(
+                            from_ms, to_ms - 1000*bucket_interval),
                         "interval": "%ds" % bucket_interval,
                         "min_doc_count": 0,
                         "time_zone": "UTC",
-                        "format": "yyyy-MM-dd'T'HH:mm:ss'Z'",  # key_as_string format
+                        "format": "yyyy-MM-dd'T'HH:mm:ss'Z'",  # key_as_string
                         "order": {
                             "_key": "asc"
                         }
@@ -751,7 +593,8 @@ class ElasticsearchBucket(Bucket):
             try:
                 # The last interval contains partial data
                 if timestamp == min_bound_ms:
-                    R = float(epoch_ms - min_bound_ms) / (1000 * bucket_interval)
+                    R = float(epoch_ms - min_bound_ms
+                       ) / (1000 * bucket_interval)
                     X = R * X + (1-R) * X_prev
             except NameError:
                 # X_prev not defined. No interleaving required.

@@ -145,9 +145,6 @@ class Warp10Bucket(Bucket):
         """
         self.warp10.set(metrics)
 
-    def get_quadrant_data(self, **kwargs):
-        raise NotImplementedError()
-
     def build_fetch(self, feature, from_str, to_str, tags=None):
         tags = {} if tags is None else dict(tags)
 
