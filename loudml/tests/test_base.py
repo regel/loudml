@@ -22,7 +22,7 @@ class TestBase(unittest.TestCase):
 
     def test_scipy(self):
         import scipy
-        self.assertEqual(scipy.__version__, "1.3.0")
+        self.assertEqual(scipy.__version__, "1.3.1")
 
     def test_tf(self):
         import tensorflow as tf
