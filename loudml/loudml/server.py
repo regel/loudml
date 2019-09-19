@@ -424,6 +424,19 @@ def get_model_info(name, fields, include_fields):
     return info
 
 
+def get_model_version_info(model_name, model_version, fields, include_fields):
+    global g_storage
+
+    model = g_storage.load_model(model_name, ckpt_name=model_version)
+    info = model.preview
+    info['version'] = {
+        'name': model_version,
+    }
+    if fields:
+        clear_fields(info, fields, include_fields)
+    return info
+
+
 def get_template_info(name):
     global g_storage
 
@@ -594,8 +607,79 @@ class ModelResource(Resource):
         return ('', 204)
 
 
+class ModelVersionsResource(Resource):
+    @catch_loudml_error
+    def get(self, model_name):
+        global g_storage
+
+        page = get_int_arg('page', default=0)
+        per_page = get_int_arg('per_page', default=50)
+        if per_page > 100 or per_page <= 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('per_page')
+            )
+        if page < 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('page')
+            )
+
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        if (fields and
+                'version' in fields and not include_fields):
+            raise errors.Invalid(
+                "'version' cannot be excluded"
+            )
+
+        list_sort_field, list_sort_order = request.args.get(
+            'sort', 'name:1').split(':')
+
+        g_storage.load_model(model_name)  # raises errors.ModelNotFound()
+
+        models = []
+        cur_version = g_storage.get_current_ckpt(model_name)
+        for version in g_storage.list_checkpoints(model_name):
+            try:
+                model = get_model_version_info(
+                    model_name, version, fields, include_fields)
+                model['version']['active'] = version == cur_version
+                models.append(model)
+            except errors.UnsupportedModel:
+                continue
+
+        models = sorted(
+            models,
+            key=lambda k: k['version'].get(list_sort_field),
+            reverse=bool(int(list_sort_order) == -1),
+        )
+        return jsonify(
+            models[page*per_page:(page+1)*per_page])
+
+
 api.add_resource(ModelsResource, "/models")
 api.add_resource(ModelResource, "/models/<model_names>")
+api.add_resource(ModelVersionsResource, "/models/<model_name>/versions")
+
+
+@app.route("/models/<model_name>/_restore", methods=['POST'])
+def model_restore_version(model_name):
+    global g_storage
+    version = request.args.get('version')
+    if not version:
+        raise errors.Invalid(
+            "invalid value for parameter '{}'".format('version')
+        )
+
+    if version not in g_storage.list_checkpoints(model_name):
+        raise errors.ModelNotFound(
+            name=model_name, version=version)
+
+    g_storage.set_current_ckpt(model_name, version)
+    return ('', 204)
 
 
 @app.route("/models/<model_name>/_train", methods=['POST'])

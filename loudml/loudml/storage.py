@@ -44,7 +44,7 @@ class Storage(metaclass=ABCMeta):
         """List models"""
 
     @abstractmethod
-    def list_checkpoints(self, name):
+    def list_checkpoints(self, model_name):
         """List model checkpoints"""
 
     @abstractmethod
@@ -78,6 +78,10 @@ class Storage(metaclass=ABCMeta):
     @abstractmethod
     def set_current_ckpt(self, model_name, ckpt_name):
         """Set active checkpoint"""
+
+    @abstractmethod
+    def get_current_ckpt(self, model_name):
+        """Get active checkpoint name"""
 
     def load_model(self, name, ckpt_name=None):
         """Load model"""
@@ -139,12 +143,12 @@ class Storage(metaclass=ABCMeta):
 
     def set_model_object(self, model_name, key, data):
         """Save model object"""
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_model_object(self, model_name, key):
         """Get model object"""
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def delete_model_object(self, model_name, key):
         """Delete model object"""
-        raise NotImplemented()
+        raise NotImplementedError()
