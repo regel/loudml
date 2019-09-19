@@ -2,7 +2,6 @@
 InfluxDB module for Loud ML
 """
 import logging
-import itertools
 
 import influxdb.exceptions
 import numpy as np
@@ -31,13 +30,10 @@ from loudml.misc import (
     parse_addr,
     str_to_ts,
     ts_to_str,
-    build_agg_name,
 )
 from loudml.bucket import Bucket
 
 g_aggregators = {}
-
-# Fingerprints code assumes that we return something equivalent to Elasticsearch
 
 
 def get_metric(name):
@@ -67,13 +63,15 @@ def ts_to_ns(ts):
     """
     Convert second timestamp to integer nanosecond timestamp
     """
-    # XXX Due to limited mantis in float numbers, do not multiply directly by 1e9
+    # XXX Due to limited mantis in float numbers,
+    # do not multiply directly by 1e9
     return int(int(ts * 1e6) * int(1e3))
 
 
 def make_ts_ns(mixed):
     """
-    Build a nanosecond timestamp from a mixed input (second timestamp or string)
+    Build a nanosecond timestamp from a mixed input
+    (second timestamp or string)
     """
     return ts_to_ns(make_ts(mixed))
 
@@ -542,183 +540,6 @@ class InfluxBucket(Bucket):
                 int(bucket_interval * 1000),
             )
 
-    def _build_quad_queries(
-        self,
-        model,
-        agg,
-        from_date=None,
-        to_date=None,
-        key_val=None,
-        limit=0,
-        offset=0,
-    ):
-        """
-        Build aggregation query according to requested features
-        """
-        # TODO sanitize inputs to avoid injection!
-
-        time_pred = _build_time_predicates(from_date, to_date)
-
-        must = time_pred + _build_tags_predicates(agg.match_all) \
-            + _build_key_predicate(model.key, key_val)
-
-        where = " where {}".format(" and ".join(must)) if len(must) else ""
-
-        yield "select {} from {}\"{}\"{} group by {},time({}ms) fill(0) slimit {} soffset {};".format(
-            ','.join(list(set([_build_agg(feature) for feature in agg.features] +
-                              [_build_count_agg2(feature) for feature in agg.features] +
-                              [_build_sum_agg2(feature) for feature in agg.features]))),
-            self._from_prefix,
-            escape_doublequotes(agg.measurement),
-            where,
-            model.key,
-            int(model.bucket_interval * 1000),
-            limit,
-            offset,
-        )
-        sum_of_squares = []
-        for feature in agg.features:
-            if feature.metric == 'stddev':
-                sum_of_squares.append(feature)
-
-        if len(sum_of_squares) > 0:
-            yield "select {} from ( select \"{}\"*\"{}\" as \"squares_{}\" from \"{}\"{} ) where {} group by \"{}\",time({}ms) fill(0) slimit {} soffset {};".format(
-                ','.join(list(set([_sum_of_squares(feature)
-                                   for feature in sum_of_squares]))),
-                escape_doublequotes(feature.field),
-                escape_doublequotes(feature.field),
-                escape_doublequotes(feature.field),
-                escape_doublequotes(agg.measurement),
-                where,
-                " and ".join(time_pred),
-                escape_doublequotes(model.key),
-                int(model.bucket_interval * 1000),
-                limit,
-                offset,
-            )
-
-    @catch_query_error
-    def _get_quadrant_data(
-        self,
-        model,
-        agg,
-        from_date=None,
-        to_date=None,
-        key=None,
-        limit=0,
-        offset=0,
-    ):
-        queries = self._build_quad_queries(
-            model,
-            agg,
-            from_date,
-            to_date,
-            key,
-            limit,
-            offset,
-        )
-        queries = ''.join(queries)
-        results = self.influxdb.query(queries)
-
-        if not isinstance(results, list):
-            results = [results]
-
-        buckets_dict = dict()
-        for i, result in enumerate(results):
-            for (measurement, tags), points in result.items():
-                key = tags[model.key]
-                if key in buckets_dict:
-                    buckets = buckets_dict[key]
-                else:
-                    buckets = []
-
-                for j, point in enumerate(points):
-                    timeval = point['time']
-                    if j < len(buckets):
-                        bucket = buckets[j]
-                    else:
-                        bucket = {
-                            'key_as_string': timeval,
-                        }
-                        for feature in agg.features:
-                            agg_name = build_agg_name(
-                                agg.measurement, feature.field)
-                            bucket[agg_name] = {
-                                'count': 0.0,
-                                'min': 0.0,
-                                'max': 0.0,
-                                'avg': 0.0,
-                                'sum': 0.0,
-                                'sum_of_squares': 0.0,
-                                'variance': 0.0,
-                                'std_deviation': 0.0,
-                            }
-                        buckets.append(bucket)
-
-                    for feature in agg.features:
-                        agg_name = build_agg_name(
-                            agg.measurement, feature.field)
-                        agg_val = point.get(feature.name)
-                        if agg_val is not None:
-                            bucket[agg_name][get_metric(
-                                feature.metric)] = float(agg_val)
-
-                        agg_val = point.get("count_{}".format(feature.field))
-                        if agg_val is not None:
-                            bucket[agg_name]['count'] = float(agg_val)
-
-                        agg_val = point.get("sum_{}".format(feature.field))
-                        if agg_val is not None:
-                            bucket[agg_name]['sum'] = float(agg_val)
-
-                        agg_val = point.get(
-                            "sum_squares_{}".format(feature.field))
-                        if agg_val is not None:
-                            bucket[agg_name]['sum_of_squares'] = float(agg_val)
-
-                if len(results) == (i+1):
-                    yield(key, buckets)
-                else:
-                    buckets_dict[key] = buckets
-
-    def get_quadrant_data(
-        self,
-        model,
-        agg,
-        from_date=None,
-        to_date=None,
-        key=None,
-    ):
-        max_series_per_req = self.max_series_per_request
-
-#        result = self.influxdb.query("SHOW SERIES CARDINALITY")
-        total_series = None
-        result = self.influxdb.query(
-            "SHOW TAG VALUES CARDINALITY WITH KEY = \"{}\"".format(model.key))
-        for (_, tags), points in result.items():
-            point = next(points)
-            total_series = int(point['count'])
-
-        if total_series is None:
-            raise errors.NoData()
-
-        output = itertools.chain()
-        gens = []
-        for offset in range(int(total_series / max_series_per_req) + 1):
-            gens.append(self._get_quadrant_data(
-                model=model,
-                agg=agg,
-                from_date=from_date,
-                to_date=to_date,
-                key=key,
-                limit=max_series_per_req,
-                offset=offset * max_series_per_req,
-            ))
-
-        for gen in gens:
-            output = itertools.chain(output, gen)
-        return output
-
     @catch_query_error
     def get_times_data(
         self,
@@ -786,11 +607,6 @@ class InfluxBucket(Bucket):
             result.append(((ts - t0) / 1000, X, timeval))
 
         return result
-
-# Using database chronograf
-# > select * from annotations
-#name: annotations
-# time  deleted  id  modified_time_ns  start_time  text  type
 
     def insert_annotation(
         self,

@@ -115,17 +115,6 @@ class Bucket(metaclass=ABCMeta):
             self.commit()
 
     @abstractmethod
-    def get_quadrant_data(
-        self,
-        model,
-        aggregation,
-        from_date=None,
-        to_date=None,
-        key=None,
-    ):
-        """Get quadrant aggregation data"""
-
-    @abstractmethod
     def get_times_data(
         self,
         bucket_interval,
