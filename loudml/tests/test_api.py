@@ -4,7 +4,7 @@ from loudml.influx import (
     InfluxBucket,
 )
 
-from loudml.randevents import SinEventGenerator
+from randevents import SinEventGenerator
 
 import unittest
 import requests

@@ -6,7 +6,7 @@ from loudml.donut import (
     DonutModel,
 )
 from loudml.model import Model
-from loudml.randevents import SinEventGenerator
+from randevents import SinEventGenerator
 from loudml import (
     errors,
 )
