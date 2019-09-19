@@ -206,6 +206,15 @@ class FileStorage(Storage):
         model_path = self.model_path(model_name)
         self._set_current_ckpt(model_path, ckpt_name)
 
+    def get_current_ckpt(self, model_name):
+        model_path = self.model_path(model_name)
+        try:
+            state_path = os.readlink(
+                os.path.join(model_path, "state.json"))
+            return os.path.splitext(os.path.basename(state_path))[0]
+        except OSError:
+            return None
+
     def delete_model(self, name):
         try:
             shutil.rmtree(self.model_path(name))
