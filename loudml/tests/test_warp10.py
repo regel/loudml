@@ -96,9 +96,10 @@ class TestWarp10(unittest.TestCase):
             ],
         ))
         res = self.source.build_multi_fetch(
-            model,
-            "2018-07-21T00:00:00Z",
-            "2018-07-22T00:00:00Z",
+            bucket_interval=model.bucket_interval,
+            features=model.features,
+            from_str="2018-07-21T00:00:00Z",
+            to_str="2018-07-22T00:00:00Z",
         )
         self.assertEqual(
             res,
