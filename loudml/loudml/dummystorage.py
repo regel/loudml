@@ -39,6 +39,9 @@ class DummyStorage(Storage):
     def set_current_ckpt(self, model_name, ckpt_name):
         pass
 
+    def get_current_ckpt(self, model_name):
+        return None
+
     def load_model(self, name, ckpt_name=None):
         return None
 
