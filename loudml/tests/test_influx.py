@@ -1,6 +1,6 @@
 import loudml.vendor  # noqa
 from loudml.filestorage import TempStorage
-from loudml.randevents import SinEventGenerator
+from randevents import SinEventGenerator
 from loudml.donut import DonutModel
 from loudml.model import Model
 from loudml.membucket import MemBucket

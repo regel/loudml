@@ -10,7 +10,7 @@ from loudml.donut import (
     DonutModel,
     _format_windows,
 )
-from loudml.randevents import (
+from randevents import (
     FlatEventGenerator,
     SinEventGenerator,
 )
