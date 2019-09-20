@@ -14,7 +14,7 @@ from .misc import (
 )
 from .model import (
     load_model,
-    load_template,
+    load_model_from_template,
     find_undeclared_variables,
 )
 from . import (
@@ -36,10 +36,6 @@ class Storage(metaclass=ABCMeta):
         """Get model"""
 
     @abstractmethod
-    def get_template_data(self, name):
-        """Get model template"""
-
-    @abstractmethod
     def list_models(self):
         """List models"""
 
@@ -48,19 +44,12 @@ class Storage(metaclass=ABCMeta):
         """List model checkpoints"""
 
     @abstractmethod
-    def list_templates(self):
-        """List templates"""
-
-    @abstractmethod
-    def create_model(self, model, config):
+    def create_model(self, model):
         """
         Create a model
 
         :param model: model
         :type  model: loudml.Model
-
-        :param config: running configuration
-        :type  config: loudml.Config
         """
 
     @abstractmethod
@@ -88,11 +77,36 @@ class Storage(metaclass=ABCMeta):
         model_data = self.get_model_data(name, ckpt_name)
         return load_model(**model_data)
 
-    def load_template(self, _name, *args, **kwargs):
-        """Load template"""
+    @abstractmethod
+    def template_exists(self, name):
+        """Tell if a model template exists"""
+
+    @abstractmethod
+    def get_template_data(self, name):
+        """Get model template"""
+
+    @abstractmethod
+    def list_templates(self):
+        """List templates"""
+
+    @abstractmethod
+    def create_template(self, name):
+        """
+        Create a template
+
+        :param name: model
+        :type  name: loudml.Template
+        """
+
+    @abstractmethod
+    def delete_template(self, name):
+        """Delete template"""
+
+    def load_model_from_template(self, _name, *args, **kwargs):
+        """Load model from template file"""
         model_data = self.get_template_data(_name)
         settings = model_data['settings']
-        return load_template(settings=settings, *args, **kwargs)
+        return load_model_from_template(settings=settings, *args, **kwargs)
 
     def find_undeclared_variables(self, name):
         """List undeclared variables in a given template"""

@@ -8,7 +8,6 @@ from voluptuous import (
     All,
     Any,
     Boolean,
-    error,
     Invalid,
     Length,
     Match,
@@ -33,6 +32,12 @@ dotted_key = All(
     str,
     Length(min=1),
     Match("^[a-zA-Z0-9-_@.]+$"),
+)
+
+bracket_key = All(
+    str,
+    Length(min=1),
+    Match("^{{[a-zA-Z0-9-_@.]+}}$"),
 )
 
 seasonality = Schema({

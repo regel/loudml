@@ -437,27 +437,99 @@ def get_model_version_info(model_name, model_version, fields, include_fields):
     return info
 
 
-def get_template_info(name):
+def get_template_info(name, fields, include_fields):
     global g_storage
 
     info = g_storage.get_template_data(name)
     info['params'] = list(g_storage.find_undeclared_variables(name))
-
+    if fields:
+        clear_fields(info, fields, include_fields)
     return info
 
 
 class TemplatesResource(Resource):
     @catch_loudml_error
     def get(self):
+        page = get_int_arg('page', default=0)
+        per_page = get_int_arg('per_page', default=50)
+        if per_page > 100 or per_page <= 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('per_page')
+            )
+        if page < 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('page')
+            )
+
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        list_sort_field, list_sort_order = request.args.get(
+            'sort', 'name:1').split(':')
+
         templates = []
-
         for name in g_storage.list_templates():
-            templates.append(get_template_info(name))
+            templates.append(get_template_info(
+                name, fields, include_fields))
 
-        return jsonify(templates)
+        if (not fields
+                or ('settings' in fields and include_fields)
+                or ('settings' not in fields and not include_fields)):
+            templates = sorted(
+                templates,
+                key=lambda k: k['settings'].get(list_sort_field),
+                reverse=bool(int(list_sort_order) == -1),
+            )
+        return jsonify(
+            templates[page*per_page:(page+1)*per_page])
+
+    @catch_loudml_error
+    def post(self):
+        global g_storage
+        tmpl_name = request.args.get('name')
+        if not tmpl_name:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('name')
+            )
+
+        template = loudml.model.load_template(
+            settings=request.json,
+            name=tmpl_name,
+        )
+
+        g_storage.create_template(template)
+        return "success", 201
+
+
+class TemplateResource(Resource):
+    @catch_loudml_error
+    def get(self, template_names):
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        return jsonify([
+            get_template_info(template_name, fields, include_fields)
+            for template_name in template_names.split(';')
+        ])
+
+    @catch_loudml_error
+    def delete(self, template_names):
+        global g_storage
+
+        for template_name in template_names.split(';'):
+            g_storage.delete_template(template_name)
+            logging.info("template '%s' deleted", template_name)
+        return ('', 204)
 
 
 api.add_resource(TemplatesResource, "/templates")
+api.add_resource(TemplateResource, "/templates/<template_names>")
 
 
 class ModelsResource(Resource):
@@ -501,20 +573,18 @@ class ModelsResource(Resource):
 
     @catch_loudml_error
     def post(self):
-        global g_config
         global g_storage
 
-        tmpl = request.args.get('template', None)
+        tmpl = request.args.get('from_template', None)
         if tmpl is not None:
             _vars = request.get_json()
-            model = g_storage.load_template(tmpl, config=g_config, **_vars)
+            model = g_storage.load_model_from_template(tmpl, **_vars)
         else:
             model = loudml.model.load_model(
                 settings=request.json,
-                config=g_config
             )
 
-        g_storage.create_model(model, g_config)
+        g_storage.create_model(model)
 
         return "success", 201
 
@@ -581,7 +651,7 @@ class ModelResource(Resource):
 
         for model_name in model_names.split(';'):
             settings['name'] = model_name
-            model = loudml.model.load_model(settings=settings, config=g_config)
+            model = loudml.model.load_model(settings=settings)
 
             changes = g_storage.save_model(model, save_state=False)
             for change, param, desc in changes:

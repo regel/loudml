@@ -2,7 +2,7 @@
 Loud ML file storage
 """
 
-import loudml.vendor
+import loudml.vendor  # noqa
 
 import copy
 import glob
@@ -13,7 +13,6 @@ import shutil
 import tempfile
 
 from voluptuous import (
-    All,
     Length,
     Match,
 )
@@ -61,8 +60,9 @@ class FileStorage(Storage):
         return "{:02d}".format(i)
 
     def get_next_ckpt_name(self, model_path):
-        path = next(iter(sorted(glob.glob(os.path.join(model_path, '*.ckpt')),
-                                key=lambda f: os.stat(f).st_mtime, reverse=True)), None)
+        path = next(iter(sorted(
+            glob.glob(os.path.join(model_path, '*.ckpt')),
+            key=lambda f: os.stat(f).st_mtime, reverse=True)), None)
 
         if path is None:
             return self.get_ckpt_name(0)
@@ -115,6 +115,10 @@ class FileStorage(Storage):
         with open(path) as fd:
             return json.load(fd)
 
+    def _write_template_settings(self, model_path, settings):
+        settings = copy.deepcopy(settings)
+        self._write_json(os.path.join(model_path, "settings.json"), settings)
+
     def _write_model_settings(self, model_path, settings):
         settings = copy.deepcopy(settings)
         settings.pop('name', None)
@@ -142,7 +146,9 @@ class FileStorage(Storage):
         else:
             self._write_json(state_path, state)
 
-    def _write_model(self, path, settings, state=None, save_state=True, save_ckpt=True):
+    def _write_model(
+        self, path, settings, state=None, save_state=True, save_ckpt=True
+    ):
         try:
             os.makedirs(path, exist_ok=True)
         except OSError as exn:
@@ -158,7 +164,15 @@ class FileStorage(Storage):
             if save_ckpt:
                 self._set_current_ckpt(path, ckpt_name)
 
-    def create_model(self, model, config=None):
+    def _write_template(self, path, settings):
+        try:
+            os.makedirs(path, exist_ok=True)
+        except OSError as exn:
+            raise errors.LoudMLException(str(exn))
+
+        self._write_template_settings(path, settings)
+
+    def create_model(self, model):
         model_path = self.model_path(model.name)
 
         if os.path.exists(model_path):
@@ -167,11 +181,19 @@ class FileStorage(Storage):
         self._write_model(model_path, model.settings,
                           model.state, save_state=False)
 
+    def create_template(self, template):
+        template_path = self.template_path(template.name)
+
+        if os.path.exists(template_path):
+            raise errors.TemplateExists()
+
+        self._write_template(template_path, template.settings)
+
     def save_model(self, model, save_state=True, save_ckpt=True):
         model_path = self.model_path(model.name)
         try:
             old_settings = self._get_model_settings(model_path, model.name)
-        except errors.LoudMLException as exn:
+        except errors.LoudMLException:
             old_settings = {}
 
         old_settings['name'] = model.name
@@ -221,8 +243,17 @@ class FileStorage(Storage):
         except FileNotFoundError:
             raise errors.ModelNotFound(name=name)
 
+    def delete_template(self, name):
+        try:
+            shutil.rmtree(self.template_path(name))
+        except FileNotFoundError:
+            raise errors.TemplateNotFound(name=name)
+
     def model_exists(self, name):
         return os.path.exists(self.model_path(name))
+
+    def template_exists(self, name):
+        return os.path.exists(self.template_path(name))
 
     def _get_model_meta(self, model_path, model_name):
         settings_path = os.path.join(model_path, "meta.json")
@@ -236,7 +267,7 @@ class FileStorage(Storage):
                 )
             )
         except FileNotFoundError:
-            raise errors.ModelNotFound(name=model_name)
+            return None
         except OSError as exn:
             raise errors.LoudMLException(str(exn))
 
@@ -306,7 +337,8 @@ class FileStorage(Storage):
             'settings': settings,
             'name': name,
         }
-        data.update(meta)
+        if meta:
+            data.update(meta)
 
         return data
 
@@ -410,7 +442,7 @@ class FileStorage(Storage):
 
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
-        except OSError as exn:
+        except OSError:
             raise KeyError("model object not found")
 
         self._write_json(path, data)

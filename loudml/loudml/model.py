@@ -80,7 +80,6 @@ class Feature:
         Required('field'): All(schemas.dotted_key, Length(max=256)),
         'bucket': Any(None, schemas.key),
         'measurement': Any(None, schemas.dotted_key),
-        'collection': Any(None, schemas.key),
         'match_all': Any(None, Schema([
             {Required(schemas.key): Any(
                 int,
@@ -91,14 +90,12 @@ class Feature:
         ])),
         'default': Any(None, int, float, 'previous'),
         Optional('io', default='io'): Any('io', 'o', 'i'),
-        'low_watermark': Any(None, int, float),
-        'high_watermark': Any(None, int, float),
         'script': Any(None, str),
         Optional('anomaly_type', default='low_high'):
             Any('low', 'high', 'low_high'),
         'transform': Any(None, "diff"),
         'scores': Any(None, "min_max", "normalize", "standardize"),
-    })
+    }, extra=ALLOW_EXTRA)
 
     def __init__(
         self,
@@ -107,7 +104,6 @@ class Feature:
         field=None,
         bucket=None,
         measurement=None,
-        collection=None,
         match_all=None,
         default=None,
         script=None,
@@ -115,8 +111,6 @@ class Feature:
         transform=None,
         scores=None,
         io='io',
-        low_watermark=None,
-        high_watermark=None,
     ):
         self.validate(locals())
 
@@ -124,11 +118,8 @@ class Feature:
         self.metric = metric
         self.bucket = bucket
         self.measurement = measurement
-        self.collection = collection
         self.field = field
         self.default = np.nan if default is None else default
-        self.low_watermark = low_watermark
-        self.high_watermark = high_watermark
         self.script = script
         self.match_all = match_all
         self.anomaly_type = anomaly_type
@@ -139,7 +130,7 @@ class Feature:
         self.agg_id = self.build_agg_id()
 
     def build_agg_id(self):
-        prefix = self.measurement or self.collection
+        prefix = self.measurement
 
         if not self.match_all:
             return prefix or 'all'
@@ -155,12 +146,70 @@ class Feature:
         return schemas.validate(cls.SCHEMA, args)
 
 
+class FeatureTemplate(Feature):
+    SCHEMA = Schema({
+        Required('name'): Any(
+            All(schemas.key, Length(max=256)),
+            All(schemas.bracket_key, Length(max=256)),
+        ),
+        Required('metric'): Any(
+            All(schemas.key, Length(max=256)),
+            All(schemas.bracket_key, Length(max=256)),
+        ),
+        Required('field'): Any(
+            All(schemas.dotted_key, Length(max=256)),
+            All(schemas.bracket_key, Length(max=256)),
+        ),
+        'bucket': Any(
+            None, schemas.key, schemas.bracket_key),
+        'measurement': Any(
+            None, schemas.dotted_key, schemas.bracket_key),
+        'match_all': Any(
+            None,
+            Schema([
+                {Required(schemas.key): Any(
+                    int,
+                    bool,
+                    float,
+                    All(str, Length(max=256)),
+                )}]),
+            Schema([
+                {Required(schemas.bracket_key): Any(
+                    int,
+                    bool,
+                    float,
+                    All(str, Length(max=256)),
+                )}]),
+        ),
+        'default': Any(
+            None, int, float, 'previous', schemas.bracket_key),
+        Optional('io', default='io'): Any(
+            'io', 'o', 'i', schemas.bracket_key),
+        'script': Any(None, str, schemas.bracket_key),
+        Optional('anomaly_type', default='low_high'):
+            Any('low', 'high', 'low_high', schemas.bracket_key),
+        'transform': Any(None, "diff", schemas.bracket_key),
+        'scores': Any(
+            None,
+            "min_max",
+            "normalize",
+            "standardize",
+            schemas.bracket_key,
+        ),
+    })
+
+    @classmethod
+    def validate(cls, args):
+        del args['self']
+        return schemas.validate(cls.SCHEMA, args)
+
+
 class Model:
     """
     Loud ML model
     """
 
-    TYPE = 'generic'
+    TYPE = 'model_cls'
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('type'): All(schemas.key, Length(max=256)),
@@ -311,7 +360,89 @@ class Model:
         return NotImplemented()
 
 
-def load_model(settings, state=None, config=None):
+class ModelTemplate(Model):
+    """
+    Loud ML Jinja model template
+    """
+
+    TYPE = 'template_cls'
+    SCHEMA = Schema({
+        Required('name'): Any(
+            All(schemas.key, Length(max=256)),
+            All(schemas.bracket_key, Length(max=256)),
+        ),
+        Required('type'): Any(
+            All(schemas.key, Length(max=256)),
+            All(schemas.bracket_key, Length(max=256)),
+        ),
+        Optional('features'):
+            Any(None,
+                All([FeatureTemplate.SCHEMA], Length(min=1)),
+                ),
+        Optional('bucket_interval'): Any(
+            schemas.TimeDelta(min=0, min_included=False),
+            All(schemas.bracket_key),
+        ),
+        'threshold': Any(
+            schemas.score,
+            All(schemas.bracket_key),
+        ),
+        'max_threshold': Any(
+            schemas.score,
+            All(schemas.bracket_key),
+        ),
+        'min_threshold': Any(
+            schemas.score,
+            All(schemas.bracket_key),
+        ),
+        'max_evals': Any(
+            All(int, Range(min=1)),
+            All(schemas.bracket_key),
+        ),
+    }, extra=ALLOW_EXTRA)
+
+    def __init__(self, settings, name):
+        settings = copy.deepcopy(settings)
+
+        settings = self.validate(settings)
+        self._settings = settings
+        self.name = name
+        self._state = None
+
+        self.features = [
+            FeatureTemplate(**feature)
+            for feature in settings['features']
+        ]
+        self.bucket_interval = misc.parse_timedelta(
+            settings.get('bucket_interval', 0)).total_seconds()
+
+    @classmethod
+    def validate(cls, settings):
+        """Validate the settings against the schema"""
+        return schemas.validate(cls.SCHEMA, settings)
+
+    @property
+    def is_trained(self):
+        return False
+
+    @property
+    def data(self):
+        return {
+            'settings': self.settings,
+        }
+
+    @property
+    def state(self):
+        return None
+
+    @property
+    def preview(self):
+        return {
+            'settings': self.settings,
+        }
+
+
+def load_model(settings, state=None):
     """
     Load model
 
@@ -320,9 +451,6 @@ def load_model(settings, state=None, config=None):
 
     :param state: model state
     :type  state: opaque type
-
-    :param config: running configuration
-    :type  config: loudml.Config
     """
 
     model_type = settings.get('type')
@@ -340,10 +468,14 @@ def load_model(settings, state=None, config=None):
     return model_cls(settings, state)
 
 
-def load_template(settings, state=None, config=None, *args, **kwargs):
+def load_template(settings, name):
+    return ModelTemplate(settings, name)
+
+
+def load_model_from_template(settings, state=None, *args, **kwargs):
     t = Template(json.dumps(settings))
     settings = json.loads(t.render(**kwargs))
-    return load_model(settings, state, config)
+    return load_model(settings, state)
 
 
 def find_undeclared_variables(settings):
