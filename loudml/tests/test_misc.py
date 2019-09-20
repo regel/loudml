@@ -6,7 +6,6 @@ from loudml import (
 )
 
 from loudml.misc import (
-    deepsizeof,
     escape_quotes,
     escape_doublequotes,
     hash_dict,
@@ -104,17 +103,6 @@ class TestMisc(unittest.TestCase):
                 'port': 8080,
             }
         )
-
-    def test_deepsizeof(self):
-        size = deepsizeof({
-            'i': 0,
-            'f': 1.0,
-            'a': [1.0, 2.0, 3.0],
-        })
-
-        # XXX It seems that loading some python modules may change the result
-        self.assertGreaterEqual(size, 574)
-        self.assertLessEqual(size, 646)
 
     def test_escape_quotes(self):
         self.assertEqual(escape_quotes("foo ' '"), "foo \\' \\'")

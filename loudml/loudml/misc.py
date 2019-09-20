@@ -8,19 +8,9 @@ import hashlib
 import json
 import numpy as np
 import pkg_resources
-import sys
 import math
 
 import itertools
-import multiprocessing
-import multiprocessing.pool
-
-from collections import (
-    Set,
-    Mapping,
-    deque,
-)
-from numbers import Number
 
 from uuid import getnode
 
@@ -301,32 +291,6 @@ def get_date_ranges(from_ts, max_ts, span, interval):
         from_ts += interval
 
 
-def deepsizeof(obj_0):
-    """
-    Compute object size recursively
-    """
-    def inner(obj, _seen_ids=set()):
-        obj_id = id(obj)
-        if obj_id in _seen_ids:
-            return 0
-        _seen_ids.add(obj_id)
-        size = sys.getsizeof(obj)
-        if isinstance(obj, (str, bytes, Number, range, bytearray)):
-            pass  # bypass remaining control flow and return
-        elif isinstance(obj, (tuple, list, Set, deque)):
-            size += sum(inner(i) for i in obj)
-        elif isinstance(obj, Mapping) or hasattr(obj, 'items'):
-            size += sum(inner(k) + inner(v) for k, v in obj.items())
-        # Check for custom object instances - may subclass above too
-        if hasattr(obj, '__dict__'):
-            size += inner(vars(obj))
-        if hasattr(obj, '__slots__'):  # can have __slots__ with __dict__
-            size += sum(inner(getattr(obj, s))
-                        for s in obj.__slots__ if hasattr(obj, s))
-        return size
-    return inner(obj_0)
-
-
 def load_entry_point(namespace, name):
     """
     Load pkg_resource entry point
@@ -406,22 +370,6 @@ def hash_dict(data):
     ctx = hashlib.sha1()
     ctx.update(json.dumps(data, sort_keys=True).encode("utf-8"))
     return ctx.hexdigest()
-
-
-class NoDaemonProcess(multiprocessing.Process):
-    # make 'daemon' attribute always return False
-    def _get_daemon(self):
-        return False
-
-    def _set_daemon(self, value):
-        pass
-    daemon = property(_get_daemon, _set_daemon)
-
-
-# We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
-# because the latter is only a wrapper function, not a proper class.
-class Pool(multiprocessing.pool.Pool):
-    Process = NoDaemonProcess
 
 
 def chunks(iterable, size=1):
