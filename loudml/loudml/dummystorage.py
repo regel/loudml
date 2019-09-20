@@ -9,6 +9,9 @@ class DummyStorage(Storage):
     def model_exists(self, name):
         return False
 
+    def template_exists(self, name):
+        return False
+
     def get_model_data(self, name, ckpt_name=None):
         return {}
 
@@ -24,10 +27,16 @@ class DummyStorage(Storage):
     def list_templates(self):
         return []
 
-    def create_model(self, model, config):
+    def create_model(self, model):
         pass
 
     def delete_model(self, name):
+        pass
+
+    def create_template(self, template):
+        pass
+
+    def delete_template(self, name):
         pass
 
     def save_model(self, model, save_state=True):
@@ -45,7 +54,7 @@ class DummyStorage(Storage):
     def load_model(self, name, ckpt_name=None):
         return None
 
-    def load_template(self, _name, *args, **kwargs):
+    def load_model_from_template(self, _name, *args, **kwargs):
         return None
 
     def get_model_hook(self, model_name, hook_name):
