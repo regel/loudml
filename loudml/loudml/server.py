@@ -158,11 +158,13 @@ class Job:
             duration = (dt - self.created_dt)
             desc['duration'] = duration.total_seconds()
             desc['start_date'] = self.created_dt.strftime('%c')
+            desc['start_timestamp'] = self.created_dt.timestamp()
             if done_ratio:
                 desc['remaining_time'] = duration.total_seconds() * (
                     1.0 - done_ratio)
         if self.done_dt:
             desc['end_date'] = self.done_dt.strftime('%c')
+            desc['end_timestamp'] = self.done_dt.timestamp()
         return desc
 
     @property
@@ -1094,7 +1096,7 @@ class JobsResource(Resource):
             fields = None
 
         list_sort_field, list_sort_order = request.args.get(
-            'sort', 'name:1').split(':')
+            'sort', 'id:1').split(':')
 
         jobs = []
         for entry in g_jobs.values():

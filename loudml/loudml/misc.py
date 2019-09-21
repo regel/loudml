@@ -30,14 +30,14 @@ DOUBLEQUOTE_ESCAPE_TRANS = str.maketrans({
 def clear_fields(obj, fields, include_fields):
     if include_fields:
         out = {
-            key: obj[key]
+            key: obj.get(key)
             for key in set(fields)
         }
         obj.clear()
         obj.update(out)
     else:
         out = {
-            key: obj[key]
+            key: obj.get(key)
             for key in (set(obj.keys()) - set(fields))
         }
         obj.clear()
