@@ -312,6 +312,7 @@ class InfluxBucket(Bucket):
     SCHEMA = Bucket.SCHEMA.extend({
         Required('addr'): str,
         Required('database'): schemas.key,
+        Required('measurement'): All(schemas.key, Length(max=256)),
         Optional('create_database', default=True): Boolean(),
         Optional('dbuser'): All(schemas.key, Length(max=256)),
         Optional('dbuser_password'): str,
@@ -334,6 +335,10 @@ class InfluxBucket(Bucket):
                 escape_doublequotes(self.db),
                 escape_doublequotes(retention_policy),
             )
+
+    @property
+    def measurement(self):
+        return self.cfg['measurement']
 
     @property
     def addr(self):
@@ -440,7 +445,7 @@ class InfluxBucket(Bucket):
         self,
         ts,
         data,
-        measurement='generic',
+        measurement=None,
         tags=None,
         *args,
         **kwargs
@@ -454,7 +459,7 @@ class InfluxBucket(Bucket):
         data = {k: v for k, v in data.items() if v is not None}
 
         entry = {
-            'measurement': measurement,
+            'measurement': measurement or self.measurement,
             'time': ts_to_ns(ts),
             'fields': data,
         }
@@ -535,7 +540,7 @@ class InfluxBucket(Bucket):
             yield "select {} from {}\"{}\"{} group by time({}ms);".format(
                 _build_agg(feature),
                 self._from_prefix,
-                escape_doublequotes(feature.measurement),
+                escape_doublequotes(feature.measurement or self.measurement),
                 where,
                 int(bucket_interval * 1000),
             )

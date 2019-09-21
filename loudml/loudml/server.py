@@ -1037,7 +1037,7 @@ def bucket_read(bucket_name):
     for feature in request.args.get('features', '').split(';'):
         field = None
         metric = None
-        measurement = 'doc'
+        measurement = None
         for index, val in parse_expression("({})".format(feature)):
             if index > 1:
                 raise errors.Invalid(
