@@ -90,7 +90,8 @@ class TestInfluxQuick(unittest.TestCase):
 
         t0 = int(datetime.datetime.now().timestamp())
 
-        # XXX Bucket returned by InfluxDB are aligne on modulo(bucket_interval), that's why
+        # XXX Bucket returned by InfluxDB are aligned on
+        # modulo(bucket_interval), that's why
         # timestamp must be aligned for unit tests.
         t0 -= t0 % bucket_interval
 
@@ -102,6 +103,7 @@ class TestInfluxQuick(unittest.TestCase):
             'name': 'test',
             'addr': ADDR,
             'database': self.db,
+            'measurement': 'nosetests',
         })
         self.source.drop()
         self.source.init()
@@ -236,6 +238,7 @@ class TestInfluxQuick(unittest.TestCase):
             'addr': ADDR,
             'database': self.db,
             'retention_policy': 'custom',
+            'measurement': 'nosetests',
         })
 
         queries = list(source._build_times_queries(
@@ -373,6 +376,7 @@ class TestInfluxLong(unittest.TestCase):
             'name': 'test',
             'addr': ADDR,
             'database': self.db,
+            'measurement': 'nosetests',
         })
         self.source.drop()
         self.source.init()
