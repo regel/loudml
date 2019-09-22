@@ -4,20 +4,14 @@
 Defines how time series data must be aggregated into features
 for learning and inference.
 
-Features define how to aggregate numerical data from a `measurement`
-A `measurement` defines an object type in the data source:
-
-* For Elasticsearch data source, the `measurement` is not used. You can set the `doc_type` in `config.yml` data source settings. Default is `doc` if not set
-* For InfluxDB data source, the `measurement` is the series measurement name
-* For MongoDB data source, the `collection` is the series data collection
+Features define how to aggregate numerical data from one or more buckets.
 
 Accepted parameters to define model features are:
 
 [horizontal]
 `name`:: Name given to this feature
 `field`:: TSDB column name
-`measurement`:: TSDB table to fetch data
-`collection`:: TSDB collection to fetch data
+`measurement`:: DEPREACTED. Define `measurement` in the bucket configuration.
 `match_all`:: list of TSDB tag names and values that must be matched when fetching the data
 `metric`:: An aggregation operator supported by the TSDB
 `default`:: A default float value to replace NaN values returned by the TSDB, or `previous` in order to fill the series with previous non-NaN value
@@ -25,7 +19,7 @@ Accepted parameters to define model features are:
 
 The list below defines the aggregation operators can be used to
 define features. These values can be extracted by using numeric
-fields in the data source documents.
+fields in the bucket documents.
 
 [NOTE]
 ==================================================
@@ -66,13 +60,12 @@ is using:
 --------------------------------------------------
 {
   "bucket_interval": "1m",
-  "default_datasource": "my-datasource",
+  "default_bucket": "my-bucket",
   "features": [
     {
       "default": 0,
       "metric": "count",
       "field": "requests",
-      "measurement": "traffic",
       "name": "count_all_requests",
       "anomaly_type": "low"
     }
@@ -104,7 +97,7 @@ will become:
 {
   "name": "traffic-model",
   "bucket_interval": "1m",
-  "default_datasource": "my-datasource",
+  "default_bucket": "my-bucket",
   "features": [
     {
       "match_all": [
@@ -113,7 +106,6 @@ will become:
       "default": 0,
       "metric": "count",
       "field": "requests",
-      "measurement": "traffic",
       "name": "count_all_requests",
       "anomaly_type": "low"
     }

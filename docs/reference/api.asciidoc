@@ -5,13 +5,13 @@
 --
 This section contains a detailed description of the following CRUD APIs:
 
-* <<api-datasources>>
+* <<api-buckets>>
 * <<api-jobs>>
 * <<api-models>>
 * <<api-hooks>>
 --
 
-include::api/datasources.asciidoc[]
+include::api/buckets.asciidoc[]
 
 include::api/jobs.asciidoc[]
 

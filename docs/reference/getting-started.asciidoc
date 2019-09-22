@@ -46,9 +46,9 @@ A time series database (TSDB) is a software system that is optimized for handlin
 Loud ML is a near real time API that aggregates data from external databases. What this means is there is a slight latency (normally from one to 30 seconds) from the time you index documents in the TSDB until the time it becomes available for search and aggregation performed by Loud ML.
 
 [float]
-=== Data Source
+=== Bucket
 
-A data source is an external system that supports data query and aggregation. For example, it can be a TSDB or any other document source supported by the API. This object is expressed in YAML format and defined in the configuration.
+A bucket is an external storage system that supports data query and aggregation. For example, it can be a TSDB or any other document source supported by the API. This object is expressed in YAML format and defined in the configuration.
 
 [float]
 === Model
@@ -78,28 +78,30 @@ You can run inference using both past history data (usually to verify the model 
 
 == Setup Your config.yml File
 
-The first step after installation is to define the data sources that Loud ML can use to find data. You can edit the file `/etc/loudml/config.yml` and add minimal settings such as the address, port, and name of your data source.
+The first step after installation is to define the buckets that Loud ML can use to find data. You can edit the file `/etc/loudml/config.yml` and add minimal settings such as the address, port, and name of your bucket.
 
-We will define one `nab` data source pointing to a database of the same name.
+We will define one `numenta` bucket pointing to a database of the same name.
 
-A `datasource` can act as a source where data is read, or a sink to write data depending on the context.
+A `bucket` can act as a source to read data or destination to write data depending on the context.
 
 [source,sh]
 --------------------------------------------------
 cat /etc/loudml/config.yml
 ---
-datasources:
- - name: nab
+buckets:
+ - name: numenta
    type: influxdb
    addr: localhost
-   database: nab
+   database: numenta
+   measurement: loudml
    create_database: true
    retention_policy: autogen
    max_series_per_request: 2000
  - name: output
    type: influxdb
    addr: localhost
-   database: loudml
+   database: output
+   measurement: loudml
    create_database: true
    retention_policy: autogen
    max_series_per_request: 2000
@@ -111,11 +113,11 @@ Or if your `config.yml` settings must specify Elasticsearch indexes:
 --------------------------------------------------
 cat /etc/loudml/config.yml
 ---
-datasources:
- - name: nab
+buckets:
+ - name: numenta
    type: elasticsearch
    addr: localhost
-   index: nab
+   index: numenta
    doc_type: doc
  - name: output
    type: elasticsearch
@@ -137,7 +139,7 @@ Public real world data sets are useful for testing. We can load the popular http
 
 [source,sh]
 --------------------------------------------------
-loudml load-data -f now-30d -d nab
+loudml -e "load-nab -f now-30d numenta"
 --------------------------------------------------
 
 == First Model
@@ -145,26 +147,23 @@ loudml load-data -f now-30d -d nab
 Data is loaded. Let's declare a first model in a JSON file. This model learns
 the average CPU utilization of an AWS instance auto scaling group. Our JSON
 file describes the parameters and features to pull and aggregate data from
-a data source. 
+a bucket. 
 
 [source,sh]
 --------------------------------------------------
 cat <<EOF | tee asg.json
 {
-    "default_datasource": "nab",
-    "default_datasink": "output",
-    "name": "nab_cpu_utilization_asg_misconfiguration_mean_value__5m",
+    "default_bucket": "numenta",
+    "name": "cpu_utilization_asg_misconfiguration",
     "type": "donut",
     "features": [
         {
             "metric": "mean",
-            "measurement": "cpu_utilization_asg_misconfiguration",
             "field": "value",
-            "io": "io",
             "name": "mean_value",
             "match_all": [
                 {
-                    "tag": "nab",
+                    "tag": "file",
                     "value": "cpu_utilization_asg_misconfiguration"
                 }
             ],
@@ -184,17 +183,17 @@ We can use the CLI to create this model and ten days of historical data for trai
 
 [source,sh]
 --------------------------------------------------
-loudml create-model asg.json
-loudml train nab_cpu_utilization_asg_misconfiguration_mean_value__5m -f now-30d -t now-20d
+loudml -e "create-model asg.json"
+loudml -e "train-model -f now-30d -t now-20d cpu_utilization_asg_misconfiguration"
 --------------------------------------------------
 
 == Evaluate
 
 We can use the `predict` command to compare original data against model predictions,
-using historical data. The `-s` flag saves data to the default data source, and
+using historical data. The `-s` flag saves data to the default bucket, and
 facilitates data vizualization. The `-a` flag calculates a score to detect anomalies.
 
-Output data points are saved to a new measurement `prediction_nab_cpu_utilization_asg_misconfiguration_mean_value__5m` and each point contains the following information:
+Output data points are saved to the `output` bucket and each point contains the following information:
 
 * `mean_value`: the predicted normal value named according to the JSON model definition
 * `lower_mean_value`: the minimum normal value with 99.7 percent confidence
@@ -204,38 +203,74 @@ Output data points are saved to a new measurement `prediction_nab_cpu_utilizatio
 
 [source,sh]
 --------------------------------------------------
-loudml predict nab_cpu_utilization_asg_misconfiguration_mean_value__5m -f now-30d -t now -s -a
+loudml -e "predict-model cpu_utilization_asg_misconfiguration -f now-30d -t now -s -a -o output"
+--------------------------------------------------
+
+Or if you need to print the output to the terminal:
+
+--------------------------------------------------
+loudml -e "predict-model cpu_utilization_asg_misconfiguration -f now-30d -t now -a"
+--------------------------------------------------
+
+The value between brackets eg `[ 40.9]` is the anomaly score for this data point. This score ranges from 0 to 100. A star `*` indicates that the score is above normal and the data point is therefore flagged as abnormal.
+
+--------------------------------------------------
+timestamp          mean_value         loudml.mean_value  
+1567460400.0       35.168             38.212 [ 40.9]     
+1567460700.0       46.158             38.709 [ 78.1]     
+1567461000.0       39.946             43.764 [ 37.6]     
+1567461300.0       33.316             35.549 [ 32.3]     
+1567461600.0       57.832             32.826 [* 100.0]   
+1567461900.0       31.222             34.417 [ 68.5]     
+1567462200.0       33.588             30.978 [ 65.9]     
+1567462500.0       30.496             33.961 [ 72.5]     
+1567462800.0       39.501             34.369 [ 98.0]     
+1567463100.0       46.334             33.238 [* 100.0]   
+1567463400.0       31.154             33.193 [ 44.2]     
+1567463700.0       31.165             32.515 [ 26.1]     
 --------------------------------------------------
 
 == Forecast Future Data
 
 We can use the `forecast` command to generate future data points. Again, the `-s` flag
-saves data to the default data source, and facilitates data vizualization.
+saves data to the default bucket, and facilitates data vizualization. Response is written to standard output if the `-s` flag is omitted.
 
 [source,sh]
 --------------------------------------------------
-loudml forecast nab_cpu_utilization_asg_misconfiguration_mean_value__5m -f now-5m -t now+6h -s
+loudml -e "forecast-model cpu_utilization_asg_misconfiguration -f now-5m -t now+6h"
 --------------------------------------------------
 
-Output data points are saved to a new measurement `prediction_nab_cpu_utilization_asg_misconfiguration_mean_value__5m` and each point contains the following information:
+Output data points contain the following information:
 
 * `mean_value`: the predicted normal value named according to the JSON model definition
-* `lower_mean_value`: the minimum normal value with 68 percent confidence
+* `lower_mean_value`: the minimum normal value with 68 percent confidence.
 * `upper_mean_value`: the maximum normal value with 68 percent confidence
+
+
+The output should look like this:
+
+--------------------------------------------------
+timestamp          mean_value         loudml.mean_value  
+1569180000.0       31.829             29.897             
+1569180300.0       33.161             32.23              
+1569180600.0       31.829             30.063             
+1569180900.0       33.203             31.157             
+1569181200.0       34.473             33.131
+...
+--------------------------------------------------
 
 == Detecting Outliers 
 
 Running ML in production requires the ability to automate training, inference, and
 forecast operations. Regular scheduled operations, and on demand inference are provided
-via the Loud ML daemon process.
+via the Loud ML model server.
 
 Jobs can be scheduled at a regular `interval` defined in JSON model settings, using the
-`_start` API eg to automate outlier detection for live streaming data:
+`start-model` CLI to automate outlier detection for live streaming data:
 
 [source,sh]
 --------------------------------------------------
-systemctl start loudmld
-curl -X POST localhost:8077/models/nab_cpu_utilization_asg_misconfiguration_mean_value__5m/_start?detect_anomalies=true&save_prediction=true
+loudml -e "start-model cpu_utilization_asg_misconfiguration -a"
 --------------------------------------------------
 
 Congratulations on making it this far. We hope this tutorial helps get you started

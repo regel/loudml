@@ -70,7 +70,7 @@ The 1.3 release introduces new cool features.
 ** Define `i`, `o`, `io` (input, output or input/output) are now available in the time series model:
 *** you can now define your time series model features respectively as input-only, output only, or input and output.
 ** A `match_all` property is now available in the model feature definition:
-*** you can now filter measurements from your data source based on certain fields or tag values.
+*** you can now filter data from your bucket based on certain fields or tag values.
 ** New properties `max_threshold`, and `min_threshold` replace the unique anomaly detection threshold value:
 *** hysteresis implementation;
 *** the property accepts values in range 0-100;

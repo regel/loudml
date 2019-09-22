@@ -50,7 +50,7 @@ Breaking changes have been made:
 
 * The `timeseries` model type, using supervised learning is removed. You can use the unsupervised `donut` model type as a drop in replacement in most cases
 * Users no longer need to define seasonality information in model settings. Unsupervised models can figure it out automatically
-* Output predictions and forecast data points are now written to a unique `loudml` measurement tagged with the model name
+* Output predictions and forecast data points are now written to a unique `loudml` bucket tagged with the model name
 * Support for non stationary data is removed. We need another way to apply derivatives to the input data
 * Support for multivariate data is removed. We need another way to manage models using more than one feature
 

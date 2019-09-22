@@ -117,13 +117,12 @@ Now, since we want to detect request counts that are abnormally low, we set
 --------------------------------------------------
 {
   "bucket_interval": "1m",
-  "default_datasource": "my-datasource",
+  "default_bucket": "my-bucket",
   "features": [
     {
       "default": 0,
       "metric": "count",
       "field": "requests",
-      "measurement": "traffic",
       "name": "count_all_requests",
       "anomaly_type": "low"
     }

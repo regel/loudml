@@ -87,31 +87,35 @@ Accepted `loudmld` server configuration parameters are:
 [horizontal]
 `listen`:: TCP server will listen on this address and port number
 
-Finally, you can define your data sources; ie, how Loud ML will connect to
+Finally, you can define your buckets; ie, how Loud ML will connect to
 your databases and find all information required for machine learning.
 
 [source,yaml]
 --------------------------------------------------
-datasources:
-  - name: favorite_source
+buckets:
+  - name: favorite_bucket
     type: influxdb
     addr: localhost:8086
     database: favoritedb
-  - name: other_source
+    measurement: loudml
+  - name: another_bucket
     type: elasticsearch
     addr: localhost:9200
     index: some_index*
+    doc_type: doc
 --------------------------------------------------
 
 The supported settings are:
 
 [horizontal]
-`name`::       (string) A user defined name that will refer to this data source
+`name`::       (string) A user defined name that will refer to this bucket
 `type`::       (string) Accepts `influxdb`, or `elasticsearch`
 `addr`::       (string) The network address and port number to connect to the database
 `database`::   (string) The database name. This property is only relevant if `type` equals `influxdb`
 `index`::      (string) The index pattern. This property is only relevant if `type` equals `elasticsearch`
-`doc_type`::      (string) The document `type` expected in Elasticsearch indexes for this data source. This property is only relevant if `type` equals `elasticsearch`
+`doc_type`::      (string) The document `type` expected in Elasticsearch indexes for this bucket. This property is only relevant if `type` equals `elasticsearch`
+`measurement`::      (string) The `measurement` name for this bucket. This property is only relevant if `type` equals `influxdb`
+`collection`::      (string) The `collection` name for this bucket. This property is only relevant if `type` equals `mongodb`
 `dbuser`::     (string) User name, if using HTTP basic authentication to connect to the database
 `dbuser_password`::      (string) User password, if using HTTP basic authentication to connect to the database
 `use_ssl`::    (boolean) Enable this flag if the SSL protocol must be used to connect to the database

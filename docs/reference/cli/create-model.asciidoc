@@ -16,12 +16,11 @@ may contain the following settings:
 --------------------------------------------------
 {
   "bucket_interval": "1m",
-  "default_datasource": "my-datasource",
+  "default_bucket": "temperature-bucket",
   "features": [
     {
       "default": 0,
       "field": "temp2",
-      "measurement": "temperature_series",
       "metric": "avg",
       "name": "avg_temp_feature"
     }
@@ -41,19 +40,19 @@ The supported settings are:
 
 [horizontal]
 `bucket_interval`::       (duration) The bucket aggregation interval
-`default_datasource`::       (string) The implicit data source to query and insert data
+`default_bucket`::       (string) The implicit bucket to query and insert data
 `features`::       (array) An array of features, or dictionary of features, derived from the aggregated input data
 `interval`::       (duration) The periodic anomaly detection interval
 `max_evals`::      (integer) The integer number of iterations to produce a model with optimal accuracy
 `name`::  (string) Name of this model. This identifier must be unique
-`offset`::   (duration) The time offset used when querying the data source
+`offset`::   (duration) The time offset used when querying the bucket
 `forecast`::   (integer) The forecast horizon, defined as the number of time buckets to forecast when requesting the model to predict future data
 `span`::   (integer) The sliding window size, defined as the number of past time buckets
 `grace_period`::   (duration) A grace period interval to ignore new anomalies immediately after a new anomaly. Default value is zero (disabled)
 `max_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies start when this threshold is exceeded. An optimal value will be set automatically if the threshold is set to zero.
 `min_threshold`::   (integer) An anomaly threshold between 0 and 100. Anomalies end when the current scores fall behind this threshold. An optimal value will be set automatically if the threshold is set to zero.
 `type`::   (string) `donut`, or a custom type if you extend Loud ML using new model types
-`timestamp_field`::   (string) Optional. The main timestamp field in your TSDB data source. The default value for this field is `timestamp`. You can set the value to `@timestamp` or the value that fits your TSDB mapping.
+`timestamp_field`::   (string) Optional. The main timestamp field in your TSDB bucket. The default value for this field is `timestamp`. You can set the value to `@timestamp` or the value that fits your TSDB mapping.
 
 This above example defines a unique feature, named `avg_temp_feature` that will
 be averaged over `bucket_interval` (1 minute) bucket intervals. The last 5 (`span`)
@@ -73,8 +72,7 @@ Depending on where you are in your ML journey, having more than one feature in t
 [NOTE]
 ==================================================
 
-All features defined in the model will query and aggregate data from the same
-data source.
+All features defined in the model will query and aggregate data from the same bucket.
 
 ==================================================
 
