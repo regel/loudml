@@ -19,10 +19,10 @@ software. In all cases, the dependencies must be added to the file
 Dependencies Provided by RedHat/EPEL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The dependency must be added to the SPEC file.
+The dependency must be added to the SPEC file, eg:
 
 ```
-Requires: python34-numpy
+Requires: curl
 ```
 
 Dependencies Provided by Debian
