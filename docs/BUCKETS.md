@@ -1,4 +1,4 @@
-### Input Data Source
+### Buckets
 
 This section is for developers who want to connect Loud ML to new
 types of databases and enhance the compatibility of the software with
@@ -8,55 +8,56 @@ This interface allows for users to quickly connect their data to
 state of the art capabilities and focus on the core business and
 operations.
 
-Input data source authorship is kept as simple as possible to
+Bucket authorship is kept as simple as possible to
 promote people to develop and submit new inputs.
 
-### Input Data Source Guidelines
+### Bucket Guidelines
 
-- A new data source must conform to the [Datasource][] interface
-- A new data source class should call `super.__init__()` in their `__init__` function to register
-  themselves and inherit from the Datasource class
-- A new data source class must be defined in a new file
+- A new bucket must conform to the [Bucket] interface
+- A new bucket class should call `super.__init__()` in their `__init__` function to register
+  themselves and inherit from the Bucket class
+- A new bucket class must be defined in a new file
 - Declare settings in a voluptuous schema to validate their format
-- The data source must be able to use the settings defined in `config.yml` file
-- Methods that are not implemented must raise `raise NotImplemented()` exception
+- The bucket must be able to use the settings defined in `config.yml` file
+- Methods that are not implemented must raise `raise NotImplementedError()` exception
 - The main `Description` header should reference relevant documentation if any
-- Unit tests must load and save test data in the format defined for other sources
-- Follow the recommended [CodeStyle][]
+- Unit tests must load and save test data in the format defined for other buckets
+- Follow the recommended [CodeStyle]
 
-Let's say you've written a new data source for SQL data.
+Let's say you've written a new bucket for SQL data.
 
 ### SQL Example
 
 ```python
 
 # sql.py
-from loudml.datasource import DataSource
-class MyDataSource(DataSource):
+from loudml.bucket import Bucket
+class MyBucket(Bucket):
     """
-    My datasource
+    My bucket class
     """
 
-    SCHEMA = DataSource.SCHEMA.extend({
+    SCHEMA = Bucket.SCHEMA.extend({
         Required('string_param'): str,
         Optional('bool_param', default=True): Boolean(),
         Optional('key_param'): All(schemas.key, Length(max=256)),
     })
 
     def __init__(self, cfg):
-        cfg['type'] = 'mysource'
+        cfg['type'] = 'mybucket'
         super().__init__(cfg)
 
     def get_times_data(
         self,
-        model,
+        bucket_interval,
+        features,
         from_date=None,
         to_date=None,
     ):
-        features = model.features
         nb_features = len(features)
 
-        queries = self._build_times_queries(model, from_date, to_date)
+        queries = self._build_times_queries(
+            bucket_interval, features, from_date, to_date)
         results = self._run_queries(queries)
 
         if not isinstance(results, list):
@@ -76,7 +77,7 @@ class MyDataSource(DataSource):
                 else:
                     bucket = {
                         'time': timeval,
-                        'mod': int(str_to_ts(timeval)) % model.bucket_interval,
+                        'mod': int(str_to_ts(timeval)) % bucket_interval,
                         'values': {},
                     }
                     buckets.append(bucket)
@@ -113,8 +114,8 @@ class MyDataSource(DataSource):
 ### Development
 
 * Add new Python code to the `loudml/loudml` directory
-* Add new Python file test_source.py to the `loudml/tests` directory
+* Add new Python file test_mybucket.py to the `loudml/tests` directory
 * Run `make rpm` to package the new version
 
 [CodeStyle]: https://github.com/regel/loudml/wiki/CodeStyle
-[Datasource]: https://updateurl
+[Bucket]: https://raw.githubusercontent.com/regel/loudml/master/loudml/loudml/bucket.py

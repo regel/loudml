@@ -1,14 +1,14 @@
 ### Contributing
 
-1. Open a [new issue][] to discuss the changes you would like to make.  This is
+1. Open a [new issue] to discuss the changes you would like to make.  This is
    not strictly required but it may help reduce the amount of rework you need
    to do later.
 2. Make changes or write your code using the guidelines in the following
    documents:
-   - [New data source type][datasources]
+   - [New bucket type][buckets]
    - [New model type][models]
 3. Ensure you have added proper unit tests and documentation.
-4. Open a new [pull request][].
+4. Open a new [pull request].
 
 ### Coding Style
 
@@ -18,10 +18,10 @@ false positives due to changes between Python 2 and Python 3.
 
 ### PyDoc
 
-Public interfaces for new data sources, models, and the model server,
+Public interfaces for new buckets, models, and the model server,
 can be found in source files:
 
-* `datasource.py`
+* `bucket.py`
 * `model.py`
 * `server.py`
 
@@ -42,7 +42,7 @@ Before opening a pull request you should run the short tests.
 **Run short tests:**
 
 ```
-nosetests-3.4 loudml/tests
+nosetests loudml/tests
 ```
 
 **Execute integration tests:**
@@ -64,4 +64,4 @@ Use `make docker-kill` to stop the containers.
 [new issue]: https://github.com/regel/loudml/issues/new/choose
 [pull request]: https://github.com/regel/loudml/compare
 [models]: /docs/MODELS.md
-[datasources]: /docs/DATASOURCES.md
+[buckets]: /docs/BUCKETS.md
