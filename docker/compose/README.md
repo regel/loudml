@@ -6,7 +6,7 @@ to spawn a TICK-L stack, i.e. a stack of containers with:
 - InfluxDB
 - Chronograf for Loud ML
 - Kapacitor
-- Loud ML Community Edition
+- Loud ML
 
 The following ports are exposed on the host:
 - 8077: Loud ML
@@ -59,7 +59,7 @@ $ docker-compose up
 You can open Chronograf on the host port 8888. This is the same Chronograf
 that you are used to, except for the extended machine learning capabilities.
 In the left toolbar, you can see an entry for Loud ML, and the Data Explorer
-screen also includes the 1-Click ML button.
+screen also includes the 1-Click ML (Create baseline) button.
 
 To stop all the containers:
 
