@@ -47,7 +47,7 @@ Use the packages in the staging bucket in AWS S3
 Official packages
 -----------------
 
-Use the official community packages in the Loud ML AWS S3 bucket.
+Use the official packages in the Loud ML AWS S3 bucket.
 
 .. console:
 
@@ -63,4 +63,4 @@ suit your needs.
 .. console:
 
    $ docker run --rm -ti -p 8077:8077 -v $VOLUME:/var/lib/loudml/models:rw \
-                loudml/community
+                loudml/loudml

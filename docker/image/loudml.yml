@@ -1,9 +1,10 @@
 ---
-datasources: []
+buckets: []
 # - name: influx
 #   type: influxdb
 #   addr: localhost
 #   database: mydatabase
+#   measurement: loudml
 
 # - name: elastic
 #   type: elasticsearch

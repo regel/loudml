@@ -4,7 +4,7 @@ version: "2"
 
 services:
   loudml:
-    image: loudml/community
+    image: loudml/loudml:latest
     volumes:
       - ./etc/loudml.yml:/etc/loudml/config.yml:ro
       - ./var/loudml:/var/lib/loudml

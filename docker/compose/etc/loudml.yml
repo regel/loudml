@@ -1,13 +1,15 @@
 ---
-datasources:
+buckets:
   - name: influx
     type: influxdb
     addr: influxdb:8086
     database: telegraf
+    measurement: loudml
   - name: kapacitor
     type: influxdb
     addr: kapacitor:9092
     database: from_loudml
+    measurement: loudml
 
 storage:
   path: /var/lib/loudml

@@ -14,7 +14,7 @@ set -ex
 : "${DOCKER_ID_USER:=loudml}"
 export DOCKER_ID_USER
 
-declare -r tag="community:latest"
+declare -r tag="loudml:latest"
 declare -r dir="remote"
 
 echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/ stretch main" \
