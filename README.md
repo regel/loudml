@@ -2,7 +2,7 @@
 
 # Loud ML - Reveal the hidden
 
-[![CircleCI](https://circleci.com/gh/regel/loudml.svg?style=svg)](https://circleci.com/gh/regel/loudml) [![Docker pulls](https://img.shields.io/docker/pulls/loudml/community.svg)](https://hub.docker.com/r/loudml/community) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=regel_loudml&metric=coverage)](https://sonarcloud.io/dashboard?id=regel_loudml) [![Netlify Status](https://api.netlify.com/api/v1/badges/aee0d77f-54ac-413e-bb7f-34a154f47765/deploy-status)](https://app.netlify.com/sites/flamboyant-cori-981ea4/deploys)
+[![CircleCI][1]](https://circleci.com/gh/regel/loudml) [![Docker pulls][2]](https://hub.docker.com/r/loudml/community) [![Coverage][3]](https://sonarcloud.io/dashboard?id=regel_loudml) [![Netlify Status][4]](https://app.netlify.com/sites/flamboyant-cori-981ea4/deploys)
 
 Loud ML is an open source inference engine for metrics and events, and the fastest way to embed machine learning in your time series application. This includes APIs for storing and querying data, processing it in the background for ML or detecting outliers for alerting purposes, and more. 
 
@@ -19,7 +19,7 @@ Loud ML is an open source **time series inference engine** built on top of Tenso
 ## Features
 
 * Built-in HTTP API that facilitates the integration in other applications.
-* Data agnostic. The ML engine sits on top of all your data stores to provide instant results.
+* Data agnostic. The ML engine sits on top of all your data stores ([ElasticSearch](https://github.com/elastic/elasticsearch), [InfluxDB](https://github.com/influxdata/influxdb), [MongoDB](https://github.com/mongodb/mongo), etc) to provide instant results.
 * JSON like model feature specification.
 * Simple to install and manage, and fast to get data in and out.
 * Donut unsupervised learning model [arXiv 1802.03903](https://arxiv.org/abs/1802.03903)
@@ -28,44 +28,42 @@ Loud ML is an open source **time series inference engine** built on top of Tenso
 
 ## Installation
 
-We recommend installing Loud ML using one of the [pre-built packages](https://loudml.io/guide/en/loudml/reference/current/install-loudml.html). Then start Loud ML using:
-
-* `systemctl start loudmld` if you have installed Loud ML using an official Debian or RPM package, and are running a distro with `systemd`.
-* `loudmld` and `loudml` if you have built Loud ML from source.
-
 ### Local install
 
-Inside a virtualenv:
+loudmld can be installed using `pip` similar to other Python packages. Do not use `sudo` with `pip`. It is usually good to work in a [virtualenv](https://virtualenv.pypa.io/en/latest/) or [venv](https://docs.python.org/3/library/venv.html) to avoid conflicts with other package managers and Python projects. For a quick introduction see [Python Virtual Environments in Five Minutes](https://bit.ly/py-env>)
+
+Run inside a virtualenv:
 
 ```bash
 make install
 ```
 
-System-wide installation:
-
-```bash
-sudo make install
-```
-
 ## Getting Started
-
-## Running loudml command-line interface
-
-```bash
-loudml -c <path/to/configuration> <command>
-```
-
-See help for further information about commands
-
-```bash
-loudml -h
-```
 
 ## Running loudmld
 
+You can start the Loud ML model server using:
+
+* `systemctl start loudmld` if you have installed Loud ML using an official Debian or RPM package, and are running a distro with `systemd`.
+* `loudmld` if you have built Loud ML from source.
+
 ```bash
-loudmld -c <path/to/configuration>
+loudmld -c <path/to/config.yml file>
 ```
+
+## Running loudml command-line interface
+
+One extra package is needed to run the command line interface.
+
+If you've installed `loudml-python` locally, the `loudml` command should be available via the command line. Executing loudml will start the CLI and automatically connect to the local Loud ML model server instance (assuming you have already started the server with `systemctl start loudmld` or by running loudmld directly).
+ 
+```bash
+pip install loudml-python
+```
+
+The Python client library is [open source](https://github.com/loudml/loudml-python)
+
+Contributors wanted! Official client libraries for Javascript, Java, Ruby, Go can be found at: https://github.com/loudml
 
 ## Running unit tests
 
@@ -101,3 +99,10 @@ See [LICENSE](./LICENSE)
 
 Contact [contact@loudml.io](mailto:contact@loudml.io) to learn how we can best help you succeed.
 
+[1]: https://circleci.com/gh/regel/loudml.svg?style=svg
+
+[2]: https://img.shields.io/docker/pulls/loudml/community.svg
+
+[3]: https://sonarcloud.io/api/project_badges/measure?project=regel_loudml&metric=coverage
+
+[4]: https://api.netlify.com/api/v1/badges/aee0d77f-54ac-413e-bb7f-34a154f47765/deploy-status
