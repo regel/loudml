@@ -1,13 +1,13 @@
-[[api-datasources]]
-== Datasource API
+[[api-buckets]]
+== Bucket API
 
-The datasource API allows to get a typed JSON document from the data
-source configuration based on its name. The following example gets a
+The bucket API allows to get a typed JSON document from the bucket
+ configuration based on its name. The following example gets a
 JSON document from the current configuration, with name `influx`:
 
 [source,js]
 --------------------------------------------------
-GET /datasources/influx
+GET /buckets/influx
 --------------------------------------------------
 
 The result of the above get operation is:
@@ -18,22 +18,23 @@ The result of the above get operation is:
    "name": "influx",
    "type": "influxdb",
    "addr": "localhost:8086",
-   "database": "telegraf"
+   "database": "telegraf",
+   "measurement": "loudml"
 }
 --------------------------------------------------
 
-The API also allows to check for the existence of a datasource using
+The API also allows to check for the existence of a bucket using
 `HEAD`, for example:
 
 [source,js]
 --------------------------------------------------
-HEAD /datasources/influx
+HEAD /buckets/influx
 --------------------------------------------------
 
-A top level GET operation will list all configured datasources.
+A top level GET operation will list all configured buckets.
 
 [source,js]
 --------------------------------------------------
-GET /datasources
+GET /buckets
 --------------------------------------------------
 

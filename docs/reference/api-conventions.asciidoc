@@ -117,7 +117,7 @@ the unit, like `2d` for 2 days.  The supported units are:
 
 The time intervals returned by queries are always multiple of the `bucket_interval`
 
-For example, queries to handle the data between 6:15pm and 7:45pm and a 1 hour bucket_interval will group features and metrics into one hour intervals. A bucket will be returned for 6pm, and 7pm, and 8pm (the predicted measurement).
+For example, queries to handle the data between 6:15pm and 7:45pm and a 1 hour bucket_interval will group features and metrics into one hour intervals. A data point will be returned for 6pm, and 7pm, and 8pm.
 
 [float]
 [[common-options-error-options]]
