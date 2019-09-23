@@ -19,6 +19,7 @@ import sys
 import uuid
 import traceback
 import pytz
+import requests
 
 import loudml.config
 import loudml.model
@@ -70,6 +71,7 @@ api = Api(app)
 g_lock = multiprocessing.Lock()
 g_config = None
 g_jobs = {}
+g_scheduled_jobs = {}
 g_training = {}
 g_storage = None
 g_training_pool = None
@@ -93,6 +95,74 @@ def get_job_desc(job_id, fields=None, include_fields=None):
     if fields:
         clear_fields(desc, fields, include_fields)
     return desc
+
+
+def get_sched_job_desc(job_id, fields=None, include_fields=None):
+    global g_scheduled_jobs
+    desc = g_scheduled_jobs[job_id]
+    if fields:
+        clear_fields(desc, fields, include_fields)
+    return desc
+
+
+def get_schedule(cnt, unit, time_str=None):
+    unit_map = {
+        'second': schedule.every(cnt).second,
+        'seconds': schedule.every(cnt).seconds,
+        'minute': schedule.every(cnt).minute,
+        'minutes': schedule.every(cnt).minutes,
+        'hour': schedule.every(cnt).hour,
+        'hours': schedule.every(cnt).hours,
+        'day': schedule.every(cnt).day,
+        'days': schedule.every(cnt).days,
+        'week': schedule.every(cnt).week,
+        'weeks': schedule.every(cnt).weeks,
+        'monday': schedule.every(1).monday,
+        'tuesday': schedule.every(1).tuesday,
+        'wednesday': schedule.every(1).wednesday,
+        'thursday': schedule.every(1).thursday,
+        'friday': schedule.every(1).friday,
+        'saturday': schedule.every(1).saturday,
+        'sunday': schedule.every(1).sunday,
+    }
+    scheduled_event = unit_map.get(unit)
+    if time_str:
+        scheduled_event = scheduled_event.at(time_str)
+    return scheduled_event
+
+
+def daemon_exec_scheduled_job(job_id):
+    global g_scheduled_jobs
+    global g_config
+
+    desc = g_scheduled_jobs[job_id]
+    listen_addr = g_config.server['listen']
+    host, port = listen_addr.split(':')
+    target_url = 'http://{}:{}{}'.format(
+        host, port, desc['relative_url'])
+    params = desc.get('params')
+    if desc['method'] == 'get':
+        response = requests.get(target_url, params)
+    elif desc['method'] == 'head':
+        response = requests.head(target_url, params)
+    elif desc['method'] == 'post':
+        response = requests.post(
+            target_url, params, json=desc.get('json'))
+    elif desc['method'] == 'delete':
+        response = requests.delete(target_url, params)
+    elif desc['method'] == 'patch':
+        response = requests.patch(
+            target_url, params, json=desc.get('json'))
+
+    desc['ok'] = response.ok
+    desc['status_code'] = response.status_code
+    desc['error'] = response.reason
+    desc['last_run_timestamp'] = datetime.now(pytz.utc).timestamp()
+    if not response.ok:
+        logging.error(
+            "error executing scheduled job '%s':%s",
+            desc['name'],
+            response.reason)
 
 
 class RepeatingTimer(object):
@@ -1152,6 +1222,118 @@ class JobResource(Resource):
 
 api.add_resource(JobsResource, "/jobs")
 api.add_resource(JobResource, "/jobs/<job_ids>")
+
+
+class ScheduledJobsResource(Resource):
+    @catch_loudml_error
+    def get(self):
+        global g_scheduled_jobs
+        page = get_int_arg('page', default=0)
+        per_page = get_int_arg('per_page', default=50)
+        if per_page > 100 or per_page <= 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('per_page')
+            )
+        if page < 0:
+            raise errors.Invalid(
+                "invalid value for parameter '{}'".format('page')
+            )
+
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        list_sort_field, list_sort_order = request.args.get(
+            'sort', 'name:1').split(':')
+
+        jobs = []
+        for job in g_scheduled_jobs.values():
+            if fields:
+                clear_fields(job, fields, include_fields)
+            jobs.append(job)
+
+        jobs = sorted(
+            jobs,
+            key=lambda k: k.get(list_sort_field),
+            reverse=bool(int(list_sort_order) == -1),
+        )
+        return jsonify(
+            jobs[page*per_page:(page+1)*per_page])
+
+    @catch_loudml_error
+    def post(self):
+        desc = schemas.validate(schemas.ScheduledJob, get_json())
+        _id = str(uuid.uuid4())
+        scheduled_event = get_schedule(
+            cnt=desc['every'].get('count', 1),
+            unit=desc['every']['unit'],
+            time_str=desc['every'].get('at'))
+
+        g_scheduled_jobs[_id] = desc
+        scheduled_event.do(
+            daemon_exec_scheduled_job, _id).tag(
+            'scheduled_job:{}'.format(_id),
+            'scheduled_job')
+        return ('', 201)
+
+    @catch_loudml_error
+    def delete(self):
+        global g_scheduled_jobs
+        schedule.clear('scheduled_job')
+        g_scheduled_jobs.clear()
+        return ('', 204)
+
+
+class ScheduledJobResource(Resource):
+    @catch_loudml_error
+    def get(self, job_ids):
+        global g_scheduled_jobs
+        include_fields = get_bool_arg('include_fields', default=False)
+        if request.args.get('fields'):
+            fields = request.args.get('fields').split(";")
+        else:
+            fields = None
+
+        wanted = set(job_ids.split(';'))
+
+        jobs = [
+            get_sched_job_desc(
+                job_id, fields, include_fields)
+            for job_id in (wanted & set(g_scheduled_jobs.keys()))
+        ]
+        if not len(jobs):
+            return "job(s) not found", 404
+
+        return jsonify(jobs)
+
+    @catch_loudml_error
+    def head(self, job_ids):
+        global g_scheduled_jobs
+        ids = set(job_ids.split(';'))
+        found_ids = set(g_scheduled_jobs.keys())
+        if len(ids & found_ids) == len(ids):
+            return Response(
+                status=200,
+            )
+        else:
+            return Response(
+                status=404,
+            )
+
+    @catch_loudml_error
+    def delete(self, job_ids):
+        global g_scheduled_jobs
+        for job_id in job_ids.split(';'):
+            schedule.clear(
+                'scheduled_job:{}'.format(job_id))
+            g_scheduled_jobs.pop(job_id, None)
+        return ('', 204)
+
+
+api.add_resource(ScheduledJobsResource, "/scheduled_jobs")
+api.add_resource(ScheduledJobResource, "/scheduled_jobs/<job_ids>")
 
 
 class TrainingJob(Job):
