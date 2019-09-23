@@ -4,8 +4,6 @@ Loud ML server
 
 import loudml.vendor
 
-from crontab import CronTab
-
 import argparse
 import concurrent.futures
 from datetime import datetime, timedelta
@@ -1880,24 +1878,6 @@ def main():
     except errors.LoudMLException as exn:
         logging.error(exn)
         sys.exit(1)
-
-    try:
-        cron = CronTab(user='loudml')
-        cron.remove_all()
-        if g_config.training['incremental']['enable']:
-            for tab in g_config.training['incremental']['crons']:
-                job = cron.new(command='/usr/bin/loudml train \* -i -f {} -t {}'.format(tab['from'], tab['to']),  # noqa W605
-                               comment='incremental training')
-                job.setall(tab['crontab'])
-
-        for item in cron:
-            logging.info(item)
-
-        cron.write()
-    except OSError:
-        logging.error(
-            "detected development environment - incremental training disabled"
-        )
 
     listen_addr = g_config.server['listen']
     host, port = listen_addr.split(':')

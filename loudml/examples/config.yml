@@ -29,15 +29,6 @@ server:
 #training:
 #  num_cpus: 1
 #  num_gpus: 0
-#  incremental:
-#    enable: True
-#    crons:
-#     - crontab: "0 2 * * *"
-#       from: "now-1d"
-#       to: "now"
-#     - crontab: "0 3 1,8,15,22 * *"
-#       from: "now-7d"
-#       to: "now"
 
 #metrics:
 #  enable: True
