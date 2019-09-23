@@ -53,12 +53,6 @@ class Config:
         if 'epochs' not in self._training:
             self._training['epochs'] = 100
 
-        if 'incremental' not in self._training:
-            self._training['incremental'] = {
-                'enable': False,
-                'crons': [],
-            }
-
         self._inference = data.get('inference', {})
         if 'num_cpus' not in self._inference:
             self._inference['num_cpus'] = 1
