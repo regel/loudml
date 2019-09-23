@@ -68,7 +68,6 @@ from .misc import (
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 api = Api(app)
 
-g_lock = multiprocessing.Lock()
 g_config = None
 g_jobs = {}
 g_scheduled_jobs = {}
@@ -79,7 +78,6 @@ g_pool = None
 g_nice = 0
 g_queue = None
 g_timer = None
-g_running_models = {}
 
 # Do not change: pid file to ensure we're running single instance
 APP_INSTALL_PATHS = [
@@ -163,6 +161,36 @@ def daemon_exec_scheduled_job(job_id):
             "error executing scheduled job '%s':%s",
             desc['name'],
             response.reason)
+
+
+def add_new_scheduled_job(desc):
+    global g_scheduled_jobs
+    scheduled_job_name = desc['name']
+    scheduled_event = get_schedule(
+        cnt=desc['every'].get('count', 1),
+        unit=desc['every']['unit'],
+        time_str=desc['every'].get('at'))
+
+    g_scheduled_jobs[scheduled_job_name] = desc
+    scheduled_event.do(
+        daemon_exec_scheduled_job, scheduled_job_name).tag(
+        'scheduled_job:{}'.format(scheduled_job_name),
+        'scheduled_job')
+    return scheduled_job_name
+
+
+def scheduled_job_exists(scheduled_job_name):
+    global g_scheduled_jobs
+    return scheduled_job_name in g_scheduled_jobs
+
+
+def del_scheduled_job(scheduled_job_name):
+    global g_scheduled_jobs
+    if scheduled_job_name in g_scheduled_jobs:
+        schedule.clear(
+            'scheduled_job:{}'.format(scheduled_job_name))
+        g_scheduled_jobs.pop(scheduled_job_name, None)
+        return
 
 
 class RepeatingTimer(object):
@@ -678,23 +706,17 @@ class ModelResource(Resource):
     @catch_loudml_error
     def delete(self, model_names):
         global g_storage
-        global g_running_models
         global g_training
 
         for model_name in model_names.split(';'):
-            g_lock.acquire()
-            try:
-                timer = g_running_models.pop(model_name, None)
-                if timer:
-                    timer.cancel()
+            del_scheduled_job(
+                '_run({})'.format(model_name))
 
-                job = g_training.get(model_name)
-                if job and not job.is_stopped():
-                    job.cancel()
+            job = g_training.get(model_name)
+            if job and not job.is_stopped():
+                job.cancel()
 
-                g_storage.delete_model(model_name)
-            finally:
-                g_lock.release()
+            g_storage.delete_model(model_name)
 
             logging.info("model '%s' deleted", model_name)
         return ('', 204)
@@ -717,7 +739,6 @@ class ModelResource(Resource):
     def patch(self, model_names):
         global g_config
         global g_storage
-        global g_running_models
 
         settings = get_json()
 
@@ -736,14 +757,22 @@ class ModelResource(Resource):
                 )
                 if change == 'change' and param == 'interval':
                     previous_val, next_val = desc
-                    g_lock.acquire()
-                    timer = g_running_models.get(model_name)
-                    if timer is not None:
-                        timer.cancel()
-                        timer.interval = parse_timedelta(
-                            next_val).total_seconds()
-                        timer.start()
-                    g_lock.release()
+                    scheduled_job_name = '_run({})'.format(model_name)
+                    if not scheduled_job_exists(scheduled_job_name):
+                        continue
+                    del_scheduled_job(scheduled_job_name)
+                    new_interval = parse_timedelta(
+                        next_val).total_seconds()
+                    request_url = '/models/{}/_predict'.format(model_name)
+                    add_new_scheduled_job({
+                        'name': scheduled_job_name,
+                        'method': 'post',
+                        'request_url': request_url,
+                        'every': {
+                            'count': new_interval,
+                            'unit': 'seconds',
+                        },
+                    })
 
             logging.info("model '%s' updated", model_name)
         return ('', 204)
@@ -1265,17 +1294,7 @@ class ScheduledJobsResource(Resource):
     @catch_loudml_error
     def post(self):
         desc = schemas.validate(schemas.ScheduledJob, get_json())
-        _id = str(uuid.uuid4())
-        scheduled_event = get_schedule(
-            cnt=desc['every'].get('count', 1),
-            unit=desc['every']['unit'],
-            time_str=desc['every'].get('at'))
-
-        g_scheduled_jobs[_id] = desc
-        scheduled_event.do(
-            daemon_exec_scheduled_job, _id).tag(
-            'scheduled_job:{}'.format(_id),
-            'scheduled_job')
+        add_new_scheduled_job(desc)
         return ('', 201)
 
     @catch_loudml_error
@@ -1523,11 +1542,9 @@ def _model_start(model, params):
     Start periodic prediction
     """
     global g_config
-    g_lock.acquire()
-    if model.name in g_running_models:
-        g_lock.release()
-        # nothing to do; the job will load the model file
-        return
+    scheduled_job_name = '_run({})'.format(model.name)
+    if scheduled_job_exists(scheduled_job_name):
+        return  # idempotent _start
 
     def create_job(from_date=None, save_run_state=True, detect_anomalies=None):
         kwargs = params.copy()
@@ -1553,11 +1570,6 @@ def _model_start(model, params):
 
     from_date = params.pop('from_date', None)
     create_job(from_date, save_run_state=False, detect_anomalies=False)
-
-    timer = RepeatingTimer(model.interval, create_job)
-    g_running_models[model.name] = timer
-    g_lock.release()
-    timer.start()
 
 
 @app.route("/models/<model_name>/_predict", methods=['POST'])
@@ -1638,18 +1650,13 @@ def model_start(model_name):
 @app.route("/models/<model_name>/_stop", methods=['POST'])
 @catch_loudml_error
 def model_stop(model_name):
-    global g_running_models
     global g_storage
 
-    g_lock.acquire()
-    timer = g_running_models.get(model_name)
-    if timer is None:
-        g_lock.release()
+    scheduled_job_name = '_run({})'.format(model_name)
+    if not scheduled_job_exists(scheduled_job_name):
         return "model is not active", 404
 
-    timer.cancel()
-    del g_running_models[model_name]
-    g_lock.release()
+    del_scheduled_job(scheduled_job_name)
     logging.info("model '%s' deactivated", model_name)
 
     model = g_storage.load_model(model_name)
