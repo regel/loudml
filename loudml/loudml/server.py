@@ -4,6 +4,7 @@ Loud ML server
 
 import loudml.vendor
 
+import copy
 import argparse
 import concurrent.futures
 from datetime import datetime, timedelta
@@ -98,7 +99,7 @@ def get_job_desc(job_id, fields=None, include_fields=None):
 
 def get_sched_job_desc(job_id, fields=None, include_fields=None):
     global g_scheduled_jobs
-    desc = g_scheduled_jobs[job_id]
+    desc = copy.deepcopy(g_scheduled_jobs[job_id])
     if fields:
         clear_fields(desc, fields, include_fields)
     return desc
@@ -1286,7 +1287,10 @@ class ScheduledJobsResource(Resource):
             'sort', 'name:1').split(':')
 
         jobs = []
-        for job in g_scheduled_jobs.values():
+        for scheduled_job_name in g_scheduled_jobs.keys():
+            job = get_sched_job_desc(
+                scheduled_job_name, fields, include_fields)
+
             if fields:
                 clear_fields(job, fields, include_fields)
             jobs.append(job)
