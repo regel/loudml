@@ -879,13 +879,6 @@ def model_train(model_name):
 
     kwargs['from_date'] = get_date_arg('from', is_mandatory=True)
     kwargs['to_date'] = get_date_arg('to', default="now")
-    if get_bool_arg('autostart'):
-        kwargs.update({
-            'autostart': True,
-            'save_prediction': get_bool_arg('save_prediction'),
-            'output_bucket': request.args.get('output_bucket'),
-            'detect_anomalies': get_bool_arg('detect_anomalies'),
-        })
 
     bucket = request.args.get('input')
     if bucket is not None:
@@ -1380,13 +1373,6 @@ class TrainingJob(Job):
     def __init__(self, model_name, **kwargs):
         super().__init__()
         self.model_name = model_name
-        self.autostart = kwargs.pop('autostart', False)
-        self._kwargs_start = {
-            'save_prediction': kwargs.pop('save_prediction', False),
-            'output_bucket': kwargs.pop('output_bucket', None),
-            'detect_anomalies': kwargs.pop('detect_anomalies', False),
-            'from_date': kwargs.get('from_date', None),
-        }
         self._kwargs = kwargs
 
     def start(self, config):
@@ -1405,27 +1391,6 @@ class TrainingJob(Job):
             kwargs=self.kwargs,
         )
         self._future.add_done_callback(self._done_cb)
-
-    def _done_cb(self, result):
-        """
-        Callback executed when job is done
-        """
-        super()._done_cb(result)
-        if self.state == 'done' and self.autostart:
-            logging.info(
-                "scheduling autostart for model '%s'",
-                self.model_name
-            )
-            model = g_storage.load_model(self.model_name)
-            params = self._kwargs_start.copy()
-            params.pop('from_date')
-            model.set_run_params(params)
-            g_storage.save_model(model)
-            try:
-                _model_start(model, self._kwargs_start)
-            except errors.LoudMLException:
-                model.set_run_params(None)
-                g_storage.save_model(model)
 
     @property
     def args(self):
