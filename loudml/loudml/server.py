@@ -725,7 +725,7 @@ class ModelResource(Resource):
 
         for model_name in model_names.split(';'):
             del_scheduled_job(
-                '_run({})'.format(model_name))
+                '_predict({})'.format(model_name))
 
             job = g_training.get(model_name)
             if job and not job.is_stopped():
@@ -772,7 +772,7 @@ class ModelResource(Resource):
                 )
                 if change == 'change' and param == 'interval':
                     previous_val, next_val = desc
-                    scheduled_job_name = '_run({})'.format(model_name)
+                    scheduled_job_name = '_predict({})'.format(model_name)
                     if not scheduled_job_exists(scheduled_job_name):
                         continue
                     del_scheduled_job(scheduled_job_name)
@@ -1557,7 +1557,7 @@ def _model_start(model, params):
     Start periodic prediction
     """
     global g_config
-    scheduled_job_name = '_run({})'.format(model.name)
+    scheduled_job_name = '_predict({})'.format(model.name)
     if scheduled_job_exists(scheduled_job_name):
         return  # idempotent _start
 
@@ -1667,7 +1667,7 @@ def model_start(model_name):
 def model_stop(model_name):
     global g_storage
 
-    scheduled_job_name = '_run({})'.format(model_name)
+    scheduled_job_name = '_predict({})'.format(model_name)
     if not scheduled_job_exists(scheduled_job_name):
         return "model is not active", 404
 
