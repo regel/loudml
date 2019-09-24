@@ -24,7 +24,6 @@ from . import (
 
 import json
 from jinja2 import Template
-from jinja2 import Environment, meta
 
 
 def _convert_features_dict(features):
@@ -476,9 +475,3 @@ def load_model_from_template(settings, state=None, *args, **kwargs):
     t = Template(json.dumps(settings))
     settings = json.loads(t.render(**kwargs))
     return load_model(settings, state)
-
-
-def find_undeclared_variables(settings):
-    env = Environment()
-    ast = env.parse(json.dumps(settings))
-    return meta.find_undeclared_variables(ast)

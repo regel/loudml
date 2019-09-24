@@ -32,6 +32,10 @@ class Config:
                 data.get('datasources', []),
             ))
         }
+        self._scheduled_jobs = {
+            scheduled_job['name']: scheduled_job
+            for scheduled_job in data.get('scheduled_jobs', [])
+        }
 
         self._metrics = data.get('metrics', {})
         if 'enable' not in self._metrics:
@@ -68,6 +72,11 @@ class Config:
             self._server['maxtasksperchild'] = 100
         if 'jobs_max_ttl' not in self._server:
             self._server['jobs_max_ttl'] = 60
+
+    @property
+    def scheduled_jobs(self):
+        # XXX: return a copy to prevent modification by the caller
+        return copy.deepcopy(self._scheduled_jobs)
 
     @property
     def datasources(self):
