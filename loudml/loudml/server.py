@@ -140,22 +140,36 @@ def daemon_exec_scheduled_job(job_id):
     target_url = 'http://{}:{}{}'.format(
         host, port, desc['relative_url'])
     params = desc.get('params')
+    headers = {
+        'User-Agent': 'loudmld {}'.format(
+            pkg_resources.require("loudml")[0].version),
+    }
+
     if desc['method'] == 'get':
-        response = requests.get(target_url, params)
+        response = requests.get(target_url, params=params, headers=headers)
     elif desc['method'] == 'head':
-        response = requests.head(target_url, params)
+        response = requests.head(target_url, params=params, headers=headers)
     elif desc['method'] == 'post':
         response = requests.post(
-            target_url, params, json=desc.get('json'))
+            target_url,
+            params=params,
+            headers=headers,
+            json=desc.get('json', {}))
     elif desc['method'] == 'delete':
-        response = requests.delete(target_url, params)
+        response = requests.delete(target_url, params=params, headers=headers)
     elif desc['method'] == 'patch':
         response = requests.patch(
-            target_url, params, json=desc.get('json'))
+            target_url,
+            params=params,
+            headers=headers,
+            json=desc.get('json', {}))
 
     desc['ok'] = response.ok
     desc['status_code'] = response.status_code
-    desc['error'] = response.reason
+    if not response.ok:
+        desc['error'] = response.reason
+    else:
+        desc.pop('error', None)
     desc['last_run_timestamp'] = datetime.now(pytz.utc).timestamp()
     if not response.ok:
         logging.error(
