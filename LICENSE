@@ -1,3 +1,15 @@
+`loudml` is a product of collaborative work.
+Unless otherwise stated, all authors (see commit logs) retain copyright
+for their respective work, and release the work under the MIT licence
+(text below).
+
+Exceptions or notable authors are listed below
+in reverse chronological order:
+
+* files: loudml/_version.py
+  MIT 2019 (c) Casper da Costa-Luis, Hadrien Mary, Stephen L.
+  [tqdm](tqdm/tqdm/_version.py).
+
 MIT License
 
 Copyright (c) 2019 the Loud ML team
