@@ -13,6 +13,7 @@ import math
 import itertools
 
 from uuid import getnode
+from jinja2 import Environment, meta
 
 from . import (
     errors,
@@ -400,3 +401,9 @@ def my_host_id():
     m.update(str(getnode()).encode('ascii'))
 
     return m.hexdigest()
+
+
+def find_undeclared_variables(settings):
+    env = Environment()
+    ast = env.parse(json.dumps(settings))
+    return meta.find_undeclared_variables(ast)

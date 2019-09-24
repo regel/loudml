@@ -5,7 +5,6 @@ Common schemas for user input validation
 import loudml.errors
 
 from voluptuous import (
-    ALLOW_EXTRA,
     All,
     Any,
     Boolean,
@@ -77,13 +76,11 @@ class Url:
 
 
 ScheduledJob = Schema({
-    Required('name'): All(key, Length(max=256)),
+    Required('name'): All(str, Length(max=256)),
     Required('method'): Any('head', 'get', 'post', 'patch', 'delete'),
     Required('relative_url'): All(str, Url()),
-    Optional('params'): Schema({
-    }, extra=ALLOW_EXTRA),
-    Optional('json'): Schema({
-    }, extra=ALLOW_EXTRA),
+    Optional('params'): Schema({str: Any(int, float, str, bool)}),
+    Optional('json'): Schema({str: Any(int, float, str, bool)}),
     Required('every'): Schema({
         Required('count'): Any(int, float),
         Required('unit'): Any(

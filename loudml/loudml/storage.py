@@ -11,11 +11,11 @@ from abc import (
 
 from .misc import (
     load_hook,
+    find_undeclared_variables,
 )
 from .model import (
     load_model,
     load_model_from_template,
-    find_undeclared_variables,
 )
 from . import (
     errors,

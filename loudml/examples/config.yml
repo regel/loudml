@@ -30,5 +30,38 @@ server:
 #  num_cpus: 1
 #  num_gpus: 0
 
+#scheduled_jobs:
+#  - name: "train({{model_name}}) every day at 1am"
+#    relative_url: "/models/{{model_name}}/_train"
+#    method: post
+#    params:
+#      from: "now-1d"
+#      to: "now"
+#      continue: True
+#    every:
+#      count: 1
+#      unit: day
+#      at: "01:00"
+#  - name: "train({{model_name}}) every sunday at 2am"
+#    relative_url: "/models/{{model_name}}/_train"
+#    method: post
+#    params:
+#      from: "now-7d"
+#      to: "now"
+#    every:
+#      count: 1
+#      unit: sunday
+#      at: "02:00"
+#  - name: "train({{model_name}}) every 28 days at 3am"
+#    relative_url: "/models/{{model_name}}/_train"
+#    method: post
+#    params:
+#      from: "now-28d"
+#      to: "now"
+#    every:
+#      count: 28
+#      unit: days
+#      at: "03:00"
+
 #metrics:
 #  enable: True

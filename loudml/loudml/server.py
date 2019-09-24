@@ -18,6 +18,7 @@ import uuid
 import traceback
 import pytz
 import requests
+import json
 
 import loudml.config
 import loudml.model
@@ -61,7 +62,9 @@ from .misc import (
     parse_timedelta,
     parse_constraint,
     parse_expression,
+    find_undeclared_variables,
 )
+from jinja2 import Template
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 api = Api(app)
@@ -103,23 +106,23 @@ def get_sched_job_desc(job_id, fields=None, include_fields=None):
 
 def get_schedule(cnt, unit, time_str=None):
     unit_map = {
-        'second': schedule.every(cnt).second,
+        'second': schedule.every().second,
         'seconds': schedule.every(cnt).seconds,
-        'minute': schedule.every(cnt).minute,
+        'minute': schedule.every().minute,
         'minutes': schedule.every(cnt).minutes,
-        'hour': schedule.every(cnt).hour,
+        'hour': schedule.every().hour,
         'hours': schedule.every(cnt).hours,
-        'day': schedule.every(cnt).day,
+        'day': schedule.every().day,
         'days': schedule.every(cnt).days,
-        'week': schedule.every(cnt).week,
+        'week': schedule.every().week,
         'weeks': schedule.every(cnt).weeks,
-        'monday': schedule.every(1).monday,
-        'tuesday': schedule.every(1).tuesday,
-        'wednesday': schedule.every(1).wednesday,
-        'thursday': schedule.every(1).thursday,
-        'friday': schedule.every(1).friday,
-        'saturday': schedule.every(1).saturday,
-        'sunday': schedule.every(1).sunday,
+        'monday': schedule.every().monday,
+        'tuesday': schedule.every().tuesday,
+        'wednesday': schedule.every().wednesday,
+        'thursday': schedule.every().thursday,
+        'friday': schedule.every().friday,
+        'saturday': schedule.every().saturday,
+        'sunday': schedule.every().sunday,
     }
     scheduled_event = unit_map.get(unit)
     if time_str:
@@ -1751,6 +1754,24 @@ def err_internal(e):
     return "internal server error", 500
 
 
+def setup_scheduled_jobs(config):
+    storage = FileStorage(config.storage['path'])
+    for scheduled_job in config.scheduled_jobs.values():
+        undeclared = find_undeclared_variables(scheduled_job)
+        if 'model_name' not in undeclared:
+            desc = schemas.validate(
+                schemas.ScheduledJob, scheduled_job)
+            add_new_scheduled_job(desc)
+        else:
+            for model_name in storage.list_models():
+                t = Template(json.dumps(scheduled_job))
+                settings = json.loads(t.render(
+                    model_name=model_name))
+                desc = schemas.validate(
+                    schemas.ScheduledJob, settings)
+                add_new_scheduled_job(desc)
+
+
 def restart_predict_jobs():
     """
     Restart prediction jobs
@@ -1882,6 +1903,7 @@ def main():
     listen_addr = g_config.server['listen']
     host, port = listen_addr.split(':')
 
+    setup_scheduled_jobs(g_config)
     restart_predict_jobs()
 
     try:
