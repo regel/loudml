@@ -238,6 +238,7 @@ class Job:
     """
     func = None
     job_type = None
+    debug = False
 
     def __init__(self):
         self.id = str(uuid.uuid4())
@@ -305,6 +306,7 @@ class Job:
         global g_pool
         global g_jobs
 
+        self.debug = config.debug
         self.state = 'waiting'
         self._future = g_pool.schedule(
             loudml.worker.run,
@@ -350,7 +352,8 @@ class Job:
             logging.error("job[%s] canceled", self.id)
         except Exception as exn:
             self.error = str(exn)
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
             self.set_final_state('failed')
             logging.error("job[%s] failed: %s", self.id, self.error)
 

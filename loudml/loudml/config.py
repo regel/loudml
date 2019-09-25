@@ -73,6 +73,12 @@ class Config:
         if 'jobs_max_ttl' not in self._server:
             self._server['jobs_max_ttl'] = 60
 
+        self._debug = bool(data.get('debug', False))
+
+    @property
+    def debug(self):
+        return self._debug
+
     @property
     def scheduled_jobs(self):
         # XXX: return a copy to prevent modification by the caller
