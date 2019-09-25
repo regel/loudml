@@ -126,6 +126,9 @@ class MemBucket(Bucket):
     def commit(self):
         pass
 
+    def send_bulk(self, requests):
+        raise NotImplementedError()
+
     @staticmethod
     def _compute_bucket_min(bucket, field):
         """
