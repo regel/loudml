@@ -142,5 +142,62 @@ class NoData(NotFound):
 
 
 class TransportError(LoudMLException):
-    """Transport error"""
+    """
+    Exception raised when LML returns a non-OK (>=400) HTTP status code.
+    Or when an actual connection error happens; in that case the
+    ``status_code`` will be set to ``'N/A'``.
+    """
     code = 503
+
+    @property
+    def status_code(self):
+        """
+        The HTTP status code of the response that precipitated the error or
+        ``'N/A'`` if not applicable.
+        """
+        return self.args[0]
+
+    @property
+    def error(self):
+        """ A string error message. """
+        return self.args[1]
+
+    @property
+    def info(self):
+        """
+        Dict of returned error info from LML, where available, underlying
+        exception when not.
+        """
+        return self.args[2]
+
+    def __str__(self):
+        cause = ''
+        try:
+            if self.info:
+                cause = ', %r' % self.info['error']['root_cause'][0]['reason']
+        except LookupError:
+            pass
+        return '%s(%s, %r%s)' % (
+            self.__class__.__name__, self.status_code, self.error, cause)
+
+
+class ConnectionError(TransportError):
+    """
+    Error raised when there was an exception while talking to LML. Original
+    exception from the underlying :class:`~elasticsearch.Connection`
+    implementation is available as ``.info.``
+    """
+    def __str__(self):
+        return 'ConnectionError(%s) caused by: %s(%s)' % (
+            self.error, self.info.__class__.__name__, self.info)
+
+
+class SSLError(ConnectionError):
+    """ Error raised when encountering SSL errors. """
+
+
+class ConnectionTimeout(ConnectionError):
+    """ A network timeout. Doesn't cause a node retry by default. """
+    def __str__(self):
+        return 'ConnectionTimeout caused by - %s(%s)' % (
+            self.info.__class__.__name__, self.info)

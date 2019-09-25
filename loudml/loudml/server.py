@@ -65,6 +65,9 @@ from .misc import (
     parse_expression,
     find_undeclared_variables,
 )
+from loudml.requests import (
+    perform_request,
+)
 from jinja2 import Template
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
@@ -136,34 +139,34 @@ def daemon_exec_scheduled_job(job_id):
     global g_config
 
     desc = g_scheduled_jobs[job_id]
+
     listen_addr = g_config.server['listen']
     host, port = listen_addr.split(':')
-    target_url = 'http://{}:{}{}'.format(
-        host, port, desc['relative_url'])
-    params = desc.get('params')
-    headers = {
-        'User-Agent': 'loudmld {}'.format(
-            pkg_resources.require("loudml")[0].version),
-    }
+    # XXX: the server bind address is unknown.
+    # Scheduled jobs can send queries to localhost if the listen host
+    # is either localhost or 0.0.0.0
+    # This parameter should be discovered using gossip in
+    # cluster configurations to construct the base url.
+    base_url = 'http://localhost:{}'.format(port)
 
-    if desc['method'] == 'get':
-        response = requests.get(target_url, params=params, headers=headers)
-    elif desc['method'] == 'head':
-        response = requests.head(target_url, params=params, headers=headers)
-    elif desc['method'] == 'post':
-        response = requests.post(
-            target_url,
-            params=params,
-            headers=headers,
-            json=desc.get('json', {}))
-    elif desc['method'] == 'delete':
-        response = requests.delete(target_url, params=params, headers=headers)
-    elif desc['method'] == 'patch':
-        response = requests.patch(
-            target_url,
-            params=params,
-            headers=headers,
-            json=desc.get('json', {}))
+    session = requests.Session()
+    session.headers = {}
+    session.headers.setdefault('content-type', 'application/json')
+    session.headers.setdefault(
+        'user-agent',
+        'loudmld {}'.format(pkg_resources.require("loudml")[0].version)
+    )
+    response = perform_request(
+        base_url,
+        desc['method'],
+        desc['relative_url'],
+        session=session,
+        params=desc.get('params'),
+        body=desc.get('json'),
+        timeout=5,
+        ignore=(),
+        headers=None,
+    )
 
     desc['ok'] = response.ok
     desc['status_code'] = response.status_code
