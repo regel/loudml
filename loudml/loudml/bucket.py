@@ -1,5 +1,5 @@
 """
-Base interface for Loud ML data source
+Base interface for Loud ML bucket classes
 """
 import datetime
 
@@ -19,7 +19,7 @@ from voluptuous import (
     Any,
 )
 
-from . import (
+from loudml import (
     errors,
     misc,
     schemas,
@@ -28,7 +28,11 @@ from . import (
 
 class Bucket(metaclass=ABCMeta):
     """
-    Abstract class for Loud ML time series data storage
+    Loud ML abstract Bucket class. Provides a standard interface
+    that can be inherited in order to aggregate, read, and write
+    data points to a TSDB.
+    This class hides TSDB vendor specific logic and helps to maintain
+    a uniform Loud ML experience across different TSDB vendors.
     """
 
     SCHEMA = Schema({
@@ -42,12 +46,26 @@ class Bucket(metaclass=ABCMeta):
     }, extra=ALLOW_EXTRA)
 
     def __init__(self, cfg):
+        """
+        :arg cfg: dictionary of bucket settings. The minimum required settings
+            must be defined in a voluptuous schema.
+            `name` and `type` settings are mandatory. The `type` value for
+            each :class:`loudml.bucket.Bucket` is defined in `setup.py` file
+            `loudml.buckets` list.
+
+            Voluptuous is used to validate input settings and `cfg` will be
+            passed to the validate() function. You can override the `SCHEMA`
+            class variable to define new bucket specific settings.
+        """
         self._cfg = self.validate(cfg)
         self._pending = []
         self._last_commit = datetime.datetime.now()
 
     @property
     def timestamp_field(self):
+        """
+        Return the field name used for date histogram aggregations
+        """
         return self.cfg.get('timestamp_field') or 'timestamp'
 
     @classmethod
@@ -58,7 +76,7 @@ class Bucket(metaclass=ABCMeta):
     @property
     def cfg(self):
         """
-        Return data source configuration
+        Return bucket configuration
         """
         return self._cfg
 
@@ -71,9 +89,22 @@ class Bucket(metaclass=ABCMeta):
         return self._cfg['max_series_per_request']
 
     def init(self, *args, **kwargs):
+        """
+        Perform actions to create a bucket if required. This method
+        is optional. Derived classes can omit this function.
+
+        :arg args: any additional arguments will be passed on to the
+            derived class instances.
+
+        :arg kwargs: any additional arguments will be passed on to the
+            derived class instances.
+        """
         pass
 
     def drop(self):
+        """
+        Delete all data points contained in the bucket.
+        """
         pass
 
     def nb_pending(self):
@@ -115,6 +146,15 @@ class Bucket(metaclass=ABCMeta):
             self.commit()
 
     @abstractmethod
+    def send_bulk(self, requests):
+        """
+        Send write requests to the TSDB.
+
+        :arg requests: a list of requests objects used to
+            insert data points in the TSDB.
+        """
+
+    @abstractmethod
     def get_times_data(
         self,
         bucket_interval,
@@ -122,7 +162,36 @@ class Bucket(metaclass=ABCMeta):
         from_date=None,
         to_date=None,
     ):
-        """Get TSDB data"""
+        """
+        Get data points from the TSDB in the time range [from_date, to_date[
+
+        Note that the time range excludes the final data point.
+
+        This function must return a list of tuples. One tuple is returned
+        for each data point in the time range, and contains:
+        A time offset, a numpy float array, and a date-time string
+        in UTC format:
+            (integer, numpy.array, str)
+
+        The numpy.array dimension must be equal to `features` length
+        since there is one aggregated float value for each feature.
+        All missing values must be filled with `np.nan`, and the helper
+        function `np.full` in NumPy is useful to ensure a correct init:
+            X = np.full(nb_features, np.nan, dtype=float)
+
+        :arg bucket_interval: the bucket interval in seconds
+            to be used for data histogram aggregations.
+
+        :arg features: a list of :class:`loudml.model.Feature`
+            features that defines the metrics to aggregate
+            in the response
+
+        :arg from_date: minimum time range for TSDB date histogram
+            aggregation.
+
+        :arg to_date: maximum time range for TSDB date histogram
+            aggregation.
+        """
 
     @abstractmethod
     def insert_data(self, data):
@@ -140,7 +209,24 @@ class Bucket(metaclass=ABCMeta):
         **kwargs
     ):
         """
-        Insert time-indexed entry
+        Append data points to the TSDB write requests list,
+        with optional tags. This function must call `self.enqueue()`
+        with the right arguments.
+        Note that the actual write query is performed by `send_bulk`
+        function.
+
+        :arg ts: timestamp of the new data point.
+
+        :arg data: a dictionary of str -> float values
+            for the new data point
+
+        :arg tags: an optional dictionary of str -> str
+            to tag the new data point.
+
+        :arg args: ignored.
+
+        :arg kwargs: any additional arguments received by the Loud ML
+            server in POST /buckets/<bucket_name>/_write queries.
         """
 
     def save_timeseries_prediction(self, prediction, tags=None):
