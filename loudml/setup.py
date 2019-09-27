@@ -8,19 +8,20 @@ import os
 from io import open as io_open
 from setuptools import setup
 
-# Get version from loudml/_version.py
-__version__ = None
-src_dir = os.path.abspath(os.path.dirname(__file__))
-if 'LOUDML_VERSION' in os.environ:
-    __version__ = os.environ['LOUDML_VERSION']
-else:
+
+def find_version():
+    """Get version from loudml/_version.py"""
+    _locals = locals()
+    src_dir = os.path.abspath(os.path.dirname(__file__))
     version_file = os.path.join(src_dir, 'loudml', '_version.py')
     with io_open(version_file, mode='r') as fd:
-        exec(fd.read())
+        exec(fd.read())  # __version__ is set in the exec call.
+        return _locals['__version__']
+
 
 setup(
     name='loudml',
-    version=__version__,
+    version=find_version(),
 
     description="Machine Learning application",
 

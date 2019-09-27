@@ -12,7 +12,12 @@ __version__ = '.'.join(map(str, version_info))
 
 
 # auto -extra based on commit hash (if not tagged as release)
-scriptdir = os.path.dirname(__file__)
+try:
+    scriptdir = os.path.dirname(__file__)
+except NameError:  # We are in setup.py script, not a module
+    import sys
+    scriptdir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
 gitdir = os.path.abspath(os.path.join(scriptdir, "..", ".git"))
 if os.path.isdir(gitdir):  # pragma: nocover
     extra = None
@@ -54,6 +59,5 @@ if os.path.isdir(gitdir):  # pragma: nocover
                                       'v' + __version__)) as fdv:
                 if fdv.readline().strip()[:8] != extra[:8]:
                     __version__ += '-' + extra
-        except Exception as e:
-            if "No such file" not in str(e):
-                raise
+        except FileNotFoundError:
+            __version__ += '-' + extra[:8]
