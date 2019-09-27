@@ -1,3 +1,5 @@
+import loudml.vendor  # noqa
+
 from loudml.donut import (
     TimeSeriesPrediction,
 )
@@ -210,12 +212,13 @@ class TestElasticBucket(unittest.TestCase):
             now_ts + self.model.bucket_interval,
         ]
         predicted = [4.0, 2.0]
+        observed = [4.1, 1.9]
 
         prediction = TimeSeriesPrediction(
             self.model,
             timestamps=timestamps,
             predicted=np.array(predicted),
-            observed=np.array([4.1, 1.9]),
+            observed=np.array(observed),
         )
 
         self.sink.init(data_schema=prediction.get_schema())
@@ -238,6 +241,7 @@ class TestElasticBucket(unittest.TestCase):
             source = hit['_source']
             self.assertEqual(source, {
                 'avg_foo': predicted[i],
+                '@avg_foo': observed[i],
                 'timestamp': int(timestamps[i] * 1000),
                 'model': self.model.name,
             })
