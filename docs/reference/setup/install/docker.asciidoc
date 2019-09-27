@@ -5,11 +5,11 @@ The official Docker image for Loud ML can be downloaded from our
 DockerHub repo. It can be used to install Loud ML on any
 operating system that supports Docker containers.
 
-To install Loud ML Community version, run the command below:
+To install Loud ML Open Source version, run the command below:
 
 [source,sh]
 -------------------------
-docker pull loudml/community
+docker pull loudml/loudml
 -------------------------
 
 To run the image, and in particular the `loudmld` process giving
@@ -17,7 +17,7 @@ access to the HTTP API you can run:
  
 [source,sh]
 -------------------------
-docker run -ti -p 8077:8077 -v $VOLUME/etc/loudml/config.yml:/etc/loudml/config.yml:ro  -v $VOLUME/var/lib/loudml:/var/lib/loudml:rw loudml/community
+docker run -ti -p 8077:8077 -v $VOLUME/etc/loudml/config.yml:/etc/loudml/config.yml:ro  -v $VOLUME/var/lib/loudml:/var/lib/loudml:rw loudml/loudml
 -------------------------
 
 [NOTE]

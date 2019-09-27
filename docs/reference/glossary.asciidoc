@@ -10,12 +10,12 @@
   handling time series data, arrays of numbers indexed by time (a datetime
   or a datetime range). 
 
-[[glossary-data-source]] data-source ::
+[[glossary-data-source]] bucket ::
 
-  Any component that implements our data source Python interfaces. This can be
-  a supported NoSQL database, a CSV file, or anything else that contains TSDB data.
-  Data sources can contain information in arbitrary tables or documents. They can be
-  queried using a time range to return timestamp and data relevant to the query.
+  Any component that implements the abstract Bucket Python interface. This can be
+  a supported NoSQL database, a CSV file, or anything else that contains TSDB data points.
+  Buckets can contain information in arbitrary tables or documents. They can be
+  queried using a time range to return timestamp and data points relevant to the query.
 
 [[glossary-training]] training ::
 

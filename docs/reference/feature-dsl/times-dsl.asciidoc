@@ -11,7 +11,7 @@ Accepted parameters to define model features are:
 [horizontal]
 `name`:: Name given to this feature
 `field`:: TSDB column name
-`measurement`:: DEPREACTED. Define `measurement` in the bucket configuration.
+`measurement`:: DEPRECATED. Define `measurement` in the bucket settings.
 `match_all`:: list of TSDB tag names and values that must be matched when fetching the data
 `metric`:: An aggregation operator supported by the TSDB
 `default`:: A default float value to replace NaN values returned by the TSDB, or `previous` in order to fill the series with previous non-NaN value
@@ -52,8 +52,7 @@ The following `user_traffic.json` file (Or .yml file if YAML format is used)
 is using:
 
 * One minute aggregations, ie `bucket_interval` equals 1m
-* A forecast horizon equal to 5 `bucket_interval` ie 5 minutes
-* A window size, the span equal to 10 `bucket_interval` ie 10 minutes
+* A window size, ie the span equal to 10 `bucket_interval` ie 10 minutes
 * A `low` anomaly type, since we want to detect dips in user traffic
 
 [source,js]
@@ -74,7 +73,6 @@ is using:
   "max_evals": 10,
   "name": "traffic-model",
   "offset": 30,
-  "forecast": 1,
   "span": 20,
   "max_threshold": 90,
   "min_threshold": 50,
@@ -88,7 +86,7 @@ Building on the previous example we can use the `match_all` property
 to query the data whose `host` value equals `app.xyz.com`
 
 One or more `match_all` conditions can be added to narrow down your search
-and will automatically send queries to your data sources with the right filters.
+and will automatically send queries to your buckets with the right filters.
 
 An updated `user_traffic.json` file (Or .yml file if YAML format is used)
 will become:
@@ -113,7 +111,6 @@ will become:
   "interval": 60,
   "max_evals": 10,
   "offset": 30,
-  "forecast": 1,
   "span": 20,
   "max_threshold": 90,
   "min_threshold": 50,

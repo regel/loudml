@@ -3,7 +3,7 @@
 
 [partintro]
 --
-This section contains a detailed description of the `loudml` command line interface(CLI):
+This section contains a detailed description of the `loudml` command line interface(CLI). With version 1.6 and above you must install the loudml client separately using PyPI. Refer to installation instructions on https://github.com/loudml/loudml-python[Github]
 
 * <<cli-create-model>>
 * <<cli-delete-model>>
@@ -17,40 +17,30 @@ following help message:
 
 [source,sh]
 --------------------------------------------------
-loudml -h
-usage: loudml [-h] [-c CONFIG]
-              {delete-model,predict,forecast,train,list-models,create-model} ...
+$ loudml -h
 
-LoudML command-line tool
+usage: loudml [-h] [-A ADDR] [-q] [--version] [-e EXECUTE]
+
+    The Python client interface to Loud ML model servers.
+    
 
 optional arguments:
   -h, --help            show this help message and exit
-  -c CONFIG, --config CONFIG
-                        Path to configuration file (default:
-                        /etc/loudml/config.yml)
+  -A ADDR, --addr ADDR  Loud ML model server host and port to connect to.
+  -q, --quiet           Quiet: no stdout
+  --version             Display the version and exit.
+  -e EXECUTE, --execute EXECUTE
+                        Execute command and quit.
 
-Commands:
-  {delete-model,predict,forecast,train,list-models,create-model}
+Examples:
+
+    # Use loudml in a non-interactive mode to output the two days forecast
+    # for model "test-model" and pretty print the output:
+    $ loudml --execute 'forecast-model -f now -t now+2d test-model'
+
+    # Connect to a specific Loud ML model server:
+    $ loudml --addr hostname:8077
 --------------------------------------------------
-
-If you want to use the default path for LoudML storage (`/var/lib/loudml`),
-the user who executes the `loudml` command must be in the `loudml` group and
-the directory must be writeable for the users of this group:
-
-[source,sh]
---------------------------------------------------
-chmod -R g+w /var/lib/loudml
-usermod -a -G loudml <user>
---------------------------------------------------
-
-[IMPORTANT]
-==================================================
-
-Run previous command in your favourite shell and then completely log out of
-your account and log back in (if in doubt, reboot!)
-
-==================================================
-
 
 --
 

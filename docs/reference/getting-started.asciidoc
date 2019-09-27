@@ -189,12 +189,13 @@ loudml -e "train-model -f now-30d -t now-20d cpu_utilization_asg_misconfiguratio
 
 == Evaluate
 
-We can use the `predict` command to compare original data against model predictions,
+We can use the `eval-model` command to compare original data against model predictions,
 using historical data. The `-s` flag saves data to the default bucket, and
 facilitates data vizualization. The `-a` flag calculates a score to detect anomalies.
 
 Output data points are saved to the `output` bucket and each point contains the following information:
 
+* `@mean_value`: the original data point value or null
 * `mean_value`: the predicted normal value named according to the JSON model definition
 * `lower_mean_value`: the minimum normal value with 99.7 percent confidence
 * `upper_mean_value`: the maximum normal value with 99.7 percent confidence
@@ -203,19 +204,19 @@ Output data points are saved to the `output` bucket and each point contains the 
 
 [source,sh]
 --------------------------------------------------
-loudml -e "predict-model cpu_utilization_asg_misconfiguration -f now-30d -t now -s -a -o output"
+loudml -e "eval-model cpu_utilization_asg_misconfiguration -f now-30d -t now -s -a -o output"
 --------------------------------------------------
 
 Or if you need to print the output to the terminal:
 
 --------------------------------------------------
-loudml -e "predict-model cpu_utilization_asg_misconfiguration -f now-30d -t now -a"
+loudml -e "eval-model cpu_utilization_asg_misconfiguration -f now-30d -t now -a"
 --------------------------------------------------
 
 The value between brackets eg `[ 40.9]` is the anomaly score for this data point. This score ranges from 0 to 100. A star `*` indicates that the score is above normal and the data point is therefore flagged as abnormal.
 
 --------------------------------------------------
-timestamp          mean_value         loudml.mean_value  
+timestamp          @mean_value         loudml.mean_value  
 1567460400.0       35.168             38.212 [ 40.9]     
 1567460700.0       46.158             38.709 [ 78.1]     
 1567461000.0       39.946             43.764 [ 37.6]     
@@ -242,6 +243,7 @@ loudml -e "forecast-model cpu_utilization_asg_misconfiguration -f now-5m -t now+
 
 Output data points contain the following information:
 
+* `@mean_value`: the original data point value or null
 * `mean_value`: the predicted normal value named according to the JSON model definition
 * `lower_mean_value`: the minimum normal value with 68 percent confidence.
 * `upper_mean_value`: the maximum normal value with 68 percent confidence
@@ -250,7 +252,7 @@ Output data points contain the following information:
 The output should look like this:
 
 --------------------------------------------------
-timestamp          mean_value         loudml.mean_value  
+timestamp          @mean_value         loudml.mean_value  
 1569180000.0       31.829             29.897             
 1569180300.0       33.161             32.23              
 1569180600.0       31.829             30.063             
@@ -263,15 +265,16 @@ timestamp          mean_value         loudml.mean_value
 
 Running ML in production requires the ability to automate training, inference, and
 forecast operations. Regular scheduled operations, and on demand inference are provided
-via the Loud ML model server.
+via the Loud ML model server and the scheduled_job API.
 
-Jobs can be scheduled at a regular `interval` defined in JSON model settings, using the
-`start-model` CLI to automate outlier detection for live streaming data:
+Jobs can be scheduled at a regular `interval`. Using the `start-model` command will schedule a regular job fetching new streaming data and tagging abnormal data points:
 
 [source,sh]
 --------------------------------------------------
 loudml -e "start-model cpu_utilization_asg_misconfiguration -a"
 --------------------------------------------------
+
+Scheduled jobs can be configured to perform other operations too. Refer to the documentation for more advanced usage and examples.
 
 Congratulations on making it this far. We hope this tutorial helps get you started
 on your Loud ML journey. Feel free to contribute and submit ideas, bug fixes, and https://raw.githubusercontent.com/regel/loudml/master/CONTRIBUTING.md[pull requests] to enhance the OSS version and the documentation.

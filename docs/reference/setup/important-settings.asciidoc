@@ -1,7 +1,7 @@
 [[important-settings]]
 == Important Loud ML configuration
 
-While Loudb ML requires very little configuration, there are a number of
+While Loud ML requires very little configuration, there are a number of
 settings which need to be considered before going into production.
 
 The following settings *must* be considered before going to production:

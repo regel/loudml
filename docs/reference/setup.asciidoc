@@ -34,10 +34,11 @@ work on other platforms too.
 [[tf-version]]
 == TensorFlow Version
 
-Loud ML requires, at a minimum, https://www.tensorflow.org/versions/r1.3/[TensorFlow 1.3]
-in order to run.
+Loud ML is built and tested with a TensorFlow version {tensorflow_version}. This dependency is pinned via the `requirements.txt` file in the source code.
  
-The standard version provided by Google is embedded in the loudml-base package and is automatically installed in a vendor/ directory.
+The standard version provided by Google is embedded in the `loudml-base` package and is automatically installed in a vendor/ directory for DEB and RPM builds.
+
+Using an unsupported TensorFlow version will cause issues. Contact us if you need another TensorFlow version.
 
 --
 
