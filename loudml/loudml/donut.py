@@ -311,6 +311,11 @@ class TimeSeriesPrediction:
         for field in self.get_field_names():
             data_schema[field] = {"type": "float"}
 
+        for feature in self.model.features:
+            data_schema[
+                '@{}'.format(feature.name)
+            ] = {"type": "float"}
+
         return data_schema
 
     def get_anomalies(self):

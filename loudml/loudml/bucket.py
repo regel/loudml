@@ -235,6 +235,10 @@ class Bucket(metaclass=ABCMeta):
         """
         for bucket in prediction.format_buckets():
             data = bucket['predicted']
+            data.update({
+                '@{}'.format(key): val
+                for key, val in bucket['observed'].items()
+            })
             bucket_tags = tags or {}
             stats = bucket.get('stats', None)
             if stats is not None:
