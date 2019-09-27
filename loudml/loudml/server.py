@@ -19,6 +19,8 @@ import uuid
 import traceback
 import pytz
 import requests
+from urllib.parse import urlparse
+import socket
 import json
 
 import loudml.config
@@ -1715,6 +1717,41 @@ def slash():
         'version': version,
         'tagline': "The Disruptive Machine Learning API",
         'host_id': my_host_id(),
+    })
+
+
+@app.route("/_nodes/<node_name>/http")
+def node_http(node_name):
+    global g_config
+    if node_name != my_host_id() and node_name != '_all':
+        return ('Node not found: {}'.format(node_name), 404)
+    version = pkg_resources.get_distribution("loudml").version
+    host, port = urlparse(request.host).path.split(':')
+
+    return jsonify({
+        '_nodes': {
+            'total': 1,  # equals one in the OSS version
+            'successful': 1,
+            'failed': 0,
+        },
+        'cluster_name': g_config.cluster_name,
+        'nodes': {
+            my_host_id(): {
+                'name': g_config.node_name,
+                'transport_address': '{}:8088'.format(host),
+                'host': host,
+                'ip': socket.gethostbyname(host),
+                'version': version,
+                'roles': g_config.get_node_roles(),
+                'http': {
+                  'bound_address': [
+                      '{}:{}'.format(socket.gethostbyname(host), port),
+                  ],
+                  'publish_address': '{}:{}'.format(
+                      socket.gethostbyname(host), port),
+                }
+            }
+        }
     })
 
 
