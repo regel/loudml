@@ -37,6 +37,18 @@ class Config:
             for scheduled_job in data.get('scheduled_jobs', [])
         }
 
+        self._cluster = data.get('cluster', {})
+        if 'name' not in self._cluster:
+            self._cluster['name'] = 'loudml'
+
+        self._node = data.get('node', {})
+        if 'name' not in self._node:
+            self._node['name'] = 'loudml'
+        if 'master' not in self._node:
+            self._node['master'] = True
+        if 'compute' not in self._node:
+            self._node['compute'] = True
+
         self._metrics = data.get('metrics', {})
         if 'enable' not in self._metrics:
             self._metrics['enable'] = True
@@ -74,6 +86,25 @@ class Config:
             self._server['jobs_max_ttl'] = 60
 
         self._debug = bool(data.get('debug', False))
+
+    @property
+    def cluster_name(self):
+        return self._cluster['name']
+
+    @property
+    def node_name(self):
+        return self._node['name']
+
+    @property
+    def node(self):
+        return copy.deepcopy(self._node)
+
+    def get_node_roles(self):
+        roles = []
+        for role in ['master', 'compute']:
+            if self._node[role]:
+                roles.append(role)
+        return roles
 
     @property
     def debug(self):
