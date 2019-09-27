@@ -7,19 +7,21 @@
 
 ML training is done on demand. Depending on the application you may want to
 train your model again to take into account new patterns in more recent data.
-Loud ML gives you the freedom to train your model according to your
-application requirements, at the chosen interval and frequency. You can control
-and tune these settings in the `/etc/loudml/config.yml` file.
+Loud ML gives you the freedom to train your model as often as required
+according to your application requirements.
+
+Use scheduled jobs to control the chosen training interval and frequency.
+Scheduled jobs settings can be defined in the `/etc/loudml/config.yml` file
+or added and removed at run time using the scheduled jobs REST API.
 
 === Are there limits to the size of the dataset I can use for training?
 
 Loud ML loads data from your databases into memory, the result set returned
 by DB queries must fit into your system memory.
 
-=== What data sources can I easily use with Loud ML
+=== What buckets can I easily use with Loud ML
 
-InfluxDB and Elasticsearch and other databases are natively supported. Other data sources
-can be submitted as pull request. Our contributing guide explains how: https://raw.githubusercontent.com/regel/loudml/master/CONTRIBUTING.md
+InfluxDB and Elasticsearch and other databases are natively supported. Other bucket types can be submitted as pull request. Our contributing guide explains how: https://raw.githubusercontent.com/regel/loudml/master/CONTRIBUTING.md
 
 === What algorithms does Loud ML use to generate models?
 
@@ -39,7 +41,7 @@ Yes, unobserved, missing values, and nan values are supported in the Donut model
 
 === Do I need to split data into train/test set for evaluation?
 
-No, time-series in the training data are automatically split into training set and test set. After that, the trained model can be used to generate forecasts for the future with time series that were not previously included in training.
+No, data points in the training data are automatically split into training set and test set. After that, the trained model can be used to generate forecasts for the future with data points that were not previously included in training.
 
 === Do I need to train one model per time series?
 
@@ -49,7 +51,7 @@ Having more advanced models opens the possiblity to find correlations and use ML
 
 === Can I pass time-dependent features or scalar features?
 
-Yes, time-dependent co-variates can be defined in the `i` features list. 
+Time-dependent co-variates have been removed in version 1.5.0 and will be reintroduced in a future software release.
 
 === How much data is required to train a model?
 
@@ -61,5 +63,5 @@ No, all time series in the dataset have to have the same frequency (your `bucket
 
 === What is `span` and how should I set it?
 
-The `span` corresponds to the number of data points the algorithm gets to see before making a prediction. The `donut` model uses a fixed window that slides over historical data to learn a meaningful representation.
+The `span` corresponds to the window of data points the algorithm gets to see before making a prediction. The `donut` model uses a fixed window that slides over historical data to learn a meaningful representation.
 

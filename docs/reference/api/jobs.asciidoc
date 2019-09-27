@@ -9,48 +9,65 @@ JSON document from the job with identifier `b67c10d6-3886-4285-a19c-2b908323238a
 
 [source,js]
 --------------------------------------------------
-GET /jobs/<job_id>
+GET /jobs/<job_ids>
 --------------------------------------------------
 
-Example:
+Use the semicolon separator to specify more than one identifier in the request url.
+
+Example with two job identifiers:
+
+[source,js]
+--------------------------------------------------
+GET /jobs/b67c10d6-3886-4285-a19c-2b908323238a;b67c10d6-3886-4285-a19c-2b908323238b
+--------------------------------------------------
+
+Example with one job identifier:
 
 [source,js]
 --------------------------------------------------
 GET /jobs/b67c10d6-3886-4285-a19c-2b908323238a
 --------------------------------------------------
 
-The result of the above get operation is:
+The result of the above get operation is an array with information
+for each job identifier present in the request url:
 
 [source,js]
 --------------------------------------------------
-{
+[{
   "id": "b67c10d6-3886-4285-a19c-2b908323238a", 
   "state": "done", 
+  "result": null,
   "type": "training"
-}
+}]
 --------------------------------------------------
 
-The job state will have one of the following values:
+The job `state` will have one of the following values:
 
 [horizontal]
 `waiting`::    Job is waiting to be scheduled
 `running`::    Job is running and the result is not yet ready
 `done`::       Job is completed and the result is available
 `failed`::     Job failed. The error string will return more information
+`canceled`::   Job was cancel by the user
 
-A top level GET operation will list all running jobs.
+The job `result` will contain the JSON output for the job, or null
+if the job does not return any value.
+
+A top level GET operation will list all jobs.
 
 [source,js]
 --------------------------------------------------
 GET /jobs
 --------------------------------------------------
 
-=== Cancelling a job
+=== Cancelling one or more jobs
 
 [source,js]
 --------------------------------------------------
-POST /jobs/<job_id>/_cancel
+POST /jobs/<job_ids>/_cancel
 --------------------------------------------------
+
+Use the semicolon separator to specify more than one identifier in the request url.
 
 Example:
 

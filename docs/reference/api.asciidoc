@@ -7,6 +7,7 @@ This section contains a detailed description of the following CRUD APIs:
 
 * <<api-buckets>>
 * <<api-jobs>>
+* <<api-scheduled_jobs>>
 * <<api-models>>
 * <<api-hooks>>
 --
@@ -14,6 +15,8 @@ This section contains a detailed description of the following CRUD APIs:
 include::api/buckets.asciidoc[]
 
 include::api/jobs.asciidoc[]
+
+include::api/scheduled_jobs.asciidoc[]
 
 include::api/models.asciidoc[]
 

@@ -1,49 +1,38 @@
 [[cli-forecast]]
 == Forecast Command
 
-The forecast command will return a time series forecast for a given time range,
-and a given model. For example the command below will output forecasts
+The `forecast-model` command will return a forecast for the given time range,
+and the given model. For example the command below will output data points
 for model named `pricing-model` between now and the next 24 hours:
 
 [source,bash]
 --------------------------------------------------
-loudml forecast --from "now" --to "now+1d" pricing-model
+loudml -e "forecast-model --from now --to now+1d pricing-model"
 --------------------------------------------------
 
 And this example will output result to `stdout`:
 
 [source,js]
 --------------------------------------------------
-{
-[...]
-    "predicted": {
-        "pricing_feature": [
-            1.0200526714324951,
-            1.0138707160949707,
-            1.0268415212631226,
-            1.0200526714324951,
-            1.0138707160949707,
-            1.0268415212631226
-        ]
-    },
-    "timestamps": [
-        1521018000.0,
-        1521018600.0,
-        1521019200.0,
-        1521019800.0,
-        1521020400.0,
-        1521021000.0
-    ]
-}
+forecast(pricing-model): 100%|███████████████████████| 1/1 [00:01<00:00,  1.01s/it]
+timestamp           @mean_value         loudml.mean_value  
+1569574800.0        None                13286.228           
+1569576000.0        None                12169.464           
+1569577200.0        None                12049.305           
+1569578400.0        None                10466.796
+...
 --------------------------------------------------
 
-The `forecast` command supports the following options:
+The `forecast-model` command supports the following options:
 
 [horizontal]
 `-f`::       (date) The `from` date in range query, supports <<date-math,Date Math>> notation.
 `-t`::       (date) The `to` date in range query, supports <<date-math,Date Math>> notation. 
-`-b`::       Will format the output into buckets
-`-s`::       Will save output to the data-source
-`model`::      The model name
+`-s`::       Will save output to the output bucket
+`-i`::       Read data points from the specified input bucket
+`-o`::       Write output data points to the specified output bucket
+`-c`::       Stop forecasting if this constraint is met, ie when the target metric is either exceeded or becomes less than the specific constraint
+`-p`::       Generate forecast confidence interval with +/- 100*p% range
+`model_name`::      The model name
 
 

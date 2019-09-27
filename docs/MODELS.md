@@ -59,7 +59,7 @@ class GaussianModel(Model):
 
     def train(
         self,
-        datasource,
+        bucket,
         from_date,
         to_date="now",
         train_size=0.67,
@@ -88,10 +88,10 @@ class GaussianModel(Model):
 
 ### Data Formats
 
-Your model can query data using a [source] interface and a time range.
+Your model can query data using a [Bucket] interface and a time range.
 Returned data can be stored into a NumPy array or other structures you
 need in your model implementation.
 
 [CodeStyle]: https://github.com/regel/loudml/wiki/CodeStyle
-[Model]: https://updateurl
-[source]: https://updateurl
+[Model]: https://raw.githubusercontent.com/regel/loudml/master/loudml/loudml/model.py
+[Bucket]: https://raw.githubusercontent.com/regel/loudml/master/loudml/loudml/bucket.py

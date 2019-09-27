@@ -74,7 +74,7 @@ server:
     listen: localhost:8077
 --------------------------------------------------
 
-Your license file location can be configured using `license.path` property. This setting is not required if you are running Loud ML Community Edition.
+Your license file location can be configured using `license.path` property. This setting is not required if you are running Loud ML Open Source edition.
 
 [source,yaml]
 --------------------------------------------------

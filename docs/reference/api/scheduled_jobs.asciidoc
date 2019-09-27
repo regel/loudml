@@ -1,0 +1,125 @@
+[[api-scheduled_jobs]]
+== Scheduled Jobs API
+
+The scheduled jobs API allows you to schedule machine learning jobs
+execution in the future and automate useful tasks:
+
+* Scheduling a regular forecast for the next 24 hours to ensure
+data vizualizations have up to date forecast data points information
+* Scheduling regular training to reinforce a saved model with
+new data points and learn new patterns in the data
+
+=== Getting job information
+
+[source,js]
+--------------------------------------------------
+GET /scheduled_jobs/<job_names>
+--------------------------------------------------
+
+Use the semicolon separator to specify more than one identifier in the request url.
+
+Example with two scheduled job identifiers:
+
+[source,js]
+--------------------------------------------------
+GET /scheduled_jobs/first;second
+--------------------------------------------------
+
+Example with one scheduled job identifier:
+
+[source,js]
+--------------------------------------------------
+GET /scheduled_jobs/first
+--------------------------------------------------
+
+The result of the above get operation is an array with information
+for each scheduled job identifier present in the request url:
+
+[source,js]
+--------------------------------------------------
+[{
+  "name": "first",
+  "method": "post", 
+  "relative_url: "/models/awesome_model/_train",
+  "params": {
+    "from": "now-1d",
+    "to": "now"
+  },
+  "every": {
+    "count": 1,
+    "unit": "day",
+    "at": "01:00"
+  }
+}]
+--------------------------------------------------
+
+The scheduled job `method`, `relative_url` and `params` refer to REST API
+calls supported by the Loud ML model server.
+
+The scheduled job `unit` will have one of the following values:
+
+[horizontal]
+`second`::    Scheduled job will run every second
+`seconds`::    Scheduled job will run every `count` seconds
+`minute`::    Scheduled job will run every minute
+`minutes`::    Scheduled job will run every `count` minutes
+`hour`::    Scheduled job will run every hour
+`hours`::    Scheduled job will run every `count` hours
+`day`::    Scheduled job will run every day
+`days`::    Scheduled job will run every `count` days
+`monday`::    Scheduled job will run every Monday
+`tuesday`::    Scheduled job will run every Tuesday
+`wednesday`::    Scheduled job will run every Wednesday
+`thursday`::    Scheduled job will run every Thursday
+`friday`::    Scheduled job will run every Friday
+`saturday`::    Scheduled job will run every Saturday
+`sunday`::    Scheduled job will run every Sunday
+
+The scheduled job option `at` can specify the exact time to execute
+the job with a string in one of the following formats: `HH:MM:SS`, `HH:MM`,`:MM`, `:SS`. The format must make sense given how often the job is repeating; for example, a job that repeats every minute should not be given a string in the form HH:MM:SS. The difference between :MM and :SS is inferred from the selected time unit.
+
+=== Get Scheduled Job API
+
+A top level GET operation will list all scheduled jobs.
+
+[source,js]
+--------------------------------------------------
+GET /scheduled_jobs
+--------------------------------------------------
+
+=== Create Scheduled Job API
+
+A new scheduled job can be defined using the `POST` method and
+defining scheduled job settings inside the request body.
+
+[source,js]
+--------------------------------------------------
+POST /scheduled_jobs
+{
+   ...scheduled job settings
+}
+--------------------------------------------------
+
+Using curl:
+
+[source,bash]
+--------------------------------------------------
+curl -H "Content-Type: application/json" -X POST localhost:8077/scheduled_jobs --data-binary @scheduled_job.json
+--------------------------------------------------
+
+[NOTE]
+==================================================
+
+The HTTP content type must be `application/json`
+
+==================================================
+
+
+=== Delete Scheduled Job API
+
+[source,js]
+--------------------------------------------------
+DELETE /scheduled_jobs/<job_names>
+--------------------------------------------------
+
+Use the semicolon separator to specify more than one identifier in the request url.

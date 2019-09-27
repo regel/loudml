@@ -2,26 +2,32 @@
 == Bucket API
 
 The bucket API allows to get a typed JSON document from the bucket
- configuration based on its name. The following example gets a
-JSON document from the current configuration, with name `influx`:
+ configuration based on its name. The following reads bucket settings
+for the bucket named `influx`:
+
+Security settings are removed and will not be returned.
 
 [source,js]
 --------------------------------------------------
 GET /buckets/influx
 --------------------------------------------------
 
-The result of the above get operation is:
+The result of the above get operation is an array of bucket settings,
+one for each bucket name present in the request url:
 
 [source,js]
 --------------------------------------------------
-{
+[{
    "name": "influx",
    "type": "influxdb",
    "addr": "localhost:8086",
    "database": "telegraf",
+   "retention_policy": "autogen",
    "measurement": "loudml"
-}
+}]
 --------------------------------------------------
+
+Use the semicolon separator to specify more than one bucket name in the request url.
 
 The API also allows to check for the existence of a bucket using
 `HEAD`, for example:
@@ -38,3 +44,46 @@ A top level GET operation will list all configured buckets.
 GET /buckets
 --------------------------------------------------
 
+A new bucket can be configured at run time using the `POST` method and
+defining bucket parameters inside the request body.
+
+[source,js]
+--------------------------------------------------
+POST /buckets
+{
+   ...vendor specific bucket settings.
+}
+--------------------------------------------------
+
+Using curl:
+
+[source,bash]
+--------------------------------------------------
+curl -H "Content-Type: application/json" -X POST localhost:8077/buckets --data-binary @bucket.json
+--------------------------------------------------
+
+[NOTE]
+==================================================
+
+The HTTP content type must be `application/json`
+
+==================================================
+
+[WARNING]
+==================================================
+
+Use HTTPS transport protocol to avoid the exposure of security settings.
+
+==================================================
+
+[source,js]
+--------------------------------------------------
+POST /buckets
+--------------------------------------------------
+
+Buckets can be deleted using the DELETE method. Use the semicolon separator to specify more than one bucket name in the request url.
+
+[source,js]
+--------------------------------------------------
+DELETE /buckets/<bucket_names>
+--------------------------------------------------

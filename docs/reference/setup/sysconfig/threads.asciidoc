@@ -2,8 +2,8 @@
 === Number of threads
 
 Loud ML uses a number of thread pools for different types of operations. The
-actual number of threads will default to the minimum of either the local
-processor count, or the limit defined in your licence.
+actual number of threads will default to the local processor count and can
+be changed via the `config.yml` file.
 
 The package distributions when run as services under `systemd` will configure
 the number of threads for the loudmld process automatically. No
