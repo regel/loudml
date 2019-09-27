@@ -80,11 +80,8 @@ cp -r templates %{buildroot}/%{_sharedstatedir}/loudml
 # Skip dependencies management by pkg_resources (does not work well with our
 # vendor system)
 %exclude %{python3_sitelib}/loudml-*.egg-info/requires.txt
-%exclude %{_bindir}/loudml-lic
 %{_bindir}/*
 %license %{_datarootdir}/loudml/LICENSE
-%dir %{python3_sitelib}/rmn_common
-%{python3_sitelib}/rmn_common/*
 %{python3_sitelib}/loudml/*
 %dir %{python3_sitelib}/loudml-*.egg-info
 %{python3_sitelib}/loudml-*.egg-info/*
