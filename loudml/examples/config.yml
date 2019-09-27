@@ -1,35 +1,111 @@
 ---
-buckets: []
-# - name: influx
-#   type: influxdb
-#   addr: localhost
-#   database: mydatabase
-#   measurement: loudml
-#   create_database: true
-#   retention_policy: autogen
-#   max_series_per_request: 2000
 
-# - name: elastic
-#   type: elasticsearch
-#   addr: localhost:9200
-#   index: myindex
-#   doc_type: doc
-#   max_series_per_request: 2000
+# List buckets (TSDB data stores) here.
+# An empty list is the preferred option if you want to populate this list
+# at run time using the REST APIs.
+# Uncomment the next line to use an empty bucket list.
+# buckets: []
 
+# Another option is to define static buckets that will immediately become
+# visible when the Loud ML server starts.
+# Uncomment the next lines and fine tune the parameters based on your
+# specific TSDB settings in order to define static buckets.
+# buckets:
+#   - name: influx
+#     type: influxdb
+#     addr: localhost
+#     database: mydatabase
+#     measurement: loudml
+#     create_database: true
+#     retention_policy: autogen
+#     max_series_per_request: 2000
+# 
+#   - name: elastic
+#     type: elasticsearch
+#     addr: localhost:9200
+#     index: myindex
+#     doc_type: doc
+#     max_series_per_request: 2000
+
+# `storage` defines where Loud ML will save trained model
+# information.
 storage:
   path: /var/lib/loudml
 
+# `server` defines the TCP host and port address that the
+# Loud ML server will listen to.
+#
+# `listen`: Use 0.0.0.0:8077 to listen to all IP address available
+# on the host. This setting should be set to `localhost:8077` if you
+# are using a reverse proxy eg nginx to proxy incoming requests to Loud ML.
+#
+# `workers`: sets the number of worker process. Use default for CPU
+# hardwares. Use num_cpu_cores * 4 * num_gpus for GPU configurations.
+#
+# `maxtasksperchild`: sets how many tasks a worker process is allowed to do
+# before being replaced.
+#
+# `jobs_max_ttl`: sets how long a job result will remain available
+# in GET /jobs/<id> when the job is done. Unit in seconds.
 server:
   listen: localhost:8077
+#  workers: 16
+#  maxtasksperchild: 100
+#  jobs_max_ttl: 60
 
+# `inference` defines the TensorFlow cores used to predict
+# output data from trained models.
 #inference:
 #  num_cpus: 1
 #  num_gpus: 0
 
+# `training` defines the TensorFlow cores used to train new models.
+# The minimum number for `num_cpus` is one.
+# Fine tune these settings according to your hardware configuration.
+# GPUs offload compute intensive tasks. One GPU typically provides 4x the
+# compute capacity of a regular CPU.
 #training:
 #  num_cpus: 1
 #  num_gpus: 0
 
+
+# `scheduled_jobs` automate regular training and inference tasks.
+# They use standard REST APIs. Refer to the API documentation
+# for more information.
+# scheduled_jobs hacks #1:
+# Uncomment the following lines to perform a one day forecast
+# and update this forecast every ten minutes:
+#scheduled_jobs:
+#  - name: "forecast(test-model) every five minutes"
+#    relative_url: "/models/test-model/_forecast"
+#    method: post
+#    params:
+#      from: "now"
+#      to: "now+1d"
+#    every:
+#      count: 5
+#      unit: minutes
+
+# scheduled_jobs hacks #2:
+# Uncomment the following lines to perform a one day forecast
+# and update this forecast every ten minutes for all models.
+# Note the {{model_name}} placeholder:
+#scheduled_jobs:
+#  - name: "forecast({{model_name}}) every five minutes"
+#    relative_url: "/models/{{model_name}}/_forecast"
+#    method: post
+#    params:
+#      from: "now"
+#      to: "now+1d"
+#    every:
+#      count: 5
+#      unit: minutes
+
+
+# scheduled_jobs hacks #3:
+# Uncomment the following lines to update all saved models and train
+# each model every night, every Sunday, or every 28 days.
+# Note the time ranges used to fetch data points in each job:
 #scheduled_jobs:
 #  - name: "train({{model_name}}) every day at 1am"
 #    relative_url: "/models/{{model_name}}/_train"
