@@ -375,7 +375,7 @@ def job_stop(job_id):
         return "job not found", 404
 
     job.cancel()
-    return "job canceled"
+    return ('', 204)
 
 
 def set_job_state(job_id, state, progress=None):
@@ -1135,7 +1135,7 @@ def bucket_write(bucket_name):
         **request.args
     )
     job.start(g_config)
-    return str(job.id), 202
+    return jsonify(job.id), 202
 
 
 @app.route("/buckets/<bucket_name>/_read", methods=['POST'])
@@ -1187,7 +1187,7 @@ def bucket_read(bucket_name):
         features=features,
     )
     job.start(g_config)
-    return str(job.id), 202
+    return jsonify(job.id), 202
 
 
 class JobsResource(Resource):
@@ -1574,14 +1574,14 @@ def model_eval(model_name):
         save_run_state=False,
         from_date=get_date_arg('from', is_mandatory=True),
         to_date=get_date_arg('to', is_mandatory=True),
-        save_prediction=request.args.get('save_prediction', default=False),
+        save_prediction=request.args.get('save_output_data', default=False),
         output_bucket=request.args.get('output_bucket'),
-        detect_anomalies=request.args.get('detect_anomalies', default=False),
+        detect_anomalies=request.args.get('flag_abnormal_data', default=False),
     )
     job.start(g_config)
 
     if get_bool_arg('bg', default=False):
-        return str(job.id), 202
+        return jsonify(job.id), 202
 
     return jsonify(job.result())
 
@@ -1615,9 +1615,9 @@ def model_start(model_name):
     global g_storage
 
     params = {
-        'save_prediction': get_bool_arg('save_prediction'),
+        'save_prediction': get_bool_arg('save_output_data'),
         'output_bucket': request.args.get('output_bucket'),
-        'detect_anomalies': get_bool_arg('detect_anomalies'),
+        'detect_anomalies': get_bool_arg('flag_abnormal_data'),
     }
 
     model = g_storage.load_model(model_name)
@@ -1683,7 +1683,7 @@ def model_forecast(model_name):
     job.start(g_config)
 
     if get_bool_arg('bg', default=False):
-        return str(job.id), 202
+        return jsonify(job.id), 202
 
     return jsonify(job.result())
 
@@ -1707,7 +1707,7 @@ def model_forecast(model_name):
 # def do_things():
 #    job = DummyJob(int(request.args.get('value', 0)))
 #    job.start()
-#    return str(job.id), 202
+#    return jsonify(job.id), 202
 
 
 @app.route("/", methods=['GET', 'HEAD'])
