@@ -1710,14 +1710,19 @@ def model_forecast(model_name):
 #    return str(job.id), 202
 
 
-@app.route("/")
+@app.route("/", methods=['GET', 'HEAD'])
 def slash():
     version = pkg_resources.get_distribution("loudml").version
-    return jsonify({
-        'version': version,
-        'tagline': "The Disruptive Machine Learning API",
-        'host_id': my_host_id(),
-    })
+    if request.method == 'HEAD':
+        return Response(
+            status=200,
+        )
+    else:
+        return jsonify({
+            'version': version,
+            'tagline': "The Disruptive Machine Learning API",
+            'host_id': my_host_id(),
+        })
 
 
 @app.route("/_nodes/<node_name>/http")
