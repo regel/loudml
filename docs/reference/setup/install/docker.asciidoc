@@ -8,9 +8,22 @@ operating system that supports Docker containers.
 To install Loud ML Open Source version, run the command below:
 
 [source,sh]
+
+ifeval::["{release-state}"=="unreleased"]
+
+-------------------------
+docker pull loudml/loudml:latest-devel
+-------------------------
+
+endif::[]
+
+ifeval::["{release-state}"!="unreleased"]
+
 -------------------------
 docker pull loudml/loudml
 -------------------------
+
+endif::[]
 
 To run the image, and in particular the `loudmld` process giving
 access to the HTTP API you can run:
