@@ -111,10 +111,12 @@ The supported settings are:
 `name`::       (string) A user defined name that will refer to this bucket
 `type`::       (string) Accepts `influxdb`, or `elasticsearch`
 `addr`::       (string) The network address and port number to connect to the database
-`database`::   (string) The database name. This property is only relevant if `type` equals `influxdb`
+`database`::   (string) The database name. This property is only relevant if `type` equals `influxdb` or `mongodb`
 `index`::      (string) The index pattern. This property is only relevant if `type` equals `elasticsearch`
 `doc_type`::      (string) The document `type` expected in Elasticsearch indexes for this bucket. This property is only relevant if `type` equals `elasticsearch`
 `measurement`::      (string) The `measurement` name for this bucket. This property is only relevant if `type` equals `influxdb`
+`retention_policy`::      (string) The `retention_policy` name for this bucket. This property is only relevant if `type` equals `influxdb`
+`annotation_db`::      (string) The annotation database name for this bucket. Loud ML creates one new tagged annotation for each abnormal time window. This property is only relevant if `type` equals `influxdb`
 `collection`::      (string) The `collection` name for this bucket. This property is only relevant if `type` equals `mongodb`
 `dbuser`::     (string) User name, if using HTTP basic authentication to connect to the database
 `dbuser_password`::      (string) User password, if using HTTP basic authentication to connect to the database
