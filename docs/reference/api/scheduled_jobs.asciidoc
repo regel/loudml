@@ -9,7 +9,7 @@ data vizualizations have up to date forecast data points information
 * Scheduling regular training to reinforce a saved model with
 new data points and learn new patterns in the data
 
-=== Getting job information
+=== Getting Scheduled Job Information
 
 [source,js]
 --------------------------------------------------
@@ -40,7 +40,7 @@ for each scheduled job identifier present in the request url:
 [{
   "name": "first",
   "method": "post", 
-  "relative_url: "/models/awesome_model/_train",
+  "relative_url": "/models/awesome_model/_train",
   "params": {
     "from": "now-1d",
     "to": "now"
