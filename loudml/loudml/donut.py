@@ -1062,6 +1062,8 @@ class DonutModel(Model):
             dataset = np.resize(dataset, (nb_buckets_found,))
 
         logging.info("found %d time periods", nb_buckets_found)
+        if progress_cb is not None:
+            progress_cb(0, max_evals)
 
         if incremental:
             best_params = self._state.get('best_params', dict())
