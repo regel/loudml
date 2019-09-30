@@ -685,7 +685,6 @@ class InfluxBucket(Bucket):
         for j, point in enumerate(result.get_points()):
             timeval = point.get('start_time')
             timeval2 = point['time']
-            print(point)
             if timeval is not None and timeval2 is not None:
                 windows.append([
                     ts_to_str(make_ts(timeval / 1e9)),
