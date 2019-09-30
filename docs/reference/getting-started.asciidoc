@@ -133,6 +133,48 @@ Settings will differ according to the type of database used in your environment.
 
 ==================================================
 
+== Loud ML Python API Client
+
+The `loudml-python` [package](https://pypi.org/project/loudml-python/) available on PyPI is a command line client designed to control the Loud ML model server.
+
+If you’ve installed `loudml-python` locally, the `loudml` command should be available via the command line. Executing loudml will start the CLI and automatically connect to the local Loud ML model server instance (assuming you have already started the server with `systemctl start loudmld` or by running loudmld directly). The output should look like this:
+
+--------------------------------------------------
+$ loudml
+Connected to localhost:8077 version 1.6.0-577c87de
+Loud ML shell 1.6.0-42136d38
+>
+--------------------------------------------------
+
+Usage:
+
+--------------------------------------------------
+$ loudml -h
+
+usage: loudml [-h] [-A ADDR] [-q] [--version] [-e EXECUTE]
+
+    The Python client interface to Loud ML model servers.
+    
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -A ADDR, --addr ADDR  Loud ML model server host and port to connect to.
+  -q, --quiet           Quiet: no stdout
+  --version             Display the version and exit.
+  -e EXECUTE, --execute EXECUTE
+                        Execute command and quit.
+
+Examples:
+
+    # Use loudml in a non-interactive mode to output the two days forecast
+    # for model "test-model" and pretty print the output:
+    $ loudml --execute 'forecast-model -f now -t now+2d test-model'
+
+    # Connect to a specific Loud ML model server:
+    $ loudml --addr hostname:8077
+--------------------------------------------------
+
+
 == Historical Data
 
 Public real world data sets are useful for testing. We can load the popular https://github.com/numenta/NAB[NAB] data set using one command. The `-f` flag will offset the data so that it begins at the given point in time. The `-d` flag saves data to the chosen data store defined in your `config.yml` file.
