@@ -113,8 +113,10 @@ POST /models/cpu_and_mem-model/_start
 The supported options are:
 
 [horizontal]
-`save_prediction`:: Write output data points to the `default_bucket` for this model
-`detect_anomalies`:: Set this flag to detect abnormal data points
+`save_output_data`:: Write output data points to the `default_bucket` or the `output_bucket`
+`output_bucket`:: Save output data points to this bucket
+`flag_abnormal_data`:: Set this flag to detect abnormal data points. Default value is `false`
+
 
 Scheduled inference can be stopped using `_stop`:
 
