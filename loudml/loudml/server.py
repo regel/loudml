@@ -1574,9 +1574,9 @@ def model_eval(model_name):
         save_run_state=False,
         from_date=get_date_arg('from', is_mandatory=True),
         to_date=get_date_arg('to', is_mandatory=True),
-        save_prediction=request.args.get('save_output_data', default=False),
+        save_prediction=get_bool_arg('save_output_data', default=False),
         output_bucket=request.args.get('output_bucket'),
-        detect_anomalies=request.args.get('flag_abnormal_data', default=False),
+        detect_anomalies=get_bool_arg('flag_abnormal_data', default=False),
     )
     job.start(g_config)
 
@@ -1666,7 +1666,7 @@ def model_forecast(model_name):
     global g_config
 
     params = {
-        'save_prediction': get_bool_arg('save_prediction'),
+        'save_prediction': get_bool_arg('save_output_data', default=False),
         'output_bucket': request.args.get('output_bucket'),
     }
 
