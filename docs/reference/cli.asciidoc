@@ -9,7 +9,7 @@ This section contains a detailed description of the `loudml` command line interf
 * <<cli-delete-model>>
 * <<cli-list-models>>
 * <<cli-train>>
-* <<cli-predict>>
+* <<cli-eval>>
 * <<cli-forecast>>
 
 Running the `loudml` command with -h option in a terminal will output the
