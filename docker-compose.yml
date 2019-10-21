@@ -1,0 +1,29 @@
+version: "3.4"
+
+#
+# Run tests with docker-compose run hippie
+#
+services:
+  loudml:
+    image: loudml/loudml:latest-devel
+    ports:
+      - "8077:8077"
+  hippie:
+    volumes:
+      - ${PWD}/docs/swagger.yml:/home/nvm/swagger.yml
+    build:
+      dockerfile: Dockerfile
+      context: hippie
+    depends_on:
+      - loudml
+    user: nvm
+    environment:
+      LOUDML_HOSTS: loudml:8077
+      TARGET_URL: http://loudml:8077
+      SWAGGER_FILE: /home/nvm/swagger.yml
+    command: >
+      /bin/bash -c "
+        export NVM_DIR=$$HOME/.nvm \
+                && source $$HOME/.nvm/nvm.sh
+        dockerize -wait http://loudml:8077 -timeout 10s npm test
+      "

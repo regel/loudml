@@ -1,0 +1,17 @@
+{
+  "name": "hippie-loudml",
+  "version": "1.0.0",
+  "description": "Hippie testing for the Loud ML API",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "author": "Sébastien Léger",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "hippie-swagger": "^3.2.0",
+    "mocha": "^6.2.2",
+    "swagger-parser": "^8.0.2"
+  }
+}

@@ -1,0 +1,54 @@
+swagger: '2.0'
+info:
+  contact:
+    email: contact@loudml.io
+  description: >-
+    Loud ML is an open source inference engine for metrics and events, and the fastest way to embed machine learning in your time series application. This includes APIs for storing and querying data, processing it in the background for ML or detecting outliers for alerting purposes, and more. 
+  title: loudml
+  version: '1.6'
+host: 'loudml:8077'
+basePath: '/'
+schemes:
+  - http
+paths:
+  /:
+    head:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: the service is alive
+
+    get:
+      summary: Get version information
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: Return version and general info
+          schema:
+            $ref: '#/definitions/Version'
+
+definitions:
+  Version:
+    properties:
+      version:
+        description: >-
+          Current software version running.
+        type: string
+      host_id:
+        description: >-
+          Uniquely identifies the host running the software.
+        type: string
+      tagline:
+        description: >-
+          The API tagline.
+        type: string
+    required:
+      - version
+      - host_id
+      - tagline
+    type: object
+    example:
+      version: "1.6.0-06cf3302"
+      host_id: "fd51664cf7097b6c657ee8f6a4eb28b4"
+      tagline: "The Disruptive Machine Learning API"
