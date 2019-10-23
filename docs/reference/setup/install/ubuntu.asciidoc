@@ -23,7 +23,7 @@ Ubuntu 18.04 ships with Python 3.6. You will need to install the following depen
 
 [source,sh]
 --------------------------------------------------
-apt-get install python3-lib2to3
+apt-get install python3
 --------------------------------------------------
 
 [[ubuntu-repo]]
