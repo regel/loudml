@@ -62,6 +62,7 @@ from .misc import (
     make_bool,
     my_host_id,
     load_entry_point,
+    make_ts,
     parse_timedelta,
     parse_constraint,
     parse_expression,
@@ -158,12 +159,19 @@ def daemon_exec_scheduled_job(job_id):
         'user-agent',
         'loudmld {}'.format(pkg_resources.require("loudml")[0].version)
     )
+    params = None
+    if 'params' in desc:
+        params = copy.deepcopy(desc['params'])
+        for key in ['from', 'to']:
+            if key in params:
+                params[key] = int(make_ts(params[key]))
+
     response = perform_request(
         base_url,
         desc['method'],
         desc['relative_url'],
         session=session,
-        params=desc.get('params'),
+        params=params,
         body=desc.get('json'),
         timeout=5,
         ignore=(),
@@ -791,7 +799,7 @@ class ModelResource(Resource):
                     add_new_scheduled_job({
                         'name': scheduled_job_name,
                         'method': 'post',
-                        'request_url': request_url,
+                        'relative_url': request_url,
                         'every': {
                             'count': new_interval,
                             'unit': 'seconds',
@@ -1538,30 +1546,19 @@ def _model_start(model, params):
     if scheduled_job_exists(scheduled_job_name):
         return  # idempotent _start
 
-    def create_job(from_date=None, save_run_state=True, detect_anomalies=None):
-        kwargs = params.copy()
-        if detect_anomalies is not None:
-            kwargs['detect_anomalies'] = detect_anomalies
-
-        to_date = datetime.now(pytz.utc).timestamp() - model.offset
-
-        if model.type in ['timeseries', 'donut']:
-            if from_date is None:
-                from_date = to_date - model.interval
-
-            kwargs['from_date'] = from_date
-            kwargs['to_date'] = to_date
-
-        job = PredictionJob(
-            model.name,
-            save_run_state=save_run_state,
-            **kwargs
-        )
-
-        job.start(g_config)
-
-    from_date = params.pop('from_date', None)
-    create_job(from_date, save_run_state=False, detect_anomalies=False)
+    params['from'] = 'now-{:.0f}s'.format(model.offset + model.interval)
+    params['to'] = 'now-{:.0f}s'.format(model.offset)
+    request_url = '/models/{}/_eval'.format(model.name)
+    add_new_scheduled_job({
+        'name': scheduled_job_name,
+        'method': 'post',
+        'relative_url': request_url,
+        'params': params,
+        'every': {
+            'count': model.interval,
+            'unit': 'seconds',
+        },
+    })
 
 
 @app.route("/models/<model_name>/_eval", methods=['POST'])
@@ -1628,7 +1625,6 @@ def model_start(model_name):
     model.set_run_state(None)
     g_storage.save_model(model)
 
-    params['from_date'] = get_date_arg('from')
     try:
         _model_start(model, params)
     except errors.LoudMLException as exn:
@@ -1636,7 +1632,7 @@ def model_start(model_name):
         g_storage.save_model(model)
         raise(exn)
 
-    return "real-time prediction started", 200
+    return ('', 204)
 
 
 @app.route("/models/<model_name>/_stop", methods=['POST'])
@@ -1646,17 +1642,17 @@ def model_stop(model_name):
 
     scheduled_job_name = '_eval({})'.format(model_name)
     if not scheduled_job_exists(scheduled_job_name):
-        return "model is not active", 404
+        return jsonify("model is not scheduled"), 404
 
     del_scheduled_job(scheduled_job_name)
-    logging.info("model '%s' deactivated", model_name)
+    logging.info("model '%s' unscheduled", model_name)
 
     model = g_storage.load_model(model_name)
     model.set_run_params(None)
     model.set_run_state(None)
     g_storage.save_model(model)
 
-    return "model deactivated"
+    return ('', 204)
 
 
 @app.route("/models/<model_name>/_forecast", methods=['POST'])
