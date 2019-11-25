@@ -163,7 +163,10 @@ class Config:
         """
         Del bucket configuration by name
         """
-        del self._buckets[name]
+        try:
+            del self._buckets[name]
+        except KeyError:
+            raise errors.BucketNotFound(name)
 
     def get_bucket(self, name):
         """
