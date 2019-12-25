@@ -1612,9 +1612,9 @@ def model_start(model_name):
     global g_storage
 
     params = {
-        'save_prediction': get_bool_arg('save_output_data'),
+        'save_output_data': get_bool_arg('save_output_data'),
         'output_bucket': request.args.get('output_bucket'),
-        'detect_anomalies': get_bool_arg('flag_abnormal_data'),
+        'flag_abnormal_data': get_bool_arg('flag_abnormal_data'),
     }
 
     model = g_storage.load_model(model_name)
