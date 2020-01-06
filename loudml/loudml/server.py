@@ -275,10 +275,11 @@ class Job:
             desc['result'] = self._result
         if self.error:
             desc['error'] = self.error
-        if self.progress:
+        if self.progress and 'max_evals' in self.progress:
             desc['progress'] = self.progress
             done_ratio = float(
-                self.progress['eval']) / float(self.progress['max_evals'])
+                self.progress['eval']) / float(
+                    self.progress['max_evals'] or 1.0)
             if done_ratio > 1.0:
                 done_ratio = 1.0
         if self.created_dt:
