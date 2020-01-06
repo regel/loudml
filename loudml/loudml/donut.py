@@ -805,7 +805,7 @@ class DonutModel(Model):
 
             try:
                 score, _ = cross_val_model(hyperparameters)
-                return {'loss': score, 'status': STATUS_OK}
+                return {'loss': nan_to_none(score), 'status': STATUS_OK}
             except Exception as exn:
                 logging.warning("iteration failed: %s", exn)
                 return {'loss': None, 'status': STATUS_FAIL}
@@ -1105,7 +1105,7 @@ class DonutModel(Model):
             'best_params': best_params,
             'means': self.means.tolist(),
             'stds': self.stds.tolist(),
-            'loss': score,
+            'loss': nan_to_none(score),
         }
         self.unload()
         # prediction = self.predict(
@@ -1118,7 +1118,7 @@ class DonutModel(Model):
         # prediction.stat()
 
         return {
-            'loss': score,
+            'loss': nan_to_none(score),
         }
 
     def unload(self):
