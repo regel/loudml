@@ -325,6 +325,8 @@ jobs:
     docker:
       - image: circleci/openjdk:latest
     working_directory: ~/repo
+    environment:
+      SONAR_VERSION: 4.2.0.1873
     steps:
       - attach_workspace:
           at: /tmp/workspace
@@ -336,13 +338,13 @@ jobs:
           command: |
             sudo apt-get install -y unzip
             sudo apt-get install -y curl
-            curl --insecure -O -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-linux.zip
-            unzip sonar-scanner-cli-3.3.0.1492-linux.zip
+            curl --insecure -O -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_VERSION}-linux.zip
+            unzip sonar-scanner-cli-${SONAR_VERSION}-linux.zip
 
       - run:
           name: Sonar tests
           command: |
-            sonar-scanner-3.3.0.1492-linux/bin/sonar-scanner \
+            sonar-scanner-${SONAR_VERSION}-linux/bin/sonar-scanner \
               -Dsonar.projectKey=regel_loudml \
               -Dsonar.organization=regel-github \
               -Dsonar.sources=loudml \
