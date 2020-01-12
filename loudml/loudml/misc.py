@@ -404,6 +404,6 @@ def my_host_id():
 
 
 def find_undeclared_variables(settings):
-    env = Environment()
+    env = Environment(autoescape=True)  # autoescape added via Sonarlint
     ast = env.parse(json.dumps(settings))
     return meta.find_undeclared_variables(ast)
