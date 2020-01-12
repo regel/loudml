@@ -348,7 +348,7 @@ jobs:
               -Dsonar.projectKey=regel_loudml \
               -Dsonar.organization=regel-github \
               -Dsonar.sources=loudml \
-              -Dsonar.python.coverage.reportPath=/tmp/workspace/coverage.xml \
+              -Dsonar.python.coverage.reportPaths=/tmp/workspace/coverage.xml \
               -Dsonar.host.url=https://sonarcloud.io \
               -Dsonar.login=$SONAR_API_KEY
 
