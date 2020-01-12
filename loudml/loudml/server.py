@@ -72,6 +72,7 @@ from loudml.requests import (
     perform_request,
 )
 from jinja2 import Template
+import functools
 
 app = Flask(__name__, static_url_path='/static', template_folder='templates')
 api = Api(app)
@@ -93,6 +94,24 @@ APP_INSTALL_PATHS = [
     "/bin/loudmld",  # With RPM, binaries are also installed here
 ]
 LOCK_FILE = "/var/tmp/loudmld.lock"
+
+
+def catch_exceptions(cancel_on_failure=False):
+    '''
+    Source: https://schedule.readthedocs.io/en/stable/faq.html
+    '''
+    def catch_exceptions_decorator(job_func):
+        @functools.wraps(job_func)
+        def wrapper(*args, **kwargs):
+            try:
+                return job_func(*args, **kwargs)
+            except:  # noqa intentional
+                import traceback
+                print(traceback.format_exc())
+                if cancel_on_failure:
+                    return schedule.CancelJob
+        return wrapper
+    return catch_exceptions_decorator
 
 
 def get_job_desc(job_id, fields=None, include_fields=None):
@@ -137,6 +156,7 @@ def get_schedule(cnt, unit, time_str=None):
     return scheduled_event
 
 
+@catch_exceptions(cancel_on_failure=False)
 def daemon_exec_scheduled_job(job_id):
     global g_scheduled_jobs
     global g_config
@@ -1853,12 +1873,14 @@ def g_app_init(path):
     g_timer = RepeatingTimer(1, read_messages)
     g_timer.start()
 
+    @catch_exceptions(cancel_on_failure=False)
     def daemon_send_metrics():
         send_metrics(g_config.metrics, g_storage, user_agent="loudmld")
 
     daemon_send_metrics()
     schedule.every().hour.do(daemon_send_metrics)
 
+    @catch_exceptions(cancel_on_failure=False)
     def daemon_clear_jobs():
         global g_jobs
         duration = g_config.server.get('jobs_max_ttl')
