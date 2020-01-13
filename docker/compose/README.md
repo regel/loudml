@@ -4,7 +4,7 @@ This directory contains a `Dockerfile` that can be used with Docker Compose
 to spawn a TICK-L stack, i.e. a stack of containers with:
 - Telegraf
 - InfluxDB
-- Chronograf for Loud ML
+- Chronograf integration for Loud ML
 - Kapacitor
 - Loud ML
 
@@ -18,41 +18,12 @@ The configuration files for Loud ML and Telegraf (`./etc/loudml.yml` and
 
 ## Instructions
 
-### Configuration
-
-The default configuration creates several subdirectories in the current
-directory:
-- `./var/chronograf/`: Chronograf data
-- `./var/influxdb/`: InfluxDB database
-- `./var/kapacitor/`: Kapacitor data
-- `./var/loudml/`: Loud ML models
-
-If you want to change those directories, you can edit the file
-`docker-compose.yml` to change the lines below:
-
-```yaml
-services:
-  loudml:
-    volumes:
-      - ./var/loudml:/var/lib/loudml
-    [...]
-
-  influxdb:
-    volumes:
-      - ./var/influxdb:/var/lib/influxdb
-    [...]
-
-  kapacitor:
-    volumes:
-      - ./var/kapacitor:/var/lib/kapacitor
-    [...]
-```
-
 ### Basic usage
 
-To start all of the containers:
+To update and start all of the containers:
 
 ```
+$ docker-compose pull
 $ docker-compose up
 ```
 
@@ -71,7 +42,6 @@ To remove all Docker resources and all data that has been generated:
 
 ```
 $ docker-compose rm
-$ sudo rm -rf ./var
 ```
 
 ### Advanced usage

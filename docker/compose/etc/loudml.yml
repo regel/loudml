@@ -1,15 +1,17 @@
 ---
 buckets:
-  - name: influx
+  - name: loudml
     type: influxdb
     addr: influxdb:8086
-    database: telegraf
+    database: loudml
+    retention_policy: autogen
     measurement: loudml
-  - name: kapacitor
+  - name: data
     type: influxdb
-    addr: kapacitor:9092
-    database: from_loudml
-    measurement: loudml
+    addr: influxdb:8086
+    database: data
+    retention_policy: autogen
+    measurement: sinus
 
 storage:
   path: /var/lib/loudml
