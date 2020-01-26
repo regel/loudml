@@ -4,7 +4,7 @@ rpmsrc_dir := $(RPMBUILD_DIR)/SOURCES
 
 # TODO: try to find the right path
 # The line below works because the file is only included from subdirectories.
-TOP_DIR ?= ..
+TOP_DIR ?= .
 
 VERSION ?= $(shell $(TOP_DIR)/scripts/version)
 
@@ -25,7 +25,7 @@ define rpmsrc
 @echo -e "  RPMSRC\t$(rpmsrc_dir)/$(1).tar.gz"
 @[ -n "${VIRTUAL_ENV}" ] || exit 0 && echo -e "error: do not build RPM from a virtualenv!" && exit 1
 @mkdir -p "$(rpmsrc_dir)"
-@set -x && cd $(CURDIR)/.. && git ls-files | xargs tar -czf /tmp/$(1).tar.gz \
+@set -x && cd $(TOP_DIR) && git ls-files | xargs tar -czf /tmp/$(1).tar.gz \
     --transform "s|^|$(1)/|"
 @mv -f /tmp/$(1).tar.gz "$(rpmsrc_dir)/"
 endef

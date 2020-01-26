@@ -20,6 +20,5 @@ Architecture: all
 Depends:
   ${misc:Depends},
   ${python3:Depends},
-  loudml-base (= ${binary:Version}),
 Description: Loud ML core package
  Loud ML core package.
