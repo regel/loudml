@@ -10,6 +10,7 @@ Source0: %{name}-%{version}.tar.gz
 
 BuildRequires: python36 python36-pip
 BuildRequires: python36-devel
+BuildRequires: python3-rpm-macros
 BuildRequires: systemd
 BuildRequires: systemd-units
 Requires(post): systemd
@@ -18,7 +19,6 @@ Requires(postun): systemd
 Requires: python36
 Requires: python36-setuptools
 Requires: curl
-Requires: loudml-base == %{version}
 %{?systemd_requires}
 
 # Disable debug package
@@ -33,6 +33,7 @@ Requires: loudml-base == %{version}
 
 %build
 make clean
+%py3_build
 
 %pre
 if ! getent group loudml; then
@@ -60,9 +61,9 @@ find %{python3_sitelib} \
 %systemd_postun_with_restart loudmld.service
 
 %install
-cd loudml
 
-make install DESTDIR=%{buildroot}
+%py3_install
+
 install -m 0755 -d %{buildroot}/%{_datarootdir}/loudml
 install -m 0644 LICENSE %{buildroot}/%{_datarootdir}/loudml/LICENSE
 

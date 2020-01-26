@@ -2,36 +2,53 @@ BUILD_DIR = $(CURDIR)/build
 RPMREPO_DIR := $(BUILD_DIR)/rpmrepo
 DEBREPO_DIR := $(BUILD_DIR)/debrepo/stretch
 
-clean:
-	$(MAKE) -C loudml clean
-	rm -rf build
+NAME := loudml
+unittests ?= $(addprefix tests/, \
+	test_config.py test_metrics.py test_misc.py test_model.py test_schemas.py \
+	test_base.py test_memdatasource.py test_donut.py)
 
 install:
-	$(MAKE) -C loudml install
+	python3 setup.py install $(INSTALL_OPTS)
 
 uninstall:
-	$(MAKE) -C loudml uninstall
+	pip3 uninstall -y loudml
+
+clean:
+	python3 setup.py clean
+	rm -rf build dist
 
 dev:
-	$(MAKE) -C loudml dev
+	python3 setup.py develop --no-deps
 
 test:
-	$(MAKE) -C loudml test
+	nosetests -v tests/
 
 coverage:
-	$(MAKE) -C loudml coverage
+	nosetests --with-coverage \
+            -v $(unittests)
 
-rpm:
-	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C loudml rpm
-	$(MAKE) RPMREPO_DIR=$(RPMREPO_DIR) BUILD_DIR=$(BUILD_DIR) -C base rpm
+unittest:
+	nosetests -v $(unittests)
+
+
+$(NAME).rpm: $(NAME).spec
+	$(call rpmsrc,$(FULLNAME))
+	$(call rpmbuild,$(FULLNAME),$(NAME))
+
+$(NAME).deb: debian/changelog
+	$(call debbuild,$(FULLNAME))
+
+.PHONY: rpm deb debian/changelog debian/control
+
+include build.mk
+
+rpm: $(NAME).rpm
 	@echo -e "\nRPM packages:"
 	@find $(BUILD_DIR) -name '*.rpm'
 
-deb:
-	$(MAKE) -C loudml deb
-	$(MAKE) -C base deb
+deb: $(NAME).deb
 	@echo -e "\nDEB packages:"
-	@find -name '*.deb'
+	@find $(BUILD_DIR) -name '*.deb'
 
 .PHONY: check_deb
 check_deb:
