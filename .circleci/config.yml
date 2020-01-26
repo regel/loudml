@@ -1,4 +1,250 @@
 
+docker_deploy: &docker_deploy
+  requires:
+    - build
+
+target_cpu: &target_cpu
+  extras_require: "cpu"
+  base_image: "debian:stretch-slim"
+  gpu: "false"
+
+target_noavx: &target_noavx
+  extras_require: "none"
+  base_image: "loudml/tensorflow:1.13.2-noavx-py3"
+  gpu: "false"
+
+target_gpu: &target_gpu
+  extras_require: "none"
+  base_image: "tensorflow/tensorflow:1.13.2-gpu-py3"
+  gpu: "true"
+
+
+workflows:
+  version: 2
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+    jobs:
+      - test-python-unit
+      - test-python-coverage
+      - coverage-elastic6
+      - coverage-elastic5
+      - coverage-mongo4
+      - coverage-warp10
+      - coverage-influx1
+      - combine-coverage:
+          requires:
+            - test-python-coverage
+            - coverage-elastic6
+            - coverage-elastic5
+            - coverage-mongo4
+            - coverage-warp10
+            - coverage-influx1
+      - test-sonar:
+          requires:
+            - combine-coverage
+      - deploy:
+          name: "Deploy loudml/loudml:nightly"
+          <<: *target_cpu
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: nightly
+          filters:
+            branches:
+              only: develop
+      - deploy:
+          name: "Deploy loudml/loudml:nightly-noavx"
+          <<: *target_noavx
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: nightly-noavx
+          filters:
+            branches:
+              only: develop
+      - deploy:
+          name: "Deploy loudml/loudml:nightly-gpu"
+          <<: *target_gpu
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: nightly-gpu
+          filters:
+            branches:
+              only: develop
+
+  main:
+    jobs:
+      - test-elastic7
+      - test-elastic6
+      - test-elastic5
+      - test-mongo4
+      - test-warp10
+      - test-influx1
+      - test-go
+      - test-python-unit
+      - build:
+          name: "Build CPU image"
+          <<: *target_cpu
+          requires:
+            - test-python-unit
+          filters:
+            tags:
+              only:
+                /.*/
+      - build:
+          name: "Build NOAVX image"
+          <<: *target_noavx
+          requires:
+            - test-python-unit
+          filters:
+            tags:
+              only:
+                /.*/
+      - build:
+          name: "Build GPU image"
+          <<: *target_gpu
+          requires:
+            - test-python-unit
+          filters:
+            tags:
+              only:
+                /.*/
+  release:
+    jobs:
+      - test-python-unit
+      - deploy:
+          name: "Deploy loudml/loudml:rc"
+          <<: *target_cpu
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: rc
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*(\S*)([a|rc|beta]([0-9]+))+$/
+      - deploy:
+          name: "Deploy loudml/loudml:latest"
+          <<: *target_cpu
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: latest
+          release: true
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*$/
+      - deploy:
+          name: "Deploy loudml/loudml:rc-noavx"
+          <<: *target_noavx
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: rc-noavx
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*(\S*)([a|rc|beta]([0-9]+))+$/
+      - deploy:
+          name: "Deploy loudml/loudml:latest-noavx"
+          <<: *target_noavx
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: latest-noavx
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*$/
+      - deploy:
+          name: "Deploy loudml/loudml:rc-gpu"
+          <<: *target_gpu
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: rc-gpu
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*(\S*)([a|rc|beta]([0-9]+))+$/
+      - deploy:
+          name: "Deploy loudml/loudml:latest-gpu"
+          <<: *target_gpu
+          <<: *docker_deploy
+          requires:
+            - test-python-unit
+          tag: latest-gpu
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^[0-9]+(\.[0-9]+)*$/
+
+
+  doc:
+    jobs:
+      - deploy_docs:
+          filters:
+            branches:
+              only: master
+
+
+ALIASES:
+  - &restore_cache
+    restore_cache:
+      keys:
+        - v1-{{ .Branch }}
+      paths:
+        - /caches/app.tar
+  - &docker_load
+    run:
+      name: Load Docker image layer cache
+      command: |
+        set +o pipefail
+        docker load -i /caches/app.tar | true
+  - &docker_build
+    run:
+      name: Build application Docker image
+      command: |
+        docker build --cache-from=app \
+            --build-arg extras_require=<< parameters.extras_require >> \
+            --build-arg base_image=<< parameters.base_image >> \
+            --build-arg gpu=<< parameters.gpu >> \
+            -t app .
+  - &docker_save
+    run:
+      name: Save Docker image layer cache
+      command: |
+        mkdir -p /caches
+        docker save -o /caches/app.tar app
+  - &save_cache
+    save_cache:
+      key: v1-{{ .Branch }}-{{ epoch }}
+      paths:
+        - /caches/app.tar
+  - &local_venv
+    run:
+      name: Install local virtualenv
+      command: |
+        python3 -m venv venv
+        . venv/bin/activate
+        pip install -r requirements.txt
+        pip install .[dev,cpu]
+
+
 db_integration_test: &db_integration_test
     steps:
       - checkout
@@ -12,25 +258,18 @@ db_integration_test: &db_integration_test
 
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          - v2-dependencies-{{ checksum "requirements.txt" }}
           # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-      - run:
-          name: Install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r base/vendor/requirements.txt
-            pip install nose
+          - v2-dependencies-
+      - *local_venv
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          key: v2-dependencies-{{ checksum "requirements.txt" }}
       - run:
           name: Unit tests
           command: |
             . venv/bin/activate
-            cd loudml
             make unittest unittests="$UNITTESTS"
           environment:
             RANDOM_SEED: 10
@@ -49,26 +288,18 @@ db_coverage_test: &db_coverage_test
 
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          - v2-dependencies-{{ checksum "requirements.txt" }}
           # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-      - run:
-          name: Install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r base/vendor/requirements.txt
-            pip install nose
-            pip install coverage
+          - v2-dependencies-
+      - *local_venv
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          key: v2-dependencies-{{ checksum "requirements.txt" }}
       - run:
           name: Coverage tests
           command: |
             . venv/bin/activate
-            cd loudml
             unittests="$UNITTESTS" make coverage
             mv .coverage .coverage.$CIRCLE_JOB
           environment:
@@ -148,7 +379,7 @@ influx_coverage_test: &influx_coverage_test
     <<: *db_coverage_test
 
 
-version: 2
+version: 2.1
 jobs:
   test-elastic7:
     docker:
@@ -262,25 +493,18 @@ jobs:
 
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          - v2-dependencies-{{ checksum "requirements.txt" }}
           # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-      - run:
-          name: Install dependencies
-          command: |
-            python3 -m venv venv
-            . venv/bin/activate
-            pip install -r base/vendor/requirements.txt
-            pip install nose
+          - v2-dependencies-
+      - *local_venv
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-{{ checksum "base/vendor/requirements.txt" }}
+          key: v2-dependencies-{{ checksum "requirements.txt" }}
       - run:
           name: Unit tests
           command: |
             . venv/bin/activate
-            cd loudml
             make unittest
           environment:
             RANDOM_SEED: 10
@@ -393,174 +617,60 @@ jobs:
           path: ~/tmp/loudml-docs/html.zip
           destination: html.zip
 
-  build-rpm:
+
+  build:
+    parameters:
+      extras_require:
+        type: string
+      base_image:
+        type: string
+      gpu:
+        type: string
+    working_directory: /app
     docker:
-      - image: centos:7.6.1810
-    working_directory: ~/tmp
+      - image: docker:18.06.0-ce-git
     steps:
       - checkout
-      - run:
-          name: Fix requirements.txt timestamp
-          command: touch base/vendor/requirements.txt
-      - run:
-          name: Add local user
-          command: |
-            adduser loudml
-      - run:
-          name: Change permissions
-          command: |
-            mv ~/tmp /tmp/loudml
-            chown -R loudml /tmp/loudml
-      - run:
-          name: Install dependencies
-          command: |
-            yum install -y rpmdevtools
-            yum install -y epel-release
-            yum install -y gcc
-            yum install -y python36-devel python36-pip python36-virtualenv make git
-      - run:
-          name: Install pip in /opt
-          command: |
-            virtualenv-3 -p python3 /opt/loudml
-            /opt/loudml/bin/pip install -U pip
-            /opt/loudml/bin/pip --version
-            chown -R loudml /opt/loudml
-      - run:
-          name: Run make
-          command: |
-            su loudml -c 'cd /tmp/loudml ; make rpm'
-      - store_artifacts:
-          path: /tmp/loudml/build/rpmrepo
-          destination: packages
+      - setup_remote_docker
+      - *restore_cache
+      - *docker_load
+      - *docker_build
+      - *docker_save
+      - *save_cache
 
-  build-deb:
+  deploy:
+    parameters:
+      extras_require:
+        type: string
+      base_image:
+        type: string
+      gpu:
+        type: string
+      tag:
+        type: string
+      release:
+        type: boolean
+        default: false
     docker:
-      - image: circleci/buildpack-deps:stretch
-    working_directory: ~/tmp
+      - image: docker:18.06.0-ce-git
     steps:
       - checkout
-      - run:
-          name: Fix requirements.txt timestamp
-          command: touch base/vendor/requirements.txt
-      - run:
-          name: Install dependencies
-          command: |
-            sudo apt-get update && \
-                sudo apt-get install devscripts build-essential lintian reprepro && \
-                sudo apt-get install dh-systemd  && \
-                sudo apt-get install python-all python-setuptools python3-pip python3-all python3-setuptools
-      - run:
-          name: Run make
-          command: |
-            make deb
-            mkdir /tmp/deb
-            cp loudml*_all.deb /tmp/deb
-      - store_artifacts:
-          path: /tmp/deb
-          destination: packages
-      - setup_remote_docker:
-          docker_layer_caching: false
-      - run:
-          name: Install Docker client
-          command: |
-            set -x
-            VER="17.12.1-ce"
-            curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
-            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
-            sudo mv /tmp/docker/* /usr/bin
-      - run:
-          name: Build Docker image
-          command: |
-            repo_src=local tag="loudml/loudml:$(./scripts/version)" \
-                make -C docker/image
-      - run:
-          name: Tag the image
-          command: |
-            docker tag \
-                $(docker images --no-trunc | grep loudml | grep sha256 | tr -s " " | cut -d " " -f 3) \
-                loudml/loudml:latest-devel
-
-      - run:
-          name: Build Docker noAVX image
-          command: |
-            repo_src=local tag="loudml/loudml:$(./scripts/version)-noavx" noavx=1 \
-                make -C docker/image
-      - run:
-          name: Tag the image
-          command: |
-            docker images --no-trunc
-            docker tag \
-                $(docker images --no-trunc | grep loudml | grep noavx[^-] | grep sha256 | tr -s " " | cut -d " " -f 3) \
-                loudml/loudml:latest-devel-noavx
-      - run:
-          name: Build Docker GPU image
-          command: |
-            repo_src=local tag="loudml/loudml:$(./scripts/version)-gpu" gpu=1 \
-                make -C docker/image
-      - run:
-          name: Tag the image
-          command: |
-            docker tag \
-                $(docker images --no-trunc | grep loudml | grep gpu | grep sha256 | tr -s " " | cut -d " " -f 3) \
-                loudml/loudml:latest-devel-gpu
-      - run:
-          name: Push images on Docker Hub
-          command: |
-            echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_ID_USER}" --password-stdin
-            docker push "loudml/loudml:latest-devel"
-            docker push "loudml/loudml:latest-devel-noavx"
-            docker push "loudml/loudml:latest-devel-gpu"
-
-workflows:
-  version: 2
-  check-datasources:
-    jobs:
-      - test-elastic7
-      - test-elastic6
-      - test-elastic5
-      - test-mongo4
-      - test-warp10
-      - test-influx1
-  doc:
-    jobs:
-      - deploy_docs
-  check:
-    jobs:
-      - test-go
-      - test-python-unit
-
-
-  nightly@master:
-    jobs:
-      - test-python-unit
-      - build-rpm:
-          requires:
-            - test-python-unit
-      - build-deb:
-          requires:
-            - test-python-unit
-      - test-python-coverage
-      - coverage-elastic6
-      - coverage-elastic5
-      - coverage-mongo4
-      - coverage-warp10
-      - coverage-influx1
-      - combine-coverage:
-          requires:
-            - test-python-coverage
-            - coverage-elastic6
-            - coverage-elastic5
-            - coverage-mongo4
-            - coverage-warp10
-            - coverage-influx1
-      - test-sonar:
-          requires:
-            - combine-coverage
-
-    triggers:
-      - schedule:
-          cron: "0 7 * * *"
-          filters:
-            branches:
-              only:
-                - master
+      - setup_remote_docker
+      - *restore_cache
+      - *docker_load
+      - *docker_build
+      - *docker_save
+      - *save_cache
+      - run: |
+          echo "${DOCKER_PASSWORD}" | \
+              docker login -u "${DOCKER_ID_USER}" --password-stdin
+          docker tag app loudml/loudml:<< parameters.tag >>
+          docker push loudml/loudml:<< parameters.tag >>
+      - when:
+          condition: << parameters.release >>
+          steps:
+            - run: |
+                docker tag app loudml/loudml:${CIRCLE_SHA1:0:7}
+                docker push loudml/loudml:${CIRCLE_SHA1:0:7}
+                docker tag app loudml/loudml:${CIRCLE_TAG}
+                docker push loudml/loudml:${CIRCLE_TAG}
