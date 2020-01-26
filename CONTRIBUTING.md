@@ -30,10 +30,7 @@ can be found in source files:
 **Adding a dependency:**
 
 Assuming you can already package and run the project, add the new dependency
-in base/vendor/requirements.txt.in file, and run make before you commit
-the new file:
-
-1. `cd base; make vendor/requirements.txt`
+in requirements.txt file and setup.py file.
 
 **Unit Tests:**
 
