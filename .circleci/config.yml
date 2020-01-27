@@ -306,7 +306,7 @@ db_coverage_test: &db_coverage_test
             RANDOM_SEED: 10
             PYTHONHASHSEED: 0
       - persist_to_workspace:
-          root: ~/repo/loudml
+          root: ~/repo
           paths:
             - .coverage.*
 
