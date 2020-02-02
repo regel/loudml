@@ -5,28 +5,31 @@
 %global __python %{__python3}
 %global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
 
-Name: %{name}
-Version: %{version}
+Name: loudml
+Version: 1.5.0
 Release:	1%{?dist}
 Summary:	Loud ML core package
 
 Group: Applications/System
 License: MIT
 URL: www.loudml.io
-Source0: %{name}-%{version}.tar.gz
+
+# Source is created by:
+# git clone %%url
+# tito build --tgz --tag %%name-%%version-%%release
+Source0:    %name-%version.tar.gz
 
 BuildRequires: git
 BuildRequires: gcc
-BuildRequires: python36 python36-pip
-BuildRequires: python36-devel
+BuildRequires: python3-devel
+BuildRequires: python3-pip
 BuildRequires: python3-rpm-macros
 BuildRequires: systemd
 BuildRequires: systemd-units
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-Requires: python36
-Requires: python36-setuptools
+Requires: python3-setuptools
 %{?systemd_requires}
 AutoReqProv:   no
 
@@ -101,4 +104,7 @@ cp -r templates %{buildroot}/%{_sharedstatedir}/loudml
 
 
 %changelog
+* Sun Feb 02 2020 Sebastien Leger <sebastien.regel@gmail.com>
+- new package built with tito
+
 
