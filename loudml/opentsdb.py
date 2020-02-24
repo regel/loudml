@@ -124,15 +124,31 @@ class OpenTSDBClient(object):
     Client for OpenTSDB database
     """
 
-    def __init__(self, host="localhost", port=4242, ssl=False):
+    def __init__(
+        self,
+        host="localhost",
+        port=4242,
+        ssl=False,
+        verify_ssl=False,
+        ssl_cert_path='',
+        user='',
+        password=''
+    ):
         """
-        Set proper schema based on SSL param
+        Set proper schema based on SSL param, open session
+        and supply basic authentication creds if given
+        https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
         """
         schema = "http"
         if ssl:
             schema = "https"
 
         self.url = "%s://%s:%d" % (schema, host, port)
+        self.session = requests.Session()
+        if user and password:
+            self.session.auth = (user, password)
+        if ssl_cert_path:
+            self.session.verify = ssl_cert_path
 
     def query(self, queries):
         """
@@ -156,9 +172,13 @@ class OpenTSDBClient(object):
             )
             # TODO: OpenTSDB is capable of running multiple subquries in
             # one shot. Refactor it to use one request to server
-            resp = requests.get(query_url)
+            try:
+                resp = self.session.get(query_url)
+                self.session.close()
+            except requests.exceptions.SSLError as exn:
+                logging.error('OpenTSDB SSL error', str(exn))
 
-            if resp.status_code >= 200 and resp.status_code < 400:
+            if resp.ok:
                 results.append(OpenTSDBResult(resp.json()))
             elif "No such name for" in resp.text:
                 # Known OpenTSDB issue with 400 and trace if metric not found
@@ -176,17 +196,23 @@ class OpenTSDBClient(object):
         """
         url = "%s/api/put" % self.url
 
+        # http://opentsdb.net/docs/build/html/api_http/put.html
+        # "?sync" query param will force OpenTSDB to write to DB and not cache
         if entry["sync"]:
             url = "{}?sync".format(url)
 
         del entry["sync"]
 
-        resp = requests.post(url, json=entry) # data=entry ?
+        try:
+            resp = self.session.post(url, json=entry)
+            self.session.close()
+        except requests.exceptions.SSLError as exn:
+            logging.error('OpenTSDB SSL error', str(exn))
 
-        if resp.status_code >= 200 and resp.status_code < 400:
-            pass # everything is ok, should we indicate it somehow?
-        else:
+        if not resp.ok:
             logging.error('OpenTSDB error', resp.status_code, resp.text[:200])
+
+        return resp
 
 
 class OpenTSDBBucket(Bucket):
@@ -196,7 +222,12 @@ class OpenTSDBBucket(Bucket):
 
     SCHEMA = Bucket.SCHEMA.extend({
         Required('addr'): str,
+        Optional('user', default=""): str,
+        Optional('password', default=""): str,
         Optional('use_ssl', default=False): Boolean(),
+        # Useful if the server is using self-signed certificates
+        Optional('verify_ssl', default=False): Boolean(),
+        Optional('ssl_cert_path', default=""): str,
     })
 
     def __init__(self, cfg):
@@ -209,8 +240,24 @@ class OpenTSDBBucket(Bucket):
         return self.cfg['addr']
 
     @property
+    def user(self):
+        return self.cfg['user'] or ''
+
+    @property
+    def password(self):
+        return self.cfg['password'] or ''
+
+    @property
     def use_ssl(self):
         return self.cfg.get('use_ssl') or False
+
+    @property
+    def verify_ssl(self):
+        return self.cfg.get('verify_ssl') or False
+
+    @property
+    def ssl_cert_path(self):
+        return self.cfg.get('ssl_cert_path') or ''
 
     @property
     def opentsdb(self):
@@ -225,6 +272,10 @@ class OpenTSDBBucket(Bucket):
                 host=addr['host'],
                 port=addr['port'],
                 ssl=self.use_ssl,
+                verify_ssl=self.verify_ssl,
+                ssl_cert_path=self.ssl_cert_path,
+                user=self.user,
+                password=self.password
             )
 
         return self._opentsdb
@@ -249,9 +300,8 @@ class OpenTSDBBucket(Bucket):
         before returning the results. Used in tests
         """
         ts = int(make_ts(ts))
-        for k, v in data.items():
-            if v is None:
-                continue
+        filtered = filter(lambda item: item[1] is not None, data.items())
+        for k, v in filtered:
             entry = {
                 'metric': k,
                 'timestamp': ts,
