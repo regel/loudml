@@ -16,7 +16,8 @@ from voluptuous import (
     Schema,
 )
 
-from . import (
+import loudml
+from loudml import (
     errors,
     misc,
     schemas,
@@ -458,7 +459,7 @@ def load_model(settings, state=None):
         raise errors.Invalid("model has no type")
 
     try:
-        model_cls = misc.load_entry_point('loudml.models', model_type)
+        model_cls = loudml.load_entry_point('loudml.models', model_type)
     except ImportError:
         raise errors.UnsupportedModel(model_type)
 

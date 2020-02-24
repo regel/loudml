@@ -92,19 +92,5 @@ setup(
         'console_scripts': [
             'loudmld=loudml.server:main',
         ],
-        'loudml.models': [
-            'donut=loudml.donut:DonutModel',
-        ],
-        'loudml.hooks': [
-            'annotations=loudml.annotations:AnnotationHook',
-        ],
-        'loudml.buckets': [
-            'influxdb=loudml.influx:InfluxBucket',
-            'elasticsearch=loudml.elastic:ElasticsearchBucket',
-            'elasticsearch_aws=loudml.elastic_aws:ElasticsearchAWSBucket',
-            'warp10=loudml.warp10:Warp10Bucket',
-            'mongodb=loudml.mongo:MongoBucket',
-            'opentsdb=loudml.opentsdb:OpenTSDBBucket',
-        ],
     },
 )
