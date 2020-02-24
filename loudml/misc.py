@@ -7,7 +7,6 @@ import dateutil.parser
 import hashlib
 import json
 import numpy as np
-import pkg_resources
 import math
 
 import itertools
@@ -15,7 +14,8 @@ import itertools
 from uuid import getnode
 from jinja2 import Environment, meta
 
-from . import (
+import loudml
+from loudml import (
     errors,
 )
 
@@ -292,20 +292,9 @@ def get_date_ranges(from_ts, max_ts, span, interval):
         from_ts += interval
 
 
-def load_entry_point(namespace, name):
-    """
-    Load pkg_resource entry point
-    """
-
-    for ep in pkg_resources.iter_entry_points(namespace, name):
-        if ep.name == name:
-            return ep.load()
-    return None
-
-
 def load_hook(hook_name, hook_data, model, storage, source):
     hook_type = hook_data.get('type')
-    hook_cls = load_entry_point('loudml.hooks', hook_type)
+    hook_cls = loudml.load_entry_point('loudml.hooks', hook_type)
 
     if hook_cls is None:
         raise errors.NotFound("unknown hook type '{}'".format(hook_type))

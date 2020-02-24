@@ -44,24 +44,24 @@ from flask_restful import (
 from gevent.pywsgi import (
     WSGIServer,
 )
-from . import (
+import loudml
+from loudml import (
     errors,
     schemas,
 )
-from .bucket import (
+from loudml.bucket import (
     load_bucket,
 )
-from .filestorage import (
+from loudml.filestorage import (
     FileStorage,
 )
-from .metrics import (
+from loudml.metrics import (
     send_metrics,
 )
-from .misc import (
+from loudml.misc import (
     clear_fields,
     make_bool,
     my_host_id,
-    load_entry_point,
     make_ts,
     parse_timedelta,
     parse_constraint,
@@ -959,7 +959,7 @@ class HooksResource(Resource):
         if hook_name is None:
             return "name is missing", 400
 
-        hook = load_entry_point('loudml.hooks', hook_type)
+        hook = loudml.load_entry_point('loudml.hooks', hook_type)
         if hook is None:
             return "unknown hook type", 404
 
@@ -999,7 +999,7 @@ class HookResource(Resource):
         if hook_type is None:
             return "type is missing", 400
 
-        hook = load_entry_point('loudml.hooks', hook_type)
+        hook = loudml.load_entry_point('loudml.hooks', hook_type)
         if hook is None:
             return "unknown hook type", 404
 
