@@ -1,4 +1,3 @@
-import loudml.vendor  # noqa
 from loudml.misc import (
     nan_to_none,
 )

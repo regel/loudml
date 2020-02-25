@@ -2,7 +2,6 @@
 Warp10 module for Loud ML
 """
 
-import loudml.vendor  # noqa
 import json
 import logging
 import math

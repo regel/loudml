@@ -1,10 +1,7 @@
 import unittest
 
-import loudml.vendor
-
 from loudml import (
     errors,
-    schemas,
 )
 from loudml.model import (
     Feature,

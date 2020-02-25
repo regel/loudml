@@ -2,8 +2,6 @@
 Loud ML file storage
 """
 
-import loudml.vendor  # noqa
-
 import copy
 import glob
 import json
