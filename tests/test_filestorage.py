@@ -3,8 +3,6 @@ from loudml.donut import DonutModel
 from loudml import (
     errors,
 )
-import loudml.vendor
-import datetime
 import logging
 import tempfile
 import unittest

@@ -1,5 +1,3 @@
-import loudml.vendor  # noqa
-
 from loudml.donut import (
     TimeSeriesPrediction,
 )
@@ -7,7 +5,6 @@ from loudml.model import Model
 from loudml.elastic import ElasticsearchBucket
 import loudml.bucket
 import loudml.config
-import loudml.vendor
 
 import copy
 import datetime

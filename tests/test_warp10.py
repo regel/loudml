@@ -1,4 +1,3 @@
-import loudml.vendor  # noqa
 from loudml.warp10 import (
     Warp10Bucket,
 )

@@ -1,5 +1,3 @@
-import loudml.vendor  # noqa
-
 from loudml.api import Hook
 from loudml.misc import (
     make_ts,

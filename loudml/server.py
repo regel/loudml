@@ -2,8 +2,6 @@
 Loud ML server
 """
 
-import loudml.vendor
-
 import copy
 import argparse
 import concurrent.futures

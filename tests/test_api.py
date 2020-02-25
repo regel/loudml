@@ -1,5 +1,3 @@
-import loudml.vendor  # noqa: F401
-
 from loudml.influx import (
     InfluxBucket,
 )

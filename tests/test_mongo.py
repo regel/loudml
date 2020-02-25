@@ -1,4 +1,3 @@
-import loudml.vendor  # noqa
 from loudml.mongo import (
     MongoBucket,
 )
