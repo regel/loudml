@@ -104,6 +104,7 @@ setup(
             'elasticsearch_aws=loudml.elastic_aws:ElasticsearchAWSBucket',
             'warp10=loudml.warp10:Warp10Bucket',
             'mongodb=loudml.mongo:MongoBucket',
+            'opentsdb=loudml.opentsdb:OpenTSDBBucket',
         ],
     },
 )
