@@ -87,6 +87,7 @@ workflows:
       - test-mongo4
       - test-warp10
       - test-influx1
+      - test-opentsdb
       - test-go
       - test-python-unit
       - build:
@@ -345,6 +346,14 @@ influx_unit_test: &influx_unit_test
     working_directory: ~/repo
     <<: *db_integration_test
 
+opentsdb_unit_test: &opentsdb_unit_test
+    environment:
+      UNITTESTS: tests/test_opentsdb.py
+      OPENTSDB_ADDR: localhost:4242
+      DATABASE_ADDR: localhost:4242
+    working_directory: ~/repo
+    <<: *db_integration_test
+
 es_coverage_test: &es_coverage_test
     environment:
       UNITTESTS: tests/test_elastic.py
@@ -420,6 +429,12 @@ jobs:
       - image: circleci/python:3.6.1
       - image: influxdb:1.7.4
     <<: *influx_unit_test
+
+  test-opentsdb:
+    docker:
+      - image: circleci/python:3.6.1
+      - image: petergrace/opentsdb-docker
+    <<: *opentsdb_unit_test
 
 
   coverage-elastic6:
