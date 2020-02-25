@@ -83,6 +83,8 @@ install -m 0644 examples/config.yml %{buildroot}/%{_sysconfdir}/loudml/config.ym
 install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 cp -r templates %{buildroot}/%{_sharedstatedir}/loudml
 
+exit 0  # Prevent .so file strip causing libhdf5-5773eb11.so.103.0.0: ELF load command address/offset not properly aligned
+# Reference: https://www.redhat.com/archives/rpm-list/2005-March/msg00086.html
 
 %files
 %defattr(-,root,root,-)
