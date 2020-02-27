@@ -1,4 +1,3 @@
-import loudml.vendor  # noqa
 from loudml.model import Model
 from loudml.opentsdb import (
     _build_time_predicates,
