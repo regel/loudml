@@ -105,6 +105,7 @@ setup(
             'warp10=loudml.warp10:Warp10Bucket',
             'mongodb=loudml.mongo:MongoBucket',
             'opentsdb=loudml.opentsdb:OpenTSDBBucket',
+            'prometheus=loudml.prometheus:PrometheusBucket',
         ],
     },
 )
