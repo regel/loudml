@@ -1,39 +1,37 @@
 [[rpm]]
 === Install Loud ML with RPM
 
-The RPM for Loud ML can be <<install-rpm,downloaded from our website>>
-or from our  <<rpm-repo,RPM repository>>. It can be used to install
-Loud ML on any RPM-based system such as OpenSuSE, SLES, Centos, Red Hat,
-and Oracle Enterprise.
+The RPM for Loud ML can be <<install-rpm,downloaded the COPR website>>
+or from the COPR <<rpm-repo,RPM repository>>. It can be used to install
+Loud ML on any RPM-based system such as OpenSuSE, Fedora, SLES, CentOS, Red Hat, and Oracle Enterprise.
 
 NOTE: RPM install is not supported on distributions with old versions of RPM,
 such as SLES 11 and CentOS 5.
 
-All stable versions of Loud ML can be found in our <<rpm-repo,RPM repository>>
+Stable versions of Loud ML starting from 1.6.0 can be found in the COPR <<rpm-repo,RPM repository>>
 
-[[rpm-key]]
-==== Import the Loud ML PGP Key
+[[rpm-copr]]
+==== Enable COPR repository
 
-include::key.asciidoc[]
+You have two options to do that:
+
+<1> If you’re using a version of Linux with dnf:
 
 [source,sh]
 -------------------------
-rpm --import http://loudml.s3-website-eu-west-1.amazonaws.com/repo/gpg/GPG-KEY-LOUDML
+dnf copr enable regel/loudml
 -------------------------
 
-==== Install Python34
+You need to have dnf-plugins-core installed.
 
-Ensure Python3 is installed on your system before installing the `loudml` packages. You can install Python3 with one of the following commands:
+<2> Or if you have older distribution:
 
 [source,sh]
---------------------------------------------------
-sudo yum install python36<1>
-sudo dnf install python36<2>
-sudo zypper install python36<3>
---------------------------------------------------
-<1> Use `yum` on CentOS and older Red Hat based distributions.
-<2> Use `dnf` on Fedora and other newer Red Hat distributions.
-<3> Use `zypper` on OpenSUSE based distributions
+-------------------------
+yum copr enable regel/loudml
+-------------------------
+
+You need to have yum-plugin-copr installed.
 
 [[rpm-repo]]
 ==== Installing from the RPM repository
@@ -54,14 +52,16 @@ ifeval::["{release-state}"=="released"]
 
 ["source","sh",subs="attributes,callouts"]
 --------------------------------------------------
-[loudml-{major-version}]
-name=LoudML packages for Enterprise Linux 7 - $basearch
-baseurl=http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/$basearch
-gpgcheck=1
-gpgkey=http://loudml.s3-website-eu-west-1.amazonaws.com/repo/gpg/GPG-KEY-LOUDML
-enabled=1
-autorefresh=1
+[copr:copr.fedorainfracloud.org:regel:loudml]
+name=Copr repo for loudml owned by regel. Packages for Enterprise Linux 7 - $basearch
+baseurl=https://download.copr.fedorainfracloud.org/results/regel/loudml/epel-7-$basearch/
 type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://download.copr.fedorainfracloud.org/results/regel/loudml/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
 --------------------------------------------------
 
 endif::[]
@@ -74,8 +74,8 @@ sudo yum install loudml<1>
 sudo dnf install loudml<2>
 sudo zypper install loudml<3>
 --------------------------------------------------
-<1> Use `yum` on CentOS and older Red Hat based distributions.
-<2> Use `dnf` on Fedora and other newer Red Hat distributions.
+<1> Use `yum` on CentOS and older Red Hat based distributions
+<2> Use `dnf` on Fedora and other newer Red Hat distributions
 <3> Use `zypper` on OpenSUSE based distributions
 
 endif::[]
@@ -86,22 +86,6 @@ endif::[]
 ifeval::["{release-state}"=="unreleased"]
 
 Version {version} of Loud ML has not yet been released.
-
-endif::[]
-
-ifeval::["{release-state}"!="unreleased"]
-
-The RPM for Loud ML v{version} can be downloaded from the website and installed as follows:
-
-["source","sh",subs="attributes"]
---------------------------------------------
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}-{release}.el7.centos.x86_64.rpm
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/rpm/7/x86_64/Packages/loudml-{version}-{release}.el7.centos.x86_64.rpm.sha512
-shasum -a 512 -c loudml-{version}.rpm.sha512 <1>
-sudo rpm --install loudml-{version}.rpm
---------------------------------------------
-<1> Compares the SHA of the downloaded RPM and the published checksum, which should output
-    `loudml-{version}.rpm: OK`.
 
 endif::[]
 

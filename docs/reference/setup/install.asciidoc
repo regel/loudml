@@ -20,9 +20,9 @@ systems.  Ubuntu packages may be downloaded from our Ubuntu repository.
 
 `rpm`::
 
-The `rpm` package is suitable for installation on Red Hat, Centos, SLES,
+The `rpm` package is suitable for installation on Red Hat, CentOS, Fedora, SLES,
 OpenSuSE and other RPM-based systems.  RPMs may be downloaded from our
-RPM repository.
+COPR repository.
 +
 <<rpm>>
 
