@@ -5,29 +5,33 @@
 
 set -e
 
-# summary of how this script can be called:
-#        * <postinst> `configure' <most-recently-configured-version>
-#        * <old-postinst> `abort-upgrade' <new version>
-#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
-#          <new-version>
-#        * <postinst> `abort-remove'
-#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
-#          <failed-install-package> <version> `removing'
-#          <conflicting-package> <version>
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+# creating loudml group if it isn't already there
+if ! getent group loudml >/dev/null; then
+        addgroup --system loudml >/dev/null
+fi
+
+# creating loudml user if he isn't already there
+if ! getent passwd loudml >/dev/null; then
+        adduser \
+          --system \
+          --ingroup loudml \
+          --home /var/run/loudml/ \
+          --gecos "loudml user" \
+          --shell /bin/false \
+          loudml  >/dev/null
+fi
 
 case "$1" in
     configure)
-        addgroup --system --quiet loudml
-        adduser --gecos "Loud ML" --system --quiet --no-create-home --disabled-login loudml
         mkdir -p /etc/loudml/plugins.d
-        chown -R loudml.loudml /etc/loudml
-        chmod -R 2777 /etc/loudml
         mkdir -p /var/lib/loudml
-        chown loudml.loudml /var/lib/loudml
-        chmod 2775 /var/lib/loudml
+	chown loudml:loudml /var/lib/loudml
+	chmod 2775 /var/lib/loudml
+	chown loudml:loudml /opt/venvs/loudml
+        ln -sf /opt/venvs/loudml/bin/loudmld /usr/bin/loudmld
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
