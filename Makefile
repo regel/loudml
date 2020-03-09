@@ -48,7 +48,7 @@ rpm: $(NAME).rpm
 
 deb: $(NAME).deb
 	@echo -e "\nDEB packages:"
-	@find $(BUILD_DIR) -name '*.deb'
+	@find . -name '*.deb'
 
 .PHONY: check_deb
 check_deb:

@@ -66,9 +66,9 @@ fi
 
 %install
 
-PYTHONUSERBASE=%{buildroot}/%{_libdir}/loudml/vendor/ \
+PYTHONUSERBASE=%{buildroot}/opt/venvs/loudml/ \
 	pip3 install --user -r requirements.txt .[cpu]
-PYTHONUSERBASE=%{buildroot}/%{_libdir}/loudml/vendor/ \
+PYTHONUSERBASE=%{buildroot}/opt/venvs/loudml/ \
 	%py3_install
 find
 
@@ -90,7 +90,7 @@ exit 0  # Prevent .so file strip causing libhdf5-5773eb11.so.103.0.0: ELF load c
 %defattr(-,root,root,-)
 %{_bindir}/*
 %license %{_datarootdir}/loudml/LICENSE
-%attr(2775,loudml,loudml) %{_libdir}/loudml/vendor/
+%attr(2775,loudml,loudml) /opt/venvs/loudml/
 %{python3_sitelib}/%{srcname}-*.egg-info/
 %{python3_sitelib}/%{srcname}/
 

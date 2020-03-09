@@ -6,19 +6,20 @@ Build-Depends:
   debhelper (>= 9),
   dh-python,
   dh-systemd,
-  python-all,
-  python-setuptools,
+  dh-virtualenv,
+  python3-pip,
+  python3-venv,
   python3-all,
   python3-setuptools
 Standards-Version: 3.9.5
 Homepage: http://www.loudml.io/
-#Vcs-Git: git://anonscm.debian.org/collab-maint/loudml.git
-#Vcs-Browser: http://anonscm.debian.org/?p=collab-maint/loudml.git;a=summary
+Vcs-Git: git://git@github.com:regel/loudml.git
+Vcs-Browser: https://github.com/regel/loudml
 
 Package: loudml
-Architecture: all
+Architecture: any
 Depends:
-  ${misc:Depends},
-  ${python3:Depends},
+  adduser,
+  python3,
 Description: Loud ML core package
  Loud ML core package.
