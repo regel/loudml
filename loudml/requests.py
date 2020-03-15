@@ -1,4 +1,3 @@
-import loudml.vendor  # noqa
 from loudml import errors
 import requests
 from urllib.parse import urlencode

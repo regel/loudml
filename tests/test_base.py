@@ -1,5 +1,4 @@
 import os
-import sys
 import unittest
 import logging
 logging.getLogger('tensorflow').disabled = True
@@ -7,15 +6,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 class TestBase(unittest.TestCase):
-    def setUp(self):
-        # RHEL
-        vendor_dir = os.path.join('/', 'usr', 'lib64', 'loudml', 'vendor')
-        sys.path.insert(0, vendor_dir)
-
-        # Debian
-        vendor_dir = os.path.join('/', 'usr', 'lib', 'loudml', 'vendor')
-        sys.path.insert(0, vendor_dir)
-
     def test_numpy(self):
         import numpy as np
         self.assertEqual(np.version.version, "1.16.4")

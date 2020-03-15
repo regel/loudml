@@ -1,25 +1,37 @@
-Name: %{name}
-Version: %{version}
+%global srcname loudml
+# Turn off Python bytecode compilation to reduce package size
+# See #manual-bytecompilation on docs.fedoraproject.org
+%undefine __brp_python_bytecompile
+%global __python %{__python3}
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
+
+Name: loudml
+Version: 1.5.0
 Release:	1%{?dist}
 Summary:	Loud ML core package
 
 Group: Applications/System
 License: MIT
-URL: www.loudml.com
-Source0: %{name}-%{version}.tar.gz
+URL: www.loudml.io
 
-BuildRequires: python36 python36-pip
-BuildRequires: python36-devel
+# Source is created by:
+# git clone %%url
+# tito build --tgz --tag %%name-%%version-%%release
+Source0:    %name-%version.tar.gz
+
+BuildRequires: git
+BuildRequires: gcc
+BuildRequires: python3-devel
+BuildRequires: python3-pip
 BuildRequires: python3-rpm-macros
 BuildRequires: systemd
 BuildRequires: systemd-units
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-Requires: python36
-Requires: python36-setuptools
-Requires: curl
+Requires: python3-setuptools
 %{?systemd_requires}
+AutoReqProv:   no
 
 # Disable debug package
 %define debug_package %{nil}
@@ -43,14 +55,6 @@ if ! getent passwd loudml; then
   useradd --comment "Loud ML" --gid loudml --no-create-home --system --shell /sbin/nologin loudml
 fi
 
-# Remove old trailing files. Required for users who have installed <=1.3.2
-find %{python3_sitelib} \
-  -name '*loudml-1.2.*.egg-info' -o \
-  -name '*loudml-1.3.0.*.egg-info' -o \
-  -name '*loudml-1.3.1.*.egg-info' -o \
-  -name '*loudml-1.3.2.*.egg-info' \
-  | xargs rm -rf
-
 %post
 %systemd_post loudmld.service
 
@@ -62,7 +66,11 @@ find %{python3_sitelib} \
 
 %install
 
-%py3_install
+PYTHONUSERBASE=%{buildroot}/%{_libdir}/loudml/vendor/ \
+	pip3 install --user -r requirements.txt .[cpu]
+PYTHONUSERBASE=%{buildroot}/%{_libdir}/loudml/vendor/ \
+	%py3_install
+find
 
 install -m 0755 -d %{buildroot}/%{_datarootdir}/loudml
 install -m 0644 LICENSE %{buildroot}/%{_datarootdir}/loudml/LICENSE
@@ -75,25 +83,22 @@ install -m 0644 examples/config.yml %{buildroot}/%{_sysconfdir}/loudml/config.ym
 install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 cp -r templates %{buildroot}/%{_sharedstatedir}/loudml
 
+exit 0  # Prevent .so file strip causing libhdf5-5773eb11.so.103.0.0: ELF load command address/offset not properly aligned
+# Reference: https://www.redhat.com/archives/rpm-list/2005-March/msg00086.html
 
 %files
 %defattr(-,root,root,-)
-# Skip dependencies management by pkg_resources (does not work well with our
-# vendor system)
-%exclude %{python3_sitelib}/loudml-*.egg-info/requires.txt
 %{_bindir}/*
 %license %{_datarootdir}/loudml/LICENSE
-%{python3_sitelib}/loudml/*
-%dir %{python3_sitelib}/loudml-*.egg-info
-%{python3_sitelib}/loudml-*.egg-info/*
+%attr(2775,loudml,loudml) %{_libdir}/loudml/vendor/
+%{python3_sitelib}/%{srcname}-*.egg-info/
+%{python3_sitelib}/%{srcname}/
 
 # Loud ML daemon configuration
-%attr(2777,root,loudml) %dir %{_sysconfdir}/loudml
-%attr(2777,root,loudml) %dir %{_sysconfdir}/loudml/plugins.d
+%attr(2777,root,loudml) %{_sysconfdir}/loudml/
 %config(noreplace) %{_sysconfdir}/loudml/config.yml
 %{_unitdir}/loudmld.service
-%attr(2775,loudml,loudml) %{_sharedstatedir}/loudml
-%attr(2775,loudml,loudml) %{_sharedstatedir}/loudml/templates
+%attr(2775,loudml,loudml) %{_sharedstatedir}/loudml/
 
 
 %doc
@@ -101,4 +106,7 @@ cp -r templates %{buildroot}/%{_sharedstatedir}/loudml
 
 
 %changelog
+* Sun Feb 02 2020 Sebastien Leger <sebastien.regel@gmail.com>
+- new package built with tito
+
 

@@ -3,6 +3,7 @@ Description=Loud ML daemon
 After=network.service
 
 [Service]
+Environment=PYTHONUSERBASE=/usr/lib64/loudml/vendor
 Type=simple
 ExecStart=/usr/bin/loudmld
 Restart=always

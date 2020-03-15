@@ -19,9 +19,9 @@ from voluptuous import (
     Any,
 )
 
+import loudml
 from loudml import (
     errors,
-    misc,
     schemas,
 )
 
@@ -300,7 +300,7 @@ def load_bucket(settings):
     """
     src_type = settings['type']
 
-    bucket_cls = misc.load_entry_point('loudml.buckets', src_type)
+    bucket_cls = loudml.load_entry_point('loudml.buckets', src_type)
     if bucket_cls is None:
         raise errors.UnsupportedBucket(src_type)
     return bucket_cls(settings)
