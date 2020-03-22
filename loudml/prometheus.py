@@ -45,6 +45,28 @@ from loudml.bucket import Bucket
 # topk (largest k elements by sample value)
 # quantile (calculate φ-quantile (0 ≤ φ ≤ 1) over dimensions)
 
+AGGREGATORS = {
+    'avg': 'avg',
+    'mean': 'avg',
+    'average': 'avg',
+    'stddev': 'stddev',
+    'std_dev': 'stddev',
+    'count': 'count',
+    'min': 'min',
+    'max': 'max',
+    'sum': 'sum',
+    'deriv': None,
+    'derivative': None,
+    'integral': None,
+    'med': None,
+    'median': None,
+    'mode': None,
+    '5percentile': None,
+    '10percentile': None,
+    '90percentile': None,
+    '95percentile': None
+}
+
 
 def _build_time_predicates(
     from_date=None,
@@ -88,7 +110,11 @@ class PrometheusResult(object):
         return "Prometheus results: {}...".format(str(self._response)[:200])
 
     def get_points(self):
-        if (not self._response) or (not 'data' in self._response):
+        if ((not self._response)
+            or (not 'data' in self._response)
+            or (not 'result' in self._response['data'])
+            or (not len(self._response['data']['result']))
+        ):
             return []
         # values are pairs of [timestamp, value]
         return self._response['data']['result'][0]['values']
@@ -139,15 +165,24 @@ class PrometheusClient(object):
 
         for q in queries:
             time_pred = _build_time_predicates(q["start"], q["end"])
-
-            query_url = "{}/api/v1/query_range?{}&step={}&query={}{}".format(
-                self.url,
-                time_pred,
-                # AGGREGATORS.get(q["aggregator"]),
-                q["step"],
-                q["metric_name"],
-                q["tags"]
-            )
+            aggregator = AGGREGATORS.get(q["aggregator"])
+            if aggregator:
+                query_url = "{}/api/v1/query_range?{}&step={}&query={}({}{})".format(
+                    self.url,
+                    time_pred,
+                    q["step"],
+                    aggregator,
+                    q["metric_name"],
+                    q["tags"]
+                )
+            else:
+                query_url = "{}/api/v1/query_range?{}&step={}&query={}{}".format(
+                    self.url,
+                    time_pred,
+                    q["step"],
+                    q["metric_name"],
+                    q["tags"]
+                )
 
             try:
                 resp = self.session.get(query_url)
