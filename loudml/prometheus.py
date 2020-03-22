@@ -1,8 +1,8 @@
 """
-OpenTSDB module for Loud ML.
+Prometheus module for Loud ML.
 
- * OpenTSDBClient class handles connection to OpenTSDB database
- * OpenTSDBBucket class is capable to read and write timed data
+ * PrometheusClient class handles connection to Prometheus
+ * PrometheusBucket class is capable to read and write timed data
 """
 
 import logging
@@ -31,6 +31,68 @@ from loudml.misc import (
 )
 from loudml.bucket import Bucket
 
+# Prometheus aggregation function:
+# https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators
+# sum (calculate sum over dimensions)
+# min (select minimum over dimensions)
+# max (select maximum over dimensions)
+# avg (calculate the average over dimensions)
+# stddev (calculate population standard deviation over dimensions)
+# stdvar (calculate population standard variance over dimensions)
+# count (count number of elements in the vector)
+# count_values (count number of elements with the same value)
+# bottomk (smallest k elements by sample value)
+# topk (largest k elements by sample value)
+# quantile (calculate φ-quantile (0 ≤ φ ≤ 1) over dimensions)
+
+
+def _build_time_predicates(
+    from_date=None,
+    to_date=None,
+):
+    """
+    Build time range predicates
+    """
+    must = []
+
+    if from_date:
+        must.append("start={}".format(from_date))
+    if to_date:
+        must.append("end={}".format(to_date))
+
+    return "&".join(must)
+
+
+def _build_tags_predicates(match_all=None):
+    """
+    Build tags predicates
+    """
+    must = []
+
+    if match_all:
+        for condition in match_all:
+            must.append('{}="{}"'.format(condition['tag'], condition['value']))
+
+    return "{" + ", ".join(must) + "}"
+
+
+class PrometheusResult(object):
+    """
+    Helper class to parse query result
+    """
+
+    def __init__(self, response):
+        self._response = response
+
+    def __repr__(self):
+        return "Prometheus results: {}...".format(str(self._response)[:200])
+
+    def get_points(self):
+        if (not self._response) or (not 'data' in self._response):
+            return []
+        # values are pairs of [timestamp, value]
+        return self._response['data']['result'][0]['values']
+
 
 class PrometheusClient(object):
     """
@@ -40,7 +102,7 @@ class PrometheusClient(object):
     def __init__(
         self,
         host="localhost",
-        port=4242,
+        port=9090,
         ssl=False,
         verify_ssl=False,
         ssl_cert_path='',
@@ -65,13 +127,48 @@ class PrometheusClient(object):
 
     def query(self, queries):
         """
-        Run a list of queries against Prometheus
+        Run a list of queries against Prometheus.
+        API request should look like:
+        # http://0.0.0.0:9090/api/v1/query_range?query=go_memstats_alloc_bytes{instance=%22localhost:9090%22,%20job=%22prometheus%22}&start=1584783120&end=1584786720&step=15
+        # http://0.0.0.0:9090/api/v1/query_range?query=avg(go_memstats_alloc_bytes{instance=%22localhost:9090%22,%20job=%22prometheus%22})&start=1584783120&end=1584786720&step=15
         """
+        if not isinstance(queries, list):
+            queries = [queries]
+
+        results = []
+
+        for q in queries:
+            time_pred = _build_time_predicates(q["start"], q["end"])
+
+            query_url = "{}/api/v1/query_range?{}&step={}&query={}{}".format(
+                self.url,
+                time_pred,
+                # AGGREGATORS.get(q["aggregator"]),
+                q["step"],
+                q["metric_name"],
+                q["tags"]
+            )
+
+            try:
+                resp = self.session.get(query_url)
+                self.session.close()
+            except requests.exceptions.SSLError as exn:
+                logging.error('Prometheus SSL error', str(exn))
+
+            if resp.ok:
+                results.append(PrometheusResult(resp.json()))
+            else:
+                logging.error('Prometheus error',
+                    resp.status_code, resp.text[:200])
+
+        return results
+
 
     def put(self, entry):
         """
         Store a point in database
         """
+        raise errors.NotImplemented("Prometheus bucket: not implemented yet")
 
 
 class PrometheusBucket(Bucket):
@@ -121,7 +218,7 @@ class PrometheusBucket(Bucket):
     @property
     def prometheus(self):
         if self._prometheus is None:
-            addr = parse_addr(self.addr, default_port=4242)
+            addr = parse_addr(self.addr, default_port=9090)
             logging.info(
                 "connecting to prometheus on %s:%d",
                 addr['host'],
@@ -162,7 +259,6 @@ class PrometheusBucket(Bucket):
                 'timestamp': ts,
                 'value': v,
                 'tags': tags,
-                'sync': sync
             }
             self.enqueue(entry)
 
@@ -184,9 +280,15 @@ class PrometheusBucket(Bucket):
         Build queries according to requested features
         """
         queries = []
-
-        # TODO: put black magic here
-
+        for feature in features:
+            queries.append({
+                "start": int(make_ts(from_date)),
+                "end": int(make_ts(to_date)),
+                "aggregator": feature.metric,
+                "step": int(bucket_interval),
+                "metric_name": feature.field,
+                "tags": _build_tags_predicates(feature.match_all)
+            })
         return queries
 
     def get_times_data(
