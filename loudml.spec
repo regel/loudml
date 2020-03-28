@@ -3,7 +3,9 @@
 # See #manual-bytecompilation on docs.fedoraproject.org
 %undefine __brp_python_bytecompile
 %global __python %{__python3}
-%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
+%global _enable_debug_package 0
+%global debug_package %{nil}
+%global __os_install_post /usr/lib/rpm/brp-compress %{nil}
 
 Name: loudml
 Version: 1.5.0
@@ -70,7 +72,9 @@ PYTHONUSERBASE=%{buildroot}/opt/venvs/loudml/ \
 	pip3 install --user -r requirements.txt .[cpu]
 PYTHONUSERBASE=%{buildroot}/opt/venvs/loudml/ \
 	%py3_install
-find
+
+find %{buildroot}/opt/venvs/loudml/lib -name "*.so" \
+	| xargs strip --strip-unneeded
 
 install -m 0755 -d %{buildroot}/%{_datarootdir}/loudml
 install -m 0644 LICENSE %{buildroot}/%{_datarootdir}/loudml/LICENSE
@@ -83,8 +87,6 @@ install -m 0644 examples/config.yml %{buildroot}/%{_sysconfdir}/loudml/config.ym
 install -m 0775 -d %{buildroot}/%{_sharedstatedir}/loudml
 cp -r templates %{buildroot}/%{_sharedstatedir}/loudml
 
-exit 0  # Prevent .so file strip causing libhdf5-5773eb11.so.103.0.0: ELF load command address/offset not properly aligned
-# Reference: https://www.redhat.com/archives/rpm-list/2005-March/msg00086.html
 
 %files
 %defattr(-,root,root,-)
@@ -106,6 +108,7 @@ exit 0  # Prevent .so file strip causing libhdf5-5773eb11.so.103.0.0: ELF load c
 
 
 %changelog
+
 * Sun Feb 02 2020 Sebastien Leger <sebastien.regel@gmail.com>
 - new package built with tito
 
