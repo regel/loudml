@@ -168,7 +168,7 @@ class OpenTSDBClient(object):
                 AGGREGATORS.get(q["aggregator"]),
                 q["down_sampler"],
                 q["metric_name"],
-                str(q["tags"])
+                self._format_tags(q["tags"])
             )
             # TODO: OpenTSDB is capable of running multiple subquries in
             # one shot. Refactor it to use one request to server
@@ -189,6 +189,13 @@ class OpenTSDBClient(object):
                     resp.status_code, resp.text[:200])
 
         return results
+
+    def _format_tags(self, tags):
+        """
+        Formats tags dict into query like {tag=value,...}
+        """
+        res = ",".join(["{}={}".format(k, v) for k, v in tags.items()])
+        return "{" + res + "}"
 
     def put(self, entry):
         """
