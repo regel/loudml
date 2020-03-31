@@ -7,16 +7,37 @@ export PYBUILD_DISABLE = test
 # Disable build for Python2
 export PYBUILD_DISABLE_python2 = 1
 
+DPKG_EXPORT_BUILDFLAGS = 1
+LDFLAGS += -Wl,--as-needed
+
+DH_VIRTUALENV_ARGS = \
+     	--requirements='requirements.txt' \
+	--python='/usr/bin/python3' \
+	--builtin-venv \
+	--preinstall=wheel \
+	--extras=cpu \
+	--extra-pip-arg='--quiet'
+
+# Directory where venvs for dh-virtualenv packages are built
+VENV_BUILD_DIR = '$(PWD)/debian/loudml/opt/venvs'
+
+.PHONY: override_dh_strip override_dh_shlibdeps
+
+override_dh_strip:
+	dh_strip --exclude=cffi --exclude=hdf5
+
+override_dh_shlibdeps:
+	dh_shlibdeps -X/x86/ -X/numpy/.libs -X/scipy/.libs -X/matplotlib/.libs
+
+override_dh_virtualenv:
+	dh_virtualenv $(DH_VIRTUALENV_ARGS)
+	py3clean $(VENV_BUILD_DIR)
+
 %:
-	dh $@ --with python3,systemd --buildsystem=pybuild
+	dh $@ --with python3,python-virtualenv,systemd
 
-_pyver := $(shell python3 --version | cut -d ' ' -f 2 | cut -d '.' -f -2)
-_pydir := debian/loudml/usr/lib/python$(_pyver)/dist-packages
-override_dh_install:
-	dh_install
-
-	# requires.txt causes issues with our vendoring system
-	find ${_pydir} -name requires.txt | xargs rm -f
+override_dh_fixperms:
+	dh_fixperms
 
 override_dh_installinit:
 	dh_installinit --no-start --name=loudmld

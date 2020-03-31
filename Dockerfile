@@ -26,9 +26,13 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends python3 python3-setuptools \
 	&& apt-get purge -y
 
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /root/.local /opt/vendor
 
-RUN mkdir /var/lib/loudml \
+RUN mkdir /var/lib/loudml && \
+	chgrp -R 0 /var/lib/loudml && \
+	chmod -R g=u /var/lib/loudml && \
+	chgrp -R 0 /opt/vendor && \
+	chmod -R g=u /opt/vendor && \
 	mkdir /etc/loudml && \
 { if [ "x$gpu" = "xtrue" ] ; then /bin/echo -e '\
 ---\n\
@@ -53,7 +57,9 @@ server:\n\
 >> /etc/loudml/config.yml ; \
 fi ; }
 
-ENV PATH=/root/.local/bin:$PATH
+USER 1001
+ENV PYTHONUSERBASE=/opt/vendor
+ENV PATH=/opt/vendor/bin:$PATH
 CMD /bin/bash -c loudmld
 LABEL maintainer="packaging@loudml.io"
 EXPOSE 8077

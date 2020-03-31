@@ -1,3 +1,68 @@
+version: 2.1
+
+executors:
+  ruby:
+    docker:
+      - image: circleci/ruby:2.3-jessie
+
+commands:
+  build_deb:
+    parameters:
+      distro:
+        type: string
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get update && \
+                sudo apt-get install -y devscripts build-essential lintian reprepro && \
+                sudo apt-get install -y dh-systemd git && \
+                sudo apt-get install -y python-all python-setuptools python3-pip python3-all python3-setuptools python3-venv
+      - run:
+          name: Install dh-virtualenv from Spotify sources
+          environment:
+            DEBIAN_FRONTEND: noninteractive
+          command: |
+            sudo apt-get install -y python-sphinx python-mock dh-exec python-sphinx-rtd-theme
+            git clone https://github.com/spotify/dh-virtualenv.git
+            cd dh-virtualenv/ && \
+                sudo mk-build-deps -ri && \
+                dpkg-buildpackage -us -uc -b && \
+                sudo dpkg -i ../dh-virtualenv_*_all.deb
+            dh_virtualenv --version
+      - run:
+          name: Run make
+          command: |
+            make deb
+            mkdir -p /tmp/debs/<< parameters.distro >>
+            cp ~/loudml*.deb /tmp/debs/<< parameters.distro >>
+      - store_artifacts:
+          path: /tmp/debs
+          destination: packages
+      - persist_to_workspace:
+          root: /tmp/debs
+          paths:
+            - << parameters.distro >>
+
+  publish_deb:
+    parameters:
+      distro:
+        type: string
+      os:
+        type: string
+    steps:
+      - attach_workspace:
+          at: ~/debs
+      - run:
+          name: Install packagecloud CLI
+          command: gem install package_cloud
+      - run:
+          name: Push deb package
+          command: |
+            package_cloud push loudml/loudml/<< parameters.os >>/<< parameters.distro >> \
+                ~/debs/<< parameters.distro >>/*.deb
+
 
 docker_deploy: &docker_deploy
   requires:
@@ -30,6 +95,21 @@ workflows:
               only:
                 - develop
     jobs:
+      - debuild_stretch
+      - debuild_buster
+      - debuild_xenial
+      - debuild_bionic
+      - publish_debs:
+          context: package-cloud
+          requires:
+            - test-python-unit
+            - debuild_stretch
+            - debuild_buster
+            - debuild_xenial
+            - debuild_bionic
+          filters:
+            branches:
+              only: develop
       - test-python-unit
       - test-python-coverage
       - coverage-elastic6
@@ -117,6 +197,7 @@ workflows:
             tags:
               only:
                 /.*/
+
   release:
     jobs:
       - test-python-unit
@@ -389,7 +470,6 @@ influx_coverage_test: &influx_coverage_test
     <<: *db_coverage_test
 
 
-version: 2.1
 jobs:
   test-elastic7:
     docker:
@@ -690,3 +770,63 @@ jobs:
                 docker push loudml/loudml:${CIRCLE_SHA1:0:7}
                 docker tag app loudml/loudml:${CIRCLE_TAG}
                 docker push loudml/loudml:${CIRCLE_TAG}
+
+  debuild_stretch:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    working_directory: ~/debuild
+    steps:
+      - build_deb:
+          distro: stretch
+
+  debuild_buster:
+    docker:
+      - image: circleci/buildpack-deps:buster
+    working_directory: ~/debuild
+    steps:
+      - build_deb:
+          distro: buster
+
+  debuild_xenial:
+    docker:
+      - image: ubuntu:xenial
+    working_directory: ~/debuild
+    steps:
+      - run:
+          name: apt-get install sudo equivs
+          command: apt-get update && apt-get -y install sudo equivs
+      - build_deb:
+          distro: xenial
+
+  debuild_bionic:
+    docker:
+      - image: ubuntu:bionic
+    working_directory: ~/debuild
+    steps:
+      - run:
+          name: apt-get install sudo equivs
+          command: apt-get update && apt-get -y install sudo equivs
+      - run:
+          name: tzdata
+          command: |
+            ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+            DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
+      - build_deb:
+          distro: bionic
+
+  publish_debs:
+    executor: ruby
+    steps:
+      - publish_deb:
+          os: debian
+          distro: stretch
+      - publish_deb:
+          os: debian
+          distro: buster
+      - publish_deb:
+          os: ubuntu
+          distro: xenial
+      - publish_deb:
+          os: ubuntu
+          distro: bionic
+
