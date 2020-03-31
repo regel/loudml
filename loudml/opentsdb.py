@@ -359,6 +359,7 @@ class OpenTSDBBucket(Bucket):
         Queries OpenTSDB based on metric and params
         """
         nb_features = len(features)
+        nb_buckets = int((to_date - from_date) / bucket_interval)
 
         queries = self._build_times_queries(
             bucket_interval, features, from_date, to_date)
@@ -392,7 +393,7 @@ class OpenTSDBBucket(Bucket):
         t0 = None
         result = []
 
-        for bucket in buckets:
+        for bucket in buckets[:nb_buckets]: # due to end= in query, OpenTSDB returns extra bucket, skip it
             X = np.full(nb_features, np.nan, dtype=float)
             ts = bucket['time']
 
