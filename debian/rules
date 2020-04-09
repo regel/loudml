@@ -15,6 +15,7 @@ DH_VIRTUALENV_ARGS = \
 	--python='/usr/bin/python3' \
 	--builtin-venv \
 	--preinstall=wheel \
+	--upgrade-pip \
 	--extras=cpu \
 	--extra-pip-arg='--quiet'
 
