@@ -3,19 +3,36 @@
 
 The Debian package for Loud ML can be downloaded from our
 <<deb-repo,APT repository>>. It can be used to install
-Loud ML on Debian Stretch.
+Loud ML on Debian and Ubuntu.
 
 All stable versions of Loud ML can be found in our <<deb-repo,APT repository>>
 
 [[deb-key]]
 ==== Import the Loud ML PGP Key
 
-include::key.asciidoc[]
-
 [source,sh]
 -------------------------
-wget -qO - http://loudml.s3-website-eu-west-1.amazonaws.com/repo/gpg/GPG-KEY-LOUDML | sudo apt-key add -
+curl -s https://deb.loudml.io/install/script.deb.sh | sudo bash
 -------------------------
+
+[NOTE]
+==================================================
+
+These instructions do not use `add-apt-repository` for several reasons:
+
+. `add-apt-repository` adds entries to the system `/etc/apt/sources.list` file
+  rather than a clean per-repository file in `/etc/apt/sources.list.d`
+. `add-apt-repository` is not part of the default install on many distributions
+  and requires a number of non-default dependencies.
+. Older versions of `add-apt-repository` always add a `deb-src` entry which
+  will cause errors because we do not provide a source package. If you have added
+  the `deb-src` entry, you will see an error like the following until you delete
+  the `deb-src` line:
+
+    Unable to find expected entry 'main/source/Sources' in Release file
+    (Wrong sources.list entry or malformed file)
+
+==================================================
 
 ==== Install Dependencies
 
@@ -39,53 +56,6 @@ endif::[]
 
 ifeval::["{release-state}"!="unreleased"]
 
-You may need to install the `apt-transport-https` package on Debian before proceeding:
-
-[source,sh]
---------------------------------------------------
-sudo apt-get install apt-transport-https
---------------------------------------------------
-
-Save the repository definition to  +/etc/apt/sources.list.d/loudml-{major-version}.list+:
-
-ifeval::["{release-state}"=="released"]
-
-["source","sh",subs="attributes,callouts"]
---------------------------------------------------
-echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/ stretch main" | sudo tee -a /etc/apt/sources.list.d/loudml-{major-version}.list
---------------------------------------------------
-
-endif::[]
-
-ifeval::["{release-state}"=="prerelease"]
-
-["source","sh",subs="attributes,callouts"]
---------------------------------------------------
-echo "deb http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/ stable main" | sudo tee -a /etc/apt/sources.list.d/loudml-{major-version}.list
---------------------------------------------------
-
-endif::[]
-
-
-[NOTE]
-==================================================
-
-These instructions do not use `add-apt-repository` for several reasons:
-
-. `add-apt-repository` adds entries to the system `/etc/apt/sources.list` file
-  rather than a clean per-repository file in `/etc/apt/sources.list.d`
-. `add-apt-repository` is not part of the default install on many distributions
-  and requires a number of non-default dependencies.
-. Older versions of `add-apt-repository` always add a `deb-src` entry which
-  will cause errors because we do not provide a source package. If you have added
-  the `deb-src` entry, you will see an error like the following until you delete
-  the `deb-src` line:
-
-    Unable to find expected entry 'main/source/Sources' in Release file
-    (Wrong sources.list entry or malformed file)
-
-==================================================
-
 You can install the Loud ML Debian package with:
 
 [source,sh]
@@ -93,41 +63,9 @@ You can install the Loud ML Debian package with:
 sudo apt-get update && sudo apt-get install loudml
 --------------------------------------------------
 
-[WARNING]
-==================================================
-If two entries exist for the same Loud ML repository, you will see an error like this during `apt-get update`:
-
-["literal",subs="attributes,callouts"]
-
-Duplicate sources.list entry http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/packages/{major-version}/apt/ ...`
-
-Examine +/etc/apt/sources.list.d/loudml-{major-version}.list+ for the duplicate entry or locate the duplicate entry amongst the files in `/etc/apt/sources.list.d/` and the `/etc/apt/sources.list` file.
-==================================================
-
 endif::[]
 
 include::skip-set-kernel-parameters.asciidoc[]
-
-[[install-deb]]
-==== Download and install the Debian package manually
-
-ifeval::["{release-state}"=="unreleased"]
-
-Version {version} of Loud ML has not yet been released.
-
-endif::[]
-
-ifeval::["{release-state}"!="unreleased"]
-
-The Debian package for Loud ML v{version} can be downloaded from the website and installed as follows:
-
-["source","sh",subs="attributes"]
---------------------------------------------
-wget http://loudml.s3-website-eu-west-1.amazonaws.com/repo/deb/pool/main/l/loudml/loudml_{version}_all.deb
-sudo dpkg -i loudml_{version}_all.deb 
---------------------------------------------
-
-endif::[]
 
 include::init-systemd.asciidoc[]
 
