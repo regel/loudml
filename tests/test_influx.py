@@ -84,7 +84,8 @@ else:
 
 
 class TestInfluxQuick(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         bucket_interval = 3
 
         t0 = int(datetime.datetime.now().timestamp())
@@ -94,20 +95,20 @@ class TestInfluxQuick(unittest.TestCase):
         # timestamp must be aligned for unit tests.
         t0 -= t0 % bucket_interval
 
-        self.t0 = t0
+        cls.t0 = t0
 
-        self.db = 'test-{}'.format(t0)
-        logging.info("creating database %s", self.db)
-        self.source = InfluxBucket({
+        cls.db = 'test-{}'.format(t0)
+        logging.info("creating database %s", cls.db)
+        cls.source = InfluxBucket({
             'name': 'test',
             'addr': ADDR,
-            'database': self.db,
+            'database': cls.db,
             'measurement': 'nosetests',
         })
-        self.source.drop()
-        self.source.init()
+        cls.source.drop()
+        cls.source.init()
 
-        self.model = Model(dict(
+        cls.model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
@@ -125,21 +126,21 @@ class TestInfluxQuick(unittest.TestCase):
             (5, 78, t0 + 9),  # excluded
         ]
         for foo, bar, ts in data:
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 measurement='measure1',
                 ts=ts,
                 data={
                     'foo': foo,
                 }
             )
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 measurement='measure2',
                 ts=ts,
                 data={
                     'bar': bar,
                 }
             )
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 measurement='measure3',
                 ts=ts,
                 tags={
@@ -151,7 +152,7 @@ class TestInfluxQuick(unittest.TestCase):
                     'baz': bar,
                 }
             )
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 measurement='measure3',
                 ts=ts,
                 tags={
@@ -164,10 +165,11 @@ class TestInfluxQuick(unittest.TestCase):
                 }
             )
 
-        self.source.commit()
+        cls.source.commit()
 
-    def tearDown(self):
-        self.source.drop()
+    @classmethod
+    def tearDownClass(cls):
+        cls.source.drop()
 
     def test_validation(self):
         with self.assertRaises(errors.Invalid):
