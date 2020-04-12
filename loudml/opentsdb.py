@@ -18,8 +18,12 @@ from voluptuous import (
     Boolean,
 )
 
-from . import (
+from loudml import (
     errors,
+)
+from loudml.requests import (
+    perform_request,
+    perform_data_request,
 )
 from loudml.misc import (
     make_ts,
@@ -40,6 +44,8 @@ def format_bool(o):
     else:
         return o
 
+
+DEFAULT_REQUEST_TIMEOUT = 5
 
 # Available aggregators on OpenTSDB: http://localhost:4242/api/aggregators
 AGGREGATORS = {
@@ -64,25 +70,6 @@ DOWNSAMPLE = {
     '90percentile': 'p90',
     '95percentile': 'p95'
 }
-
-
-def _build_time_predicates(
-    from_date=None,
-    to_date=None,
-):
-    """
-    Build time range predicates
-    """
-    must = []
-
-    if from_date:
-        must.append("start={}ms".format(
-            int(make_ts(from_date)*1e3)))
-    if to_date:
-        must.append("end={}ms".format(
-            int(make_ts(to_date)*1e3)))
-
-    return "&".join(must)
 
 
 def _build_tags_predicates(match_all=None):
@@ -164,8 +151,17 @@ class OpenTSDBClient(object):
         Set tsd.http.query.allow_delete = true in opentsdb.conf
         http://opentsdb.net/docs/build/html/user_guide/configuration.html
         """
-        query_url = "%s/api/suggest?type=metrics" % self.url
-        resp = self.session.get(query_url)
+        resp = perform_request(
+            self.url,
+            'GET',
+            '/api/suggest',
+            session=self.session,
+            params={'type': 'metrics'},
+            body=None,
+            timeout=DEFAULT_REQUEST_TIMEOUT,
+            ignore=(),
+            headers=None,
+        )
         if not resp.ok:
             logging.error(
                 'OpenTSDB error',
@@ -174,13 +170,24 @@ class OpenTSDBClient(object):
         resp.raise_for_status()
         metrics = resp.json()
         for metric_name in metrics:
-            query_url = "{}/api/query?start=0&m=sum:{}{}".format(
-                self.url,
-                metric_name,
-                self._format_tags({'loudml': tag_to_drop})
-            )
+            params = {
+                'start': 0,
+                'm': 'sum:{}{}'.format(
+                    metric_name,
+                    self._format_tags({'loudml': tag_to_drop})),
+            }
             try:
-                resp = self.session.delete(query_url)
+                resp = perform_request(
+                    self.url,
+                    'DELETE',
+                    '/api/query',
+                    session=self.session,
+                    params=params,
+                    body=None,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
+                    ignore=(400),
+                    headers=None,
+                )
             except requests.exceptions.SSLError as exn:
                 logging.error('OpenTSDB SSL error', str(exn))
 
@@ -194,20 +201,31 @@ class OpenTSDBClient(object):
         results = []
 
         for q in queries:
-            time_pred = _build_time_predicates(q["start"], q["end"])
-
-            query_url = "{}/api/query?{}&m={}:{}:{}{}".format(
-                self.url,
-                time_pred,
-                AGGREGATORS.get(q["metric"], 'first'),
-                q["down_sampler"],
-                q["field"],
-                self._format_tags(q["tags"])
-            )
             # TODO: OpenTSDB is capable of running multiple subquries in
             # one shot. Refactor it to use one request to server
+            params = {
+                'start': '{}ms'.format(
+                    int(make_ts(q['start'])*1e3)),
+                'end': '{}ms'.format(
+                    int(make_ts(q['end'])*1e3)),
+                'm': '{}:{}:{}{}'.format(
+                    AGGREGATORS.get(q["metric"], 'first'),
+                    q["down_sampler"],
+                    q["field"],
+                    self._format_tags(q["tags"])),
+            }
             try:
-                resp = self.session.get(query_url)
+                resp = perform_request(
+                    self.url,
+                    'GET',
+                    '/api/query',
+                    session=self.session,
+                    params=params,
+                    body=None,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
+                    ignore=(),
+                    headers=None,
+                )
             except requests.exceptions.SSLError as exn:
                 logging.error('OpenTSDB SSL error', str(exn))
 
@@ -238,16 +256,23 @@ class OpenTSDBClient(object):
         """
         Store points in database and sync
         """
-        url = "%s/api/put?sync" % self.url
-
         try:
             additional_headers = {}
             additional_headers['Content-Encoding'] = 'gzip'
             additional_headers['Content-type'] = 'application/json'
             encoded = json.dumps(points).encode('utf-8')
             request_body = gzip.compress(encoded)
-            resp = self.session.post(
-                url, data=request_body, headers=additional_headers)
+            resp = perform_data_request(
+                self.url,
+                'POST',
+                '/api/put',
+                session=self.session,
+                params={'sync': True},
+                body=request_body,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
+                ignore=(),
+                headers=additional_headers,
+            )
         except requests.exceptions.SSLError as exn:
             logging.error('OpenTSDB SSL error', str(exn))
 

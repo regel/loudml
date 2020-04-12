@@ -1,6 +1,5 @@
 from loudml.model import Model
 from loudml.opentsdb import (
-    _build_time_predicates,
     _build_tags_predicates,
     OpenTSDBBucket,
 )
@@ -148,17 +147,6 @@ class TestOpenTSDBQuick(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.source.drop()
-
-    def test_build_time_predicates(self):
-        self.assertEqual(
-            _build_time_predicates(), "",
-        )
-        self.assertEqual(
-            _build_time_predicates(
-                from_date=1515404367, to_date="2018-01-08T14:59:27.456Z",
-            ),
-            'start=1515404367000ms&end=1515423567456ms',
-        )
 
     def test_build_tags_predicates(self):
         self.assertDictEqual(
