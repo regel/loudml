@@ -2,7 +2,7 @@ from loudml.model import Model
 from loudml.prometheus import (
     _build_time_predicates,
     _build_tags_predicates,
-    PrometheusBucket,
+    PrometheusBucket
 )
 from loudml.misc import (
     nan_to_none,
@@ -81,7 +81,7 @@ class TestPrometheusQuick(unittest.TestCase):
                 {'tag': 'a', 'value': 'b'},
                 {'tag': 'int', 'value': 42},
                 {'tag': 'bool', 'value': True},
-            ]), '{foo="bar", a="b", int="42", bool="True"}'
+            ]), '{foo="bar",a="b",int="42",bool="True"}'
         )
 
     def test_build_times_queries(self):
@@ -104,4 +104,20 @@ class TestPrometheusQuick(unittest.TestCase):
                 'metric_name': 'foo',
                 'tags': '{}'
             }
+        )
+
+    def test_build_query_url(self):
+        query = {
+            "start": 42,
+            "end": 42,
+            "aggregator": "95percentile",
+            "step": 15,
+            "metric_name": "foo",
+            "tags": "{}"
+        }
+        query_url = self.source.prometheus.build_url(query)
+
+        self.assertEqual(
+            query_url,
+            "http://localhost:9090/api/v1/query_range?start=42&end=42&step=15&query=quantile(0.95,foo{})"
         )

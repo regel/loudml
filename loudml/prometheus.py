@@ -17,7 +17,7 @@ from voluptuous import (
     Boolean,
 )
 
-from . import (
+from loudml import (
     errors,
     schemas,
 )
@@ -46,25 +46,27 @@ from loudml.bucket import Bucket
 # quantile (calculate φ-quantile (0 ≤ φ ≤ 1) over dimensions)
 
 AGGREGATORS = {
-    'avg': 'avg',
-    'mean': 'avg',
-    'average': 'avg',
-    'stddev': 'stddev',
-    'std_dev': 'stddev',
-    'count': 'count',
-    'min': 'min',
-    'max': 'max',
-    'sum': 'sum',
+    'avg': 'avg({}{})',
+    'mean': 'avg({}{})',
+    'average': 'avg({}{})',
+    'stddev': 'stddev({}{})',
+    'std_dev': 'stddev({}{})',
+    'count': 'count({}{})',
+    'min': 'min({}{})',
+    'max': 'max({}{})',
+    'sum': 'sum({}{})',
+    'bottomk': 'bottomk(1,{}{})', # TODO: need to handle bottomk(X) param
+    'topk': 'topk(1,{}{})', # TODO: need to handle topk(X) param
     'deriv': None,
     'derivative': None,
     'integral': None,
     'med': None,
     'median': None,
     'mode': None,
-    '5percentile': None,
-    '10percentile': None,
-    '90percentile': None,
-    '95percentile': None
+    '5percentile': 'quantile(0.05,{}{})',
+    '10percentile': 'quantile(0.10,{}{})',
+    '90percentile': 'quantile(0.90,{}{})',
+    '95percentile': 'quantile(0.95,{}{})'
 }
 
 
@@ -95,7 +97,7 @@ def _build_tags_predicates(match_all=None):
         for condition in match_all:
             must.append('{}="{}"'.format(condition['tag'], condition['value']))
 
-    return "{" + ", ".join(must) + "}"
+    return "{" + ",".join(must) + "}"
 
 
 class PrometheusResult(object):
@@ -151,12 +153,43 @@ class PrometheusClient(object):
         if ssl_cert_path:
             self.session.verify = ssl_cert_path
 
+
+    def build_url(self, q):
+        """
+        Forms a query URL from bits.
+        TODO: add better aggregator functions handling
+        """
+        time_pred = _build_time_predicates(q["start"], q["end"])
+        aggregator = AGGREGATORS.get(q["aggregator"])
+        if aggregator:
+            query_expr = aggregator.format(q["metric_name"], q["tags"])
+            query_url = "{}/api/v1/query_range?{}&step={}&query={}".format(
+                self.url,
+                time_pred,
+                q["step"],
+                query_expr
+            )
+        else:
+            logging.warning('Unsupported aggregation operator.'
+                'Please submit a ticket on GitHub :)')
+            query_url = "{}/api/v1/query_range?{}&step={}&query={}{}".format(
+                self.url,
+                time_pred,
+                q["step"],
+                q["metric_name"],
+                q["tags"]
+            )
+        return query_url
+
+
     def query(self, queries):
         """
         Run a list of queries against Prometheus.
         API request should look like:
         # http://0.0.0.0:9090/api/v1/query_range?query=go_memstats_alloc_bytes{instance=%22localhost:9090%22,%20job=%22prometheus%22}&start=1584783120&end=1584786720&step=15
         # http://0.0.0.0:9090/api/v1/query_range?query=avg(go_memstats_alloc_bytes{instance=%22localhost:9090%22,%20job=%22prometheus%22})&start=1584783120&end=1584786720&step=15
+        # quantile:
+        http://0.0.0.0:9090/api/v1/query_range?query=quantile(0.05,%20go_memstats_alloc_bytes{instance=%22localhost:9090%22,%20job=%22prometheus%22})&start=1586681165&end=1586681765&step=1
         """
         if not isinstance(queries, list):
             queries = [queries]
@@ -164,26 +197,7 @@ class PrometheusClient(object):
         results = []
 
         for q in queries:
-            time_pred = _build_time_predicates(q["start"], q["end"])
-            aggregator = AGGREGATORS.get(q["aggregator"])
-            if aggregator:
-                query_url = "{}/api/v1/query_range?{}&step={}&query={}({}{})".format(
-                    self.url,
-                    time_pred,
-                    q["step"],
-                    aggregator,
-                    q["metric_name"],
-                    q["tags"]
-                )
-            else:
-                query_url = "{}/api/v1/query_range?{}&step={}&query={}{}".format(
-                    self.url,
-                    time_pred,
-                    q["step"],
-                    q["metric_name"],
-                    q["tags"]
-                )
-
+            query_url = self.build_url(q)
             try:
                 resp = self.session.get(query_url)
                 self.session.close()
@@ -203,7 +217,7 @@ class PrometheusClient(object):
         """
         Store a point in database
         """
-        raise errors.NotImplemented("Prometheus bucket: not implemented yet")
+        raise NotImplementedError("Prometheus bucket: not implemented yet")
 
 
 class PrometheusBucket(Bucket):
@@ -252,7 +266,7 @@ class PrometheusBucket(Bucket):
 
     @property
     def prometheus(self):
-        if self._prometheus is None:
+        if not self._prometheus:
             addr = parse_addr(self.addr, default_port=9090)
             logging.info(
                 "connecting to prometheus on %s:%d",
@@ -272,7 +286,7 @@ class PrometheusBucket(Bucket):
         return self._prometheus
 
     def insert_data(self, data):
-        raise errors.NotImplemented("Prometheus is a pure time-series database")
+        raise NotImplementedError("Prometheus is a pure time-series database")
 
     def insert_times_data(
         self,
@@ -289,13 +303,12 @@ class PrometheusBucket(Bucket):
         ts = int(make_ts(ts))
         filtered = filter(lambda item: item[1] is not None, data.items())
         for k, v in filtered:
-            entry = {
+            self.enqueue({
                 'metric': k,
                 'timestamp': ts,
                 'value': v,
                 'tags': tags,
-            }
-            self.enqueue(entry)
+            })
 
     def send_bulk(self, requests):
         """
