@@ -42,7 +42,7 @@ scipy==1.3.3              # via hyperopt
 six==1.13.0               # via absl-py, cycler, flask-restful, grpcio, h5py, hyperopt, influxdb, keras-preprocessing, mock, protobuf, python-dateutil
 tqdm==4.39.0              # via hyperopt, loudml-python
 urllib3==1.25.8           # via botocore, elasticsearch, requests
-voluptuous==0.10.5
+voluptuous==0.11.7
 git+git://github.com/regel/python-warp10client.git
 werkzeug==0.16.0          # via flask
 
