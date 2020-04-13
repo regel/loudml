@@ -27,7 +27,7 @@ jmespath==0.9.4           # via boto3, botocore
 loudml-python==1.6.3
 markupsafe==1.1.1         # via jinja2
 networkx==2.2
-numpy==1.16.4
+numpy==1.18.2
 pebble==4.4.0
 pycrypto==2.6.1
 pymongo==3.9.0
