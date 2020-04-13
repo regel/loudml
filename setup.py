@@ -49,7 +49,7 @@ setup(
         'requests>=2.14.0',
         'pytz>=2019.2',
         'dateutils>=0.6.6',
-        'h5py==2.9.0',
+        'h5py==2.10.0',
         'hyperopt>=0.1',
         'networkx==2.2',
         'numpy==1.16.4',
