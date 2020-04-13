@@ -17,7 +17,7 @@ flask==1.1.1
 future==0.18.2            # via hyperopt
 gevent==1.4.0
 greenlet==0.4.15          # via gevent
-h5py==2.9.0
+h5py==2.10.0
 hyperopt==0.2.2
 idna==2.8                 # via requests
 influxdb==5.2.3
