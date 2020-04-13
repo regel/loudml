@@ -24,7 +24,7 @@ influxdb==5.2.3
 itsdangerous==1.1.0       # via flask
 jinja2==2.10.3
 jmespath==0.9.4           # via boto3, botocore
-loudml-python==1.6.2
+loudml-python==1.6.3
 markupsafe==1.1.1         # via jinja2
 networkx==2.2
 numpy==1.16.4
