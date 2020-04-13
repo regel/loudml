@@ -54,7 +54,7 @@ setup(
         'networkx==2.2',
         'numpy==1.16.4',
         'pycrypto>=2.6.1',
-        'voluptuous==0.10.5',
+        'voluptuous==0.11.7',
         'dictdiffer>=0.7.1',
         'elasticsearch==6.3.1',
         'boto3>=1.7.58',
