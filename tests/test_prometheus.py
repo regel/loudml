@@ -1,6 +1,5 @@
 from loudml.model import Model
 from loudml.prometheus import (
-    _build_time_predicates,
     _build_tags_predicates,
     PrometheusBucket
 )
@@ -59,17 +58,6 @@ class TestPrometheusQuick(unittest.TestCase):
     def tearDown(self):
         self.source.drop()
 
-    def test_build_time_predicates(self):
-        self.assertEqual(
-            _build_time_predicates(), "",
-        )
-        self.assertEqual(
-            _build_time_predicates(
-                from_date=1515404366, to_date="2018-01-08T14:59:25.456Z",
-            ),
-            "start=1515404366&end=2018-01-08T14:59:25.456Z",
-        )
-
     def test_build_tags_predicates(self):
         self.assertEqual(
             _build_tags_predicates(), '{}',
@@ -106,7 +94,7 @@ class TestPrometheusQuick(unittest.TestCase):
             }
         )
 
-    def test_build_query_url(self):
+    def test_build_query_url_params(self):
         query = {
             "start": 42,
             "end": 42,
@@ -115,9 +103,13 @@ class TestPrometheusQuick(unittest.TestCase):
             "metric_name": "foo",
             "tags": "{}"
         }
-        query_url = self.source.prometheus.build_url(query)
-
+        params = self.source.prometheus.build_url_params(query)
         self.assertEqual(
-            query_url,
-            "http://localhost:9090/api/v1/query_range?start=42&end=42&step=15&query=quantile(0.95,foo{})"
+            params,
+            {
+                "start": 42,
+                "end": 42,
+                "step": 15,
+                "query": "quantile(0.95,foo{})"
+            }
         )
