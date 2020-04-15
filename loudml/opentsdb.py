@@ -8,6 +8,7 @@ OpenTSDB module for Loud ML.
 import logging
 import requests
 import json
+import gzip
 
 import numpy as np
 
@@ -17,26 +18,46 @@ from voluptuous import (
     Boolean,
 )
 
-from . import (
+from loudml import (
     errors,
-    schemas,
+)
+from loudml.requests import (
+    perform_request,
+    perform_data_request,
 )
 from loudml.misc import (
-    escape_quotes,
-    escape_doublequotes,
     make_ts,
     parse_addr,
-    str_to_ts,
-    ts_to_str,
 )
 from loudml.bucket import Bucket
 
 
+def floor(ts, interval):
+    return int(ts / interval) * interval
+
+
+def format_bool(o):
+    if str(o).lower() == 'true':
+        return 'true'
+    elif str(o).lower() == 'false':
+        return 'false'
+    else:
+        return o
+
+
+DEFAULT_REQUEST_TIMEOUT = 5
+
 # Available aggregators on OpenTSDB: http://localhost:4242/api/aggregators
-# ["mult","p90","zimsum","mimmax","sum","p50","none","p95","ep99r7","p75","p99","ep99r3","ep95r7",
-# "min","avg","ep75r7","dev","ep95r3","ep75r3","ep50r7","ep90r7","mimmin","p999","ep50r3","ep90r3","ep999r7",
-# "last","max","count","ep999r3","first"]
 AGGREGATORS = {
+    'avg': 'avg',
+    'mean': 'avg',
+    'average': 'avg',
+    'count': 'sum',  # sum of downsampled bucket counters
+    'min': 'min',
+    'max': 'max',
+    'sum': 'sum',
+}
+DOWNSAMPLE = {
     'avg': 'avg',
     'mean': 'avg',
     'average': 'avg',
@@ -46,34 +67,9 @@ AGGREGATORS = {
     'min': 'min',
     'max': 'max',
     'sum': 'sum',
-    'deriv': 'none',
-    'derivative': 'none',
-    'integral': 'none',
-    'med': 'none',
-    'median': 'none',
-    'mode': 'none',
-    '5percentile': 'none',
-    '10percentile': 'none',
     '90percentile': 'p90',
     '95percentile': 'p95'
 }
-
-
-def _build_time_predicates(
-    from_date=None,
-    to_date=None,
-):
-    """
-    Build time range predicates
-    """
-    must = []
-
-    if from_date:
-        must.append("start={}".format(from_date))
-    if to_date:
-        must.append("end={}".format(to_date))
-
-    return "&".join(must)
 
 
 def _build_tags_predicates(match_all=None):
@@ -150,6 +146,51 @@ class OpenTSDBClient(object):
         if ssl_cert_path:
             self.session.verify = ssl_cert_path
 
+    def drop(self, tag_to_drop):
+        """
+        Set tsd.http.query.allow_delete = true in opentsdb.conf
+        http://opentsdb.net/docs/build/html/user_guide/configuration.html
+        """
+        resp = perform_request(
+            self.url,
+            'GET',
+            '/api/suggest',
+            session=self.session,
+            params={'type': 'metrics'},
+            body=None,
+            timeout=DEFAULT_REQUEST_TIMEOUT,
+            ignore=(),
+            headers=None,
+        )
+        if not resp.ok:
+            logging.error(
+                'OpenTSDB error',
+                resp.status_code, resp.text[:200])
+
+        resp.raise_for_status()
+        metrics = resp.json()
+        for metric_name in metrics:
+            params = {
+                'start': 0,
+                'm': 'sum:{}{}'.format(
+                    metric_name,
+                    self._format_tags({'loudml': tag_to_drop})),
+            }
+            try:
+                resp = perform_request(
+                    self.url,
+                    'DELETE',
+                    '/api/query',
+                    session=self.session,
+                    params=params,
+                    body=None,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
+                    ignore=(400),
+                    headers=None,
+                )
+            except requests.exceptions.SSLError as exn:
+                logging.error('OpenTSDB SSL error', str(exn))
+
     def query(self, queries):
         """
         Run a list of queries against OpenTSDB
@@ -160,21 +201,31 @@ class OpenTSDBClient(object):
         results = []
 
         for q in queries:
-            time_pred = _build_time_predicates(q["start"], q["end"])
-
-            query_url = "{}/api/query?{}&m={}:{}:{}{}".format(
-                self.url,
-                time_pred,
-                AGGREGATORS.get(q["aggregator"]),
-                q["down_sampler"],
-                q["metric_name"],
-                str(q["tags"])
-            )
             # TODO: OpenTSDB is capable of running multiple subquries in
             # one shot. Refactor it to use one request to server
+            params = {
+                'start': '{}ms'.format(
+                    int(make_ts(q['start'])*1e3)),
+                'end': '{}ms'.format(
+                    int(make_ts(q['end'])*1e3)),
+                'm': '{}:{}:{}{}'.format(
+                    AGGREGATORS.get(q["metric"], 'first'),
+                    q["down_sampler"],
+                    q["field"],
+                    self._format_tags(q["tags"])),
+            }
             try:
-                resp = self.session.get(query_url)
-                self.session.close()
+                resp = perform_request(
+                    self.url,
+                    'GET',
+                    '/api/query',
+                    session=self.session,
+                    params=params,
+                    body=None,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
+                    ignore=(),
+                    headers=None,
+                )
             except requests.exceptions.SSLError as exn:
                 logging.error('OpenTSDB SSL error', str(exn))
 
@@ -185,27 +236,43 @@ class OpenTSDBClient(object):
                 # https://github.com/OpenTSDB/opentsdb/issues/792
                 results.append(OpenTSDBResult([]))
             else:
-                logging.error('OpenTSDB error',
+                logging.error(
+                    'OpenTSDB error',
                     resp.status_code, resp.text[:200])
 
         return results
 
-    def put(self, entry):
+    def _format_tags(self, tags):
         """
-        Store a point in database
+        Formats tags dict into query like {tag=value,...}
         """
-        url = "%s/api/put" % self.url
+        res = ",".join([
+            "{}={}".format(k, format_bool(v))
+            for k, v in tags.items()
+        ])
+        return "{" + res + "}"
 
-        # http://opentsdb.net/docs/build/html/api_http/put.html
-        # "?sync" query param will force OpenTSDB to write to DB and not cache
-        if entry["sync"]:
-            url = "{}?sync".format(url)
-
-        del entry["sync"]
-
+    def put(self, points):
+        """
+        Store points in database and sync
+        """
         try:
-            resp = self.session.post(url, json=entry)
-            self.session.close()
+            additional_headers = {}
+            additional_headers['Content-Encoding'] = 'gzip'
+            additional_headers['Content-type'] = 'application/json'
+            encoded = json.dumps(points).encode('utf-8')
+            request_body = gzip.compress(encoded)
+            resp = perform_data_request(
+                self.url,
+                'POST',
+                '/api/put',
+                session=self.session,
+                params={'sync': True},
+                body=request_body,
+                timeout=DEFAULT_REQUEST_TIMEOUT,
+                ignore=(),
+                headers=additional_headers,
+            )
         except requests.exceptions.SSLError as exn:
             logging.error('OpenTSDB SSL error', str(exn))
 
@@ -221,6 +288,7 @@ class OpenTSDBBucket(Bucket):
     """
 
     SCHEMA = Bucket.SCHEMA.extend({
+        Optional('global_tag', default='loudml'): str,
         Required('addr'): str,
         Optional('user', default=""): str,
         Optional('password', default=""): str,
@@ -234,6 +302,10 @@ class OpenTSDBBucket(Bucket):
         cfg['type'] = 'opentsdb'
         super().__init__(cfg)
         self._opentsdb = None
+
+    @property
+    def global_tag(self):
+        return self.cfg['global_tag']
 
     @property
     def addr(self):
@@ -280,6 +352,10 @@ class OpenTSDBBucket(Bucket):
 
         return self._opentsdb
 
+    @catch_query_error
+    def drop(self, db=None):
+        self.opentsdb.drop(self.global_tag)
+
     def insert_data(self, data):
         raise errors.NotImplemented("OpenTSDB is a pure time-series database")
 
@@ -295,29 +371,25 @@ class OpenTSDBBucket(Bucket):
     ):
         """
         Insert data
-
-        'sync' - Whether or not to wait for the data to be flushed to storage
-        before returning the results. Used in tests
         """
-        ts = int(make_ts(ts))
         filtered = filter(lambda item: item[1] is not None, data.items())
+        tags = tags.copy()
+        tags['loudml'] = self.global_tag
+        millis = int(make_ts(ts)*1e3)
         for k, v in filtered:
-            entry = {
+            self.enqueue({
                 'metric': k,
-                'timestamp': ts,
+                'timestamp': millis,
                 'value': v,
                 'tags': tags,
-                'sync': sync
-            }
-            self.enqueue(entry)
+            })
 
     # @catch_query_error
     def send_bulk(self, requests):
         """
         Send data to OpenTSDB
         """
-        for entry in requests:
-            self.opentsdb.put(entry)
+        self.opentsdb.put(requests)
 
     def _build_times_queries(
         self,
@@ -335,14 +407,19 @@ class OpenTSDBBucket(Bucket):
 
         http://opentsdb.net/docs/build/html/api_http/put.html
         """
+        start = floor(make_ts(from_date), bucket_interval)
+        end = floor(
+            make_ts(to_date), bucket_interval) - bucket_interval
         queries = []
         for feature in features:
             queries.append({
-                "start": int(make_ts(from_date)),
-                "end": int(make_ts(to_date)),
-                "aggregator": feature.metric,
-                "down_sampler": "{}s-avg-nan".format(int(bucket_interval)),
-                "metric_name": feature.field,
+                "start": int(start),
+                "end": int(end),
+                "metric": feature.metric,
+                "down_sampler": "{}s-{}-nan".format(
+                    int(bucket_interval),
+                    DOWNSAMPLE.get(feature.metric, 'avg')),
+                "field": feature.field,
                 "tags": _build_tags_predicates(feature.match_all)
             })
         return queries
@@ -364,7 +441,6 @@ class OpenTSDBBucket(Bucket):
             bucket_interval, features, from_date, to_date)
 
         results = self.opentsdb.query(queries)
-
         if not isinstance(results, list):
             results = [results]
 
@@ -374,7 +450,9 @@ class OpenTSDBBucket(Bucket):
             feature = features[i]
 
             for j, point in enumerate(result.get_points()):
-                agg_val = point[1]
+                agg_val = point[1] if point[1] != 'NaN' else None
+                if agg_val is None and feature.metric == 'count':
+                    agg_val = 0
                 timeval = point[0]
 
                 if j < len(buckets):

@@ -50,17 +50,18 @@ FEATURES_MATCH_ALL_TAG2 = [
 
 
 class TestElasticBucket(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         bucket_interval = 3
 
         t0 = int(datetime.datetime.now().timestamp())
         t0 -= t0 % bucket_interval
-        self.t0 = t0
+        cls.t0 = t0
 
-        self.index = "test-{}".format(t0)
-        self.sink_index = "test-{}-prediction".format(t0)
+        cls.index = "test-{}".format(t0)
+        cls.sink_index = "test-{}-prediction".format(t0)
 
-        logging.info("creating index %s", self.index)
+        logging.info("creating index %s", cls.index)
         if os.environ.get('ELASTICSEARCH_ADDR', None) is None:
             # tip: useful tool to query ES AWS remotely:
             # npm install aws-es-curl -g
@@ -75,24 +76,24 @@ class TestElasticBucket(unittest.TestCase):
                 secret_key=os.environ['AWS_SECRET_ACCESS_KEY'],
             )
 
-            settings['index'] = self.index
-            self.source = loudml.bucket.load_bucket(settings)
+            settings['index'] = cls.index
+            cls.source = loudml.bucket.load_bucket(settings)
 
             settings = copy.deepcopy(settings)
-            settings['index'] = self.sink_index
-            self.sink = loudml.bucket.load_bucket(settings)
+            settings['index'] = cls.sink_index
+            cls.sink = loudml.bucket.load_bucket(settings)
         else:
             settings = {
                 'name': 'test',
                 'addr': os.environ['ELASTICSEARCH_ADDR'],
-                'index': self.index,
+                'index': cls.index,
                 'doc_type': 'nosetests',
             }
-            self.source = ElasticsearchBucket(settings)
+            cls.source = ElasticsearchBucket(settings)
 
             settings = copy.deepcopy(settings)
-            settings['index'] = self.sink_index
-            self.sink = ElasticsearchBucket(settings)
+            settings['index'] = cls.sink_index
+            cls.sink = ElasticsearchBucket(settings)
 
         data_schema = {
             "foo": {"type": "integer"},
@@ -102,10 +103,10 @@ class TestElasticBucket(unittest.TestCase):
             "tag_int": {"type": "integer"},
             "tag_bool": {"type": "boolean"},
         }
-        self.source.drop()
-        self.source.init(data_schema=data_schema)
+        cls.source.drop()
+        cls.source.init(data_schema=data_schema)
 
-        self.model = Model(dict(
+        cls.model = Model(dict(
             name='times-model',  # not test-model due to TEMPLATE
             offset=30,
             span=300,
@@ -124,19 +125,19 @@ class TestElasticBucket(unittest.TestCase):
             (5, 78, t0 + 9),  # excluded
         ]
         for foo, bar, ts in data:
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 ts=ts,
                 data={
                     'foo': foo,
                 }
             )
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 ts=ts,
                 data={
                     'bar': bar,
                 }
             )
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 ts=ts,
                 tags={
                     'tag_kw': 'tag1',
@@ -147,7 +148,7 @@ class TestElasticBucket(unittest.TestCase):
                     'baz': bar,
                 }
             )
-            self.source.insert_times_data(
+            cls.source.insert_times_data(
                 ts=ts,
                 tags={
                     'tag_kw': 'tag2',
@@ -159,14 +160,15 @@ class TestElasticBucket(unittest.TestCase):
                 }
             )
 
-        self.source.commit()
+        cls.source.commit()
 
         # Let elasticsearch indexes the data before querying it
         time.sleep(10)
 
-    def tearDown(self):
-        self.sink.drop()
-        self.source.drop()
+    @classmethod
+    def tearDownClass(cls):
+        cls.sink.drop()
+        cls.source.drop()
 
     def test_get_index_name(self):
         ts = 1527156069

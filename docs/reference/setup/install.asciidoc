@@ -6,17 +6,10 @@ Loud ML is provided in the following package formats:
 [horizontal]
 `deb`::
 
-The `deb` package is suitable for Debian Stretch
+The `deb` package is suitable for Debian and Ubuntu
 systems.  Debian packages may be downloaded from our Debian repository.
 +
 <<deb>>
-
-`ubuntu`::
-
-The `ubuntu` deb package is suitable for Ubuntu 18.04
-systems.  Ubuntu packages may be downloaded from our Ubuntu repository.
-+
-<<ubuntu>>
 
 `rpm`::
 
@@ -34,8 +27,6 @@ across several operating systems.
 
 
 include::install/deb.asciidoc[]
-
-include::install/ubuntu.asciidoc[]
 
 include::install/rpm.asciidoc[]
 

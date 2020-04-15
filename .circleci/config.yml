@@ -1,9 +1,9 @@
 version: 2.1
 
 executors:
-  ruby:
+  minimal:
     docker:
-      - image: circleci/ruby:2.3-jessie
+      - image: cimg/base:2020.01
 
 commands:
   build_deb:
@@ -49,18 +49,14 @@ commands:
     parameters:
       distro:
         type: string
-      os:
-        type: string
     steps:
       - attach_workspace:
           at: ~/debs
-      - run:
-          name: Install packagecloud CLI
-          command: gem install package_cloud
+      - checkout
       - run:
           name: Push deb package
           command: |
-            package_cloud push loudml/loudml/<< parameters.os >>/<< parameters.distro >> \
+            bash scripts/upload-artifacts.sh -d << parameters.distro >> \
                 ~/debs/<< parameters.distro >>/*.deb
 
 
@@ -100,7 +96,7 @@ workflows:
       - debuild_xenial
       - debuild_bionic
       - publish_debs:
-          context: package-cloud
+          context: artifacts
           requires:
             - test-python-unit
             - debuild_stretch
@@ -815,18 +811,14 @@ jobs:
           distro: bionic
 
   publish_debs:
-    executor: ruby
+    executor: minimal
     steps:
       - publish_deb:
-          os: debian
           distro: stretch
       - publish_deb:
-          os: debian
           distro: buster
       - publish_deb:
-          os: ubuntu
           distro: xenial
       - publish_deb:
-          os: ubuntu
           distro: bionic
 

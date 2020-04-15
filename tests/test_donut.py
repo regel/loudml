@@ -23,6 +23,17 @@ import unittest
 import numpy as np
 
 
+def f1_score(testy, yhat):
+    # f1: 2 tp / (2 tp + fp + fn)
+    tp = np.count_nonzero(
+        np.logical_and(testy == True, yhat == True))
+    fp = np.count_nonzero(
+        np.logical_and(testy == False, yhat == True))
+    fn = np.count_nonzero(
+        np.logical_and(testy == True, yhat == False))
+    return 2.0 * tp / (2.0 * tp + fp + fn)
+
+
 def nan_equal(a, b):
     try:
         np.testing.assert_equal(a, b)
@@ -541,65 +552,36 @@ class TestTimes(unittest.TestCase):
             })
 
         # Add abnormal data
-        generator = FlatEventGenerator(base=5, sigma=0.01)
-
+        flat = FlatEventGenerator(base=5, sigma=0.01)
         from_date = to_date - 20 * bucket_interval
-        for i in [5, 6, 7, 17, 18, 19]:
-            ano_from = from_date + i * bucket_interval
-            ano_to = ano_from + 1 * bucket_interval
-            for ts in generator.generate_ts(ano_from, ano_to, step_ms=600000):
-                source.insert_times_data({
-                    'timestamp': ts,
-                    'foo': random.normalvariate(10, 1)
-                })
+        for ts in flat.generate_ts(from_date, to_date, step_ms=600000):
+            source.insert_times_data({
+                'timestamp': ts,
+                'foo': random.normalvariate(10, 1)
+            })
 
-        # Make prediction on buckets [0-20[
+        # Make prediction on buckets [0-100[
         prediction = self.model.predict2(
             source,
-            from_date,
+            to_date - 100 * bucket_interval,
             to_date,
         )
 
         self.model.detect_anomalies(prediction)
 
         buckets = prediction.format_buckets()
+        assert len(buckets) == 100
+        # prediction.plot('count_foo')
 
-        assert len(buckets) == 20
-
-#        import json
-#        print(json.dumps(buckets, indent=4))
-#        prediction.plot('count_foo')
-
-        # Buckets [0-4] are normal
-        for i in range(0, 5):
-            self.assertFalse(buckets[i]['stats']['anomaly'])
-
-        # Bucket 5 is abnormal
-        self.assertTrue(buckets[5]['stats']['anomaly'])
-        # Bucket 6 is abnormal
-        self.assertTrue(buckets[6]['stats']['anomaly'])
-        # Bucket 7 is abnormal
-        self.assertTrue(buckets[7]['stats']['anomaly'])
-
-        # lag: 8 and 9 for cool down time
-        # Buckets [8-16] are in grace period and expected to be normal
-        for i in range(10, 17):
-            self.assertFalse(buckets[i]['stats']['anomaly'])
-
-        # Bucket 17 and 18 and 19 are abnormal
-        self.assertTrue(buckets[17]['stats']['anomaly'])
-        self.assertTrue(buckets[18]['stats']['anomaly'])
-        self.assertTrue(buckets[19]['stats']['anomaly'])
-
-        anomalies = prediction.get_anomalies()
-        self.assertEqual(
-            anomalies[0:3],
-            [buckets[i] for i in [5, 6, 7]],
-        )
-        self.assertEqual(
-            anomalies[-3:],
-            [buckets[i] for i in [17, 18, 19]],
-        )
+        testy = np.full(100, False, dtype=bool)
+        testy[-20:] = True
+        yhat = np.array([
+            bucket['stats']['anomaly']
+            for bucket in buckets
+        ])
+        f1 = f1_score(testy, yhat)
+        self.assertGreaterEqual(f1, 0.75)
+        print('F1 score: %f' % f1)
 
     def test_thresholds(self):
         source = MemBucket()

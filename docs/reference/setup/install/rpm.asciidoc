@@ -1,7 +1,7 @@
 [[rpm]]
 === Install Loud ML with RPM
 
-The RPM for Loud ML can be <<install-rpm,downloaded the COPR website>>
+The RPM for Loud ML can be <<install-rpm,downloaded from the COPR website>>
 or from the COPR <<rpm-repo,RPM repository>>. It can be used to install
 Loud ML on any RPM-based system such as OpenSuSE, Fedora, SLES, CentOS, Red Hat, and Oracle Enterprise.
 

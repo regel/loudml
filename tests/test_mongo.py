@@ -21,7 +21,8 @@ logging.getLogger('tensorflow').disabled = True
 
 
 class TestMongo(unittest.TestCase):
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         db = os.environ.get('MONGODB_DB')
         if not db:
             db = "test-{}".format(int(datetime.datetime.now().timestamp()))
@@ -43,10 +44,10 @@ class TestMongo(unittest.TestCase):
             if auth_source:
                 settings['auth_source'] = auth_source
 
-        self.bucket_cfg = settings
-        self.source = MongoBucket(settings)
+        cls.bucket_cfg = settings
+        cls.source = MongoBucket(settings)
 
-        self.model = Model(dict(
+        cls.model = Model(dict(
             name="test-model",
             offset=30,
             span=300,
@@ -67,15 +68,16 @@ class TestMongo(unittest.TestCase):
             ],
         ))
 
-        self.t0 = datetime.datetime.now(datetime.timezone.utc).replace(
+        cls.t0 = datetime.datetime.now(datetime.timezone.utc).replace(
             hour=0,
             minute=0,
             second=0,
             microsecond=0,
         ).timestamp()
 
-    def tearDown(self):
-        self.source.drop()
+    @classmethod
+    def tearDownClass(cls):
+        cls.source.drop()
 
     def test_validate_config(self):
         MongoBucket({

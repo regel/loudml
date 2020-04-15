@@ -25,21 +25,22 @@ logging.getLogger('tensorflow').disabled = True
 
 
 class TestWarp10(unittest.TestCase):
-    def setUp(self):
-        self.prefix = "test-{}".format(datetime.datetime.now().timestamp())
-        self.source = Warp10Bucket({
+    @classmethod
+    def setUpClass(cls):
+        cls.prefix = "test-{}".format(datetime.datetime.now().timestamp())
+        cls.source = Warp10Bucket({
             'name': 'test',
             'url': os.environ['WARP10_URL'],
             'read_token': os.environ['WARP10_READ_TOKEN'],
             'write_token': os.environ['WARP10_WRITE_TOKEN'],
-            'global_prefix': self.prefix,
+            'global_prefix': cls.prefix,
         })
         logger = logging.getLogger('warp10client.client')
         logger.setLevel(logging.INFO)
 
-        self.tag = {'test': self.prefix}
+        cls.tag = {'test': cls.prefix}
 
-        self.model = Model(dict(
+        cls.model = Model(dict(
             name="test-model",
             offset=30,
             span=3,
@@ -60,15 +61,16 @@ class TestWarp10(unittest.TestCase):
             ],
         ))
 
-        self.t0 = datetime.datetime.now(datetime.timezone.utc).replace(
+        cls.t0 = datetime.datetime.now(datetime.timezone.utc).replace(
             hour=0,
             minute=0,
             second=0,
             microsecond=0,
         ).timestamp()
 
-    def tearDown(self):
-        self.source.drop(tags=self.tag)
+    @classmethod
+    def tearDownClass(cls):
+        cls.source.drop(tags=cls.tag)
 
     def test_multi_fetch(self):
         model = Model(dict(

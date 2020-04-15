@@ -26,7 +26,9 @@ The matrix of officially supported operating systems is:
 |Fedora 30         |
 |Fedora 31         |
 |Linux Debian 9    | stretch
-|Linux Ubuntu      | 18.04
+|Linux Debian 10   | buster
+|Linux Ubuntu      | 16.04 xenial
+|Linux Ubuntu      | 18.04 bionic
 |Docker            | -
 |======================
 
