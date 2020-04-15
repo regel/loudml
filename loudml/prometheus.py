@@ -21,6 +21,9 @@ from loudml import (
     errors,
     schemas,
 )
+from loudml.requests import (
+    perform_request
+)
 from loudml.misc import (
     escape_quotes,
     escape_doublequotes,
@@ -30,6 +33,9 @@ from loudml.misc import (
     ts_to_str,
 )
 from loudml.bucket import Bucket
+
+
+DEFAULT_REQUEST_TIMEOUT = 5
 
 # Prometheus aggregation function:
 # https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators
@@ -68,23 +74,6 @@ AGGREGATORS = {
     '90percentile': 'quantile(0.90,{}{})',
     '95percentile': 'quantile(0.95,{}{})'
 }
-
-
-def _build_time_predicates(
-    from_date=None,
-    to_date=None,
-):
-    """
-    Build time range predicates
-    """
-    must = []
-
-    if from_date:
-        must.append("start={}".format(from_date))
-    if to_date:
-        must.append("end={}".format(to_date))
-
-    return "&".join(must)
 
 
 def _build_tags_predicates(match_all=None):
@@ -154,32 +143,26 @@ class PrometheusClient(object):
             self.session.verify = ssl_cert_path
 
 
-    def build_url(self, q):
+    def build_url_params(self, q):
         """
-        Forms a query URL from bits.
+        Forms a query URL params from bits.
         TODO: add better aggregator functions handling
         """
-        time_pred = _build_time_predicates(q["start"], q["end"])
+        params = {
+            'start': int(make_ts(q['start'])),
+            'end': int(make_ts(q['end'])),
+            'step': q["step"]
+        }
+
         aggregator = AGGREGATORS.get(q["aggregator"])
         if aggregator:
-            query_expr = aggregator.format(q["metric_name"], q["tags"])
-            query_url = "{}/api/v1/query_range?{}&step={}&query={}".format(
-                self.url,
-                time_pred,
-                q["step"],
-                query_expr
-            )
+            params['query'] = aggregator.format(q["metric_name"], q["tags"])
         else:
             logging.warning('Unsupported aggregation operator.'
                 'Please submit a ticket on GitHub :)')
-            query_url = "{}/api/v1/query_range?{}&step={}&query={}{}".format(
-                self.url,
-                time_pred,
-                q["step"],
-                q["metric_name"],
-                q["tags"]
-            )
-        return query_url
+            params['query'] = "{}{}".format(q["metric_name"], q["tags"])
+
+        return params
 
 
     def query(self, queries):
@@ -197,10 +180,19 @@ class PrometheusClient(object):
         results = []
 
         for q in queries:
-            query_url = self.build_url(q)
+            params = self.build_url_params(q)
             try:
-                resp = self.session.get(query_url)
-                self.session.close()
+                resp = perform_request(
+                    self.url,
+                    'GET',
+                    '/api/v1/query_range',
+                    session=self.session,
+                    params=params,
+                    body=None,
+                    timeout=DEFAULT_REQUEST_TIMEOUT,
+                    ignore=(),
+                    headers=None,
+                )
             except requests.exceptions.SSLError as exn:
                 logging.error('Prometheus SSL error', str(exn))
 
