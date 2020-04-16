@@ -10,7 +10,7 @@ daiquiri==1.6.0
 dateutils==0.6.7
 decorator==4.4.1          # via networkx
 dictdiffer==0.8.0
-docutils==0.15.2          # via botocore
+docutils==0.16          # via botocore
 elasticsearch==6.3.1
 flask-restful==0.3.7
 flask==1.1.1
