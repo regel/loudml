@@ -39,7 +39,7 @@ requests==2.22.0
 s3transfer==0.3.3         # via boto3
 schedule==0.6.0
 scipy==1.4.1              # via hyperopt
-six==1.13.0               # via absl-py, cycler, flask-restful, grpcio, h5py, hyperopt, influxdb, keras-preprocessing, mock, protobuf, python-dateutil
+six==1.14.0               # via absl-py, cycler, flask-restful, grpcio, h5py, hyperopt, influxdb, keras-preprocessing, mock, protobuf, python-dateutil
 tqdm==4.45.0              # via hyperopt, loudml-python
 urllib3==1.25.8           # via botocore, elasticsearch, requests
 voluptuous==0.11.7
