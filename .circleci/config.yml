@@ -89,7 +89,6 @@ workflows:
     jobs:
       - debuild_stretch
       - debuild_buster
-      - debuild_xenial
       - debuild_bionic
       - publish_debs:
           context: artifacts
@@ -97,7 +96,6 @@ workflows:
             - test-python-unit
             - debuild_stretch
             - debuild_buster
-            - debuild_xenial
             - debuild_bionic
           filters:
             branches:
@@ -793,8 +791,6 @@ jobs:
           distro: stretch
       - publish_deb:
           distro: buster
-      - publish_deb:
-          distro: xenial
       - publish_deb:
           distro: bionic
 
