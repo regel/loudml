@@ -60,10 +60,6 @@ commands:
                 ~/debs/<< parameters.distro >>/*.deb
 
 
-docker_deploy: &docker_deploy
-  requires:
-    - build
-
 target_cpu: &target_cpu
   extras_require: "cpu"
   base_image: "debian:stretch-slim"
@@ -127,7 +123,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:nightly"
           <<: *target_cpu
-          <<: *docker_deploy
           requires:
             - test-python-unit
           tag: nightly
@@ -137,7 +132,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:nightly-noavx"
           <<: *target_noavx
-          <<: *docker_deploy
           requires:
             - test-python-unit
           tag: nightly-noavx
@@ -147,7 +141,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:nightly-gpu"
           <<: *target_gpu
-          <<: *docker_deploy
           requires:
             - test-python-unit
           tag: nightly-gpu
@@ -196,13 +189,9 @@ workflows:
 
   release:
     jobs:
-      - test-python-unit
       - deploy:
           name: "Deploy loudml/loudml:rc"
           <<: *target_cpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: rc
           filters:
             branches:
@@ -212,9 +201,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:latest"
           <<: *target_cpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: latest
           release: true
           filters:
@@ -225,9 +211,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:rc-noavx"
           <<: *target_noavx
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: rc-noavx
           filters:
             branches:
@@ -237,9 +220,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:latest-noavx"
           <<: *target_noavx
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: latest-noavx
           filters:
             branches:
@@ -249,9 +229,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:rc-gpu"
           <<: *target_gpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: rc-gpu
           filters:
             branches:
@@ -261,9 +238,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:latest-gpu"
           <<: *target_gpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: latest-gpu
           filters:
             branches:
