@@ -354,7 +354,7 @@ db_integration_test: &db_integration_test
             RANDOM_SEED: 10
             PYTHONHASHSEED: 0
 
-db_coverage_test: &db_coverage_test
+coverage_test: &db_coverage_test
     steps:
       - checkout
 
@@ -379,7 +379,11 @@ db_coverage_test: &db_coverage_test
           name: Coverage tests
           command: |
             . venv/bin/activate
-            unittests="$UNITTESTS" make coverage
+            if [ ! -z "$UNITTESTS" ]; then
+              unittests="$UNITTESTS" make coverage
+            else
+              make coverage
+            fi
             mv .coverage .coverage.$CIRCLE_JOB
           environment:
             RANDOM_SEED: 10
@@ -437,7 +441,7 @@ es_coverage_test: &es_coverage_test
       ELASTICSEARCH_ADDR: localhost:9200
       DATABASE_ADDR: localhost:9200
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 mongo_coverage_test: &mongo_coverage_test
     environment:
@@ -445,7 +449,7 @@ mongo_coverage_test: &mongo_coverage_test
       MONGODB_DB: localhost:27017
       DATABASE_ADDR: localhost:27017
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 warp_coverage_test: &warp_coverage_test
     environment:
@@ -455,7 +459,7 @@ warp_coverage_test: &warp_coverage_test
       WARP10_WRITE_TOKEN: writeTokenCI
       DATABASE_ADDR: 127.0.0.1:8080
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 influx_coverage_test: &influx_coverage_test
     environment:
@@ -463,7 +467,7 @@ influx_coverage_test: &influx_coverage_test
       INFLUXDB_ADDR: localhost:8086
       DATABASE_ADDR: localhost:8086
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 
 jobs:
@@ -605,10 +609,8 @@ jobs:
   test-python-coverage:
     docker:
       - image: circleci/python:3.6.1
-    environment:
-      UNITTESTS: tests/
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
   combine-coverage:
     docker:
