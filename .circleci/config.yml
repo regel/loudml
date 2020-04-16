@@ -354,7 +354,7 @@ db_integration_test: &db_integration_test
             RANDOM_SEED: 10
             PYTHONHASHSEED: 0
 
-coverage_test: &db_coverage_test
+coverage_test: &coverage_test
     steps:
       - checkout
 
