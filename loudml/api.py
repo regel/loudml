@@ -127,7 +127,7 @@ class Hook:
         mse -- MSE
         anomalies -- dict of abnormal features
         """
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def on_anomaly_end(self, dt, score, *args, **kwargs):
         """
