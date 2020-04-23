@@ -25,10 +25,7 @@ VENV_BUILD_DIR = '$(PWD)/debian/loudml/opt/venvs'
 .PHONY: override_dh_strip override_dh_shlibdeps
 
 override_dh_strip:
-	dh_strip --exclude=cffi --exclude=hdf5
-
-override_dh_shlibdeps:
-	dh_shlibdeps -X/x86/ -X/numpy/.libs -X/scipy/.libs -X/matplotlib/.libs
+	dh_strip --exclude=cffi --exclude=hdf5 --exclude=h5py --exclude=h5z
 
 override_dh_virtualenv:
 	dh_virtualenv $(DH_VIRTUALENV_ARGS)

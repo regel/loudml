@@ -60,10 +60,6 @@ commands:
                 ~/debs/<< parameters.distro >>/*.deb
 
 
-docker_deploy: &docker_deploy
-  requires:
-    - build
-
 target_cpu: &target_cpu
   extras_require: "cpu"
   base_image: "debian:stretch-slim"
@@ -93,7 +89,6 @@ workflows:
     jobs:
       - debuild_stretch
       - debuild_buster
-      - debuild_xenial
       - debuild_bionic
       - publish_debs:
           context: artifacts
@@ -101,7 +96,6 @@ workflows:
             - test-python-unit
             - debuild_stretch
             - debuild_buster
-            - debuild_xenial
             - debuild_bionic
           filters:
             branches:
@@ -127,7 +121,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:nightly"
           <<: *target_cpu
-          <<: *docker_deploy
           requires:
             - test-python-unit
           tag: nightly
@@ -137,7 +130,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:nightly-noavx"
           <<: *target_noavx
-          <<: *docker_deploy
           requires:
             - test-python-unit
           tag: nightly-noavx
@@ -147,7 +139,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:nightly-gpu"
           <<: *target_gpu
-          <<: *docker_deploy
           requires:
             - test-python-unit
           tag: nightly-gpu
@@ -196,13 +187,9 @@ workflows:
 
   release:
     jobs:
-      - test-python-unit
       - deploy:
           name: "Deploy loudml/loudml:rc"
           <<: *target_cpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: rc
           filters:
             branches:
@@ -212,9 +199,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:latest"
           <<: *target_cpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: latest
           release: true
           filters:
@@ -225,9 +209,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:rc-noavx"
           <<: *target_noavx
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: rc-noavx
           filters:
             branches:
@@ -237,9 +218,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:latest-noavx"
           <<: *target_noavx
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: latest-noavx
           filters:
             branches:
@@ -249,9 +227,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:rc-gpu"
           <<: *target_gpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: rc-gpu
           filters:
             branches:
@@ -261,9 +236,6 @@ workflows:
       - deploy:
           name: "Deploy loudml/loudml:latest-gpu"
           <<: *target_gpu
-          <<: *docker_deploy
-          requires:
-            - test-python-unit
           tag: latest-gpu
           filters:
             branches:
@@ -354,7 +326,7 @@ db_integration_test: &db_integration_test
             RANDOM_SEED: 10
             PYTHONHASHSEED: 0
 
-db_coverage_test: &db_coverage_test
+coverage_test: &coverage_test
     steps:
       - checkout
 
@@ -379,7 +351,11 @@ db_coverage_test: &db_coverage_test
           name: Coverage tests
           command: |
             . venv/bin/activate
-            unittests="$UNITTESTS" make coverage
+            if [ ! -z "$UNITTESTS" ]; then
+              unittests="$UNITTESTS" make coverage
+            else
+              make coverage
+            fi
             mv .coverage .coverage.$CIRCLE_JOB
           environment:
             RANDOM_SEED: 10
@@ -437,7 +413,7 @@ es_coverage_test: &es_coverage_test
       ELASTICSEARCH_ADDR: localhost:9200
       DATABASE_ADDR: localhost:9200
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 mongo_coverage_test: &mongo_coverage_test
     environment:
@@ -445,7 +421,7 @@ mongo_coverage_test: &mongo_coverage_test
       MONGODB_DB: localhost:27017
       DATABASE_ADDR: localhost:27017
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 warp_coverage_test: &warp_coverage_test
     environment:
@@ -455,7 +431,7 @@ warp_coverage_test: &warp_coverage_test
       WARP10_WRITE_TOKEN: writeTokenCI
       DATABASE_ADDR: 127.0.0.1:8080
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 influx_coverage_test: &influx_coverage_test
     environment:
@@ -463,7 +439,7 @@ influx_coverage_test: &influx_coverage_test
       INFLUXDB_ADDR: localhost:8086
       DATABASE_ADDR: localhost:8086
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
 
 jobs:
@@ -605,10 +581,8 @@ jobs:
   test-python-coverage:
     docker:
       - image: circleci/python:3.6.1
-    environment:
-      UNITTESTS: tests/
     working_directory: ~/repo
-    <<: *db_coverage_test
+    <<: *coverage_test
 
   combine-coverage:
     docker:
@@ -817,8 +791,6 @@ jobs:
           distro: stretch
       - publish_deb:
           distro: buster
-      - publish_deb:
-          distro: xenial
       - publish_deb:
           distro: bionic
 
