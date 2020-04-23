@@ -22,7 +22,8 @@ from loudml import (
     schemas,
 )
 from loudml.requests import (
-    perform_request
+    perform_request,
+    DEFAULT_REQUEST_TIMEOUT
 )
 from loudml.misc import (
     escape_quotes,
@@ -35,7 +36,7 @@ from loudml.misc import (
 from loudml.bucket import Bucket
 
 
-DEFAULT_REQUEST_TIMEOUT = 5
+
 
 # Prometheus aggregation function:
 # https://prometheus.io/docs/prometheus/latest/querying/operators/#aggregation-operators
