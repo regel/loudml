@@ -152,7 +152,8 @@ class PrometheusClient(object):
         params = {
             'start': int(make_ts(q['start'])),
             'end': int(make_ts(q['end'])),
-            'step': q["step"]
+            'step': q["step"],
+            'timeout': DEFAULT_REQUEST_TIMEOUT
         }
 
         aggregator = AGGREGATORS.get(q["aggregator"])

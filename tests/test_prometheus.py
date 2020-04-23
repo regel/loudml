@@ -7,6 +7,9 @@ from loudml.misc import (
     nan_to_none,
     make_ts,
 )
+from loudml.requests import (
+    DEFAULT_REQUEST_TIMEOUT
+)
 
 import datetime
 import logging
@@ -110,6 +113,7 @@ class TestPrometheusQuick(unittest.TestCase):
                 "start": 42,
                 "end": 42,
                 "step": 15,
-                "query": "quantile(0.95,foo{})"
+                "query": "quantile(0.95,foo{})",
+                "timeout": DEFAULT_REQUEST_TIMEOUT
             }
         )
