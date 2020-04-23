@@ -3,6 +3,9 @@ import requests
 from urllib.parse import urlencode
 
 
+DEFAULT_REQUEST_TIMEOUT = 5
+
+
 def perform_request(
     base_url,
     method,
