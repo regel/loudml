@@ -24,6 +24,7 @@ from loudml import (
 from loudml.requests import (
     perform_request,
     perform_data_request,
+    DEFAULT_REQUEST_TIMEOUT
 )
 from loudml.misc import (
     make_ts,
@@ -44,8 +45,6 @@ def format_bool(o):
     else:
         return o
 
-
-DEFAULT_REQUEST_TIMEOUT = 5
 
 # Available aggregators on OpenTSDB: http://localhost:4242/api/aggregators
 AGGREGATORS = {

@@ -7,6 +7,7 @@ from loudml.elastic_aws import ElasticsearchAWSBucket
 from loudml.warp10 import Warp10Bucket
 from loudml.mongo import MongoBucket
 from loudml.opentsdb import OpenTSDBBucket
+from loudml.prometheus import PrometheusBucket
 
 
 entry_points = defaultdict(list, {
@@ -23,6 +24,7 @@ entry_points = defaultdict(list, {
         ('warp10', Warp10Bucket),
         ('mongodb', MongoBucket),
         ('opentsdb', OpenTSDBBucket),
+        ('prometheus', PrometheusBucket),
     ],
 })
 
