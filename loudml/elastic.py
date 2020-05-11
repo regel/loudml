@@ -76,13 +76,6 @@ def _build_match_all(match_all=None):
     if match_all is None:
         return
 
-    inline = """
-if (doc['{field}'].size()==0) {{
-    return false
-}} else {{
-    return doc['{field}'].value=={value}
-}}
-"""
     for condition in match_all:
         key = condition['tag']
         val = condition['value']
@@ -90,14 +83,11 @@ if (doc['{field}'].size()==0) {{
         if isinstance(val, bool):
             val = str(val).lower()
         elif isinstance(val, str):
-            val = "'{}'".format(escape_quotes(val))
+            val = escape_quotes(val)
 
         yield {
-            "script": {
-                "script": {
-                    "lang": "painless",
-                    "inline": inline.format(field=key, value=val)
-                }
+            "match": {
+                key: val
             }
         }
 
@@ -116,6 +106,8 @@ def _build_date_range(field, from_ms=None, to_ms=None):
 
     if len(date_range) == 0:
         return None
+
+    date_range['format'] = 'epoch_millis'
 
     return {'range': {
         field: date_range,
