@@ -5,6 +5,8 @@ Elasticsearch module for Loud ML
 import datetime
 import logging
 import re
+import json
+import hashlib
 
 import elasticsearch.exceptions
 import urllib3.exceptions
@@ -392,6 +394,11 @@ class ElasticsearchBucket(Bucket):
         if tags is not None:
             for tag, tag_val in tags.items():
                 data[tag] = tag_val
+
+        if doc_id is None:
+            hash_fun = hashlib.sha1()
+            hash_fun.update(json.dumps(data, sort_keys=True).encode())
+            doc_id = hash_fun.hexdigest()
 
         self.insert_data(
             data,
