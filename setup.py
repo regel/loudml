@@ -56,7 +56,7 @@ setup(
         'pycrypto>=2.6.1',
         'voluptuous==0.11.7',
         'dictdiffer>=0.7.1',
-        'elasticsearch==6.3.1',
+        'elasticsearch==7.7.1',
         'boto3>=1.7.58',
         'requests-aws4auth>=0.9',
         'influxdb>=5.0.0',
