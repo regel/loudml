@@ -11,7 +11,7 @@ dateutils==0.6.7
 decorator==4.4.1          # via networkx
 dictdiffer==0.8.0
 docutils==0.16          # via botocore
-elasticsearch==6.3.1
+elasticsearch==7.8.0
 flask-restful==0.3.7
 flask==1.1.1
 future==0.18.2            # via hyperopt
