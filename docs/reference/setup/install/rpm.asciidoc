@@ -17,7 +17,7 @@ You have two options to do that:
 
 [source,sh]
 -------------------------
-dnf copr enable regel/loudml
+dnf copr enable regel/loudml  # <1>
 -------------------------
 <1> If you’re using a version of Linux with dnf
 
@@ -25,7 +25,7 @@ You need to have dnf-plugins-core installed.
 
 [source,sh]
 -------------------------
-yum copr enable regel/loudml
+yum copr enable regel/loudml  # <1>
 -------------------------
 <1> Or if you have older distribution
 
