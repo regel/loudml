@@ -8,7 +8,7 @@
 %global __os_install_post /usr/lib/rpm/brp-compress %{nil}
 
 Name: loudml
-Version: 1.5.0
+Version: 1.6.0
 Release:	1%{?dist}
 Summary:	Loud ML core package
 
