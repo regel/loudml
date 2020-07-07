@@ -22,8 +22,13 @@ The matrix of officially supported operating systems is:
 |=======================
 |Distribution|Version      
 |Linux CentOS 7    | >= 7.3 
+|Linux CentOS 8    | >= 8.0
+|Fedora 30         |
+|Fedora 31         |
 |Linux Debian 9    | stretch
-|Linux Ubuntu      | 18.04
+|Linux Debian 10   | buster
+|Linux Ubuntu      | 16.04 xenial
+|Linux Ubuntu      | 18.04 bionic
 |Docker            | -
 |======================
 

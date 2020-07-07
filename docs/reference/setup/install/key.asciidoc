@@ -1,8 +1,0 @@
-We sign all of our packages with the Loud ML Signing Key (PGP key
-https://pgp.mit.edu/pks/lookup?op=vindex&search=0x2B30B150C0DCADA9[C0DCADA9],
-available from https://pgp.mit.edu) with fingerprint:
-
-    AA8C 857B F0D3 D5A1 B521  000A 2B30 B150 C0DC ADA9
-
-Download and install the public signing key:
-

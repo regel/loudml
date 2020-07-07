@@ -6,6 +6,8 @@ for their respective work, and release the work under the MIT licence
 Exceptions or notable authors are listed below
 in reverse chronological order:
 
+* files: loudml/opentsdb.py
+  MIT 2020 (c) Volodymyr Sergeyev
 * files: loudml/_version.py
   MIT 2019 (c) Casper da Costa-Luis, Hadrien Mary, Stephen L.
   [tqdm](tqdm/tqdm/_version.py).
