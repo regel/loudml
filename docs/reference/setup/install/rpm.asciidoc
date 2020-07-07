@@ -15,21 +15,19 @@ Stable versions of Loud ML starting from 1.6.0 can be found in the COPR <<rpm-re
 
 You have two options to do that:
 
-<1> If you’re using a version of Linux with dnf:
-
 [source,sh]
 -------------------------
-dnf copr enable regel/loudml
+dnf copr enable regel/loudml  # <1>
 -------------------------
+<1> If you’re using a version of Linux with dnf
 
 You need to have dnf-plugins-core installed.
 
-<2> Or if you have older distribution:
-
 [source,sh]
 -------------------------
-yum copr enable regel/loudml
+yum copr enable regel/loudml  # <1>
 -------------------------
+<1> Or if you have older distribution
 
 You need to have yum-plugin-copr installed.
 

@@ -124,6 +124,7 @@ workflows:
           requires:
             - test-python-unit
           tag: nightly
+          release: true
           filters:
             branches:
               only: develop
@@ -133,6 +134,7 @@ workflows:
           requires:
             - test-python-unit
           tag: nightly-noavx
+          release: true
           filters:
             branches:
               only: develop
@@ -142,6 +144,7 @@ workflows:
           requires:
             - test-python-unit
           tag: nightly-gpu
+          release: true
           filters:
             branches:
               only: develop
@@ -188,15 +191,6 @@ workflows:
   release:
     jobs:
       - deploy:
-          name: "Deploy loudml/loudml:rc"
-          <<: *target_cpu
-          tag: rc
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^[0-9]+(\.[0-9]+)*(\S*)([a|rc|beta]([0-9]+))+$/
-      - deploy:
           name: "Deploy loudml/loudml:latest"
           <<: *target_cpu
           tag: latest
@@ -207,15 +201,6 @@ workflows:
             tags:
               only: /^[0-9]+(\.[0-9]+)*$/
       - deploy:
-          name: "Deploy loudml/loudml:rc-noavx"
-          <<: *target_noavx
-          tag: rc-noavx
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^[0-9]+(\.[0-9]+)*(\S*)([a|rc|beta]([0-9]+))+$/
-      - deploy:
           name: "Deploy loudml/loudml:latest-noavx"
           <<: *target_noavx
           tag: latest-noavx
@@ -224,15 +209,6 @@ workflows:
               ignore: /.*/
             tags:
               only: /^[0-9]+(\.[0-9]+)*$/
-      - deploy:
-          name: "Deploy loudml/loudml:rc-gpu"
-          <<: *target_gpu
-          tag: rc-gpu
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^[0-9]+(\.[0-9]+)*(\S*)([a|rc|beta]([0-9]+))+$/
       - deploy:
           name: "Deploy loudml/loudml:latest-gpu"
           <<: *target_gpu
@@ -730,16 +706,19 @@ jobs:
       - run: |
           echo "${DOCKER_PASSWORD}" | \
               docker login -u "${DOCKER_ID_USER}" --password-stdin
-          docker tag app loudml/loudml:<< parameters.tag >>
-          docker push loudml/loudml:<< parameters.tag >>
       - when:
           condition: << parameters.release >>
           steps:
             - run: |
+                docker tag app loudml/loudml:<< parameters.tag >>
+                docker push loudml/loudml:<< parameters.tag >>
                 docker tag app loudml/loudml:${CIRCLE_SHA1:0:7}
                 docker push loudml/loudml:${CIRCLE_SHA1:0:7}
-                docker tag app loudml/loudml:${CIRCLE_TAG}
-                docker push loudml/loudml:${CIRCLE_TAG}
+                if [ -n "$CIRCLE_TAG" ]
+                then
+                  docker tag app loudml/loudml:${CIRCLE_TAG}
+                  docker push loudml/loudml:${CIRCLE_TAG}
+                fi
 
   debuild_stretch:
     docker:
