@@ -25,7 +25,7 @@ commands:
             DEBIAN_FRONTEND: noninteractive
           command: |
             sudo apt-get install -y python-sphinx python-mock dh-exec python-sphinx-rtd-theme
-            git clone https://github.com/spotify/dh-virtualenv.git
+            git clone --single-branch -b 1.1 https://github.com/spotify/dh-virtualenv.git
             cd dh-virtualenv/ && \
                 sudo mk-build-deps -ri && \
                 dpkg-buildpackage -us -uc -b && \
