@@ -4,7 +4,7 @@ version: "3.6"
 
 services:
   loudml:
-    image: loudml/loudml:latest-devel
+    image: loudml/loudml:1.6.0
     volumes:
       - ./etc/loudml.yml:/etc/loudml/config.yml:ro
       - var_loudml
