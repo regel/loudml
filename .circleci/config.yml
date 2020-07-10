@@ -29,7 +29,11 @@ commands:
             cd dh-virtualenv/ && \
                 sudo mk-build-deps -ri && \
                 dpkg-buildpackage -us -uc -b && \
-                sudo dpkg -i ../dh-virtualenv_*_all.deb
+                sudo dpkg -i --force-unsafe-io \
+                  --ignore-depends=python:any \
+                  --ignore-depends=virtualenv \
+                  --ignore-depends=sphinx-rtd-theme-common \
+                  ../dh-virtualenv_*_all.deb
             dh_virtualenv --version
       - run:
           name: Run make
