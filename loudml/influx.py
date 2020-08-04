@@ -678,7 +678,16 @@ class InfluxBucket(Bucket):
         )
 
         query = ''.join(query)
-        result = self.annotationdb.query(query)
+        try:
+            result = self.annotationdb.query(query)
+        except influxdb.exceptions.InfluxDBClientError as exn:
+            logging.warning(
+                "could not load annotations, got error '%d'",
+                exn.code,
+            )
+            if exn.code == 401:
+                return []
+            raise exn
 
         windows = []
         for j, point in enumerate(result.get_points()):
