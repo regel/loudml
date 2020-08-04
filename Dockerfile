@@ -1,38 +1,41 @@
 ARG extras_require=cpu
-ARG base_image=debian:stretch-slim
+ARG base_image=python:3.6-slim 
 ARG gpu=false
 
-FROM debian:stretch-slim AS builder
+FROM $base_image AS builder
 ARG extras_require
-RUN apt-get update \
-	&& apt-get install -y python3-pip python3-setuptools python3-dev \
-	&& apt-get install -y --no-install-recommends build-essential gcc git \
-	&& apt-get purge -y
 
-COPY setup.py /app/
-COPY loudml /app/loudml
-WORKDIR /app
-COPY requirements.txt .
+RUN apt-get update -qq && \
+  apt-get install -y --no-install-recommends \
+  build-essential \
+  pkg-config \
+  git-core \
+  openssl
 
-RUN python3 -m pip install --upgrade pip \
-	&& python3 -m pip install --user --no-cache-dir -r requirements.txt \
-	&& python3 -m pip install --user --no-cache-dir .[$extras_require]
+# copy files
+COPY . /build/
 
-FROM $base_image
+# change working directory
+WORKDIR /build
+
+# install dependencies
+RUN python -m venv /opt/venv && \
+  . /opt/venv/bin/activate && \
+  pip install --no-cache-dir -U 'pip<20' && \
+  pip install --no-cache-dir -r requirements.txt && \
+  pip install --no-cache-dir .[$extras_require] && \
+  rm -rf dist *.egg-info
+
+# start a new build stage
+FROM $base_image AS runner
 ARG gpu
 
-# python3-setuptools: Required to import pkg_resources
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends python3 python3-setuptools \
-	&& apt-get purge -y
-
-COPY --from=builder /root/.local /opt/vendor
+# copy everything from /opt
+COPY --from=builder /opt/venv /opt/venv
 
 RUN mkdir /var/lib/loudml && \
 	chgrp -R 0 /var/lib/loudml && \
 	chmod -R g=u /var/lib/loudml && \
-	chgrp -R 0 /opt/vendor && \
-	chmod -R g=u /opt/vendor && \
 	mkdir /etc/loudml && \
 { if [ "x$gpu" = "xtrue" ] ; then /bin/echo -e '\
 ---\n\
@@ -57,9 +60,21 @@ server:\n\
 >> /etc/loudml/config.yml ; \
 fi ; }
 
+# make sure we use the virtualenv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# update permissions & change user to not run as root
+WORKDIR /app
+RUN chgrp -R 0 /app && chmod -R g=u /app
 USER 1001
-ENV PYTHONUSERBASE=/opt/vendor
-ENV PATH=/opt/vendor/bin:$PATH
-CMD /bin/bash -c loudmld
-LABEL maintainer="packaging@loudml.io"
+
+# create a volume for temporary data
+VOLUME /tmp
+
+# change shell
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# the entry point
 EXPOSE 8077
+LABEL maintainer="packaging@loudml.io"
+ENTRYPOINT ["loudmld"]
