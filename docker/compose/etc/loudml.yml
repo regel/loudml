@@ -4,14 +4,19 @@ buckets:
     type: influxdb
     addr: influxdb:8086
     database: loudml
+    dbuser: loudml
+    dbuser_password: "metricsmetricsmetricsmetrics"
     retention_policy: autogen
     measurement: loudml
+    create_database: false
   - name: data
     type: influxdb
     addr: influxdb:8086
-    database: data
+    database: telegraf
+    dbuser: reader
+    dbuser_password: "metricsmetricsmetricsmetrics"
     retention_policy: autogen
-    measurement: sinus
+    create_database: false
 
 storage:
   path: /var/lib/loudml
