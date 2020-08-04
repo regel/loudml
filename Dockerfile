@@ -1,5 +1,5 @@
 ARG extras_require=cpu
-ARG base_image=python:3.6-slim 
+ARG base_image=python:3.7-slim
 ARG gpu=false
 
 FROM $base_image AS builder
