@@ -8,6 +8,7 @@ ARG extras_require
 RUN apt-get update -qq && \
   apt-get install -y --no-install-recommends \
   build-essential \
+  python3-venv \
   pkg-config \
   git-core \
   openssl
