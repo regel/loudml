@@ -4,7 +4,7 @@ version: "3.6"
 
 services:
   loudml:
-    image: loudml/loudml:1.6.0
+    image: loudml/loudml
     volumes:
       - ./etc/loudml.yml:/etc/loudml/config.yml:ro
       - var_loudml
@@ -14,11 +14,16 @@ services:
       - influxdb
 
   influxdb:
-    image: influxdb
+    image: influxdb:alpine
     ports:
       - "8086:8086"
     volumes:
       - var_influxdb
+      - ./etc/influx_init.iql:/docker-entrypoint-initdb.d/influx_init.iql
+    environment:
+      INFLUXDB_HTTP_AUTH_ENABLED: "true"
+      INFLUXDB_ADMIN_USER: "admin"
+      INFLUXDB_ADMIN_PASSWORD: "passw0rd"
 
   chronograf:
     image: loudml/chronograf
@@ -31,21 +36,25 @@ services:
     volumes:
       - var_chronograf
     environment:
+      INFLUXDB_USERNAME: "admin"
+      INFLUXDB_PASSWORD: "passw0rd"
       INFLUXDB_URL: http://influxdb:8086
       LOUDML_URL: http://loudml:8077
       KAPACITOR_URL: http://kapacitor:9092
 
   kapacitor:
-    image: kapacitor
+    image: kapacitor:alpine
     depends_on:
       - influxdb
     volumes:
       - var_kapacitor
     environment:
       KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
+      KAPACITOR_INFLUXDB_0_USERNAME: "admin"
+      KAPACITOR_INFLUXDB_0_PASSWORD: "passw0rd"
 
   telegraf:
-    image: telegraf
+    image: telegraf:alpine
     volumes:
       - ./etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     depends_on:

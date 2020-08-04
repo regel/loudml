@@ -1,0 +1,14 @@
+CREATE DATABASE "telegraf"
+CREATE DATABASE "loudml"
+CREATE DATABASE "chronograf"
+CREATE USER telegraf WITH PASSWORD 'metricsmetricsmetricsmetrics'
+REVOKE ALL PRIVILEGES FROM telegraf
+GRANT WRITE ON telegraf TO telegraf
+CREATE USER reader WITH PASSWORD 'metricsmetricsmetricsmetrics'
+REVOKE ALL PRIVILEGES FROM reader
+GRANT READ ON telegraf TO reader
+GRANT READ ON chronograf TO reader
+CREATE USER loudml WITH PASSWORD 'metricsmetricsmetricsmetrics'
+REVOKE ALL PRIVILEGES FROM loudml
+GRANT WRITE ON loudml TO loudml
+GRANT ALL ON chronograf TO loudml

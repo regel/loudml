@@ -255,7 +255,7 @@ class Worker:
             if detect_anomalies:
                 hooks = self.storage.load_model_hooks(
                     model.settings,
-                    bucket,
+                    output_bucket or bucket,
                 )
                 model.detect_anomalies(prediction, hooks)
             if save_run_state:
