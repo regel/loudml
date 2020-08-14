@@ -67,7 +67,7 @@ setup(
     ],
 
     extras_require={
-        'interactive': ['matplotlib==3.0.3'],
+        'interactive': ['matplotlib==3.3.1'],
         'none': [],
         'cpu': ['tensorflow==1.13.2'],
         'gpu': ['tensorflow-gpu==1.13.2'],
