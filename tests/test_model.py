@@ -38,11 +38,6 @@ class TestModel(unittest.TestCase):
 
         # Invalid
         self.invalid_feature(
-            name="foo/invalid",
-            field="bar",
-            metric="avg",
-        )
-        self.invalid_feature(
             metric="avg",
             field="bar",
         )
@@ -160,19 +155,6 @@ class TestModel(unittest.TestCase):
                         'metric': 'count',
                         'io': 'o',
                     }
-                ],
-            }
-        )
-        self.invalid_model(
-            settings={
-                'name': 'foo/invalid',
-                'type': 'generic',
-                'features': [
-                    {
-                        'name': 'bar',
-                        'field': 'baz',
-                        'metric': 'avg',
-                    },
                 ],
             }
         )

@@ -22,10 +22,15 @@ class TestSchemas(unittest.TestCase):
         self.valid("Foo-Bar")
         self.valid("00_foo_00_bar_001")
         self.valid("_foo")
+        self.valid("traffic.rxt_et-1/0/0")
+        self.valid("traffic.rxt_et-[1/0/0]")
+        self.valid("traffic.rxt_et-{1/0/0}")
+        self.valid("traffic.rxt_et-00:11:11")
+        self.valid("traffic.rxt_et=adfa")
+        self.valid("traffic.rxt_et=\"foo\"")
+        self.valid("traffic.rxt_et=${value}")
 
         self.invalid("")
-        self.invalid("foo/bar")
-        self.invalid(".foo")
 
     def test_timestamp(self):
         self.schema = schemas.Timestamp()
