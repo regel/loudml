@@ -70,7 +70,7 @@ setup(
         'interactive': ['matplotlib==3.0.3'],
         'none': [],
         'cpu': ['tensorflow==1.13.2'],
-        'gpu': ['tensorflow-gpu==1.13.2'],
+        'gpu': ['tensorflow-gpu==1.15.4'],
         'dev': [
             'autopep8>=1.5',
             'flake8>=3.7.9',
