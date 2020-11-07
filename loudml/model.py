@@ -77,9 +77,9 @@ class Feature:
     SCHEMA = Schema({
         Required('name'): All(schemas.key, Length(max=256)),
         Required('metric'): All(schemas.key, Length(max=256)),
-        Required('field'): All(schemas.dotted_key, Length(max=256)),
+        Required('field'): All(schemas.key, Length(max=256)),
         'bucket': Any(None, schemas.key),
-        'measurement': Any(None, schemas.dotted_key),
+        'measurement': Any(None, schemas.key),
         'match_all': Any(None, Schema([
             {Required(schemas.key): Any(
                 int,
@@ -157,13 +157,13 @@ class FeatureTemplate(Feature):
             All(schemas.bracket_key, Length(max=256)),
         ),
         Required('field'): Any(
-            All(schemas.dotted_key, Length(max=256)),
+            All(schemas.key, Length(max=256)),
             All(schemas.bracket_key, Length(max=256)),
         ),
         'bucket': Any(
             None, schemas.key, schemas.bracket_key),
         'measurement': Any(
-            None, schemas.dotted_key, schemas.bracket_key),
+            None, schemas.key, schemas.bracket_key),
         'match_all': Any(
             None,
             Schema([

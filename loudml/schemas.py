@@ -28,19 +28,13 @@ from .misc import (
 key = All(
     str,
     Length(min=1),
-    Match("^[a-zA-Z0-9-_@]+$"),
+    Match("^[a-zA-Z0-9-_@\/\[\]{}:;,.|=%\"\$]+$"),
 )
 
 time_str_key = All(
     str,
     Length(min=1),
     Match("^[:0-9]+$"),
-)
-
-dotted_key = All(
-    str,
-    Length(min=1),
-    Match("^[a-zA-Z0-9-_@.]+$"),
 )
 
 bracket_key = All(
