@@ -22,7 +22,7 @@ hyperopt==0.2.2
 idna==2.9                 # via requests
 influxdb==5.2.3
 itsdangerous==1.1.0       # via flask
-jinja2==2.10.3
+jinja2==2.11.3
 jmespath==0.9.4           # via boto3, botocore
 loudml-python==1.6.3
 markupsafe==1.1.1         # via jinja2
