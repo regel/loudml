@@ -52,7 +52,7 @@ setup(
         'h5py==2.10.0',
         'hyperopt>=0.1',
         'networkx==2.2',
-        'numpy==1.18.2',
+        'numpy==1.21.0',
         'pycrypto>=2.6.1',
         'voluptuous==0.11.7',
         'dictdiffer>=0.7.1',
