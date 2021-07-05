@@ -1,7 +1,7 @@
 aniso8601==8.0.0          # via flask-restful
 argparse==1.4.0           # via dateutils
 boto3==1.12.39
-botocore==1.15.39         # via boto3, s3transfer
+botocore==1.20.105         # via boto3, s3transfer
 certifi==2020.4.5.1       # via loudml-python, requests
 chardet==3.0.4            # via requests
 click==7.0                # via flask
